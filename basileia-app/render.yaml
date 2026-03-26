@@ -1,0 +1,68 @@
+# Render Blueprint - Deploy Automático
+# ==========================================
+# Este arquivo configura o deploy automático no Render
+# Sempre que você fazer push no Git, o Render automaticamente
+# irá fazer o deploy da aplicação
+#
+# Como usar:
+# 1. Faça push das alterações para o GitHub
+# 2. O Render detectará automaticamente
+# 3. O deploy será executado automaticamente
+
+services:
+  # ==========================================
+  # Web Service (PHP/Laravel)
+  # ==========================================
+  - type: web
+    name: basileia-vendas
+    env: php
+    buildCommand: |
+      # Instalar dependências PHP
+      composer install --no-dev --optimize-autoloader
+      
+      # Gerar chave da aplicação se não existir
+      php artisan key:generate --force
+      
+      # Limpar cache
+      php artisan config:clear
+      php artisan cache:clear
+      php artisan route:clear
+      php artisan view:clear
+      
+    startCommand: |
+      php artisan queue:work --sleep=3 --tries=3 --max-time=3600 &
+      php artisan serve --host=0.0.0.0 --port=$PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: LOG_CHANNEL
+        value: errorlog
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: APP_URL
+        value: https://basileiavendas.onrender.com
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_HOST
+        value: smtp.mailtrap.io
+      - key: MAIL_PORT
+        value: 2525
+
+  # ==========================================
+  # Queue Worker (Background Jobs)
+  # ==========================================
+  - type: worker
+    name: basileia-vendas-queue
+    env: php
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php artisan config:clear
+    startCommand: |
+      php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: QUEUE_CONNECTION
+        value: database
