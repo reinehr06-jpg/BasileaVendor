@@ -65,7 +65,8 @@ class DatabaseResetController extends Controller
             $admin = User::create([
                 'name' => 'Administrador Master',
                 'email' => 'Basileia.vendas@Basileia.com',
-                'password' => Hash::make('B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0'),
+                // O modelo User já encripta automaticamente devido ao cast 'hashed'
+                'password' => 'B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0',
                 'perfil' => 'master',
                 'status' => 'ativo',
                 'require_password_change' => false,

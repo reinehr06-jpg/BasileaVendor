@@ -40,7 +40,7 @@ echo ""
 # PASSO 2: RODAR MIGRATIONS
 # ------------------------------------------
 echo ">>> PASSO 2: Rodando migrations..."
-php artisan migrate:fresh --force
+# php artisan migrate:fresh --force
 echo ""
 
 # ------------------------------------------

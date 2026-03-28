@@ -32,7 +32,9 @@ class MasterFixController extends Controller
         }
 
         // 2. Definir senha e garantir acesso
-        $user->password = Hash::make($password);
+        // IMPORTANTE: O modelo User.php já tem 'password' => 'hashed' nos casts.
+        // Atribuir o texto plano aqui fará o Laravel encriptar CORRETAMENTE uma única vez.
+        $user->password = $password;
         $user->status = 'ativo';
         $user->save();
 
