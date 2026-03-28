@@ -3,90 +3,88 @@
 
 @section('content')
 <style>
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .success-box { background: #dcfce7; color: #166534; padding: 16px; border-radius: 8px; margin-bottom: 24px; font-weight: 500; border-left: 4px solid #22c55e; }
-    .error-box { background: #fee2e2; color: #991b1b; padding: 16px; border-radius: 8px; margin-bottom: 24px; font-weight: 500; border-left: 4px solid #ef4444; }
-
-    .table-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { padding: 14px 18px; border-bottom: 1px solid var(--border); }
-    th { background: #f8fafc; font-weight: 600; color: var(--text-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover { background: #f8fafc; }
-
-    .status-badge { padding: 5px 12px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
-    .status-aguardando { background: #fef9c3; color: #854d0e; }
-    .status-pago { background: #dcfce7; color: #166534; }
-    .status-vencido { background: #fee2e2; color: #991b1b; }
-    .status-cancelado { background: #f1f5f9; color: #64748b; }
-    .status-expirado { background: #f1f5f9; color: #94a3b8; }
-
-    .stats-bar { display: flex; gap: 16px; margin-bottom: 24px; }
-    .stat-mini { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; flex: 1; text-align: center; }
-    .stat-mini .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
-    .stat-mini .stat-label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 4px; }
-
-    .btn-delete { background: none; border: 1px solid #fecaca; color: #991b1b; font-size: 0.8rem; cursor: pointer; padding: 5px 10px; border-radius: 6px; transition: 0.2s; }
-    .btn-delete:hover { background: #fee2e2; }
-
-    .expired-section { margin-top: 32px; }
-    .expired-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; cursor: pointer; }
-    .expired-header h3 { font-size: 1rem; color: var(--text-muted); font-weight: 600; }
-    .expired-toggle { font-size: 0.85rem; color: var(--primary); font-weight: 600; cursor: pointer; background: none; border: none; }
-    .expired-content { display: none; }
-    .expired-content.show { display: block; }
-    .expired-table tr { opacity: 0.6; }
-    .expired-table tr:hover { opacity: 0.85; }
-    .countdown-badge { font-size: 0.72rem; color: #dc2626; font-weight: 600; display: block; margin-top: 2px; }
+    .action-btn-sm {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .action-btn-boleto { background: var(--primary); color: white; border-color: var(--primary); }
+    .action-btn-link { background: var(--success); color: white; border-color: var(--success); }
+    .forma-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; background: rgba(76,29,149,0.08); color: var(--primary); }
 </style>
 
 <div class="page-header">
-    <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main);">Vendas Globais</h2>
+    <div>
+        <h2><i class="fas fa-shopping-bag" style="margin-right: 8px;"></i>Vendas Globais</h2>
+        <p>Todas as vendas da operação.</p>
+    </div>
 </div>
 
-@if(session('success'))
-<div class="success-box">✅ {{ session('success') }}</div>
-@endif
-
-@if($errors->any())
-<div class="error-box">❌ {{ $errors->first() }}</div>
-@endif
-
+<!-- Stats -->
 <div class="stats-bar">
-    <div class="stat-mini">
-        <div class="stat-value">{{ $vendas->count() }}</div>
+    <div class="stat-card">
+        <div class="stat-icon primary"><i class="fas fa-shopping-bag"></i></div>
+        <div class="stat-value">
+            {{ $vendas->filter(function($v) {
+                $s = strtoupper($v->getStatusEfetivo());
+                return !in_array($s, ['ESTORNADO', 'CANCELADO', 'EXPIRADO', 'VENCIDO']);
+            })->count() }}
+        </div>
         <div class="stat-label">Ativas</div>
     </div>
-    <div class="stat-mini">
-        <div class="stat-value">R$ {{ number_format($vendas->sum('valor'), 2, ',', '.') }}</div>
+    <div class="stat-card">
+        <div class="stat-icon success"><i class="fas fa-dollar-sign"></i></div>
+        <div class="stat-value">
+            R$ {{ number_format($vendas->filter(function($v) {
+                $s = strtoupper($v->getStatusEfetivo());
+                return in_array($s, ['PAGO', 'RECEIVED', 'CONFIRMED']);
+            })->sum('valor'), 2, ',', '.') }}
+        </div>
         <div class="stat-label">Valor Total</div>
     </div>
-    <div class="stat-mini">
-        <div class="stat-value">{{ $vendas->where('status', 'Pago')->count() }}</div>
+    <div class="stat-card">
+        <div class="stat-icon success"><i class="fas fa-circle-check"></i></div>
+        <div class="stat-value" style="color: var(--success);">
+            {{ $vendas->filter(function($v) {
+                $s = strtoupper($v->getStatusEfetivo());
+                return in_array($s, ['PAGO', 'RECEIVED', 'CONFIRMED']);
+            })->count() }}
+        </div>
         <div class="stat-label">Pagas</div>
     </div>
-    <div class="stat-mini">
-        <div class="stat-value">{{ $vendas->where('status', 'Aguardando pagamento')->count() }}</div>
+    <div class="stat-card">
+        <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
+        <div class="stat-value" style="color: var(--warning);">
+            {{ $vendas->filter(function($v) {
+                $s = strtoupper($v->getStatusEfetivo());
+                return in_array($s, ['AGUARDANDO PAGAMENTO', 'PENDING', 'AGUARDANDO APROVAÇÃO']);
+            })->count() }}
+        </div>
         <div class="stat-label">Aguardando</div>
-    </div>
-    <div class="stat-mini">
-        <div class="stat-value" style="color: #94a3b8;">{{ $vendasExpiradas->count() }}</div>
-        <div class="stat-label">Expiradas</div>
     </div>
 </div>
 
+<!-- Table -->
 <div class="table-container">
     @if($vendas->count() > 0)
     <table>
         <thead>
             <tr>
-                <th>Igreja</th>
-                <th>Vendedor</th>
-                <th>Plano</th>
-                <th>Valor</th>
-                <th>Desconto</th>
-                <th>Status</th>
-                <th>Data</th>
+                <th><i class="fas fa-building"></i> Cliente</th>
+                <th><i class="fas fa-user"></i> Vendedor</th>
+                <th><i class="fas fa-tag"></i> Plano</th>
+                <th><i class="fas fa-dollar-sign"></i> Valor</th>
+                <th><i class="fas fa-circle-check"></i> Status</th>
+                <th><i class="fas fa-bolt"></i> Pagamento</th>
+                <th><i class="fas fa-calendar"></i> Data</th>
                 <th style="text-align: right;">Ações</th>
             </tr>
         </thead>
@@ -94,42 +92,90 @@
             @foreach($vendas as $venda)
             <tr>
                 <td>
-                    <div style="font-weight: 600;">{{ $venda->cliente->nome_igreja ?? $venda->cliente->nome ?? '—' }}</div>
-                    <div style="font-size: 0.82rem; color: var(--text-muted);">{{ $venda->cliente->nome_pastor ?? '' }}</div>
+                    <div style="font-weight: 600; color: var(--text-primary);">{{ $venda->cliente->nome_igreja ?? '—' }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">{{ $venda->cliente->nome_pastor ?? '' }}</div>
                 </td>
-                <td style="font-size: 0.9rem;">{{ $venda->vendedor->user->name ?? 'N/A' }}</td>
-                <td><span style="background: rgba(88,28,135,0.08); color: var(--primary); padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 0.85rem;">{{ $venda->plano ?? 'N/A' }}</span></td>
+                <td style="font-size: 0.85rem;">{{ $venda->vendedor->user->name ?? '—' }}</td>
+                <td><span class="badge badge-primary">{{ $venda->plano ?? 'N/A' }}</span></td>
                 <td style="font-weight: 700;">R$ {{ number_format($venda->valor, 2, ',', '.') }}</td>
-                <td style="font-size: 0.85rem;">{{ $venda->desconto > 0 ? $venda->desconto.'%' : '—' }}</td>
                 <td>
                     @php
-                        $statusClass = match(strtoupper($venda->status)) {
-                            'PAGO', 'RECEIVED', 'CONFIRMED' => 'status-pago',
-                            'AGUARDANDO PAGAMENTO', 'PENDING' => 'status-aguardando',
-                            'VENCIDO', 'OVERDUE' => 'status-vencido',
-                            'CANCELADO', 'CANCELED' => 'status-cancelado',
-                            'EXPIRADO' => 'status-expirado',
-                            default => 'status-cancelado'
+                        $status = $venda->getStatusEfetivo();
+                        $cleanStatus = trim(strtoupper($status));
+                        $statusClass = match(true) {
+                            in_array($cleanStatus, ['PAGO', 'RECEIVED', 'CONFIRMED']) => 'status-pago',
+                            in_array($cleanStatus, ['AGUARDANDO PAGAMENTO', 'PENDING', 'AGUARDANDO APROVAÇÃO']) => 'status-aguardando',
+                            in_array($cleanStatus, ['VENCIDO', 'OVERDUE']) => 'status-vencido',
+                            in_array($cleanStatus, ['CANCELADO', 'CANCELED']) => 'status-cancelado',
+                            $cleanStatus === 'ESTORNADO' => 'status-estornado',
+                            $cleanStatus === 'EXPIRADO' => 'status-expirado',
+                            default => 'status-aguardando'
                         };
                     @endphp
-                    <span class="status-badge {{ $statusClass }}">{{ $venda->status }}</span>
-                    @if($venda->status === 'Aguardando pagamento')
-                        @php $horasRestantes = max(0, 72 - now()->diffInHours($venda->created_at)); @endphp
-                        @if($horasRestantes > 0)
-                            <span class="countdown-badge">⏳ {{ $horasRestantes }}h restantes</span>
-                        @endif
+                    <span class="badge {{ $statusClass }}">{{ $status }}</span>
+                    @if($venda->isPagamentoParcelado() && $venda->getParcelaAtual() > 0)
+                        <div style="font-size: 0.7rem; color: var(--success); margin-top: 2px;">{{ $venda->getProgressoParcelas() }}</div>
                     @endif
                 </td>
-                <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $venda->data_venda ? $venda->data_venda->format('d/m/Y') : $venda->created_at->format('d/m/Y') }}</td>
+                <td>
+                    @php
+                        $pagamento = $venda->pagamentos->first();
+                        $cobranca = $venda->cobrancas->first();
+                        $forma = strtolower($venda->forma_pagamento ?? $pagamento->forma_pagamento ?? '');
+                        $linkBoleto = $pagamento->bank_slip_url ?? null;
+                        $linkPagamento = $pagamento->link_pagamento ?? $pagamento->invoice_url ?? $cobranca->link ?? null;
+
+                        $checkoutUrl = $venda->checkout_hash ? url('/checkout/' . $venda->checkout_hash) : null;
+                        $boletoCheckoutUrl = $checkoutUrl ? $checkoutUrl . '?method=boleto' : null;
+                        $pixCheckoutUrl = $checkoutUrl ? $checkoutUrl . '?method=pix' : null;
+                    @endphp
+
+                    @if(!in_array(strtoupper($venda->getStatusEfetivo()), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']))
+                        @if($checkoutUrl)
+                            <div class="d-flex flex-column gap-1">
+                                <a href="{{ $checkoutUrl }}" target="_blank" class="action-btn-sm" style="background: var(--primary); color: white;" title="Link de Checkout Próprio">
+                                    <i class="fas fa-external-link-alt"></i> Checkout
+                                </a>
+                                <a href="{{ $boletoCheckoutUrl }}" target="_blank" class="action-btn-sm action-btn-boleto" title="Gerar Boleto via Checkout">
+                                    <i class="fas fa-barcode"></i> Boleto
+                                </a>
+                                <a href="{{ $pixCheckoutUrl }}" target="_blank" class="action-btn-sm" style="background: #008080; color: white;" title="Gerar PIX via Checkout">
+                                    <i class="fas fa-qrcode"></i> Pix
+                                </a>
+                                <button onclick="navigator.clipboard.writeText('{{ $checkoutUrl }}').then(() => alert('Link copiado!'))" class="action-btn-sm" style="background: var(--success); color: white;" title="Copiar Link de Checkout">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                            </div>
+                        @else
+                            <span style="font-size: 0.8rem; color: var(--warning);"><i class="fas fa-clock"></i> Gerando...</span>
+                        @endif
+                    @else
+                        @if($linkBoleto)
+                             <a href="{{ $linkBoleto }}" target="_blank" class="action-btn-sm action-btn-boleto" title="Baixar Boleto">
+                                <i class="fas fa-file-pdf"></i> PDF
+                            </a>
+                        @else
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">—</span>
+                        @endif
+                    @endif
+                    @if(!in_array(strtoupper($venda->status), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']) && $venda->checkout_hash)
+                        <button onclick="copyCheckoutLink({{ $venda->id }})" class="action-btn-sm" style="background: var(--success); color: white; margin-left: 4px;" title="Link de Checkout Próprio">
+                            <i class="fas fa-credit-card"></i>
+                        </button>
+                    @endif
+                </td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $venda->created_at->format('d/m/Y') }}</td>
                 <td style="text-align: right;">
-                    @if(!in_array(strtoupper($venda->status), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']))
-                    <form method="POST" action="{{ route('master.vendas.cancelar', $venda->id) }}" style="display: inline;" onsubmit="return confirm('Deseja cancelar esta venda?')">
+                    @if(strtoupper($venda->status) === 'PAGO')
+                    <button class="btn btn-ghost btn-sm" style="color: var(--warning);" onclick="openRefundModal({{ $venda->id }}, '{{ $venda->cliente->nome_igreja ?? 'N/A' }}', {{ $venda->valor }}, '{{ $venda->modo_cobranca_asaas ?? 'PAYMENT' }}', {{ $venda->parcelas ?? 1 }})" title="Estornar">
+                        <i class="fas fa-rotate-left"></i>
+                    </button>
+                    @elseif(!in_array(strtoupper($venda->status), ['CANCELADO', 'EXPIRADO', 'ESTORNADO']))
+                    <form method="POST" action="{{ route('master.vendas.cancelar', $venda->id) }}" style="display: inline;" onsubmit="event.preventDefault(); BasileiaConfirm.show({title: 'Cancelar Venda', message: 'Cancelar venda #' + {{ $venda->id }} + '?', type: 'danger', confirmText: 'Cancelar', onConfirm: () => this.submit()});">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn-delete" title="Cancelar venda">🗑️</button>
+                        <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger);"><i class="fas fa-trash"></i></button>
                     </form>
-                    @else
-                        <span style="font-size: 0.78rem; color: var(--text-muted);">—</span>
                     @endif
                 </td>
             </tr>
@@ -137,60 +183,106 @@
         </tbody>
     </table>
     @else
-    <div style="padding: 80px 20px; text-align: center;">
-        <h3 style="color: var(--text-main); font-size: 1.25rem; font-weight: 600; margin-bottom: 8px;">Nenhuma venda cadastrada até o momento.</h3>
-        <p style="color: var(--text-muted);">Os indicadores serão exibidos assim que houver movimentação no sistema.</p>
+    <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-shopping-bag"></i></div>
+        <h3>Nenhuma venda ativa</h3>
+        <p>Não há vendas cadastradas no momento.</p>
     </div>
     @endif
 </div>
 
-<!-- Vendas Expiradas (histórico colapsável) -->
-@if($vendasExpiradas->count() > 0)
-<div class="expired-section">
-    <div class="expired-header" onclick="toggleExpired()">
-        <h3>📁 Histórico de Propostas Expiradas/Canceladas ({{ $vendasExpiradas->count() }})</h3>
-        <button class="expired-toggle" id="toggleBtn">Expandir ▼</button>
-    </div>
-    <div class="expired-content" id="expiredContent">
-        <div class="table-container">
-            <table class="expired-table">
-                <thead>
-                    <tr>
-                        <th>Igreja</th>
-                        <th>Vendedor</th>
-                        <th>Plano</th>
-                        <th>Valor Proposto</th>
-                        <th>Status</th>
-                        <th>Data</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($vendasExpiradas as $vexp)
-                    <tr>
-                        <td>
-                            <div style="font-weight: 600;">{{ $vexp->cliente->nome_igreja ?? $vexp->cliente->nome ?? '—' }}</div>
-                            <div style="font-size: 0.82rem; color: var(--text-muted);">{{ $vexp->cliente->nome_pastor ?? '' }}</div>
-                        </td>
-                        <td style="font-size: 0.9rem;">{{ $vexp->vendedor->user->name ?? 'N/A' }}</td>
-                        <td><span style="font-size: 0.85rem;">{{ $vexp->plano ?? 'N/A' }}</span></td>
-                        <td style="font-weight: 600; color: var(--text-muted);">R$ {{ number_format($vexp->valor, 2, ',', '.') }}</td>
-                        <td><span class="status-badge status-expirado">{{ $vexp->status }}</span></td>
-                        <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $vexp->created_at->format('d/m/Y') }}</td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+<!-- Modal de Estorno Inteligente -->
+<div class="modal-overlay" id="refundModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2><i class="fas fa-rotate-left" style="margin-right: 8px; color: var(--warning);"></i>Estornar Venda</h2>
+            <button class="modal-close" onclick="BasileiaModal.close('refundModal')">&times;</button>
         </div>
+        <form id="refundForm" method="POST" class="modal-body">
+            @csrf
+            
+            <div class="alert alert-warning" style="margin-bottom: 16px;">
+                <i class="fas fa-triangle-exclamation"></i>
+                <span id="refundWarning">Selecione as opções abaixo.</span>
+            </div>
+
+            <div style="background: #f5f3ff; border: 1px solid rgba(var(--primary-rgb), 0.2); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <div class="info-row">
+                    <span class="info-label">Venda #</span>
+                    <span class="info-value" id="refundVendaId">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Cliente</span>
+                    <span class="info-value" id="refundCliente">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Valor Total</span>
+                    <span class="info-value text-primary" id="refundValor">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Modo</span>
+                    <span class="info-value" id="refundModo">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Parcelas</span>
+                    <span class="info-value" id="refundParcelas">-</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Motivo do Estorno <span class="required">*</span></label>
+                <textarea name="motivo" class="form-control" rows="3" required placeholder="Descreva o motivo do estorno..."></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="BasileiaModal.close('refundModal')">Cancelar</button>
+                <button type="submit" class="btn btn-warning"><i class="fas fa-rotate-left"></i> Confirmar Estorno</button>
+            </div>
+        </form>
     </div>
 </div>
-@endif
 
+@endsection
+
+@section('scripts')
 <script>
-function toggleExpired() {
-    const content = document.getElementById('expiredContent');
-    const btn = document.getElementById('toggleBtn');
-    content.classList.toggle('show');
-    btn.textContent = content.classList.contains('show') ? 'Recolher ▲' : 'Expandir ▼';
+function openRefundModal(vendaId, cliente, valor, modo, parcelas) {
+    document.getElementById('refundVendaId').textContent = '#' + vendaId;
+    document.getElementById('refundCliente').textContent = cliente;
+    document.getElementById('refundValor').textContent = 'R$ ' + valor.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+    document.getElementById('refundModo').textContent = modo;
+    document.getElementById('refundParcelas').textContent = parcelas + 'x';
+    document.getElementById('refundForm').action = '/master/vendas/' + vendaId + '/estornar';
+
+    // Ajustar aviso baseado no modo
+    let warning = '';
+    if (modo === 'INSTALLMENT' && parcelas > 1) {
+        warning = 'Venda parcelada em ' + parcelas + 'x. O sistema cancelará todas as parcelas pendentes no Asaas e tentará estornar as já pagas (apenas PIX/Cartão).';
+    } else if (modo === 'SUBSCRIPTION') {
+        warning = 'Assinatura recorrente. O sistema cancelará a assinatura no Asaas para parar cobranças futuras e tentará estornar o último pagamento.';
+    } else {
+        warning = 'Cobrança avulsa. O sistema tentará estornar no Asaas. Nota: Boleto já pago não permite estorno automático.';
+    }
+    document.getElementById('refundWarning').textContent = warning;
+
+    BasileiaModal.open('refundModal');
+}
+
+async function copyCheckoutLink(vendaId) {
+    try {
+        const response = await fetch(`/master/vendas/${vendaId}/checkout-link`);
+        const data = await response.json();
+        
+        if (data.success) {
+            await navigator.clipboard.writeText(data.url);
+            alert('✅ Link de checkout copiado!\n\n' + data.url);
+        } else {
+            alert('❌ ' + (data.error || 'Erro ao gerar link'));
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('❌ Erro ao copiar link. Tente novamente.');
+    }
 }
 </script>
 @endsection

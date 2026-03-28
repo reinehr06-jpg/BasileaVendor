@@ -6,6 +6,7 @@ use App\Models\Venda;
 use App\Models\Vendedor;
 use App\Models\Cliente;
 use App\Models\Cobranca;
+use App\Models\Pagamento;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,85 +20,130 @@ class DashboardController extends Controller
         $user = Auth::user();
         $mesAtual = Carbon::now()->month;
         $anoAtual = Carbon::now()->year;
+        $mesPassado = Carbon::now()->subMonth()->month;
+        $anoPassado = Carbon::now()->subMonth()->year;
+
+        // Definir o escopo de vendedores baseado no perfil
+        $vendedorIds = null;
+        $isPersonal = false;
         
-        if ($user->perfil === 'master') {
-            // 3.1: 8 Cards Analíticos para o Painel Master
-            $vendasAtivas = Venda::whereRaw('UPPER(status) = ?', ['PAGO'])->count();
-            
-            $vendedoresAtivos = User::where('perfil', 'vendedor')
-                ->whereRaw('UPPER(status) = ?', ['ATIVO'])
-                ->count();
-            
-            $comissoesPendentes = Venda::whereRaw('UPPER(status) = ?', ['PAGO'])->sum('comissao_gerada');
-            
-            $totalRecebido = Cobranca::whereIn('cobrancas.status', ['RECEIVED', 'pago', 'PAGO'])
-                ->whereMonth('cobrancas.updated_at', $mesAtual)
-                ->whereYear('cobrancas.updated_at', $anoAtual)
-                ->join('vendas', 'cobrancas.venda_id', '=', 'vendas.id')
-                ->sum('vendas.valor');
-            
-            $clientesAtivos = Cliente::whereHas('vendas', function($q) {
-                $q->where('status', 'Pago');
-            })->count();
-
-            // Churn do mês (Novo critério: Vendas que foram pagas e depois canceladas)
-            $churnMes = Venda::whereIn('status', ['Estornado', 'Cancelado', 'Expirado', 'Vencido'])
-                ->where('comissao_gerada', '>', 0)
-                ->whereMonth('updated_at', $mesAtual)
-                ->whereYear('updated_at', $anoAtual)
-                ->count();
-            
-            // Desistências do mês (Vendas canceladas que nunca foram pagas)
-            $desistenciasMes = Venda::whereIn('status', ['Cancelado', 'Expirado', 'Vencido'])
-                ->where('comissao_gerada', '<=', 0)
-                ->whereMonth('updated_at', $mesAtual)
-                ->whereYear('updated_at', $anoAtual)
-                ->count();
-
-            // Renovações do mês
-            $renovacoesMes = Cobranca::whereIn('status', ['RECEIVED', 'pago', 'PAGO'])
-                ->whereMonth('created_at', $mesAtual)
-                ->count();
-
-            // Melhor faixa de recebimento simulado (baseado no dia do mês em que mais se completam cobranças)
-            $melhorFaixa = "Sem dados suficientes no período";
-            
-            // Tratamento genérico SQL para obter o dia (Compatibilidade com SQLite)
-            $historicoDias = Cobranca::selectRaw("strftime('%d', updated_at) as dia, count(*) as total")
-                ->where('status', 'RECEIVED')
-                ->groupBy('dia')
-                ->orderByDesc('total')
-                ->first();
-                
-            if ($historicoDias && $historicoDias->dia) {
-                $dia = (int)$historicoDias->dia;
-                if ($dia <= 10) $melhorFaixa = "Dias 01 a 10";
-                elseif ($dia <= 20) $melhorFaixa = "Dias 11 a 20";
-                else $melhorFaixa = "Dias 21 a 31";
-            }
-            
-            return view('dashboard', compact(
-                'vendasAtivas', 'vendedoresAtivos', 'comissoesPendentes', 
-                'totalRecebido', 'clientesAtivos', 'churnMes', 'desistenciasMes',
-                'melhorFaixa', 'renovacoesMes'
-            ));
+        if ($user->perfil === 'vendedor') {
+            $vendedorIds = [$user->vendedor->id ?? 0];
+            $isPersonal = true;
+        } elseif ($user->perfil === 'gestor') {
+            $vendedorIds = Vendedor::where('gestor_id', $user->id)
+                ->orWhere('usuario_id', $user->id) // O gestor também vê suas próprias vendas
+                ->pluck('id')
+                ->toArray();
         }
 
-        // Vendedor Dashboard
-        $vendedorId = $user->vendedor->id ?? 0;
+        // --- Queries Escopadas ---
         
-        $vendasAtivas = Venda::where('vendedor_id', $vendedorId)
-            ->whereRaw('UPPER(status) = ?', ['PAGO'])
-            ->count();
-        $comissoesPendentes = Venda::where('vendedor_id', $vendedorId)
-            ->whereRaw('UPPER(status) = ?', ['PAGO'])
-            ->sum('comissao_gerada');
+        // Vendas Ativas (PAGO)
+        $queryVendasAtivas = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS']);
+        if ($vendedorIds) $queryVendasAtivas->whereIn('vendedor_id', $vendedorIds);
+        $vendasAtivas = $queryVendasAtivas->count();
+
+        // Tendência de vendas (vs mês passado)
+        $queryVendasPassado = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS'])
+            ->whereMonth('updated_at', $mesPassado)
+            ->whereYear('updated_at', $anoPassado);
+        if ($vendedorIds) $queryVendasPassado->whereIn('vendedor_id', $vendedorIds);
+        $vendasMesPassado = $queryVendasPassado->count();
+        $vendasTrend = $vendasMesPassado > 0 ? (($vendasAtivas - $vendasMesPassado) / $vendasMesPassado) * 100 : 0;
+
+        // Vendedores Ativos (apenas para Master e Gestor)
+        $vendedoresAtivos = 0;
+        if ($user->perfil === 'master') {
+            $vendedoresAtivos = User::where('perfil', 'vendedor')->whereRaw('UPPER(status) = ?', ['ATIVO'])->count();
+        } elseif ($user->perfil === 'gestor') {
+            $vendedoresAtivos = Vendedor::where('gestor_id', $user->id)->count();
+        }
+
+        // Comissões Pendentes (Vendas pagas que ainda não tiveram comissão quitada)
+        $queryComisPend = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS']);
+        if ($vendedorIds) $queryComisPend->whereIn('vendedor_id', $vendedorIds);
+        $comissoesPendentes = $queryComisPend->sum('comissao_gerada');
+        // Clone the query builder to apply additional conditions for contagemPendentes
+        $queryContagemPendentes = clone $queryComisPend;
+        $contagemPendentes = $queryContagemPendentes->where('comissao_gerada', '>', 0)->count();
+
+        // Faturamento (MTD) - Soma do valor real de cada parcela paga/recebida
+        $queryPagamentos = Pagamento::whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
+            ->whereMonth('pagamentos.updated_at', $mesAtual)
+            ->whereYear('pagamentos.updated_at', $anoAtual)
+            ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
+            ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO']);
+        if ($vendedorIds) $queryPagamentos->whereIn('vendas.vendedor_id', $vendedorIds);
+        $totalRecebido = $queryPagamentos->sum('pagamentos.valor');
+
+        // Tendência de faturamento (vs mês passado)
+        $queryPagamentosPassado = Pagamento::whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
+            ->whereMonth('pagamentos.updated_at', $mesPassado)
+            ->whereYear('pagamentos.updated_at', $anoPassado)
+            ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
+            ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO']);
+        if ($vendedorIds) $queryPagamentosPassado->whereIn('vendas.vendedor_id', $vendedorIds);
+        $recebidoMesPassado = $queryPagamentosPassado->sum('pagamentos.valor');
+        $recebidoTrend = $recebidoMesPassado > 0 ? (($totalRecebido - $recebidoMesPassado) / $recebidoMesPassado) * 100 : 0;
+
+        // Clientes Ativos (Apenas quem já teve pelo menos um pagamento confirmado)
+        $queryClientes = Cliente::whereHas('vendas.pagamentos', function($q) use ($vendedorIds) {
+            $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
+            if ($vendedorIds) $q->whereIn('vendas.vendedor_id', $vendedorIds);
+        });
+        $clientesAtivos = $queryClientes->count();
+
+        // Churn do mês
+        $queryChurn = Venda::whereIn('status', ['Estornado', 'Cancelado', 'Expirado', 'Vencido'])
+            ->where('comissao_gerada', '>', 0)
+            ->whereMonth('updated_at', $mesAtual)
+            ->whereYear('updated_at', $anoAtual);
+        if ($vendedorIds) $queryChurn->whereIn('vendedor_id', $vendedorIds);
+        $churnMes = $queryChurn->count();
+
+        // Renovações do mês
+        $queryRenov = Cobranca::whereIn('cobrancas.status', ['RECEIVED', 'pago', 'PAGO'])
+            ->whereMonth('cobrancas.created_at', $mesAtual)
+            ->join('vendas', 'cobrancas.venda_id', '=', 'vendas.id');
+        if ($vendedorIds) $queryRenov->whereIn('vendas.vendedor_id', $vendedorIds);
+        $renovacoesMes = $queryRenov->count();
+
+        // Gráfico Semanal
+        $queryGrafico = Pagamento::selectRaw("strftime('%W', pagamentos.updated_at) as semana, sum(pagamentos.valor) as total")
+            ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
+            ->whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
+            ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
+            ->whereYear('pagamentos.updated_at', $anoAtual);
+        if ($vendedorIds) $queryGrafico->whereIn('vendas.vendedor_id', $vendedorIds);
+        $faturamentoSemanal = $queryGrafico->groupBy('semana')->orderBy('semana')->limit(4)->get();
+
+        // Melhor faixa
+        $queryFaixa = Cobranca::selectRaw("strftime('%d', cobrancas.updated_at) as dia, count(*) as total")
+            ->join('vendas', 'cobrancas.venda_id', '=', 'vendas.id')
+            ->where('cobrancas.status', 'RECEIVED');
+        if ($vendedorIds) $queryFaixa->whereIn('vendas.vendedor_id', $vendedorIds);
+        $historicoDias = $queryFaixa->groupBy('dia')->orderByDesc('total')->first();
         
-        return view('dashboard', [
-            'vendasAtivas' => $vendasAtivas,
-            'vendedoresAtivos' => 1,
-            'comissoesPendentes' => $comissoesPendentes,
-            'totalRecebido' => 0, 'clientesAtivos' => 0, 'churnMes' => 0, 'melhorFaixa' => 'N/A', 'renovacoesMes' => 0
-        ]);
+        $melhorFaixa = "Sem dados";
+        if ($historicoDias && $historicoDias->dia) {
+            $dia = (int)$historicoDias->dia;
+            if ($dia <= 10) $melhorFaixa = "Dias 01 a 10";
+            elseif ($dia <= 20) $melhorFaixa = "Dias 11 a 20";
+            else $melhorFaixa = "Dias 21 a 31";
+        }
+
+        $tituloSessao = match($user->perfil) {
+            'master' => 'Visão Global da Operação',
+            'gestor' => 'Performance da Equipe',
+            default => 'Minha Performance Individual'
+        };
+
+        return view('dashboard', compact(
+            'vendasAtivas', 'vendedoresAtivos', 'comissoesPendentes', 
+            'totalRecebido', 'clientesAtivos', 'churnMes',
+            'melhorFaixa', 'renovacoesMes', 'vendasTrend', 'recebidoTrend',
+            'contagemPendentes', 'faturamentoSemanal', 'tituloSessao', 'isPersonal'
+        ));
     }
 }

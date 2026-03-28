@@ -180,6 +180,12 @@ class CriarCobrancaService
             'customer' => $cliente->asaas_customer_id,
             'dueDate' => $c['vencimento'],
         ]);
+        
+        // Adicionar split se vendedor estiver apto
+        $split = $this->buildSplitForVenda($venda, 'inicial');
+        if (!empty($split)) {
+            $payload['split'] = $split;
+        }
 
         return $this->asaasService->requestAsaas('POST', '/payments', $payload);
     }
@@ -193,6 +199,12 @@ class CriarCobrancaService
             'dueDate' => $c['vencimento'],
         ]);
         unset($payload['value']); // Must use totalValue for installments
+        
+        // Adicionar split se vendedor estiver apto
+        $split = $this->buildSplitForVenda($venda, 'inicial');
+        if (!empty($split)) {
+            $payload['split'] = $split;
+        }
 
         return $this->asaasService->requestAsaas('POST', '/payments', $payload);
     }
@@ -204,8 +216,34 @@ class CriarCobrancaService
             'nextDueDate' => $c['vencimento'],
             'cycle' => $c['frequencia'],
         ]);
+        
+        // Adicionar split se vendedor estiver apto
+        $split = $this->buildSplitForVenda($venda, 'inicial');
+        if (!empty($split)) {
+            $payload['split'] = $split;
+        }
 
         return $this->asaasService->requestAsaas('POST', '/subscriptions', $payload);
+    }
+
+    /**
+     * Construir array de split para a venda
+     */
+    private function buildSplitForVenda(Venda $venda, string $tipoVenda = 'inicial'): array
+    {
+        // Verificar se split global está ativo
+        $splitGlobalAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
+        if (!$splitGlobalAtivo) {
+            return [];
+        }
+        
+        // Buscar vendedor
+        $vendedor = \App\Models\Vendedor::find($venda->vendedor_id);
+        if (!$vendedor || !$vendedor->isAptoSplit()) {
+            return [];
+        }
+        
+        return $this->asaasService->buildSplitArray($vendedor, $venda->valor_final, $tipoVenda);
     }
 
     private function persistirRetornoAsaas(Venda $venda, Cliente $cliente, array $res, string $modo, array $c)

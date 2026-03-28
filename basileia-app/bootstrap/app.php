@@ -16,6 +16,21 @@ return Application::configure(basePath: dirname(__DIR__))
             'api/asaas/webhook',
             'webhook/saque',
         ]);
+        $middleware->append(\App\Http\Middleware\ClearStaleCache::class);
+        
+        // Register security middleware groups
+        $middleware->group('admin.security', [
+            \App\Http\Middleware\Security\AdminSecurity::class,
+            \App\Http\Middleware\Security\RateLimitByRole::class,
+            \App\Http\Middleware\ForcePasswordChange::class,
+        ]);
+        
+        // Apply admin security to all master routes
+        $middleware->alias([
+            'admin.security' => \App\Http\Middleware\Security\AdminSecurity::class,
+            'role.rate.limit' => \App\Http\Middleware\Security\RateLimitByRole::class,
+            'force.password.change' => \App\Http\Middleware\ForcePasswordChange::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

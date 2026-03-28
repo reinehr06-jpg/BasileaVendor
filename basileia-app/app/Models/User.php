@@ -47,4 +47,17 @@ class User extends Authenticatable
     {
         return $this->hasOne(Vendedor::class, 'usuario_id');
     }
+
+    public function equipeLiderada()
+    {
+        return $this->hasOne(Equipe::class, 'gestor_id');
+    }
+
+    /**
+     * Normalizar email para lowercase ao salvar
+     */
+    public function setEmailAttribute($value)
+    {
+        $this->attributes['email'] = strtolower($value);
+    }
 }

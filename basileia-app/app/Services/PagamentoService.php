@@ -2,16 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\Pagamento;
-use App\Models\Venda;
-use App\Models\LogEvento;
-use App\Mail\VendaConfirmadaMail;
-use App\Mail\ClienteConfirmacaoMail;
-use App\Services\ClienteStatusService;
+use App\Mail\ClienteBoasVindas;
+use App\Mail\VendedorPagamentoConfirmado;
 use App\Models\Comissao;
+use App\Models\CommissionRule;
+use App\Models\LogEvento;
+use App\Models\Pagamento;
+use App\Models\Setting;
+use App\Models\User;
+use App\Models\Venda;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use App\Services\AsaasService;
 
 class PagamentoService
 {
@@ -21,33 +22,70 @@ class PagamentoService
      */
     public function sync(Pagamento $pagamento): bool
     {
-        if (!$pagamento->asaas_payment_id) {
+        if (! $pagamento->asaas_payment_id) {
             return false;
         }
 
         try {
-            $asaas = new AsaasService();
-            $paymentData = $asaas->getPayment($pagamento->asaas_payment_id);
+            $asaas = new AsaasService;
+            $asaasId = $pagamento->asaas_payment_id;
+            $paymentData = null;
 
-            if (!$paymentData) return false;
+            // Se for subscription, buscar o primeiro pagamento da assinatura
+            if (str_starts_with($asaasId, 'sub_')) {
+                try {
+                    $paymentsResponse = $asaas->requestAsaas('GET', "/subscriptions/{$asaasId}/payments");
+                    if (! empty($paymentsResponse['data']) && count($paymentsResponse['data']) > 0) {
+                        $paymentData = $paymentsResponse['data'][0];
+                        // Atualiza o asaas_payment_id para o ID real do pagamento
+                        if (! empty($paymentData['id'])) {
+                            $pagamento->asaas_payment_id = $paymentData['id'];
+                            $pagamento->save();
+                        }
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('PagamentoService: erro ao buscar pagamentos da subscription', ['error' => $e->getMessage()]);
+
+                    return false;
+                }
+            } else {
+                $paymentData = $asaas->getPayment($asaasId);
+            }
+
+            if (! $paymentData) {
+                return false;
+            }
 
             $statusAsaas = strtoupper($paymentData['status'] ?? '');
             $isPago = in_array($statusAsaas, ['RECEIVED', 'CONFIRMED']);
             $alreadyPago = in_array(strtoupper($pagamento->status), ['RECEIVED', 'CONFIRMED']);
 
             // Atualiza dados básicos se disponíveis
-            if (!empty($paymentData['bankSlipUrl'])) {
+            if (! empty($paymentData['bankSlipUrl'])) {
                 $pagamento->bank_slip_url = $paymentData['bankSlipUrl'];
             }
-            if (!empty($paymentData['identificationField'])) {
+            if (! empty($paymentData['identificationField'])) {
                 $pagamento->linha_digitavel = $paymentData['identificationField'];
             }
-            if (!empty($paymentData['transactionReceiptUrl'])) {
+            if (! empty($paymentData['transactionReceiptUrl'])) {
                 $pagamento->link_pagamento = $paymentData['transactionReceiptUrl'];
             }
 
-            if ($isPago && !$alreadyPago) {
+            // Atualizar forma_pagamento_real com billingType do Asaas
+            if (! empty($paymentData['billingType'])) {
+                $billingType = strtoupper($paymentData['billingType']);
+                $formaMap = [
+                    'PIX' => 'pix',
+                    'BOLETO' => 'boleto',
+                    'CREDIT_CARD' => 'cartao',
+                    'CREDIT_CARD_RECURRING' => 'cartao',
+                ];
+                $pagamento->forma_pagamento_real = $formaMap[$billingType] ?? strtolower($billingType);
+            }
+
+            if ($isPago && ! $alreadyPago) {
                 $this->confirmarPagamento($pagamento, $paymentData);
+
                 return true;
             }
 
@@ -58,16 +96,26 @@ class PagamentoService
 
                 $venda = $pagamento->venda;
                 if ($venda) {
-                    $vendaStatus = AsaasService::mapStatus($statusAsaas);
-                    $venda->status = $vendaStatus;
+                    // Para vendas parceladas: se já tem parcela paga, NÃO alterar status da venda
+                    // exceto para cancelamento/estorno
+                    $isCancelamento = in_array($statusAsaas, ['CANCELED', 'DELETED', 'REFUNDED', 'REFUND_REQUESTED']);
+                    $isParcelado = $venda->isPagamentoParcelado();
+                    $jaTemParcelaPaga = $venda->getParcelaAtual() > 0;
 
-                    // Se cancelado/estornado, remover comissão gerada
-                    if (in_array($statusAsaas, ['CANCELED', 'DELETED', 'REFUNDED', 'REFUND_REQUESTED'])) {
-                        $venda->comissao_gerada = 0;
-                        $venda->valor_comissao = 0;
+                    if ($isParcelado && $jaTemParcelaPaga && ! $isCancelamento) {
+                        // Manter venda como PAGO - não alterar status
+                        Log::info("PagamentoService: Venda parcelada #{$venda->id} mantida como PAGO (parcela {$venda->getParcelaAtual()}/{$venda->parcelas})");
+                    } else {
+                        $vendaStatus = AsaasService::mapStatus($statusAsaas);
+                        $venda->status = $vendaStatus;
+
+                        if ($isCancelamento) {
+                            $venda->comissao_gerada = 0;
+                            $venda->valor_comissao = 0;
+                        }
+
+                        $venda->save();
                     }
-
-                    $venda->save();
 
                     // Sincronizar cobranças auxiliares
                     foreach ($venda->cobrancas as $cobranca) {
@@ -88,8 +136,9 @@ class PagamentoService
         } catch (\Exception $e) {
             Log::error('PagamentoService: Erro ao sincronizar', [
                 'pagamento_id' => $pagamento->id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
+
             return false;
         }
     }
@@ -101,45 +150,250 @@ class PagamentoService
     {
         $pagamento->status = 'RECEIVED';
         $pagamento->data_pagamento = now();
+
+        // Atualizar forma_pagamento_real com dados do Asaas
+        if (! empty($paymentData['billingType'])) {
+            $billingType = strtoupper($paymentData['billingType']);
+            $formaMap = [
+                'PIX' => 'pix',
+                'BOLETO' => 'boleto',
+                'CREDIT_CARD' => 'cartao',
+                'CREDIT_CARD_RECURRING' => 'cartao',
+            ];
+            $pagamento->forma_pagamento_real = $formaMap[$billingType] ?? strtolower($billingType);
+        }
+
         $pagamento->save();
 
         $venda = $pagamento->venda;
         if ($venda) {
             $statusAnterior = $venda->status;
             $venda->status = 'PAGO';
-            
-            // Gerar Comissão se ainda não existir
-            if (!$venda->comissao_gerada || $venda->comissao_gerada <= 0) {
-                $vendedor = $venda->vendedor;
-                if ($vendedor) {
-                    $percentual = $vendedor->percentual_comissao ?: ($vendedor->comissao ?: 10);
-                    $comissao = ($pagamento->valor * $percentual) / 100;
-                    
-                    $venda->comissao_gerada = $comissao;
-                    $venda->valor_comissao  = $comissao;
 
-                    // Criar registro na tabela comissoes
-                    $jaExisteComissao = Comissao::where('venda_id', $venda->id)
-                        ->where('vendedor_id', $vendedor->id)
-                        ->exists();
+            // ══════════════════════════════════════════════════════════════
+            // GERAR COMISSÕES (Sistema Novo: Fixed por plano + Sistema Legado: %)
+            // ══════════════════════════════════════════════════════════════
+            $vendedor = $venda->vendedor;
+            if ($vendedor) {
+                $planoNome = $venda->plano ?? '';
+                $commissionRule = CommissionRule::forPlan($planoNome);
 
-                    if (!$jaExisteComissao) {
+                // Determinar se é primeira parcela ou recorrência
+                $isPrimeiraParcela = $pagamento->parcela_numero == 1 || $pagamento->parcela_numero === null;
+                $commissionType = $isPrimeiraParcela ? 'FIRST_PAYMENT' : 'RECURRING';
+
+                // Verificar se já existe comissão para este pagamento
+                $jaExisteComissao = Comissao::where('venda_id', $venda->id)
+                    ->where('pagamento_id', $pagamento->id)
+                    ->where('tipo_comissao', $commissionType)
+                    ->exists();
+
+                if (! $jaExisteComissao) {
+
+                    if ($commissionRule) {
+                        // ═══════════════════════════════════════════
+                        // SISTEMA NOVO: Comissão Fixa por Plano
+                        // ═══════════════════════════════════════════
+
+                        // Comissão do Vendedor
+                        $sellerAmount = $isPrimeiraParcela
+                            ? $commissionRule->seller_fixed_value_first_payment
+                            : $commissionRule->seller_fixed_value_recurring;
+
+                        if ($sellerAmount > 0) {
+                            Comissao::create([
+                                'vendedor_id' => $vendedor->id,
+                                'cliente_id' => $venda->cliente_id,
+                                'venda_id' => $venda->id,
+                                'pagamento_id' => $pagamento->id,
+                                'gerente_id' => null,
+                                'tipo_comissao' => $commissionType,
+                                'percentual_aplicado' => 0,
+                                'percentual_gerente' => 0,
+                                'valor_venda' => $pagamento->valor,
+                                'valor_comissao' => $sellerAmount,
+                                'valor_gerente' => 0,
+                                'status' => 'confirmada',
+                                'data_pagamento' => $pagamento->data_pagamento ?? now(),
+                                'competencia' => now()->format('Y-m'),
+                                'eligible_at' => $pagamento->data_pagamento ?? now(),
+                                'released_at' => $pagamento->data_pagamento ?? now(),
+                            ]);
+
+                            $venda->comissao_gerada = ($venda->comissao_gerada ?? 0) + $sellerAmount;
+
+                            Log::info('[Comissão] Vendedor gerada (fixa)', [
+                                'venda_id' => $venda->id,
+                                'plano' => $planoNome,
+                                'tipo' => $commissionType,
+                                'valor' => $sellerAmount,
+                            ]);
+                        }
+
+                        // Comissão do Gestor (se o vendedor tem um gestor atribuído)
+                        if ($vendedor->gestor_id) {
+                            $gestorCommissionRate = $isPrimeiraParcela
+                                ? ($vendedor->comissao_gestor_primeira ?? 0)
+                                : ($vendedor->comissao_gestor_recorrencia ?? 0);
+
+                            if ($gestorCommissionRate > 0) {
+                                $gestorAmount = ($pagamento->valor * $gestorCommissionRate) / 100;
+
+                                if ($gestorAmount > 0) {
+                                    Comissao::create([
+                                        'vendedor_id' => $vendedor->id,
+                                        'cliente_id' => $venda->cliente_id,
+                                        'venda_id' => $venda->id,
+                                        'pagamento_id' => $pagamento->id,
+                                        'gerente_id' => $vendedor->gestor_id,
+                                        'tipo_comissao' => $commissionType,
+                                        'percentual_aplicado' => 0,
+                                        'percentual_gerente' => $gestorCommissionRate,
+                                        'valor_venda' => $pagamento->valor,
+                                        'valor_comissao' => 0,
+                                        'valor_gerente' => $gestorAmount,
+                                        'status' => 'confirmada',
+                                        'data_pagamento' => $pagamento->data_pagamento ?? now(),
+                                        'competencia' => now()->format('Y-m'),
+                                        'eligible_at' => $pagamento->data_pagamento ?? now(),
+                                        'released_at' => $pagamento->data_pagamento ?? now(),
+                                    ]);
+
+                                    $venda->comissao_gerada = ($venda->comissao_gerada ?? 0) + $gestorAmount;
+
+                                    Log::info('[Comissão] Gestor gerada (fixa)', [
+                                        'venda_id' => $venda->id,
+                                        'gestor_id' => $vendedor->gestor_id,
+                                        'plano' => $planoNome,
+                                        'tipo' => $commissionType,
+                                        'percentual' => $gestorCommissionRate,
+                                        'valor' => $gestorAmount,
+                                    ]);
+                                }
+                            }
+                        }
+
+                        // Comissão do Gerente (Master)
+                        $manager = User::where('perfil', 'master')->first();
+                        $managerAmount = $isPrimeiraParcela
+                            ? $commissionRule->manager_fixed_value_first_payment
+                            : $commissionRule->manager_fixed_value_recurring;
+
+                        if ($managerAmount > 0 && $manager) {
+                            Comissao::create([
+                                'vendedor_id' => $vendedor->id,
+                                'cliente_id' => $venda->cliente_id,
+                                'venda_id' => $venda->id,
+                                'pagamento_id' => $pagamento->id,
+                                'gerente_id' => $manager->id,
+                                'tipo_comissao' => $commissionType,
+                                'percentual_aplicado' => 0,
+                                'percentual_gerente' => 0,
+                                'valor_venda' => $pagamento->valor,
+                                'valor_comissao' => 0,
+                                'valor_gerente' => $managerAmount,
+                                'status' => 'confirmada',
+                                'data_pagamento' => $pagamento->data_pagamento ?? now(),
+                                'competencia' => now()->format('Y-m'),
+                                'eligible_at' => $pagamento->data_pagamento ?? now(),
+                                'released_at' => $pagamento->data_pagamento ?? now(),
+                            ]);
+
+                            Log::info('[Comissão] Gerente gerada (fixa)', [
+                                'venda_id' => $venda->id,
+                                'gerente' => $manager->name,
+                                'plano' => $planoNome,
+                                'tipo' => $commissionType,
+                                'valor' => $managerAmount,
+                            ]);
+                        }
+
+                    } else {
+                        // ═══════════════════════════════════════════
+                        // SISTEMA LEGADO: Comissão Percentual
+                        // ═══════════════════════════════════════════
+                        $percentual = $vendedor->percentual_comissao ?: ($vendedor->comissao ?: 10);
+                        $isAnualParcelado = ($venda->tipo_negociacao === 'anual') && ($venda->parcelas > 1);
+
+                        if ($isAnualParcelado) {
+                            $baseComissao = $venda->valor_final ?? $venda->valor;
+                        } else {
+                            $baseComissao = $pagamento->valor;
+                        }
+
+                        $comissao = ($baseComissao * $percentual) / 100;
+
+                        $venda->comissao_gerada = $comissao;
+                        $venda->valor_comissao = $comissao;
+
                         Comissao::create([
                             'vendedor_id' => $vendedor->id,
                             'cliente_id' => $venda->cliente_id,
                             'venda_id' => $venda->id,
-                            'tipo_comissao' => 'inicial',
+                            'pagamento_id' => $pagamento->id,
+                            'tipo_comissao' => $isPrimeiraParcela ? 'FIRST_PAYMENT' : 'RECURRING',
                             'percentual_aplicado' => $percentual,
-                            'valor_venda' => $pagamento->valor,
+                            'valor_venda' => $baseComissao,
                             'valor_comissao' => $comissao,
                             'status' => 'confirmada',
                             'data_pagamento' => $pagamento->data_pagamento ?? now(),
                             'competencia' => now()->format('Y-m'),
+                            'eligible_at' => $pagamento->data_pagamento ?? now(),
+                            'released_at' => $pagamento->data_pagamento ?? now(),
                         ]);
+
+                        Log::info('[Comissão] Vendedor gerada (percentual)', [
+                            'venda_id' => $venda->id,
+                            'percentual' => $percentual,
+                            'base' => $baseComissao,
+                            'comissao' => $comissao,
+                        ]);
+
+                        // Comissão do Gestor (sistema legado - percentual)
+                        if ($vendedor->gestor_id) {
+                            $gestorPercentual = $isPrimeiraParcela
+                                ? ($vendedor->comissao_gestor_primeira ?? 0)
+                                : ($vendedor->comissao_gestor_recorrencia ?? 0);
+
+                            if ($gestorPercentual > 0) {
+                                $comissaoGestor = ($baseComissao * $gestorPercentual) / 100;
+
+                                if ($comissaoGestor > 0) {
+                                    Comissao::create([
+                                        'vendedor_id' => $vendedor->id,
+                                        'cliente_id' => $venda->cliente_id,
+                                        'venda_id' => $venda->id,
+                                        'pagamento_id' => $pagamento->id,
+                                        'gerente_id' => $vendedor->gestor_id,
+                                        'tipo_comissao' => $isPrimeiraParcela ? 'FIRST_PAYMENT' : 'RECURRING',
+                                        'percentual_aplicado' => $percentual,
+                                        'percentual_gerente' => $gestorPercentual,
+                                        'valor_venda' => $baseComissao,
+                                        'valor_comissao' => 0,
+                                        'valor_gerente' => $comissaoGestor,
+                                        'status' => 'confirmada',
+                                        'data_pagamento' => $pagamento->data_pagamento ?? now(),
+                                        'competencia' => now()->format('Y-m'),
+                                        'eligible_at' => $pagamento->data_pagamento ?? now(),
+                                        'released_at' => $pagamento->data_pagamento ?? now(),
+                                    ]);
+
+                                    $venda->comissao_gerada = ($venda->comissao_gerada ?? 0) + $comissaoGestor;
+
+                                    Log::info('[Comissão] Gestor gerada (percentual)', [
+                                        'venda_id' => $venda->id,
+                                        'gestor_id' => $vendedor->gestor_id,
+                                        'percentual' => $gestorPercentual,
+                                        'base' => $baseComissao,
+                                        'comissao' => $comissaoGestor,
+                                    ]);
+                                }
+                            }
+                        }
                     }
                 }
             }
-            
+
             $venda->save();
 
             // Sincronizar cobranças auxiliares
@@ -156,6 +410,20 @@ class PagamentoService
                 $cliente->save();
             }
 
+            // ─── Cria conta no Basiléia Church ──────────────────────
+            if ($cliente) {
+                try {
+                    $church = new ChurchProvisioningService;
+                    $church->criarConta($cliente, $venda);
+                } catch (\Exception $e) {
+                    Log::error('[Church] Falha ao criar conta no PagamentoService', [
+                        'cliente_id' => $cliente->id,
+                        'venda_id' => $venda->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             // Automações (Email)
             if (strtoupper($statusAnterior) !== 'PAGO') {
                 $this->dispararAutomacoes($venda, $pagamento);
@@ -166,34 +434,50 @@ class PagamentoService
 
         // Log de Evento
         LogEvento::create([
-            'usuario_id'  => 1,
-            'entidade'    => 'Pagamento',
+            'usuario_id' => 1,
+            'entidade' => 'Pagamento',
             'entidade_id' => $pagamento->id,
-            'acao'        => 'Sincronização: Confirmado',
-            'descricao'   => 'Pagamento detectado como pago no Asaas durante sincronização.',
+            'acao' => 'Sincronização: Confirmado',
+            'descricao' => 'Pagamento detectado como pago no Asaas durante sincronização.',
         ]);
     }
 
     private function dispararAutomacoes(Venda $venda, Pagamento $pagamento): void
     {
+        // Email para o vendedor: pagamento confirmado
         try {
-            // 1. E-mail do Vendedor
-            $vendedor = $venda->vendedor;
-            if ($vendedor && $vendedor->user && $vendedor->user->email) {
-                $comissao = $venda->comissao_gerada ?? 0;
-                $linkVenda = url("/vendedor/vendas");
-                Mail::to($vendedor->user->email)
-                    ->send(new VendaConfirmadaMail($venda, $comissao, $linkVenda, $pagamento));
-            }
+            $vendedorUser = $venda->vendedor?->user;
+            if ($vendedorUser && $vendedorUser->email) {
+                $fromEmail = Setting::get('email_vendedor_from', config('mail.from.address'));
+                $fromName = config('mail.from.name', 'Basiléia Global');
 
-            // 2. E-mail do Cliente
-            $cliente = $venda->cliente;
-            if ($cliente && $cliente->email) {
-                Mail::to($cliente->email)
-                    ->send(new ClienteConfirmacaoMail($venda, $pagamento, $cliente));
+                Mail::to($vendedorUser->email)
+                    ->send((new VendedorPagamentoConfirmado($venda))->from($fromEmail, $fromName));
+                Log::info('[Email] VendedorPagamentoConfirmado enviado', ['venda_id' => $venda->id, 'to' => $vendedorUser->email]);
             }
         } catch (\Exception $e) {
-            Log::error('PagamentoService: Falha ao enviar e-mail', ['venda_id' => $venda->id, 'error' => $e->getMessage()]);
+            Log::error('[Email] Falha ao enviar VendedorPagamentoConfirmado', [
+                'venda_id' => $venda->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        // Email para o cliente: boas-vindas
+        try {
+            $cliente = $venda->cliente;
+            if ($cliente && $cliente->email) {
+                $fromEmail = Setting::get('email_cliente_from', config('mail.from.address'));
+                $fromName = config('mail.from.name', 'Basiléia Global');
+
+                Mail::to($cliente->email)
+                    ->send((new ClienteBoasVindas($cliente))->from($fromEmail, $fromName));
+                Log::info('[Email] ClienteBoasVindas enviado', ['cliente_id' => $cliente->id, 'to' => $cliente->email]);
+            }
+        } catch (\Exception $e) {
+            Log::error('[Email] Falha ao enviar ClienteBoasVindas', [
+                'cliente_id' => $venda->cliente_id,
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }

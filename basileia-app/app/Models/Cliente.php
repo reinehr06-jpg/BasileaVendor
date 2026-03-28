@@ -10,7 +10,7 @@ class Cliente extends Model
         'nome', 'nome_igreja', 'nome_pastor', 'nome_responsavel', 'localidade',
         'moeda', 'quantidade_membros', 'documento', 'contato', 'whatsapp', 'telefone', 'email',
         'status', 'data_ultimo_pagamento', 'proxima_cobranca', 'recorrencia_status',
-        'asaas_customer_id'
+        'asaas_customer_id', 'church_user_id', 'church_account_created_at',
     ];
 
     protected function casts(): array

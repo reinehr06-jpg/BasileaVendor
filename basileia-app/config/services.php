@@ -40,4 +40,25 @@ return [
         'webhook_token' => env('ASAAS_WEBHOOK_TOKEN', ''),
     ],
 
+    'church' => [
+        'url'    => env('CHURCH_API_URL', ''),
+        'secret' => env('CHURCH_API_SECRET', ''),
+    ],
+
+    'exchangerate' => [
+        'api_url'   => env('EXCHANGERATE_API_URL', 'https://api.exchangerate-api.com/v4'),
+        'cache_ttl' => env('EXCHANGERATE_CACHE_TTL', 600), // 10 minutos
+    ],
+
+    'checkout' => [
+        'default_currency' => env('CHECKOUT_DEFAULT_CURRENCY', 'BRL'),
+        'default_language' => env('CHECKOUT_DEFAULT_LANGUAGE', 'pt-BR'),
+        'supported_currencies' => ['BRL', 'USD', 'EUR'],
+        'supported_languages' => ['pt-BR', 'en-US', 'es-ES'],
+    ],
+
+    'git' => [
+        'deploy_secret' => env('GIT_DEPLOY_SECRET'),
+    ],
+
 ];

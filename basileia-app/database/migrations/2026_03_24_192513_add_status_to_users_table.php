@@ -11,11 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'status')) {
-                $table->boolean('status')->default(true)->after('perfil');
-            }
-        });
+        // Status already added in 2026_03_24_181016, skip duplicate
     }
 
     /**

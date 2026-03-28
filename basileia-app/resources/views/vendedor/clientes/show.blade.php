@@ -107,10 +107,10 @@
     <!-- ===== Main Panel (Históricos) ===== -->
     <div class="main-card animate-in">
         <div class="tabs-header">
-            <button class="tab-btn active" onclick="switchTab('vendas', this)">
+            <button class="tab-btn active" onclick="switchClientTab('vendas', this)">
                 🛍️ Meu Histórico de Vendas ({{ $vendas->count() }})
             </button>
-            <button class="tab-btn" onclick="switchTab('pagamentos', this)">
+            <button class="tab-btn" onclick="switchClientTab('pagamentos', this)">
                 💳 Faturas Associadas ({{ $pagamentos->count() }})
             </button>
         </div>
@@ -134,8 +134,15 @@
                         <tr>
                             <td style="color: var(--text-muted); font-weight: 600;">{{ $v->created_at->format('d/m/Y') }}</td>
                             <td style="font-weight: 700;">{{ $v->plano ?? 'Personalizado' }}</td>
-                            <td>{{ ucfirst($v->tipo_negociacao ?? 'Mensal') }}</td>
-                            <td style="text-align: right; font-weight: 700; color: var(--primary);">R$ {{ number_format($v->valor, 2, ',', '.') }}</td>
+                            <td>{{ ucfirst($v->tipo_negociacao ?? 'Mensal') }}{{ $v->parcelas > 1 ? ' (' . $v->parcelas . 'x)' : '' }}</td>
+                            <td style="text-align: right; font-weight: 700; color: var(--primary);">
+                                @if($v->parcelas > 1)
+                                    R$ {{ number_format($v->valor / $v->parcelas, 2, ',', '.') }}
+                                    <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 400;">{{ $v->parcelas }}x de R$ {{ number_format($v->valor / $v->parcelas, 2, ',', '.') }}</div>
+                                @else
+                                    R$ {{ number_format($v->valor, 2, ',', '.') }}
+                                @endif
+                            </td>
                             <td>
                                 @php
                                     $vStatus = strtolower($v->status);
@@ -145,6 +152,9 @@
                                     if ($vStatus == 'cancelado' || $vStatus == 'vencido') $badgeClass = 'badge-danger';
                                 @endphp
                                 <span class="badge {{ $badgeClass }}">{{ $v->status }}</span>
+                                @if($v->isPagamentoParcelado() && $v->getParcelaAtual() > 0)
+                                    <div style="font-size: 0.7rem; color: var(--success); margin-top: 2px;">{{ $v->getProgressoParcelas() }}</div>
+                                @endif
                             </td>
                         </tr>
                         @endforeach
@@ -180,10 +190,11 @@
                             <td style="font-weight: 700;">{{ \Carbon\Carbon::parse($p->data_vencimento)->format('d/m/Y') }}</td>
                             <td>
                                 <span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; text-transform: uppercase; font-size: 0.78rem;">
-                                    @if(strtolower($p->forma_pagamento) == 'pix') ⚡ PIX
-                                    @elseif(strtolower($p->forma_pagamento) == 'boleto') 📄 Boleto
-                                    @elseif(strtolower($p->forma_pagamento) == 'cartão') 💳 Cartão
-                                    @else 💳 {{ $p->forma_pagamento }}
+                                    @php $formaExibida = $p->forma_pagamento_real ?? $p->forma_pagamento; @endphp
+                                    @if(strtolower($formaExibida) == 'pix') ⚡ PIX
+                                    @elseif(strtolower($formaExibida) == 'boleto') 📄 Boleto
+                                    @elseif(strtolower($formaExibida) == 'cartao' || strtolower($formaExibida) == 'cartão') 💳 Cartão
+                                    @else 💳 {{ $formaExibida }}
                                     @endif
                                 </span>
                             </td>
@@ -218,10 +229,10 @@
 </div>
 
 <script>
-    // Sistema de abas simples
-    function switchTab(tabId, btnElement) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    // Sistema de abas simples (nome único para evitar conflito com basileia.js)
+    function switchClientTab(tabId, btnElement) {
+        document.querySelectorAll('.tabs-header .tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.main-card .tab-content').forEach(c => c.classList.remove('active'));
         
         btnElement.classList.add('active');
         document.getElementById('tab-' + tabId).classList.add('active');

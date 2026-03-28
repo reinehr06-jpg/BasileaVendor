@@ -22,6 +22,11 @@ class ClienteController extends Controller
         
         $query = Cliente::query();
         
+        // Regra de Ouro: Só é cliente se tiver pelo menos um pagamento confirmado
+        $query->whereHas('vendas.pagamentos', function ($q) {
+            $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
+        });
+
         // Se for vendedor, filtrar apenas os clientes que tem vendas com ele
         if (!$isMaster) {
             $query->whereHas('vendas', function ($q) use ($user) {
@@ -52,8 +57,11 @@ class ClienteController extends Controller
         $clientesParaSync = (clone $query)->with('vendas.pagamentos')->get();
         ClienteStatusService::sincronizarStatus($clientesParaSync);
 
-        // Re-carregar com status atualizado
-        $clientes = Cliente::query();
+        // Re-carregar com status atualizado e filtro de pagamento
+        $clientes = Cliente::whereHas('vendas.pagamentos', function ($q) {
+            $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
+        });
+
         if (!$isMaster) {
             $clientes->whereHas('vendas', function ($q) use ($user) {
                 $q->whereHas('vendedor', function ($v) use ($user) {
@@ -76,8 +84,11 @@ class ClienteController extends Controller
         }
         $clientes = $clientes->with('vendas')->orderBy('created_at', 'desc')->paginate(15);
 
-        // Cards de Resumo (baseado em TODOS os clientes, não apenas os filtrados)
-        $allClientes = Cliente::query();
+        // Cards de Resumo (baseado apenas em quem já pagou algo)
+        $allClientes = Cliente::whereHas('vendas.pagamentos', function ($q) {
+            $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
+        });
+
         if (!$isMaster) {
             $allClientes->whereHas('vendas', function ($q) use ($user) {
                 $q->whereHas('vendedor', function ($v) use ($user) {

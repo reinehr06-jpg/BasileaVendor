@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AsaasWebhookController;
 use App\Http\Controllers\VendaCobrancaController;
+use App\Http\Controllers\CobrancaController;
+use App\Http\Controllers\Api\ClienteStatusController;
 
 // ==========================================
 // Rotas Públicas Integracoes
@@ -14,6 +16,13 @@ Route::post('/asaas/webhook', [AsaasWebhookController::class, 'handle']);
 
 // Endpoint de Criação de Cobrança (Wizard)
 Route::post('/vendas/criar-cobranca', [VendaCobrancaController::class, 'createBilling']);
+
+// Excluir Cobrança/Pagamento (ambas as rotas)
+Route::delete('/cobrancas/{id}', [CobrancaController::class, 'destroy']);
+Route::delete('/pagamentos/{id}', [CobrancaController::class, 'destroyPagamento']);
+
+// Basiléia Church — Verificar status do cliente (ativado via Bearer token)
+Route::get('/client-status/{venda_id}', [ClienteStatusController::class, 'show']);
 
 Route::get('/user', function (Request $request) {
     return $request->user();

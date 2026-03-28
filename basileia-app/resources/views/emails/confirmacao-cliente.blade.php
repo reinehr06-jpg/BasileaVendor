@@ -22,7 +22,7 @@
                     Olá <strong>{{ $venda->cliente->nome ?? $venda->cliente->nome_igreja ?? 'Cliente' }}</strong>,
                 </p>
                 <p style="font-size: 16px; color: #333; line-height: 1.6;">
-                   ，我们在 Basilélia Church 热烈欢迎您的到来! 您的购买 <strong>计划 {{ $plano }}</strong> 已确认，系统已解锁供您使用。
+                    Sua compra do <strong>Plano {{ $plano }}</strong> foi confirmada! O sistema já está liberado para você utilizar.
                 </p>
             </td>
         </tr>
@@ -31,7 +31,7 @@
         <tr>
             <td style="padding: 0 30px 30px;">
                 <div style="background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1px solid #f59e0b; border-radius: 10px; padding: 20px;">
-                    <h3 style="color: #92400e; margin: 0 0 15px; font-size: 16px;">📋 购买摘要:</h3>
+                    <h3 style="color: #92400e; margin: 0 0 15px; font-size: 16px;">📋 Resumo da Compra:</h3>
                     <table width="100%" cellpadding="5">
                         <tr>
                             <td style="color: #92400e; font-weight: bold;">Plano:</td>
@@ -59,7 +59,7 @@
         <!-- Action Buttons -->
         <tr>
             <td style="padding: 0 30px 30px;">
-                <h3 style="color: #333; margin: 0 0 20px; font-size: 18px;">📌 您现在就可以访问:</h3>
+                <h3 style="color: #333; margin: 0 0 20px; font-size: 18px;">📌 Acesse agora:</h3>
                 
                 <!-- Button 1: Login -->
                 <div style="margin-bottom: 15px;">
@@ -90,7 +90,7 @@
                         <tr>
                             <td>
                                 <a href="{{ $linkTermos }}" style="display: inline-block; background: #64748b; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px;">
-                                    📥 下载条款 (PDF)
+                                    📥 Baixar Termos (PDF)
                                 </a>
                             </td>
                         </tr>
@@ -99,7 +99,7 @@
                         <tr>
                             <td>
                                 <a href="{{ $notaFiscalUrl }}" style="display: inline-block; background: #16a34a; color: white; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-size: 14px;">
-                                    🧾 查看发票/Nota Fiscal
+                                    🧾 Ver Nota Fiscal
                                 </a>
                             </td>
                         </tr>

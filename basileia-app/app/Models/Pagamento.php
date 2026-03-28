@@ -8,7 +8,7 @@ class Pagamento extends Model
 {
     protected $fillable = [
         'venda_id', 'cliente_id', 'vendedor_id', 'asaas_payment_id',
-        'valor', 'billing_type', 'forma_pagamento', 'status',
+        'valor', 'billing_type', 'forma_pagamento', 'forma_pagamento_real', 'status',
         'data_vencimento', 'data_pagamento',
         'link_pagamento', 'invoice_url', 'bank_slip_url', 'pix_qrcode', 'linha_digitavel',
         'nota_fiscal_url', 'nota_fiscal_status', 'recorrencia_status'

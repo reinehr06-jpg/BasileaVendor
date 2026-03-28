@@ -3,110 +3,104 @@
 
 @section('content')
 <style>
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .btn-back { background: white; border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text-main); text-decoration: none; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-    .btn-back:hover { background: #f8fafc; }
-    .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(88, 28, 135, 0.2); font-size: 1rem; }
-    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    /* Payment Method Cards */
+    .payment-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .payment-card {
+        border: 2px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 18px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: var(--surface);
+        position: relative;
+    }
+    .payment-card:hover { border-color: rgba(var(--primary-rgb), 0.3); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+    .payment-card.selected { border-color: var(--primary); background: rgba(var(--primary-rgb), 0.03); box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.12); }
+    .payment-card.selected::after { content: '\2713'; position: absolute; top: 8px; right: 10px; background: var(--primary); color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; }
+    .payment-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 1.4rem; }
+    .payment-icon i { color: white; }
+    .payment-icon.pix { background: linear-gradient(135deg, #00b4d8, #0077b6); }
+    .payment-icon.boleto { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .payment-icon.card { background: linear-gradient(135deg, #7c3aed, #673AB7); }
+    .payment-label { font-weight: 700; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 2px; }
+    .payment-hint { font-size: 0.75rem; color: var(--text-muted); }
 
-    .form-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-    .form-section-title { font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid rgba(88,28,135,0.1); display: flex; align-items: center; gap: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .form-section-title span { font-size: 1.2rem; }
+    /* Negotiation Type Cards */
+    .negotiation-types { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .negotiation-card {
+        border: 2px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 18px 16px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: var(--surface);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .negotiation-card:hover { border-color: rgba(var(--primary-rgb), 0.3); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+    .negotiation-card.selected { border-color: var(--primary); background: rgba(var(--primary-rgb), 0.03); box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.12); }
+    .negotiation-card.selected::after { content: '\2713'; position: absolute; top: 8px; right: 10px; background: var(--primary); color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; }
+    .negotiation-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; font-size: 1.3rem; background: rgba(var(--primary-rgb), 0.08); color: var(--primary); }
+    .negotiation-label { font-weight: 700; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 2px; }
+    .negotiation-hint { font-size: 0.75rem; color: var(--text-muted); }
 
-    .form-group { margin-bottom: 18px; }
-    .form-group label { display: block; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.4px; }
-    .form-group label .required { color: #ef4444; margin-left: 2px; }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 8px; outline: none; font-size: 0.93rem; transition: 0.2s; background: white; color: var(--text-main); }
-    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(88,28,135,0.1); }
-    .form-group textarea { resize: vertical; min-height: 80px; }
-    .form-group .field-hint { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
-    .form-group .field-error { font-size: 0.8rem; color: #ef4444; margin-top: 4px; font-weight: 500; }
-    .form-row { display: flex; gap: 16px; }
-    .form-row .form-group { flex: 1; }
-
-    .auto-data-bar { background: linear-gradient(135deg, rgba(88,28,135,0.06), rgba(88,28,135,0.02)); border: 1px dashed rgba(88,28,135,0.2); border-radius: 12px; padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 24px; margin-bottom: 24px; }
-    .auto-data-item { display: flex; flex-direction: column; gap: 2px; }
-    .auto-data-item .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600; }
-    .auto-data-item .value { font-size: 0.95rem; font-weight: 700; color: var(--primary); }
-
-    /* Planos Cards */
-    .planos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-top: 12px; }
-    .plano-card { border: 2px solid var(--border); border-radius: 12px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.25s ease; position: relative; background: white; }
-    .plano-card:hover { border-color: rgba(88,28,135,0.3); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(88,28,135,0.1); }
-    .plano-card.selected { border-color: var(--primary); background: rgba(88,28,135,0.04); box-shadow: 0 0 0 3px rgba(88,28,135,0.15); }
-    .plano-card.selected::after { content: '✓'; position: absolute; top: 8px; right: 10px; background: var(--primary); color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
-    .plano-card .plano-name { font-weight: 700; font-size: 1rem; color: var(--primary); margin-bottom: 4px; }
-    .plano-card .plano-range { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; }
-    .plano-card .plano-price { font-weight: 800; font-size: 1.15rem; color: var(--text-main); }
-    .plano-card .plano-price-label { font-size: 0.7rem; color: var(--text-muted); }
-    .plano-card.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
-
-    .valor-resumo { background: linear-gradient(135deg, var(--primary), #7c3aed); border-radius: 12px; color: white; padding: 20px 24px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
-    .valor-resumo .label { font-size: 0.9rem; opacity: 0.85; }
-    .valor-resumo .valor { font-size: 1.8rem; font-weight: 800; }
-
-    .error-box { background: #fee2e2; color: #991b1b; padding: 16px; border-radius: 8px; margin-bottom: 24px; font-weight: 500; border-left: 4px solid #ef4444; }
-    .footer-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 12px; padding-top: 24px; border-top: 1px solid var(--border); }
-
-    @media (max-width: 768px) {
-        .form-row { flex-direction: column; gap: 0; }
-        .planos-grid { grid-template-columns: repeat(2, 1fr); }
+    @media (max-width: 600px) {
+        .payment-methods { grid-template-columns: 1fr; }
+        .negotiation-types { grid-template-columns: 1fr; }
     }
 </style>
-
 <div class="page-header">
     <div>
-        <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main);">+ Nova Venda</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Preencha todos os campos para registrar uma nova venda e gerar a cobrança.</p>
+        <h2><i class="fas fa-plus-circle" style="margin-right: 8px;"></i>Nova Venda</h2>
+        <p>Preencha todos os campos para registrar uma nova venda e gerar a cobrança.</p>
     </div>
-    <a href="{{ route('vendedor.vendas') }}" class="btn-back">← Voltar</a>
+    <a href="{{ route('vendedor.vendas') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Voltar</a>
 </div>
 
-@if($errors->any())
-<div class="error-box">
-    @foreach($errors->all() as $error)
-        <div>❌ {{ $error }}</div>
-    @endforeach
-</div>
-@endif
-
-<!-- Dados automáticos -->
-<div class="auto-data-bar">
-    <div class="auto-data-item">
-        <span class="label">Vendedor Responsável</span>
-        <span class="value">{{ Auth::user()->name }}</span>
-    </div>
-    <div class="auto-data-item">
-        <span class="label">Data da Venda</span>
-        <span class="value">{{ now()->format('d/m/Y') }}</span>
-    </div>
-    <div class="auto-data-item">
-        <span class="label">Status Inicial</span>
-        <span class="value">Aguardando pagamento</span>
-    </div>
-    <div class="auto-data-item">
-        <span class="label">Origem</span>
-        <span class="value">Manual</span>
+<!-- Auto Data Bar -->
+<div class="card" style="margin-bottom: 24px;">
+    <div style="display: flex; flex-wrap: wrap; gap: 32px;">
+        <div>
+            <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600;">Vendedor</div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 2px;">{{ Auth::user()->name }}</div>
+        </div>
+        <div>
+            <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600;">Data</div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: var(--primary); margin-top: 2px;">{{ now()->format('d/m/Y') }}</div>
+        </div>
+        <div>
+            <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600;">Status</div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: var(--success); margin-top: 2px;">Aguardando pagamento</div>
+        </div>
+        <div>
+            <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); font-weight: 600;">Origem</div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: var(--text); margin-top: 2px;">Manual</div>
+        </div>
     </div>
 </div>
 
-<form action="{{ route('vendedor.vendas.store') }}" method="POST" id="formNovaVenda">
+<form action="{{ route('vendedor.vendas.store') }}" method="POST" id="formNovaVenda" autocomplete="off">
     @csrf
+    <input type="text" name="fake_username" style="display:none">
+    <input type="password" name="fake_password" style="display:none">
 
     <!-- ===== BLOCO 1: Identificação do Cliente ===== -->
-    <div class="form-card">
-        <div class="form-section-title"><span>⛪</span> Identificação do Cliente</div>
+    <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header"><i class="fas fa-building"></i> Identificação do Cliente</div>
 
         <div class="form-row">
             <div class="form-group">
                 <label>Nome da Igreja <span class="required">*</span></label>
-                <input type="text" name="nome_igreja" value="{{ old('nome_igreja') }}" required placeholder="Digite o nome completo da igreja">
+                <input type="text" name="nome_igreja" autocomplete="off" class="form-control @error('nome_igreja') is-invalid @enderror" value="{{ old('nome_igreja') }}" required placeholder="Digite o nome completo da igreja">
                 @error('nome_igreja') <div class="field-error">{{ $message }}</div> @enderror
             </div>
             <div class="form-group">
                 <label>Nome do Pastor <span class="required">*</span></label>
-                <input type="text" name="nome_pastor" value="{{ old('nome_pastor') }}" required placeholder="Digite o nome do pastor responsável">
+                <input type="text" name="nome_pastor" autocomplete="off" class="form-control @error('nome_pastor') is-invalid @enderror" value="{{ old('nome_pastor') }}" required placeholder="Digite o nome do pastor responsável">
                 @error('nome_pastor') <div class="field-error">{{ $message }}</div> @enderror
             </div>
         </div>
@@ -114,11 +108,11 @@
         <div class="form-row">
             <div class="form-group">
                 <label>Localidade <span class="required">*</span></label>
-                <input type="text" name="localidade" value="{{ old('localidade') }}" required placeholder="Cidade, estado ou país">
+                <input type="text" name="localidade" class="form-control" value="{{ old('localidade') }}" required placeholder="Cidade, estado ou país">
             </div>
             <div class="form-group">
                 <label>Moeda <span class="required">*</span></label>
-                <select name="moeda">
+                <select name="moeda" class="form-control">
                     <option value="BRL" {{ old('moeda') == 'BRL' ? 'selected' : '' }}>🇧🇷 BRL - Real</option>
                     <option value="USD" {{ old('moeda') == 'USD' ? 'selected' : '' }}>🇺🇸 USD - Dólar</option>
                     <option value="EUR" {{ old('moeda') == 'EUR' ? 'selected' : '' }}>🇪🇺 EUR - Euro</option>
@@ -129,35 +123,36 @@
         <div class="form-row">
             <div class="form-group">
                 <label>Quantidade de Membros <span class="required">*</span></label>
-                <input type="number" name="quantidade_membros" id="inputMembros" value="{{ old('quantidade_membros') }}" required min="1" placeholder="Informe o número de membros para sugerir o plano">
+                <input type="number" name="quantidade_membros" id="inputMembros" autocomplete="off" class="form-control @error('quantidade_membros') is-invalid @enderror" value="{{ old('quantidade_membros') }}" required min="1" placeholder="Número de membros da igreja">
                 @error('quantidade_membros') <div class="field-error">{{ $message }}</div> @enderror
                 <div class="field-hint">O sistema sugere planos automaticamente com base na quantidade.</div>
             </div>
             <div class="form-group">
                 <label>CNPJ da Igreja ou CPF do Pastor <span class="required">*</span></label>
-                <input type="text" name="documento" id="inputDocumento" value="{{ old('documento') }}" required placeholder="Digite o CNPJ da igreja ou CPF do pastor" maxlength="18">
+                <input type="text" name="documento" id="inputDocumento" autocomplete="off" class="form-control @error('documento') is-invalid @enderror" value="{{ old('documento') }}" required placeholder="Digite o documento" maxlength="18">
                 @error('documento') <div class="field-error">{{ $message }}</div> @enderror
+                <div id="documentoWarning" style="display: none; margin-top: 8px;"></div>
             </div>
         </div>
 
         <div class="form-row">
-            <div class="form-group" style="flex: 0.5;">
+            <div class="form-group">
                 <label>WhatsApp de Contato <span class="required">*</span></label>
-                <input type="text" name="whatsapp" id="inputWhatsapp" value="{{ old('whatsapp') }}" required placeholder="Digite o número com DDD" maxlength="15">
+                <input type="text" name="whatsapp" id="inputWhatsapp" class="form-control" value="{{ old('whatsapp') }}" required placeholder="(00) 00000-0000" maxlength="15">
             </div>
-            <div class="form-group" style="flex: 0.5;">
+            <div class="form-group">
                 <label>E-mail do Cliente <span class="required">*</span></label>
-                <input type="email" name="email_cliente" value="{{ old('email_cliente') }}" required placeholder="email@igreja.com">
+                <input type="email" name="email_cliente" autocomplete="off" class="form-control @error('email_cliente') is-invalid @enderror" value="{{ old('email_cliente') }}" required placeholder="email@igreja.com">
                 @error('email_cliente') <div class="field-error">{{ $message }}</div> @enderror
             </div>
         </div>
     </div>
 
     <!-- ===== BLOCO 2: Dados Comerciais ===== -->
-    <div class="form-card">
-        <div class="form-section-title"><span>💼</span> Dados Comerciais</div>
+    <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header"><i class="fas fa-tag"></i> Dados Comerciais</div>
 
-        <!-- Grid de Planos Dinâmico -->
+        <!-- Plan Selection -->
         <div class="form-group">
             <label>Selecione o Plano <span class="required">*</span></label>
             <input type="hidden" name="plano" id="inputPlano" value="{{ old('plano') }}">
@@ -180,9 +175,9 @@
                     </div>
                     @if(!empty($p['consulte']))
                         <div class="plano-price" style="font-size: 0.9rem; color: var(--primary);">
-                            Consulte condições
+                            <i class="fas fa-headset"></i> Negociar
                         </div>
-                        <div class="plano-price-label">fale com um especialista</div>
+                        <div class="plano-price-label">valor personalizado</div>
                     @else
                         <div class="plano-price" data-mensal="{{ $p['valor_mensal'] }}" data-anual="{{ $p['valor_anual'] }}">
                             R$ {{ number_format($p['valor_mensal'], 2, ',', '.') }}
@@ -192,64 +187,148 @@
                 </div>
                 @endforeach
             </div>
-            <div class="field-hint" style="margin-top: 8px;">O plano ideal é selecionado automaticamente. Você pode escolher um plano mais premium se necessário.</div>
+            <div class="field-hint">O plano ideal é selecionado automaticamente com base no número de membros.</div>
             @error('plano') <div class="field-error">{{ $message }}</div> @enderror
         </div>
 
-        <div class="form-row" style="margin-top: 20px;">
+        <!-- Payment Method (Visual Cards) -->
+        <div class="form-group" style="margin-top: 20px;">
+            <label>Forma de Pagamento <span class="required">*</span></label>
+            <input type="hidden" name="forma_pagamento" id="selectFormaPagamento" value="{{ old('forma_pagamento') }}">
+            <div class="payment-methods" id="paymentMethodsGrid">
+                <div class="payment-card {{ old('forma_pagamento') == 'PIX' ? 'selected' : '' }}" data-value="PIX">
+                    <div class="payment-icon pix"><i class="fas fa-bolt"></i></div>
+                    <div class="payment-label">PIX</div>
+                    <div class="payment-hint">Aprovação instantânea</div>
+                </div>
+                <div class="payment-card {{ old('forma_pagamento') == 'BOLETO' ? 'selected' : '' }}" data-value="BOLETO">
+                    <div class="payment-icon boleto"><i class="fas fa-file-lines"></i></div>
+                    <div class="payment-label">Boleto</div>
+                    <div class="payment-hint">Vencimento em 3 dias</div>
+                </div>
+                <div class="payment-card {{ old('forma_pagamento') == 'CREDIT_CARD' ? 'selected' : '' }}" data-value="CREDIT_CARD">
+                    <div class="payment-icon card"><i class="fas fa-credit-card"></i></div>
+                    <div class="payment-label">Cartão de Crédito</div>
+                    <div class="payment-hint">Cobrança mensal recorrente</div>
+                </div>
+            </div>
+            @error('forma_pagamento') <div class="field-error">{{ $message }}</div> @enderror
+        </div>
+
+        <!-- Negotiation Type (Visual Cards) -->
+        <div class="form-group">
+            <label>Tipo de Negociação <span class="required">*</span></label>
+            <input type="hidden" name="tipo_negociacao" id="selectTipoNegociacao" value="{{ old('tipo_negociacao', 'mensal') }}">
+            <div class="negotiation-types" id="negotiationGrid">
+                <div class="negotiation-card {{ old('tipo_negociacao', 'mensal') == 'mensal' ? 'selected' : '' }}" data-value="mensal">
+                    <div class="negotiation-icon"><i class="fas fa-calendar"></i></div>
+                    <div class="negotiation-label">Mensal</div>
+                    <div class="negotiation-hint">Cobrança recorrente</div>
+                </div>
+                <div class="negotiation-card {{ old('tipo_negociacao') == 'anual' ? 'selected' : '' }}" data-value="anual">
+                    <div class="negotiation-icon"><i class="fas fa-calendar-days"></i></div>
+                    <div class="negotiation-label">Anual</div>
+                    <div class="negotiation-hint">Economize com desconto</div>
+                </div>
+            </div>
+            @error('tipo_negociacao') <div class="field-error">{{ $message }}</div> @enderror
+        </div>
+
+        <!-- Installment Row -->
+        <div class="form-row hidden" id="parcelamentoRow" style="margin-top: 4px;">
             <div class="form-group">
-                <label>Forma de Pagamento <span class="required">*</span></label>
-                <select name="forma_pagamento" id="selectFormaPagamento">
-                    <option value="" disabled {{ old('forma_pagamento') ? '' : 'selected' }}>Selecione a forma de pagamento</option>
-                    <option value="PIX" {{ old('forma_pagamento') == 'PIX' ? 'selected' : '' }}>⚡ PIX</option>
-                    <option value="BOLETO" {{ old('forma_pagamento') == 'BOLETO' ? 'selected' : '' }}>📄 Boleto Bancário</option>
-                    <option value="CREDIT_CARD" {{ old('forma_pagamento') == 'CREDIT_CARD' ? 'selected' : '' }}>💳 Cartão de Crédito</option>
+                <label>Número de Parcelas</label>
+                <select name="parcelas" id="selectParcelas" class="form-control">
+                    @for($i = 1; $i <= 12; $i++)
+                    <option value="{{ $i }}" {{ old('parcelas', '1') == $i ? 'selected' : '' }}>{{ $i }}x{{ $i == 1 ? ' (à vista)' : '' }}</option>
+                    @endfor
                 </select>
+                <div class="field-hint">Selecione o número de parcelas no cartão de crédito.</div>
             </div>
             <div class="form-group">
-                <label>Tipo de Negociação <span class="required">*</span></label>
-                <select name="tipo_negociacao" id="selectTipoNegociacao">
-                    <option value="mensal" {{ old('tipo_negociacao', 'mensal') == 'mensal' ? 'selected' : '' }}>📅 Mensal</option>
-                    <option value="anual" {{ old('tipo_negociacao') == 'anual' ? 'selected' : '' }}>📆 Anual</option>
-                </select>
+                <label>Valor da Parcela</label>
+                <div style="padding: 10px 14px; background: var(--bg); border-radius: var(--radius-sm); font-weight: 700; color: var(--primary); font-size: 1.1rem;" id="valorParcela">
+                    R$ 0,00
+                </div>
+                <div class="field-hint">Calculado automaticamente.</div>
             </div>
         </div>
 
-        <div class="form-row">
+        <!-- Discount Row (hidden for Performance) -->
+        <div class="form-row" id="descontoRow">
             <div class="form-group" style="flex: 0.4;">
                 <label>Desconto (%)</label>
-                <input type="number" step="0.1" name="desconto" id="inputDesconto" value="{{ old('desconto', 0) }}" min="0" max="{{ $maxDesconto }}" placeholder="Informe o percentual de desconto">
+                <div class="input-group">
+                    <input type="number" step="0.1" name="desconto" id="inputDesconto" autocomplete="off" class="form-control @error('desconto') is-invalid @enderror" value="{{ old('desconto', 0) }}" min="0" max="{{ $maxDesconto }}" placeholder="0">
+                    <span class="input-group-text">%</span>
+                </div>
                 @error('desconto') <div class="field-error">{{ $message }}</div> @enderror
-                <div class="field-hint">Máximo permitido: {{ $maxDesconto }}%</div>
+                <div class="field-hint">Máximo: {{ $maxDesconto }}%. Acima de 5% requer aprovação.</div>
             </div>
             <div class="form-group" style="flex: 1;">
-                <label>Observação Interna</label>
-                <textarea name="observacao" placeholder="Digite observações internas, se necessário">{{ old('observacao') }}</textarea>
+                <label>Observação</label>
+                <textarea name="observacao" class="form-control" placeholder="Informações adicionais sobre a venda...">{{ old('observacao') }}</textarea>
             </div>
         </div>
 
-        <!-- Resumo do Valor Final -->
-        <div class="valor-resumo" id="valorResumo" style="display: none;">
+        <!-- Performance Value Row -->
+        <div class="form-row hidden" id="valorPerformanceRow">
+            <div class="form-group" style="flex: 0.5;">
+                <label>Valor Combinado <span class="required">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text" style="border-left: 1.5px solid var(--border); border-right: none; border-radius: var(--radius-sm) 0 0 var(--radius-sm);" id="perfCurrencyPrefix">R$</span>
+                    <input type="number" step="0.01" name="valor_performance" id="inputValorPerformance" autocomplete="off" class="form-control @error('valor_performance') is-invalid @enderror" value="{{ old('valor_performance') }}" min="0.01" placeholder="0,00" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                </div>
+                @error('valor_performance') <div class="field-error">{{ $message }}</div> @enderror
+                <div class="field-hint">Este valor será enviado para aprovação do administrador.</div>
+            </div>
+            <div class="form-group" style="flex: 0.5;">
+                <label>Observação</label>
+                <textarea name="observacao" class="form-control" placeholder="Detalhes da negociação...">{{ old('observacao') }}</textarea>
+            </div>
+        </div>
+
+        <!-- Performance Warning -->
+        <div id="avisoAprovacaoPerformance" class="hidden" style="margin-top: 8px;">
+            <div class="warning-box">
+                <i class="fas fa-triangle-exclamation"></i>
+                <div>
+                    <div class="warning-title">Plano requer aprovação</div>
+                    <div class="warning-text">O plano Basiléia Performance sempre requer aprovação do administrador. Após preencher o valor combinado, a venda será enviada para análise.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Value Summary -->
+        <div class="valor-summary hidden" id="valorResumo">
             <div>
                 <div class="label">Valor Final da Cobrança</div>
-                <div style="font-size: 0.8rem; opacity: 0.7;" id="resumoDetalhes"></div>
+                <div class="detalhes" id="resumoDetalhes"></div>
             </div>
             <div class="valor" id="valorFinal">R$ 0,00</div>
         </div>
     </div>
 
-    <!-- ===== Rodapé / Ações ===== -->
-    <div class="footer-actions">
-        <a href="{{ route('vendedor.vendas') }}" class="btn-back">Cancelar</a>
-        <button type="submit" class="btn-primary" id="btnSalvar">💰 Gerar Cobrança e Salvar Venda</button>
+    <!-- ===== Footer Actions ===== -->
+    <div class="d-flex justify-end gap-2" style="padding-top: 8px;">
+        <a href="{{ route('vendedor.vendas') }}" class="btn btn-outline">
+            <i class="fas fa-xmark"></i> Cancelar
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg" id="btnSalvar">
+            <i class="fas fa-check"></i> Gerar Cobrança e Salvar
+        </button>
     </div>
 </form>
 
+@endsection
+
+@section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const inputMembros = document.getElementById('inputMembros');
     const inputPlano = document.getElementById('inputPlano');
     const selectTipo = document.getElementById('selectTipoNegociacao');
+    const selectFormaPagamento = document.getElementById('selectFormaPagamento');
     const inputDesconto = document.getElementById('inputDesconto');
     const inputDocumento = document.getElementById('inputDocumento');
     const inputWhatsapp = document.getElementById('inputWhatsapp');
@@ -257,8 +336,74 @@ document.addEventListener('DOMContentLoaded', function() {
     const valorFinal = document.getElementById('valorFinal');
     const resumoDetalhes = document.getElementById('resumoDetalhes');
     const cards = document.querySelectorAll('.plano-card');
+    const parcelamentoRow = document.getElementById('parcelamentoRow');
+    const selectParcelas = document.getElementById('selectParcelas');
+    const valorParcelaEl = document.getElementById('valorParcela');
+    const inputValorPerformance = document.getElementById('inputValorPerformance');
+    const selectMoeda = document.querySelector('select[name="moeda"]');
 
-    // Selecionar plano ao clicar no card
+    // Currency symbols
+    const currencySymbols = { BRL: 'R$', USD: 'US$', EUR: '€' };
+    function getCurrency() { return selectMoeda ? selectMoeda.value : 'BRL'; }
+    function getSymbol() { return currencySymbols[getCurrency()] || 'R$'; }
+    function fmtCurrency(value) {
+        return getSymbol() + ' ' + value.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    // Currency change
+    if (selectMoeda) {
+        selectMoeda.addEventListener('change', function() {
+            // Update Performance input prefix
+            const perfPrefix = document.getElementById('perfCurrencyPrefix');
+            if (perfPrefix) perfPrefix.textContent = getSymbol();
+            // Recalculate everything
+            updatePriceLabels();
+            calcularValor();
+            calcularValorParcela();
+        });
+    }
+
+    // === PAYMENT METHOD CARD SELECT ===
+    document.querySelectorAll('.payment-card').forEach(card => {
+        card.addEventListener('click', function() {
+            document.querySelectorAll('.payment-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            selectFormaPagamento.value = this.dataset.value;
+            
+            // Installment only available for Annual + Credit Card
+            const isAnual = selectTipo.value === 'anual';
+            const isCartao = this.dataset.value === 'CREDIT_CARD';
+            parcelamentoRow.classList.toggle('hidden', !(isAnual && isCartao));
+            
+            if (isAnual && isCartao) calcularValorParcela();
+        });
+    });
+
+    // === NEGOTIATION TYPE CARD SELECT ===
+    document.querySelectorAll('.negotiation-card').forEach(card => {
+        card.addEventListener('click', function() {
+            document.querySelectorAll('.negotiation-card').forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            selectTipo.value = this.dataset.value;
+            updatePriceLabels();
+            calcularValor();
+            
+            // Installment only available for Annual + Credit Card
+            const isAnual = this.dataset.value === 'anual';
+            const isCartao = selectFormaPagamento.value === 'CREDIT_CARD';
+            parcelamentoRow.classList.toggle('hidden', !(isAnual && isCartao));
+            
+            // Update payment hint text
+            document.querySelectorAll('.payment-card').forEach(pc => {
+                const hint = pc.querySelector('.payment-hint');
+                if (pc.dataset.value === 'CREDIT_CARD') {
+                    hint.textContent = isAnual ? 'Até 12x sem juros' : 'Cobrança mensal recorrente';
+                }
+            });
+        });
+    });
+
+    // Plan card selection
     cards.forEach(card => {
         card.addEventListener('click', function() {
             if (this.classList.contains('disabled')) return;
@@ -269,13 +414,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Atualizar planos compatíveis quando membros mudam
-    // Regra: plano ideal + planos mais premium (acima) ficam habilitados
-    // Planos abaixo do ideal ficam desabilitados
+    // Filter plans by member count
     inputMembros.addEventListener('input', function() {
         const membros = parseInt(this.value) || 0;
-
-        // Encontrar o plano ideal (onde membros se encaixa)
         let planoIdealIndex = -1;
         cards.forEach((card, index) => {
             const min = parseInt(card.dataset.min);
@@ -284,65 +425,87 @@ document.addEventListener('DOMContentLoaded', function() {
                 planoIdealIndex = index;
             }
         });
-
-        // Se não encontrou plano ideal, verificar se é acima do último
         if (planoIdealIndex === -1 && membros > 0) {
-            // Acima do maior plano → habilitar apenas o último (Performance)
             planoIdealIndex = cards.length - 1;
         }
-
         let planoAutoSelecionado = false;
         cards.forEach((card, index) => {
             if (planoIdealIndex === -1) {
-                // Sem membros, desabilitar todos
                 card.classList.add('disabled');
                 card.classList.remove('selected');
                 return;
             }
-
-            // Habilitar o plano ideal e todos acima (mais premium)
             if (index >= planoIdealIndex) {
                 card.classList.remove('disabled');
                 if (!planoAutoSelecionado) {
-                    // Auto-selecionar o plano ideal (o primeiro habilitado)
                     cards.forEach(c => c.classList.remove('selected'));
                     card.classList.add('selected');
                     inputPlano.value = card.dataset.nome;
                     planoAutoSelecionado = true;
                 }
             } else {
-                // Desabilitar planos abaixo do ideal
                 card.classList.add('disabled');
                 card.classList.remove('selected');
             }
         });
-
         if (!planoAutoSelecionado) {
             inputPlano.value = '';
-            valorResumo.style.display = 'none';
+            valorResumo.classList.add('hidden');
         }
         calcularValor();
     });
 
-    // Recalcular quando tipo ou desconto mudam
-    selectTipo.addEventListener('change', function() {
-        updatePriceLabels();
+    // Discount change
+    inputDesconto.addEventListener('input', function() {
         calcularValor();
+        calcularValorParcela();
     });
-    inputDesconto.addEventListener('input', calcularValor);
+
+    // Performance value change
+    inputValorPerformance.addEventListener('input', function() {
+        calcularValor();
+        if (selectFormaPagamento.value === 'CREDIT_CARD') calcularValorParcela();
+    });
+
+    // Payment method change - handled by card click above
+    selectParcelas.addEventListener('change', calcularValorParcela);
+
+    function calcularValorParcela() {
+        const selected = document.querySelector('.plano-card.selected');
+        if (!selected) { valorParcelaEl.textContent = 'R$ 0,00'; return; }
+        const isConsulte = selected.dataset.consulte === '1';
+        const parcelas = parseInt(selectParcelas.value) || 1;
+        let valorTotal;
+
+        if (isConsulte) {
+            // Performance plan: use the entered combined value
+            valorTotal = parseFloat(inputValorPerformance.value) || 0;
+            if (valorTotal <= 0) { valorParcelaEl.textContent = 'A definir'; return; }
+        } else {
+            // Regular plans: calculate from base price minus discount
+            const tipo = selectTipo.value;
+            const base = tipo === 'anual' ? parseFloat(selected.dataset.anual) : parseFloat(selected.dataset.mensal);
+            const desconto = parseFloat(inputDesconto.value) || 0;
+            valorTotal = base - (base * (desconto / 100));
+        }
+
+        const valorParcela = valorTotal / parcelas;
+        valorParcelaEl.textContent = fmtCurrency(valorParcela);
+    }
 
     function updatePriceLabels() {
         const tipo = selectTipo.value;
         cards.forEach(card => {
             const priceEl = card.querySelector('.plano-price');
             const labelEl = card.querySelector('.plano-price-label');
+            if (!priceEl.dataset.mensal) return;
             const mensal = parseFloat(priceEl.dataset.mensal);
             const anual = parseFloat(priceEl.dataset.anual);
             if (tipo === 'anual') {
-                priceEl.textContent = 'R$ ' + anual.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                priceEl.textContent = fmtCurrency(anual);
                 labelEl.textContent = 'por ano';
             } else {
-                priceEl.textContent = 'R$ ' + mensal.toLocaleString('pt-BR', {minimumFractionDigits: 2});
+                priceEl.textContent = fmtCurrency(mensal);
                 labelEl.textContent = 'por mês';
             }
         });
@@ -350,35 +513,44 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function calcularValor() {
         const selected = document.querySelector('.plano-card.selected');
-        if (!selected) {
-            valorResumo.style.display = 'none';
+        if (!selected) { valorResumo.classList.add('hidden'); return; }
+
+        const isConsulte = selected.dataset.consulte === '1';
+        const descontoRow = document.getElementById('descontoRow');
+        const valorPerformanceRow = document.getElementById('valorPerformanceRow');
+        const avisoAprovacao = document.getElementById('avisoAprovacaoPerformance');
+
+        if (isConsulte) {
+            descontoRow.classList.add('hidden');
+            valorPerformanceRow.classList.remove('hidden');
+            avisoAprovacao.classList.remove('hidden');
+            valorResumo.classList.remove('hidden');
+            const valorDigitado = parseFloat(inputValorPerformance.value) || 0;
+            valorFinal.textContent = valorDigitado > 0
+                ? fmtCurrency(valorDigitado)
+                : 'A definir';
+            resumoDetalhes.textContent = 'Plano Basiléia ' + selected.dataset.nome + ' — Valor negociado';
             return;
         }
 
-        const isConsulte = selected.dataset.consulte === '1';
-        if (isConsulte) {
-            valorResumo.style.display = 'flex';
-            valorFinal.textContent = 'Consulte';
-            resumoDetalhes.textContent = `Plano Basiléia ${selected.dataset.nome} — Fale com um especialista`;
-            return;
-        }
+        descontoRow.classList.remove('hidden');
+        valorPerformanceRow.classList.add('hidden');
+        avisoAprovacao.classList.add('hidden');
 
         const tipo = selectTipo.value;
         const base = tipo === 'anual' ? parseFloat(selected.dataset.anual) : parseFloat(selected.dataset.mensal);
         const desconto = parseFloat(inputDesconto.value) || 0;
         const final_ = base - (base * (desconto / 100));
 
-        valorResumo.style.display = 'flex';
-        valorFinal.textContent = 'R$ ' + final_.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        valorResumo.classList.remove('hidden');
+        valorFinal.textContent = fmtCurrency(final_);
 
-        let detalhes = `Plano Basiléia ${selected.dataset.nome} (${tipo})`;
-        if (desconto > 0) {
-            detalhes += ` • ${desconto}% de desconto aplicado`;
-        }
+        let detalhes = 'Plano Basiléia ' + selected.dataset.nome + ' (' + tipo + ')';
+        if (desconto > 0) detalhes += ' — ' + desconto + '% desconto';
         resumoDetalhes.textContent = detalhes;
     }
 
-    // Máscara simples de documento (CPF/CNPJ)
+    // CPF/CNPJ mask
     inputDocumento.addEventListener('input', function(e) {
         let v = this.value.replace(/\D/g, '');
         if (v.length <= 11) {
@@ -395,7 +567,60 @@ document.addEventListener('DOMContentLoaded', function() {
         this.value = v;
     });
 
-    // Máscara simples de WhatsApp
+    // Verificar documento ao perder foco
+    let documentoTimeout;
+    inputDocumento.addEventListener('blur', function() {
+        const doc = this.value.replace(/\D/g, '');
+        if (doc.length < 11) return;
+        
+        clearTimeout(documentoTimeout);
+        documentoTimeout = setTimeout(() => {
+            fetch('{{ route("vendedor.vendas.verificar-documento") }}?documento=' + doc, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                const warning = document.getElementById('documentoWarning');
+                if (data.exists && data.has_active_sale) {
+                    warning.style.display = 'block';
+                    warning.innerHTML = `
+                        <div class="warning-box" style="border-color: #dc2626; background: #fef2f2;">
+                            <i class="fas fa-triangle-exclamation" style="color: #dc2626;"></i>
+                            <div>
+                                <div class="warning-title" style="color: #dc2626;">Cliente já possui venda ativa!</div>
+                                <div class="warning-text" style="color: #7f1d1d;">
+                                    <strong>${data.cliente.nome_igreja}</strong><br>
+                                    Venda #${data.venda.id} — Plano ${data.venda.plano} — R$ ${data.venda.valor}<br>
+                                    Status: ${data.venda.status} (${data.venda.data})
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    BasileiaToast.warning('Este cliente já possui uma venda ativa!');
+                } else if (data.exists) {
+                    warning.style.display = 'block';
+                    warning.innerHTML = `
+                        <div class="warning-box" style="border-color: #f59e0b; background: #fef3c7;">
+                            <i class="fas fa-info-circle" style="color: #f59e0b;"></i>
+                            <div>
+                                <div class="warning-title" style="color: #92400e;">Cliente já cadastrado</div>
+                                <div class="warning-text" style="color: #78350f;">
+                                    <strong>${data.cliente.nome_igreja}</strong> já existe no sistema.
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    warning.style.display = 'none';
+                }
+            })
+            .catch(() => {
+                document.getElementById('documentoWarning').style.display = 'none';
+            });
+        }, 500);
+    });
+
+    // WhatsApp mask
     inputWhatsapp.addEventListener('input', function(e) {
         let v = this.value.replace(/\D/g, '');
         v = v.substring(0, 11);

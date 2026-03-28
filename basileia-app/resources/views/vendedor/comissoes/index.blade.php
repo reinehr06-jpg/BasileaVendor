@@ -3,44 +3,6 @@
 
 @section('content')
 <style>
-    @keyframes fadeInUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-    .animate-in { animation: fadeInUp 0.45s ease-out both; }
-    .animate-in:nth-child(1) { animation-delay: 0.03s; }
-    .animate-in:nth-child(2) { animation-delay: 0.06s; }
-    .animate-in:nth-child(3) { animation-delay: 0.09s; }
-    .animate-in:nth-child(4) { animation-delay: 0.12s; }
-    .animate-in:nth-child(5) { animation-delay: 0.15s; }
-
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-    .page-header h2 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
-    .page-header .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
-
-    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; transition: 0.3s; }
-    .card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -10px rgba(0,0,0,0.08); border-color: var(--primary); }
-    .card .icon { font-size: 1.5rem; margin-bottom: 12px; display: block; }
-    .card .value { font-size: 1.4rem; font-weight: 800; color: var(--text-main); display: block; }
-    .card .label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
-    .card.highlight { background: var(--primary); border-color: var(--primary); }
-    .card.highlight .value, .card.highlight .label, .card.highlight .icon { color: white; }
-
-    .filters-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-    .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px; }
-    .filter-group label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); }
-    .filter-group input, .filter-group select { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; outline: none; background: white; transition: 0.2s; }
-    .filter-group input:focus, .filter-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(88,28,135,0.1); }
-    .btn-filter { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.88rem; transition: 0.2s; }
-    .btn-filter:hover { background: var(--primary-hover); }
-    .btn-export { background: #059669; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.88rem; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
-    .btn-export:hover { background: #047857; }
-
-    .table-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: auto; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-    table { width: 100%; border-collapse: collapse; text-align: left; min-width: 900px; }
-    th { background: #f8fafc; padding: 14px 16px; font-weight: 700; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
-    td { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 0.88rem; color: var(--text-main); }
-    tr:last-child td { border-bottom: none; }
-    tr:hover { background: #f8fafc; }
-
     .badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: capitalize; }
     .badge-pendente { background: #fef9c3; color: #854d0e; }
     .badge-confirmada { background: #dcfce7; color: #15803d; }
@@ -49,69 +11,63 @@
     .badge-recorrencia { background: #faf5ff; color: #7e22ce; }
 </style>
 
-<div class="page-header animate-in">
+<div class="page-header">
     <div>
-        <h2>💰 Minhas Comissões</h2>
-        <div class="subtitle">Extrato de comissões por período</div>
+        <h2><i class="fas fa-hand-holding-dollar" style="margin-right: 8px;"></i>Extrato de Comissões</h2>
+        <p>{{ Auth::user()->perfil === 'gestor' ? 'Acompanhe suas vendas diretas e repasses de toda sua equipe' : 'Acompanhe seus ganhos por vendas realizadas' }}</p>
     </div>
-    <a href="{{ route('vendedor.comissoes.exportar', ['mes' => $mes]) }}" class="btn-export">
-        📥 Exportar Excel
+    <a href="{{ route('vendedor.comissoes.exportar', ['mes' => $mes]) }}" class="btn btn-outline">
+        <i class="fas fa-download"></i> Exportar Excel
     </a>
 </div>
 
-@if(session('success'))
-<div class="animate-in" style="background: #dcfce7; color: #166534; padding: 16px; border-radius: 12px; margin-bottom: 24px; font-weight: 600; border-left: 4px solid #22c55e;">
-    ✔️ {{ session('success') }}
-</div>
-@endif
-
-<!-- Cards -->
-<div class="summary-grid">
-    <div class="card animate-in">
-        <span class="icon">⏳</span>
-        <span class="value" style="color: #f59e0b;">R$ {{ number_format($resumo['pendente'], 2, ',', '.') }}</span>
-        <span class="label">Pendente</span>
+<!-- Summary Cards -->
+<div class="stats-bar">
+    <div class="stat-card">
+        <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
+        <div class="stat-value" style="color: var(--warning);">R$ {{ number_format($resumo['pendente'], 2, ',', '.') }}</div>
+        <div class="stat-label">Pendente</div>
     </div>
-    <div class="card animate-in">
-        <span class="icon">✅</span>
-        <span class="value" style="color: #10b981;">R$ {{ number_format($resumo['confirmada'], 2, ',', '.') }}</span>
-        <span class="label">Confirmada</span>
+    <div class="stat-card">
+        <div class="stat-icon success"><i class="fas fa-circle-check"></i></div>
+        <div class="stat-value" style="color: var(--success);">R$ {{ number_format($resumo['confirmada'], 2, ',', '.') }}</div>
+        <div class="stat-label">Confirmada</div>
     </div>
-    <div class="card animate-in">
-        <span class="icon">💵</span>
-        <span class="value" style="color: #3b82f6;">R$ {{ number_format($resumo['paga'], 2, ',', '.') }}</span>
-        <span class="label">Paga</span>
+    <div class="stat-card">
+        <div class="stat-icon info"><i class="fas fa-building-columns"></i></div>
+        <div class="stat-value" style="color: var(--info);">R$ {{ number_format($resumo['paga'], 2, ',', '.') }}</div>
+        <div class="stat-label">Paga</div>
     </div>
-    <div class="card animate-in">
-        <span class="icon">🔄</span>
-        <span class="value">{{ $resumo['recorrencias'] }}</span>
-        <span class="label">Recorrências</span>
+    <div class="stat-card">
+        <div class="stat-icon primary"><i class="fas fa-rotate"></i></div>
+        <div class="stat-value">{{ $resumo['recorrencias'] }}</div>
+        <div class="stat-label">Recorrências</div>
     </div>
-    <div class="card animate-in highlight">
-        <span class="icon">💰</span>
-        <span class="value">R$ {{ number_format($resumo['total'], 2, ',', '.') }}</span>
-        <span class="label">Total do Mês</span>
+    <div class="stat-card" style="background: var(--primary); border-color: var(--primary);">
+        <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;"><i class="fas fa-dollar-sign"></i></div>
+        <div class="stat-value" style="color: white;">R$ {{ number_format($resumo['total'], 2, ',', '.') }}</div>
+        <div class="stat-label" style="color: rgba(255,255,255,0.8);">Total do Mês</div>
     </div>
 </div>
 
-<!-- Filtros -->
+<!-- Filters -->
 <form method="GET" action="{{ route('vendedor.comissoes') }}">
-<div class="filters-bar animate-in">
-    <div class="filter-group">
-        <label>Mês</label>
-        <input type="month" name="mes" value="{{ $mes }}" onchange="this.form.submit()">
+<div class="filters-bar">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-calendar"></i> Mês</label>
+        <input type="month" name="mes" class="form-control" value="{{ $mes }}" onchange="this.form.submit()">
     </div>
-    <div class="filter-group">
-        <label>Tipo</label>
-        <select name="tipo" onchange="this.form.submit()">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-tag"></i> Tipo</label>
+        <select name="tipo" class="form-control" onchange="this.form.submit()">
             <option value="">Todos</option>
             <option value="inicial" {{ $tipo == 'inicial' ? 'selected' : '' }}>Inicial</option>
             <option value="recorrencia" {{ $tipo == 'recorrencia' ? 'selected' : '' }}>Recorrência</option>
         </select>
     </div>
-    <div class="filter-group">
-        <label>Status</label>
-        <select name="status" onchange="this.form.submit()">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-circle-check"></i> Status</label>
+        <select name="status" class="form-control" onchange="this.form.submit()">
             <option value="">Todos</option>
             <option value="pendente" {{ $status == 'pendente' ? 'selected' : '' }}>Pendente</option>
             <option value="confirmada" {{ $status == 'confirmada' ? 'selected' : '' }}>Confirmada</option>
@@ -119,40 +75,61 @@
         </select>
     </div>
     <div style="display: flex; gap: 8px; align-items: flex-end;">
-        <button type="submit" class="btn-filter">🔍 Filtrar</button>
-        <a href="{{ route('vendedor.comissoes') }}" style="text-decoration: none; font-size: 0.85rem; color: var(--text-muted); font-weight: 600; padding: 10px;">Limpar</a>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtrar</button>
+        <a href="{{ route('vendedor.comissoes') }}" class="btn btn-ghost btn-sm">Limpar</a>
     </div>
 </div>
 </form>
 
-<!-- Tabela -->
-<div class="table-container animate-in">
+<!-- Table -->
+<div class="table-container">
     @if($comissoes->count() > 0)
     <table>
         <thead>
             <tr>
-                <th>Cliente (Igreja)</th>
-                <th>CPF/CNPJ</th>
-                <th>Venda</th>
+                <th><i class="fas fa-building" style="margin-right: 4px;"></i> Cliente</th>
+                <th><i class="fas fa-id-card" style="margin-right: 4px;"></i> CPF/CNPJ</th>
+                <th><i class="fas fa-hashtag" style="margin-right: 4px;"></i> Venda</th>
                 <th>%</th>
-                <th>Comissão</th>
-                <th>Tipo</th>
-                <th>Data Pag.</th>
+                <th><i class="fas fa-dollar-sign" style="margin-right: 4px;"></i> Comissão</th>
+                <th><i class="fas fa-tag" style="margin-right: 4px;"></i> Tipo</th>
+                <th><i class="fas fa-calendar-check" style="margin-right: 4px;"></i> Data Pag.</th>
                 <th>Status</th>
             </tr>
         </thead>
         <tbody>
             @foreach($comissoes as $c)
+            @php
+                $isDirect = ($vendedor && $c->vendedor_id == $vendedor->id);
+                $valorExibido = $isDirect ? $c->valor_comissao : $c->valor_gerente;
+                $percentualExibido = $isDirect ? $c->percentual_aplicado : $c->percentual_gerente;
+            @endphp
             <tr>
                 <td>
-                    <div style="font-weight: 700;">{{ $c->cliente->nome_igreja ?? $c->cliente->nome ?? 'N/A' }}</div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted);">{{ $c->cliente->nome_pastor ?? $c->cliente->nome_responsavel ?? '' }}</div>
+                    <div style="font-weight: 600; color: var(--text-primary);">{{ $c->cliente->nome_igreja ?? $c->cliente->nome ?? 'N/A' }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">
+                        @if(!$isDirect)
+                            <span style="color: var(--primary); font-weight: 600;">[Equipe: {{ $c->vendedor->user->name ?? 'Vendedor' }}]</span>
+                        @endif
+                        {{ $c->cliente->nome_pastor ?? $c->cliente->nome_responsavel ?? '' }}
+                    </div>
                 </td>
-                <td style="font-family: monospace; color: var(--text-muted);">{{ $c->cliente->documento ?? '-' }}</td>
+                <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">{{ $c->cliente->documento ?? '-' }}</td>
                 <td style="font-weight: 600; text-align: center;">#{{ $c->venda_id }}</td>
-                <td style="text-align: center; font-weight: 700;">{{ $c->percentual_aplicado }}%</td>
-                <td style="font-weight: 700; color: var(--primary);">R$ {{ number_format($c->valor_comissao, 2, ',', '.') }}</td>
-                <td><span class="badge badge-{{ $c->tipo_comissao }}">{{ ucfirst($c->tipo_comissao) }}</span></td>
+                <td style="text-align: center; font-weight: 700;">{{ number_format($percentualExibido, 1) }}%</td>
+                <td style="font-weight: 700; color: var(--primary);">R$ {{ number_format($valorExibido, 2, ',', '.') }}</td>
+                <td>
+                    @if($isDirect)
+                        <span class="badge" style="background: #e0f2fe; color: #0369a1;"><i class="fas fa-user"></i> Direta</span>
+                    @else
+                        <span class="badge" style="background: #fdf2f8; color: #9d174d;"><i class="fas fa-users"></i> Equipe</span>
+                    @endif
+                    <br>
+                    <span class="badge badge-{{ $c->tipo_comissao }}" style="margin-top: 4px; font-size: 0.65rem;">
+                        <i class="fas fa-{{ $c->tipo_comissao === "recorrencia" ? "rotate" : "star" }}"></i> 
+                        {{ ucfirst($c->tipo_comissao) }}
+                    </span>
+                </td>
                 <td>{{ $c->data_pagamento ? $c->data_pagamento->format('d/m/Y') : '-' }}</td>
                 <td><span class="badge badge-{{ $c->status }}">{{ ucfirst($c->status) }}</span></td>
             </tr>
@@ -164,12 +141,10 @@
         <div>{{ $comissoes->appends(request()->query())->links('pagination::bootstrap-4') }}</div>
     </div>
     @else
-    <div style="padding: 80px 20px; text-align: center;">
-        <div style="background: #f1f5f9; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-            <span style="font-size: 2rem;">💰</span>
-        </div>
-        <h3 style="color: var(--text-main); font-weight: 700; margin-bottom: 8px;">Nenhuma comissão encontrada</h3>
-        <p style="color: var(--text-muted); font-size: 0.95rem;">As comissões aparecerão aqui quando seus pagamentos forem confirmados.</p>
+    <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+        <h3>Nenhuma comissão encontrada</h3>
+        <p>As comissões aparecerão aqui quando seus pagamentos forem confirmados.</p>
     </div>
     @endif
 </div>

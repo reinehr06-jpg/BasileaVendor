@@ -17,8 +17,8 @@ class CheckVendedor
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!Auth::check() || Auth::user()->perfil !== 'vendedor') {
-            abort(403, 'Acesso não autorizado. Área exclusiva para Vendedores.');
+        if (!Auth::check() || !in_array(Auth::user()->perfil, ['vendedor', 'gestor'])) {
+            abort(403, 'Acesso não autorizado. Área exclusiva para Vendedores e Gestores.');
         }
         return $next($request);
     }

@@ -310,6 +310,58 @@
     </div>
 </div>
 
+<!-- ===== SEÇÃO 2B: Metas por Equipe ===== -->
+<div class="section-card animate-in">
+    <div class="section-header">
+        <h3>👥 Metas por Equipe</h3>
+    </div>
+    <div class="section-body">
+        @if(count($metasPorEquipe) > 0)
+        <div class="table-responsive">
+        <table class="report-table">
+            <thead>
+                <tr>
+                    <th>Equipe</th>
+                    <th>Gestor</th>
+                    <th class="text-center">Vendedores</th>
+                    <th class="text-center">Vendas</th>
+                    <th class="text-right">Valor Vendido</th>
+                    <th class="text-right">Valor Recebido</th>
+                    <th class="text-right">Meta</th>
+                    <th>% Meta</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($metasPorEquipe as $eq)
+                <tr>
+                    <td class="font-bold">{{ $eq['equipe_nome'] }}</td>
+                    <td style="color: var(--text-secondary);">{{ $eq['gestor_nome'] }}</td>
+                    <td class="text-center">{{ $eq['total_vendedores'] }}</td>
+                    <td class="text-center">{{ $eq['total_vendas'] }}</td>
+                    <td class="text-right">R$ {{ number_format($eq['valor_vendido'], 2, ',', '.') }}</td>
+                    <td class="text-right">R$ {{ number_format($eq['valor_recebido'], 2, ',', '.') }}</td>
+                    <td class="text-right">R$ {{ number_format($eq['meta'], 2, ',', '.') }}</td>
+                    <td style="min-width: 120px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div class="progress-bar" style="flex: 1;">
+                                <div class="fill {{ $eq['percentual_meta'] >= 100 ? 'green' : ($eq['percentual_meta'] >= 50 ? 'yellow' : 'red') }}" style="width: {{ min($eq['percentual_meta'], 100) }}%;"></div>
+                            </div>
+                            <span style="font-size: 0.78rem; font-weight: 700; color: {{ $eq['percentual_meta'] >= 100 ? '#16a34a' : ($eq['percentual_meta'] >= 50 ? '#ca8a04' : '#dc2626') }};">{{ $eq['percentual_meta'] }}%</span>
+                        </div>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        </div>
+        @else
+        <div class="empty-state">
+            <p>Nenhuma equipe cadastrada. Crie equipes na aba Equipes para visualizar os dados.</p>
+        </div>
+        @endif
+    </div>
+</div>
+
 <!-- ===== SEÇÃO 3: Recebimentos por Período ===== -->
 <div class="section-card animate-in">
     <div class="section-header">

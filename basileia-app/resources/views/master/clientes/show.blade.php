@@ -120,10 +120,10 @@
     <!-- ===== Main Panel (Históricos) ===== -->
     <div class="main-card animate-in">
         <div class="tabs-header">
-            <button class="tab-btn active" onclick="switchTab('vendas', this)">
+            <button class="tab-btn active" onclick="switchClientTab('vendas', this)">
                 🛍️ Histórico de Vendas ({{ $vendas->count() }})
             </button>
-            <button class="tab-btn" onclick="switchTab('pagamentos', this)">
+            <button class="tab-btn" onclick="switchClientTab('pagamentos', this)">
                 💳 Faturas e Pagamentos ({{ $pagamentos->count() }})
             </button>
         </div>
@@ -198,10 +198,11 @@
                             <td style="font-weight: 700;">{{ \Carbon\Carbon::parse($p->data_vencimento)->format('d/m/Y') }}</td>
                             <td>
                                 <span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; text-transform: uppercase; font-size: 0.78rem;">
-                                    @if(strtolower($p->forma_pagamento) == 'pix') ⚡ PIX
-                                    @elseif(strtolower($p->forma_pagamento) == 'boleto') 📄 Boleto
-                                    @elseif(strtolower($p->forma_pagamento) == 'cartão') 💳 Cartão
-                                    @else 💳 {{ $p->forma_pagamento }}
+                                    @php $formaExibida = $p->forma_pagamento_real ?? $p->forma_pagamento; @endphp
+                                    @if(strtolower($formaExibida) == 'pix') ⚡ PIX
+                                    @elseif(strtolower($formaExibida) == 'boleto') 📄 Boleto
+                                    @elseif(strtolower($formaExibida) == 'cartao' || strtolower($formaExibida) == 'cartão') 💳 Cartão
+                                    @else 💳 {{ $formaExibida }}
                                     @endif
                                 </span>
                             </td>
@@ -239,10 +240,10 @@
 <div id="toastMessage">Status atualizado com sucesso!</div>
 
 <script>
-    // Sistema de abas
-    function switchTab(tabId, btnElement) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    // Sistema de abas (nome único para evitar conflito com basileia.js)
+    function switchClientTab(tabId, btnElement) {
+        document.querySelectorAll('.tabs-header .tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.main-card .tab-content').forEach(c => c.classList.remove('active'));
         
         btnElement.classList.add('active');
         document.getElementById('tab-' + tabId).classList.add('active');

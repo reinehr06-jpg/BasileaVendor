@@ -9,6 +9,7 @@ use App\Models\Pagamento;
 use App\Models\Vendedor;
 use App\Models\Cliente;
 use App\Models\Meta;
+use App\Models\Equipe;
 use Carbon\Carbon;
 
 class RelatorioController extends Controller
@@ -22,6 +23,7 @@ class RelatorioController extends Controller
 
         $resumo             = $this->getResumo($filtros);
         $vendasPorVendedor  = $this->getVendasPorVendedor($filtros);
+        $metasPorEquipe     = $this->getMetasPorEquipe($filtros);
         $pagamentosPeriodo  = $this->getPagamentosPorPeriodo($filtros);
         $churnRenovacoes    = $this->getChurnRenovacoes($filtros);
         $formasPagamento    = $this->getFormasPagamento($filtros);
@@ -35,7 +37,7 @@ class RelatorioController extends Controller
         $filtrosRetornaramDados = $resumo['totalVendas'] > 0 || $pagamentosPeriodo['total_pagamentos'] > 0;
 
         return view('master.relatorios.index', compact(
-            'resumo', 'vendasPorVendedor', 'pagamentosPeriodo',
+            'resumo', 'vendasPorVendedor', 'metasPorEquipe', 'pagamentosPeriodo',
             'churnRenovacoes', 'formasPagamento', 'vendedores',
             'clientes', 'filtros', 'temDadosNoSistema', 'filtrosRetornaramDados'
         ));
@@ -80,13 +82,31 @@ class RelatorioController extends Controller
 
     /**
      * Aplicar filtros comuns a uma query de Pagamento
+     * Regra: Para pagamentos confirmados, usar data_pagamento.
+     * Para outros status, usar created_at.
      */
     private function applyPagamentoFilters($query, array $filtros): void
     {
-        $query->whereBetween('created_at', [$filtros['data_inicio'], $filtros['data_fim'] . ' 23:59:59']);
+        // Filtrar por data_pagamento se o filtro de status for específico para pagos
+        // Caso contrário, usar created_at para manter compatibilidade
+        if (isset($filtros['status_pagamento']) && in_array($filtros['status_pagamento'], ['pago', 'RECEIVED', 'CONFIRMED'])) {
+            $query->whereBetween('data_pagamento', [$filtros['data_inicio'], $filtros['data_fim']]);
+            $query->whereIn('status', ['pago', 'RECEIVED', 'CONFIRMED']);
+        } else {
+            $query->whereBetween('created_at', [$filtros['data_inicio'], $filtros['data_fim'] . ' 23:59:59']);
+        }
 
         if ($filtros['vendedor_id']) $query->where('vendedor_id', $filtros['vendedor_id']);
-        if ($filtros['forma_pagamento']) $query->where('forma_pagamento', $filtros['forma_pagamento']);
+        // Filtrar por forma de pagamento (usando forma_pagamento_real quando disponível)
+        if ($filtros['forma_pagamento']) {
+            $query->where(function($q) use ($filtros) {
+                $q->where('forma_pagamento_real', $filtros['forma_pagamento'])
+                  ->orWhere(function($q2) use ($filtros) {
+                      $q2->whereNull('forma_pagamento_real')
+                         ->where('forma_pagamento', $filtros['forma_pagamento']);
+                  });
+            });
+        }
         if ($filtros['cliente_id']) $query->where('cliente_id', $filtros['cliente_id']);
         if ($filtros['recorrencia']) {
             $query->where('recorrencia_status', $filtros['recorrencia'] === 'ativa' ? 'ativa' : 'inativa');
@@ -177,22 +197,42 @@ class RelatorioController extends Controller
 
     /**
      * 12.3 — Pagamentos por período
-     * Regra: Pagamentos estornados NÃO entram no total recebido.
+     * Regra: 
+     * - Valor recebido = soma dos pagamentos com status pago/RECEIVED/CONFIRMED 
+     *   filtrados por data_pagamento no período
+     * - Pagamentos estornados NÃO entram no total recebido
      */
     private function getPagamentosPorPeriodo(array $filtros): array
     {
-        $query = Pagamento::query();
-        $this->applyPagamentoFilters($query, $filtros);
-        $pagamentos = $query->get();
+        // Query para pagamentos confirmados no período (usando data_pagamento)
+        $queryPago = Pagamento::where(function($q) use ($filtros) {
+            $q->whereIn('status', ['pago', 'RECEIVED', 'CONFIRMED'])
+              ->whereBetween('data_pagamento', [$filtros['data_inicio'], $filtros['data_fim']]);
+        });
+        
+        if ($filtros['vendedor_id']) $queryPago->where('vendedor_id', $filtros['vendedor_id']);
+        if ($filtros['forma_pagamento']) $queryPago->where('forma_pagamento', $filtros['forma_pagamento']);
+        if ($filtros['cliente_id']) $queryPago->where('cliente_id', $filtros['cliente_id']);
+        
+        $pagamentosPagos = $queryPago->get();
+        
+        // Query para todos os pagamentos criados no período (para pendentes/vencidos)
+        $queryTodos = Pagamento::whereBetween('created_at', [$filtros['data_inicio'], $filtros['data_fim'] . ' 23:59:59']);
+        
+        if ($filtros['vendedor_id']) $queryTodos->where('vendedor_id', $filtros['vendedor_id']);
+        if ($filtros['forma_pagamento']) $queryTodos->where('forma_pagamento', $filtros['forma_pagamento']);
+        if ($filtros['cliente_id']) $queryTodos->where('cliente_id', $filtros['cliente_id']);
+        
+        $pagamentosTodos = $queryTodos->get();
 
         return [
-            'total_pagamentos' => $pagamentos->count(),
-            'total_pago'       => $pagamentos->where('status', 'pago')->sum('valor'),
-            'total_pendente'   => $pagamentos->where('status', 'pendente')->sum('valor'),
-            'total_vencido'    => $pagamentos->where('status', 'vencido')->sum('valor'),
-            'valor_recebido'   => $pagamentos->where('status', 'pago')
-                                              ->where('status', '!=', 'estornado')
-                                              ->sum('valor'),
+            'total_pagamentos' => $pagamentosTodos->count(),
+            'total_pago'       => $pagamentosPagos->sum('valor'),
+            'total_pendente'   => $pagamentosTodos->whereNotIn('status', ['pago', 'RECEIVED', 'CONFIRMED', 'vencido', 'VENCIDO', 'OVERDUE', 'estornado', 'CANCELED', 'REFUNDED'])
+                                                   ->sum('valor'),
+            'total_vencido'    => $pagamentosTodos->whereIn('status', ['vencido', 'VENCIDO', 'OVERDUE'])->sum('valor'),
+            'valor_recebido'   => $pagamentosPagos->whereNotIn('status', ['estornado', 'CANCELED', 'REFUNDED', 'REFUND_REQUESTED'])
+                                                   ->sum('valor'),
         ];
     }
 
@@ -231,13 +271,62 @@ class RelatorioController extends Controller
     }
 
     /**
+     * 12.6 — Metas por equipe (do gestor)
+     */
+    private function getMetasPorEquipe(array $filtros): array
+    {
+        $equipes = Equipe::with(['gestor', 'vendedores.user'])->where('status', 'ativa')->get();
+        $resultado = [];
+
+        foreach ($equipes as $equipe) {
+            $vendedorIds = $equipe->vendedores->pluck('id')->toArray();
+            if (empty($vendedorIds)) {
+                $resultado[] = [
+                    'equipe_id'        => $equipe->id,
+                    'equipe_nome'      => $equipe->nome,
+                    'gestor_nome'      => $equipe->gestor->name ?? 'N/A',
+                    'total_vendedores' => 0,
+                    'total_vendas'     => 0,
+                    'valor_vendido'    => 0,
+                    'valor_recebido'   => 0,
+                    'meta'             => $equipe->meta_mensal,
+                    'percentual_meta'  => 0,
+                ];
+                continue;
+            }
+
+            $query = Venda::whereIn('vendedor_id', $vendedorIds);
+            $this->applyVendaFilters($query, $filtros, false);
+            $vendas = $query->get();
+
+            $vendasEfetivas = $vendas->whereNotIn('status', ['Cancelado', 'Expirado']);
+            $valorVendido = $vendasEfetivas->sum('valor');
+            $valorRecebido = $vendas->filter(fn($v) => trim(strtoupper($v->status)) === 'PAGO')->sum('valor');
+
+            $resultado[] = [
+                'equipe_id'        => $equipe->id,
+                'equipe_nome'      => $equipe->nome,
+                'gestor_nome'      => $equipe->gestor->name ?? 'N/A',
+                'total_vendedores' => $equipe->vendedores->count(),
+                'total_vendas'     => $vendasEfetivas->count(),
+                'valor_vendido'    => $valorVendido,
+                'valor_recebido'   => $valorRecebido,
+                'meta'             => $equipe->meta_mensal,
+                'percentual_meta'  => $equipe->meta_mensal > 0 ? round(($valorRecebido / $equipe->meta_mensal) * 100, 1) : 0,
+            ];
+        }
+
+        return $resultado;
+    }
+
+    /**
      * 12.5 — Formas de pagamento
-     * Regra: Excluir estornados.
+     * Regra: Excluir estornados. Usar forma_pagamento_real quando disponível.
      */
     private function getFormasPagamento(array $filtros): array
     {
         // Regra: Somente pagamentos confirmados/pagos entram no rateio por forma
-        $query = Pagamento::where('status', 'pago');
+        $query = Pagamento::whereIn('status', ['pago', 'RECEIVED', 'CONFIRMED']);
         $this->applyPagamentoFilters($query, $filtros);
         $pagamentos = $query->get();
         $total = $pagamentos->count();
@@ -246,7 +335,11 @@ class RelatorioController extends Controller
         $resultado = [];
 
         foreach ($formas as $forma) {
-            $grupo = $pagamentos->where('forma_pagamento', $forma);
+            // Usar forma_pagamento_real quando disponível, senão usar forma_pagamento
+            $grupo = $pagamentos->filter(function ($p) use ($forma) {
+                $formaUsada = $p->forma_pagamento_real ?: $p->forma_pagamento;
+                return $formaUsada === $forma;
+            });
             $resultado[] = [
                 'forma'      => $forma,
                 'quantidade' => $grupo->count(),
@@ -296,6 +389,14 @@ class RelatorioController extends Controller
     public function apiFormasPagamento(Request $request)
     {
         return response()->json($this->getFormasPagamento($this->parseFiltros($request)));
+    }
+
+    /**
+     * 12.6 — Metas por equipe (JSON)
+     */
+    public function apiMetasPorEquipe(Request $request)
+    {
+        return response()->json($this->getMetasPorEquipe($this->parseFiltros($request)));
     }
 
     /**

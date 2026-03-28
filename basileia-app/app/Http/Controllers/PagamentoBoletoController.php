@@ -14,36 +14,56 @@ class PagamentoBoletoController extends Controller
      * GET /vendedor/vendas/{id}/boleto
      *
      * Busca o URL/dados do boleto gerado no Asaas e retorna JSON.
-     * O frontend usa essa resposta para abrir o boleto DENTRO do painel,
-     * sem redirecionar o usuário para uma página externa.
+     */
+    /**
+     * GET /vendedor/vendas/{id}/boleto
+     *
+     * Busca o URL/dados do boleto gerado no Asaas e retorna JSON.
      */
     public function download(int $id)
     {
-        $user    = Auth::user();
-        $vendedor = $user->vendedor;
+        $user = Auth::user();
+        
+        // --- Metrificação e Auditoria Inicial ---
+        $logContext = [
+            'user_id' => $user->id,
+            'perfil'  => $user->perfil,
+            'venda_id' => $id,
+            'ip'      => request()->ip()
+        ];
 
-        if (!$vendedor) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Perfil de vendedor não encontrado.',
-            ], 403);
+        // Definir escopo de acesso
+        $vendedorIds = [];
+        if ($user->perfil === 'vendedor') {
+            $vendedorIds = [$user->vendedor->id ?? 0];
+        } elseif ($user->perfil === 'gestor') {
+            $vendedorIds = \App\Models\Vendedor::where('gestor_id', $user->id)
+                ->orWhere('usuario_id', $user->id)
+                ->pluck('id')
+                ->toArray();
+        } elseif ($user->perfil === 'master') {
+            // Adm pode ver todos
+            $vendedorIds = null;
         }
 
-        // Garante que a venda pertence ao vendedor logado
-        $venda = Venda::where('vendedor_id', $vendedor->id)
-            ->with(['pagamentos'])
-            ->find($id);
+        $query = Venda::with(['pagamentos']);
+        if ($vendedorIds !== null) {
+            $query->whereIn('vendedor_id', $vendedorIds);
+        }
+        $venda = $query->find($id);
 
         if (!$venda) {
+            Log::warning('[BOLETO_FETCH_FAILED_PERMISSION] Tentativa de acesso não autorizado ou venda inexistente.', $logContext);
             return response()->json([
                 'success' => false,
-                'message' => 'Venda não encontrada.',
+                'message' => 'Venda não encontrada ou sem permissão de acesso.',
             ], 404);
         }
 
         $pagamento = $venda->pagamentos->first();
 
         if (!$pagamento) {
+            Log::warning('[BOLETO_FETCH_FAILED_NO_PAYMENT] Venda sem cobrança registrada.', $logContext);
             return response()->json([
                 'success' => false,
                 'message' => 'Nenhuma cobrança registrada para esta venda.',
@@ -51,92 +71,114 @@ class PagamentoBoletoController extends Controller
         }
 
         // -------------------------------------------------------
-        // 1. Verifica se o banco_slip_url já está salvo localmente
+        // 1. Tenta pegar a URL do boleto de qualquer campo salvo
         // -------------------------------------------------------
-        $boletoUrl     = $pagamento->bank_slip_url ?? null;
+        $boletoUrl = $pagamento->bank_slip_url
+                  ?? $pagamento->link_pagamento
+                  ?? null;
         $linhaDigitavel = $pagamento->linha_digitavel ?? null;
 
         // -------------------------------------------------------
-        // 2. Se não tiver local, busca on-demand no Asaas
+        // 2. Se tiver asaas_payment_id, SEMPRE busca no Asaas para atualizar dados
         // -------------------------------------------------------
-        if (!$boletoUrl && $pagamento->asaas_payment_id) {
+        if ($pagamento->asaas_payment_id) {
             try {
+                $startTime = microtime(true);
                 $asaas       = new AsaasService();
-                $paymentData = $asaas->getPayment($pagamento->asaas_payment_id);
+                $asaasId = $pagamento->asaas_payment_id;
+
+                // Se for uma subscription (começa com sub_), buscar o primeiro pagamento
+                if (str_starts_with($asaasId, 'sub_')) {
+                    $paymentsResponse = $asaas->requestAsaas('GET', "/subscriptions/{$asaasId}/payments");
+                    if (!empty($paymentsResponse['data']) && count($paymentsResponse['data']) > 0) {
+                        $paymentData = $paymentsResponse['data'][0];
+                        if (!empty($paymentData['id'])) {
+                            $pagamento->asaas_payment_id = $paymentData['id'];
+                        }
+                    } else {
+                        $paymentData = null;
+                    }
+                } else {
+                    $paymentData = $asaas->getPayment($asaasId);
+                }
+
+                $duration = round((microtime(true) - $startTime) * 1000, 2);
 
                 if ($paymentData) {
-                    $boletoUrl = $paymentData['bankSlipUrl'] ?? $paymentData['transactionReceiptUrl'] ?? null;
+                    $logContext['asaas_status'] = $paymentData['status'] ?? 'unknown';
+                    $logContext['duration_ms']  = $duration;
 
-                    // Persiste para não precisar chamar o Asaas novamente
+                    // Atualiza URLs do boleto (Self-healing)
+                    $oldUrl = $boletoUrl;
                     if (!empty($paymentData['bankSlipUrl'])) {
                         $pagamento->bank_slip_url = $paymentData['bankSlipUrl'];
+                        $boletoUrl = $paymentData['bankSlipUrl'];
+                    }
+                    if (!empty($paymentData['invoiceUrl'])) {
+                        $pagamento->invoice_url = $paymentData['invoiceUrl'];
+                    }
+                    if (!empty($paymentData['transactionReceiptUrl'])) {
+                        $pagamento->link_pagamento = $paymentData['transactionReceiptUrl'];
                     }
 
-                    // Atualiza a linha digitável se vier no payload
-                    if (!empty($paymentData['nossoNumero']) || !empty($paymentData['identificationField'])) {
-                        $linhaDigitavel = $paymentData['identificationField'] ?? $linhaDigitavel;
+                    if ($oldUrl !== $boletoUrl) {
+                        Log::info('[BOLETO_FETCH_RECOVERED_BY_SELF_HEALING] Link do boleto atualizado via Asaas API.', $logContext);
+                    }
+
+                    // Atualiza linha digitável
+                    if (!empty($paymentData['identificationField'])) {
+                        $linhaDigitavel = $paymentData['identificationField'];
                         $pagamento->linha_digitavel = $linhaDigitavel;
                     }
 
-                    $pagamento->save();
-
-                    // Self-healing: Se o Asaas diz que tá pago, mas o banco local não (webhook falhou/bloqueado)
+                    // Sincronização de Status (Self-healing)
                     $statusAsaas = $paymentData['status'] ?? '';
                     if (in_array($statusAsaas, ['RECEIVED', 'CONFIRMED']) && $pagamento->status !== 'RECEIVED') {
                         $pagamento->status = 'RECEIVED';
                         $pagamento->data_pagamento = now();
-                        if (!empty($paymentData['transactionReceiptUrl'])) {
-                            $pagamento->link_pagamento = $paymentData['transactionReceiptUrl'];
-                            $boletoUrl = $paymentData['transactionReceiptUrl'];
-                        }
                         $pagamento->save();
 
                         if ($venda->status !== 'PAGO') {
                             $pagamentoService = new \App\Services\PagamentoService();
                             $pagamentoService->confirmarPagamento($pagamento, $paymentData);
+                            $venda->refresh();
                         }
+                        Log::info('[BOLETO_STATUS_SYNCED] Status sincronizado com Asaas (Pago).', $logContext);
+                    } else {
+                        $pagamento->save();
+                    }
+
+                    // Fallback para Link de Fatura
+                    if (!$boletoUrl && !empty($paymentData['invoiceUrl'])) {
+                        $boletoUrl = $paymentData['invoiceUrl'];
                     }
                 }
             } catch (\Exception $e) {
-                Log::warning('PagamentoBoletoController: erro ao buscar boleto no Asaas', [
-                    'venda_id'         => $venda->id,
-                    'asaas_payment_id' => $pagamento->asaas_payment_id,
-                    'error'            => $e->getMessage(),
-                ]);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Não foi possível buscar o boleto no Asaas. Tente novamente em instantes.',
-                ], 502);
+                Log::error('[BOLETO_FETCH_FAILED_ASAAS_API] Erro de comunicação com o Asaas.', array_merge($logContext, ['error' => $e->getMessage()]));
             }
         }
 
         // -------------------------------------------------------
-        // 3. Sem ID do Asaas e sem URL local → boleto não gerado
+        // 3. Resultado Final
         // -------------------------------------------------------
-        if (!$pagamento->asaas_payment_id && !$boletoUrl) {
+        if (!$boletoUrl) {
+            Log::warning('[BOLETO_FETCH_FAILED_NOT_READY] Cobrança existente mas boleto ainda não gerado pelo Asaas.', $logContext);
             return response()->json([
                 'success' => false,
-                'message' => 'Esta cobrança ainda não possui um boleto gerado.',
+                'message' => 'Este boleto ainda está sendo processado pelo Asaas. Tente novamente em 30 segundos.',
             ], 404);
         }
 
-        // -------------------------------------------------------
-        // 4. Boleto não encontrado mesmo após consulta ao Asaas
-        // -------------------------------------------------------
-        if (!$boletoUrl) {
-            return response()->json([
-                'success' => false,
-                'message' => 'O boleto ainda não está disponível. Aguarde alguns instantes e tente novamente.',
-            ], 404);
-        }
+        Log::info('[BOLETO_FETCH_SUCCESS] Link de boleto entregue com sucesso.', $logContext);
 
         return response()->json([
             'success'        => true,
             'url'            => $boletoUrl,
             'linha_digitavel' => $linhaDigitavel,
+            'metered_at'     => now()->toDateTimeString()
         ]);
     }
+
     /**
      * GET /vendedor/vendas/{id}/boleto/baixar
      *
@@ -144,55 +186,74 @@ class PagamentoBoletoController extends Controller
      */
     public function forceDownload(int $id)
     {
-        $user    = Auth::user();
-        $vendedor = $user->vendedor;
+        $user = Auth::user();
+        
+        // — Mesma lógica de permissão do download() —
+        $vendedorIds = null;
+        if ($user->perfil === 'vendedor') {
+            $vendedorIds = [$user->vendedor->id ?? 0];
+        } elseif ($user->perfil === 'gestor') {
+            $vendedorIds = \App\Models\Vendedor::where('gestor_id', $user->id)
+                ->orWhere('usuario_id', $user->id)
+                ->pluck('id')
+                ->toArray();
+        }
 
-        if (!$vendedor) abort(403, 'Perfil de vendedor não encontrado.');
-
-        $venda = Venda::where('vendedor_id', $vendedor->id)
-            ->with(['cliente', 'pagamentos'])
-            ->findOrFail($id);
+        $query = Venda::with(['cliente', 'pagamentos']);
+        if ($vendedorIds !== null) {
+            $query->whereIn('vendedor_id', $vendedorIds);
+        }
+        $venda = $query->findOrFail($id);
 
         $pagamento = $venda->pagamentos->first();
         if (!$pagamento) abort(404, 'Nenhuma cobrança registrada.');
 
-        // Sincronizar status antes de qualquer coisa para garantir dados novos
-        $pagamentoService = new \App\Services\PagamentoService();
-        $pagamentoService->sync($pagamento);
+        $boletoUrl = $pagamento->bank_slip_url ?? $pagamento->link_pagamento ?? null;
 
-        $boletoUrl = $pagamento->bank_slip_url;
-
-        // Se CONTINUAR sem URL salva, tenta buscar no Asaas on-demand (fallback)
-        if (!$boletoUrl && $pagamento->asaas_payment_id) {
+        // Tenta atualizar no Asaas antes de forçar o download
+        if ($pagamento->asaas_payment_id) {
             try {
                 $asaas = new AsaasService();
-                $paymentData = $asaas->getPayment($pagamento->asaas_payment_id);
-                $boletoUrl = $paymentData['bankSlipUrl'] ?? $paymentData['transactionReceiptUrl'] ?? null;
+                $asaasId = $pagamento->asaas_payment_id;
                 
-                if ($boletoUrl) {
-                    $pagamento->bank_slip_url = $boletoUrl;
+                if (str_starts_with($asaasId, 'sub_')) {
+                    $paymentsResponse = $asaas->requestAsaas('GET', "/subscriptions/{$asaasId}/payments");
+                    $paymentData = !empty($paymentsResponse['data']) ? $paymentsResponse['data'][0] : null;
+                } else {
+                    $paymentData = $asaas->getPayment($asaasId);
+                }
+                
+                if ($paymentData) {
+                    if (!empty($paymentData['bankSlipUrl'])) {
+                        $boletoUrl = $paymentData['bankSlipUrl'];
+                        $pagamento->bank_slip_url = $boletoUrl;
+                    }
+                    if (!empty($paymentData['invoiceUrl'])) {
+                        $pagamento->invoice_url = $paymentData['invoiceUrl'];
+                        if (!$boletoUrl) $boletoUrl = $paymentData['invoiceUrl'];
+                    }
                     $pagamento->save();
                 }
             } catch (\Exception $e) {
-                Log::error('Erro ao buscar boleto para forceDownload', ['error' => $e->getMessage()]);
+                Log::error('[FORCE_DOWNLOAD_ASAAS_FAIL] Erro ao sincronizar boleto para download direto.', ['venda_id' => $id, 'error' => $e->getMessage()]);
             }
         }
 
-        if (!$boletoUrl) abort(404, 'Boleto não disponível no momento.');
+        if (!$boletoUrl) abort(404, 'Boleto não disponível ou ainda não gerado no Asaas.');
 
         $clientName = $venda->cliente->nome_igreja ?? $venda->cliente->nome ?? 'Cliente';
-        // Remover caracteres especiais do nome para o arquivo
         $safeName = preg_replace('/[^A-Za-z0-9\- ]/', '', $clientName);
         $filename = "Boleto - " . $safeName . ".pdf";
 
         try {
             $content = file_get_contents($boletoUrl);
+            Log::info('[FORCE_DOWNLOAD_SUCCESS] PDF do boleto baixado e entregue.', ['venda_id' => $id, 'filename' => $filename]);
             return response($content)
                 ->header('Content-Type', 'application/pdf')
                 ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
         } catch (\Exception $e) {
-            Log::error('Erro ao baixar PDF do Asaas', ['error' => $e->getMessage()]);
-            return redirect()->away($boletoUrl); // Fallback: redireciona para a URL original
+            Log::warning('[FORCE_DOWNLOAD_FALLBACK] Falha ao baixar PDF internamente, redirecionando para URL original.', ['venda_id' => $id, 'error' => $e->getMessage()]);
+            return redirect()->away($boletoUrl);
         }
     }
 }

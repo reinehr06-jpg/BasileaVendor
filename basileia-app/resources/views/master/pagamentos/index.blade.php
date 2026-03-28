@@ -3,118 +3,83 @@
 
 @section('content')
 <style>
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-
-    .stats-bar { display: flex; gap: 16px; margin-bottom: 24px; }
-    .stat-mini { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; flex: 1; text-align: center; }
-    .stat-mini .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
-    .stat-mini .stat-label { font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 4px; }
-
-    .filters-bar { background: var(--surface); padding: 14px 18px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; display: flex; gap: 14px; align-items: center; }
-    .filter-select { padding: 9px 14px; border: 1px solid var(--border); border-radius: 6px; outline: none; background: white; font-size: 0.9rem; min-width: 160px; }
-    .search-input { flex-grow: 1; padding: 9px 14px; border: 1px solid var(--border); border-radius: 6px; outline: none; font-size: 0.9rem; }
-    .search-input:focus, .filter-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(88,28,135,0.1); }
-
-    .table-container { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { padding: 13px 16px; border-bottom: 1px solid var(--border); }
-    th { background: #f8fafc; font-weight: 600; color: var(--text-muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.5px; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover { background: #f8fafc; }
-
-    .status-badge { padding: 5px 11px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+    .forma-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; background: rgba(76,29,149,0.08); color: var(--primary); }
     .status-pendente { background: #fef9c3; color: #854d0e; }
-    .status-pago { background: #dcfce7; color: #166534; }
+    .status-pago, .status-received { background: #dcfce7; color: #166534; }
     .status-vencido { background: #fee2e2; color: #991b1b; }
     .status-cancelado { background: #f1f5f9; color: #64748b; }
-    .status-received { background: #dcfce7; color: #166534; }
     .status-estornado { background: #fce7f3; color: #9d174d; }
-    .status-inadimplente { background: #fee2e2; color: #7f1d1d; }
-
-    .forma-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; background: rgba(88,28,135,0.08); color: var(--primary); }
-    .link-pagamento { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.82rem; }
-    .link-pagamento:hover { text-decoration: underline; }
-
-    .nf-badge { font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; font-weight: 600; }
-    .nf-pendente { background: #fef9c3; color: #854d0e; }
-    .nf-emitida { background: #dcfce7; color: #166534; }
-    .nf-erro { background: #fee2e2; color: #991b1b; }
+    .action-btn-sm {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 12px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .action-btn-boleto { background: var(--primary); color: white; border-color: var(--primary); }
+    .action-btn-boleto:hover { background: var(--primary-dark); }
+    .action-btn-link { background: var(--success); color: white; border-color: var(--success); }
+    .action-btn-link:hover { background: var(--success-dark); }
+    .action-btn-copy { background: white; color: var(--primary); border-color: var(--border); }
+    .action-btn-copy:hover { border-color: var(--primary); }
+    
+    .tabs-container { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .tab-btn { padding: 10px 20px; background: transparent; border: none; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 600; color: var(--text-muted); transition: all 0.2s; }
+    .tab-btn:hover { color: var(--primary); }
+    .tab-btn.active { background: var(--primary); color: white; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .repasse-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+    .repasse-vendedor { background: #dbeafe; color: #1d4ed8; }
+    .repasse-gestor { background: #f3e8ff; color: #7e22ce; }
 </style>
 
 <div class="page-header">
     <div>
-        <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-main);">Controle de Pagamentos</h2>
-        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Visão global de todas as cobranças e recebimentos do sistema.</p>
+        <h2><i class="fas fa-dollar-sign" style="margin-right: 8px;"></i>Controle de Pagamentos</h2>
+        <p>Visão global de todas as cobranças, recebimentos e repasses.</p>
     </div>
 </div>
 
-@php
-    $todosPagamentos = collect();
+<!-- Tabs -->
+<div class="tabs-container">
+    <button class="tab-btn active" onclick="switchTab('tab-cobrancas', this)">
+        <i class="fas fa-credit-card" style="margin-right: 6px;"></i> Cobranças Recebidas
+    </button>
+    <button class="tab-btn" onclick="switchTab('tab-repasses', this)">
+        <i class="fas fa-share" style="margin-right: 6px;"></i> Repasses a Vendedores
+    </button>
+</div>
 
-    foreach ($pagamentos as $p) {
-        $statusNormalized = strtolower($p->status ?? '') === 'received' ? 'pago' : strtolower($p->status ?? '');
-        $todosPagamentos->push((object)[
-            'igreja' => $p->cliente?->nome_igreja ?? ($p->cliente?->nome ?? '—'),
-            'pastor' => $p->cliente?->nome_pastor ?? '',
-            'vendedor' => $p->vendedor?->user?->name ?? 'N/A',
-            'valor' => $p->valor,
-            'forma' => $p->forma_pagamento,
-            'status' => $statusNormalized,
-            'status_raw' => $p->status,
-            'vencimento' => $p->data_vencimento,
-            'pagamento_data' => $p->data_pagamento,
-            'link' => $p->link_pagamento,
-            'nf_status' => $p->nota_fiscal_status,
-            'nf_url' => $p->nota_fiscal_url,
-            'recorrencia' => $p->recorrencia_status,
-            'created_at' => $p->created_at,
-        ]);
-    }
-
-    foreach ($vendasComCobrancas as $v) {
-        foreach ($v->cobrancas as $c) {
-            $statusNormalized = strtolower($c->status) === 'received' ? 'pago' : (strtolower($c->status) === 'pending' ? 'pendente' : strtolower($c->status));
-            $todosPagamentos->push((object)[
-                'igreja' => $v->cliente->nome_igreja ?? $v->cliente->nome ?? '—',
-                'pastor' => $v->cliente->nome_pastor ?? '',
-                'vendedor' => $v->vendedor->user->name ?? 'N/A',
-                'valor' => $v->valor,
-                'forma' => $v->forma_pagamento ?? 'pix',
-                'status' => $statusNormalized,
-                'status_raw' => $c->status,
-                'vencimento' => null,
-                'pagamento_data' => strtolower($c->status) === 'received' ? $c->updated_at : null,
-                'link' => $c->link,
-                'nf_status' => 'pendente',
-                'nf_url' => null,
-                'recorrencia' => null,
-                'created_at' => $c->created_at,
-            ]);
-        }
-    }
-
-    $todosPagamentos = $todosPagamentos->sortByDesc('created_at')->unique(fn($p) => ($p->igreja ?? '') . ($p->valor ?? 0) . ($p->status ?? ''));
-@endphp
+<!-- Tab: Cobranças Recebidas -->
+<div id="tab-cobrancas" class="tab-content active">
 
 <!-- Stats -->
 <div class="stats-bar">
-    <div class="stat-mini">
+    <div class="stat-card">
+        <div class="stat-icon primary"><i class="fas fa-list-check"></i></div>
         <div class="stat-value">{{ $todosPagamentos->count() }}</div>
         <div class="stat-label">Total</div>
     </div>
-    <div class="stat-mini">
-        <div class="stat-value">{{ $todosPagamentos->where('status', 'pago')->count() }}</div>
+    <div class="stat-card">
+        <div class="stat-icon success"><i class="fas fa-circle-check"></i></div>
+        <div class="stat-value" style="color: var(--success);">{{ $todosPagamentos->where('status', 'pago')->count() }}</div>
         <div class="stat-label">Pagos</div>
     </div>
-    <div class="stat-mini">
-        <div class="stat-value">{{ $todosPagamentos->where('status', 'pendente')->count() }}</div>
+    <div class="stat-card">
+        <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
+        <div class="stat-value" style="color: var(--warning);">{{ $todosPagamentos->where('status', 'pendente')->count() }}</div>
         <div class="stat-label">Pendentes</div>
     </div>
-    <div class="stat-mini">
-        <div class="stat-value">{{ $todosPagamentos->whereIn('status', ['vencido', 'inadimplente'])->count() }}</div>
-        <div class="stat-label">Vencidos / Inadimplentes</div>
-    </div>
-    <div class="stat-mini">
+    <div class="stat-card">
+        <div class="stat-icon success"><i class="fas fa-dollar-sign"></i></div>
         <div class="stat-value">R$ {{ number_format($todosPagamentos->where('status', 'pago')->sum('valor'), 2, ',', '.') }}</div>
         <div class="stat-label">Recebido</div>
     </div>
@@ -122,23 +87,22 @@
 
 <!-- Filters -->
 <div class="filters-bar">
-    <input type="text" class="search-input" id="searchPag" placeholder="🔍 Buscar por igreja, pastor ou vendedor..." oninput="filterPag()">
+    <div style="flex-grow: 1; position: relative;">
+        <i class="fas fa-magnifying-glass" style="position: absolute; left: 14px; top: 11px; color: var(--text-muted);"></i>
+        <input type="text" class="search-input" id="searchPag" style="padding-left: 40px;" placeholder="Buscar por igreja, vendedor..." oninput="filterPag()">
+    </div>
     <select class="filter-select" id="statusFilter" onchange="filterPag()">
         <option value="">Status: Todos</option>
         <option value="pendente">Pendente</option>
         <option value="pago">Pago</option>
         <option value="vencido">Vencido</option>
         <option value="cancelado">Cancelado</option>
-        <option value="estornado">Estornado</option>
-        <option value="inadimplente">Inadimplente</option>
     </select>
     <select class="filter-select" id="formaFilter" onchange="filterPag()">
         <option value="">Forma: Todas</option>
         <option value="pix">PIX</option>
         <option value="boleto">Boleto</option>
         <option value="cartao">Cartão</option>
-        <option value="credit_card">Cartão</option>
-        <option value="recorrente">Recorrente</option>
     </select>
 </div>
 
@@ -147,47 +111,64 @@
     <table>
         <thead>
             <tr>
-                <th>Igreja / Pastor</th>
-                <th>Vendedor</th>
-                <th>Valor</th>
-                <th>Forma</th>
-                <th>Status</th>
-                <th>Vencimento</th>
-                <th>Pagamento</th>
-                <th>NF</th>
-                <th>Link</th>
+                <th><i class="fas fa-building"></i> Igreja</th>
+                <th><i class="fas fa-user"></i> Vendedor</th>
+                <th><i class="fas fa-dollar-sign"></i> Valor</th>
+                <th><i class="fas fa-credit-card"></i> Forma</th>
+                <th><i class="fas fa-circle-check"></i> Status</th>
+                <th><i class="fas fa-calendar-check"></i> Pagamento</th>
+                <th><i class="fas fa-bolt"></i> Ações</th>
             </tr>
         </thead>
         <tbody>
             @foreach($todosPagamentos as $pag)
             <tr class="pag-row"
-                data-igreja="{{ strtolower($pag->igreja ?? '') }}"
-                data-pastor="{{ strtolower($pag->pastor ?? '') }}"
+                data-igreja="{{ strtolower($pag->igreja) }}"
                 data-vendedor="{{ strtolower($pag->vendedor ?? '') }}"
-                data-status="{{ $pag->status ?? '' }}"
-                data-forma="{{ strtolower($pag->forma ?? '') }}">
+                data-status="{{ $pag->status }}"
+                data-forma="{{ strtolower($pag->forma) }}">
                 <td>
-                    <div style="font-weight: 600; color: var(--text-main);">{{ $pag->igreja }}</div>
-                    <div style="font-size: 0.82rem; color: var(--text-muted);">{{ $pag->pastor }}</div>
+                    <div style="font-weight: 600; color: var(--text-primary);">{{ $pag->igreja }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);">{{ $pag->pastor ?? '' }}</div>
                 </td>
-                <td style="font-size: 0.9rem;">{{ $pag->vendedor }}</td>
+                <td style="font-size: 0.85rem;">{{ $pag->vendedor ?? '—' }}</td>
                 <td style="font-weight: 700;">R$ {{ number_format($pag->valor, 2, ',', '.') }}</td>
                 <td><span class="forma-badge">{{ strtoupper($pag->forma) }}</span></td>
-                <td><span class="status-badge status-{{ strtolower($pag->status_raw) }}">{{ strtoupper($pag->status_raw) }}</span></td>
-                <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $pag->vencimento ? \Carbon\Carbon::parse($pag->vencimento)->format('d/m/Y') : '—' }}</td>
+                <td><span class="badge status-{{ $pag->status }}">{{ ucfirst($pag->status) }}</span></td>
                 <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $pag->pagamento_data ? \Carbon\Carbon::parse($pag->pagamento_data)->format('d/m/Y') : '—' }}</td>
                 <td>
-                    @if($pag->nf_url)
-                        <a href="{{ $pag->nf_url }}" target="_blank" class="nf-badge nf-emitida">📄 Ver</a>
+                    @php
+                        $checkoutUrl = $pag->checkout_hash ? url('/checkout/' . $pag->checkout_hash) : null;
+                        $formaClean = strtolower($pag->forma);
+                        $methodParam = match($formaClean) {
+                            'pix' => 'pix',
+                            'boleto' => 'boleto',
+                            default => 'cartao'
+                        };
+                        $internalLink = $checkoutUrl ? $checkoutUrl . '?method=' . $methodParam : null;
+                    @endphp
+
+                    @if($pag->status === 'pendente' || $pag->status === 'vencido')
+                        @if($internalLink)
+                            <div class="d-flex flex-column gap-1">
+                                <a href="{{ $internalLink }}" target="_blank" class="action-btn-sm action-btn-boleto">
+                                    <i class="fas fa-barcode"></i> Checkout
+                                </a>
+                                <button onclick="navigator.clipboard.writeText('{{ $checkoutUrl }}').then(() => alert('Link copiado!'))" class="action-btn-sm action-btn-copy">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                            </div>
+                        @elseif($pag->link)
+                            <a href="{{ $pag->link }}" target="_blank" class="action-btn-sm action-btn-link">
+                                <i class="fas fa-external-link-alt"></i> External
+                            </a>
+                        @endif
+                    @elseif($pag->link)
+                         <a href="{{ $pag->link }}" target="_blank" class="action-btn-sm action-btn-link">
+                            <i class="fas fa-file-pdf"></i> Comprovante
+                        </a>
                     @else
-                        <span class="nf-badge nf-{{ $pag->nf_status }}">{{ ucfirst($pag->nf_status) }}</span>
-                    @endif
-                </td>
-                <td>
-                    @if($pag->link)
-                        <a href="{{ $pag->link }}" target="_blank" class="link-pagamento">🔗 Abrir</a>
-                    @else
-                        <span style="font-size: 0.82rem; color: var(--text-muted);">—</span>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">—</span>
                     @endif
                 </td>
             </tr>
@@ -195,21 +176,106 @@
         </tbody>
     </table>
     @else
-    <div style="padding: 80px 20px; text-align: center;">
-        <div style="font-size: 3rem; margin-bottom: 16px;">💳</div>
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--text-main); margin-bottom: 6px;">Nenhum pagamento registrado</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem;">Os pagamentos aparecerão aqui conforme vendas forem realizadas.</p>
+    <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-dollar-sign"></i></div>
+        <h3>Nenhum pagamento registrado</h3>
+        <p>Os pagamentos aparecerão aqui conforme forem processados.</p>
     </div>
     @endif
 </div>
 
+<!-- Tab: Repasses a Vendedores -->
+<div id="tab-repasses" class="tab-content">
+    <!-- Stats -->
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-icon primary"><i class="fas fa-users"></i></div>
+            <div class="stat-value">{{ isset($repasses) ? $repasses->count() : 0 }}</div>
+            <div class="stat-label">Total Repasses</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon success"><i class="fas fa-circle-check"></i></div>
+            <div class="stat-value" style="color: var(--success);">R$ {{ number_format(isset($repasses) ? $repasses->where('status', 'pago')->sum('valor') : 0, 2, ',', '.') }}</div>
+            <div class="stat-label">Total Pago</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
+            <div class="stat-value" style="color: var(--warning);">R$ {{ number_format(isset($repasses) ? $repasses->where('status', 'pendente')->sum('valor') : 0, 2, ',', '.') }}</div>
+            <div class="stat-label">Pendente</div>
+        </div>
+    </div>
+
+    @php
+    $repasses = \App\Models\Comissao::whereNotNull('vendedor_id')
+        ->where('competencia', now()->format('Y-m'))
+        ->with(['vendedor.user'])
+        ->orderByDesc('created_at')
+        ->get()
+        ->map(function($c) {
+            return (object)[
+                'nome' => $c->vendedor->user->name ?? 'N/A',
+                'tipo' => $c->vendedor->user->perfil === 'gestor' ? 'gestor' : 'vendedor',
+                'valor' => $c->valor_comissao,
+                'status' => $c->status,
+                'data' => $c->data_pagamento ?? $c->created_at,
+            ];
+        });
+    @endphp
+
+    <div class="table-container">
+        @if($repasses->count() > 0)
+        <table>
+            <thead>
+                <tr>
+                    <th><i class="fas fa-user"></i> Destinatário</th>
+                    <th><i class="fas fa-tag"></i> Tipo</th>
+                    <th><i class="fas fa-dollar-sign"></i> Valor</th>
+                    <th><i class="fas fa-circle-check"></i> Status</th>
+                    <th><i class="fas fa-calendar-check"></i> Data Pagamento</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($repasses as $r)
+                <tr>
+                    <td style="font-weight: 600; color: var(--text-primary);">{{ $r->nome }}</td>
+                    <td>
+                        @if($r->tipo === 'gestor')
+                        <span class="repasse-badge repasse-gestor"><i class="fas fa-user-tie"></i> Gestor</span>
+                        @else
+                        <span class="repasse-badge repasse-vendedor"><i class="fas fa-user"></i> Vendedor</span>
+                        @endif
+                    </td>
+                    <td style="font-weight: 700;">R$ {{ number_format($r->valor, 2, ',', '.') }}</td>
+                    <td><span class="badge status-{{ $r->status }}">{{ ucfirst($r->status) }}</span></td>
+                    <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $r->data ? \Carbon\Carbon::parse($r->data)->format('d/m/Y') : '—' }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        @else
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fas fa-share"></i></div>
+            <h3>Nenhum repasse registrado</h3>
+            <p>Os repasses aparecerão aqui quando houverem comissões a pagar.</p>
+        </div>
+        @endif
+    </div>
+</div>
+
 <script>
+function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    btn.classList.add('active');
+}
+
 function filterPag() {
-    const search = document.getElementById('searchPag').value.toLowerCase();
-    const status = document.getElementById('statusFilter').value;
-    const forma = document.getElementById('formaFilter').value;
+    const search = document.getElementById('searchPag') ? document.getElementById('searchPag').value.toLowerCase() : '';
+    const status = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
+    const forma = document.getElementById('formaFilter') ? document.getElementById('formaFilter').value : '';
     document.querySelectorAll('.pag-row').forEach(row => {
-        const matchSearch = !search || row.dataset.igreja.includes(search) || row.dataset.pastor.includes(search) || row.dataset.vendedor.includes(search);
+        const matchSearch = !search || row.dataset.igreja.includes(search) || row.dataset.vendedor.includes(search);
         const matchStatus = !status || row.dataset.status === status;
         const matchForma = !forma || row.dataset.forma.includes(forma);
         row.style.display = (matchSearch && matchStatus && matchForma) ? '' : 'none';
