@@ -28,8 +28,7 @@ class MasterFixController extends Controller
             $user = new User();
             $user->name = 'Administrador Master';
             $user->email = $email;
-            $user->role = 'master'; // Define como Master
-            $user->perfil = 'master'; // Alguns sistemas usam perfil em vez de role
+            $user->perfil = 'master'; // Define como Master
         }
 
         // 2. Definir senha e garantir acesso
