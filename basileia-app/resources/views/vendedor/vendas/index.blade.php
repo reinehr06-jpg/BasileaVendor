@@ -116,17 +116,37 @@
                     @php
                         $checkoutUrl = $venda->checkout_hash ? url('/checkout/' . $venda->checkout_hash) : null;
                         $boletoCheckoutUrl = $checkoutUrl ? $checkoutUrl . '?method=boleto' : null;
+                        $pixCheckoutUrl = $checkoutUrl ? $checkoutUrl . '?method=pix' : null;
+                        $formaUpper = strtoupper($venda->forma_pagamento ?? '');
                     @endphp
 
                     @if(!in_array(strtoupper($venda->status), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']))
                         @if($checkoutUrl)
                             <div class="d-flex flex-column gap-1">
+                                {{-- Se for Boleto ou não especificado --}}
+                                @if($formaUpper === 'BOLETO' || empty($formaUpper))
+                                    <a href="{{ $boletoCheckoutUrl }}" target="_blank" class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Ver Boleto no Checkout">
+                                        <i class="fas fa-barcode"></i> Boleto
+                                    </a>
+                                @endif
+
+                                {{-- Se for Pix ou não especificado --}}
+                                @if($formaUpper === 'PIX' || empty($formaUpper))
+                                    <a href="{{ $pixCheckoutUrl }}" target="_blank" class="btn btn-sm" style="background: #008080; color: white; font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Ver Pix no Checkout">
+                                        <i class="fas fa-qrcode"></i> Pix
+                                    </a>
+                                @endif
+
+                                {{-- Se for Cartão ou não especificado --}}
+                                @if($formaUpper === 'CREDIT_CARD' || empty($formaUpper))
+                                    <a href="{{ $checkoutUrl }}" target="_blank" class="btn btn-sm" style="background: var(--primary); color: white; font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Abrir Checkout">
+                                        <i class="fas fa-credit-card"></i> Cartão
+                                    </a>
+                                @endif
+
                                 <button onclick="copiarLinkCheckout({{ $venda->id }})" class="btn btn-success btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Copiar Link de Checkout">
-                                    <i class="fas fa-link"></i> Link
+                                    <i class="fas fa-copy"></i> Copiar
                                 </button>
-                                <a href="{{ $boletoCheckoutUrl }}" target="_blank" class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Ver Boleto no Checkout">
-                                    <i class="fas fa-barcode"></i> Boleto
-                                </a>
                             </div>
                         @else
                             <span style="font-size: 0.8rem; color: var(--warning); font-weight: 600;"><i class="fas fa-clock"></i> Gerando...</span>

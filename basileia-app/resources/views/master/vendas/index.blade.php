@@ -129,19 +129,34 @@
                         $boletoCheckoutUrl = $checkoutUrl ? $checkoutUrl . '?method=boleto' : null;
                         $pixCheckoutUrl = $checkoutUrl ? $checkoutUrl . '?method=pix' : null;
                     @endphp
-
                     @if(!in_array(strtoupper($venda->getStatusEfetivo()), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']))
                         @if($checkoutUrl)
                             <div class="d-flex flex-column gap-1">
-                                <a href="{{ $checkoutUrl }}" target="_blank" class="action-btn-sm" style="background: var(--primary); color: white;" title="Link de Checkout Próprio">
-                                    <i class="fas fa-external-link-alt"></i> Checkout
-                                </a>
-                                <a href="{{ $boletoCheckoutUrl }}" target="_blank" class="action-btn-sm action-btn-boleto" title="Gerar Boleto via Checkout">
-                                    <i class="fas fa-barcode"></i> Boleto
-                                </a>
-                                <a href="{{ $pixCheckoutUrl }}" target="_blank" class="action-btn-sm" style="background: #008080; color: white;" title="Gerar PIX via Checkout">
-                                    <i class="fas fa-qrcode"></i> Pix
-                                </a>
+                                @php
+                                    $formaUpper = strtoupper($venda->forma_pagamento ?? '');
+                                @endphp
+
+                                {{-- Se for Boleto ou não especificado --}}
+                                @if($formaUpper === 'BOLETO' || empty($formaUpper))
+                                    <a href="{{ $boletoCheckoutUrl }}" target="_blank" class="action-btn-sm action-btn-boleto" title="Gerar Boleto via Checkout">
+                                        <i class="fas fa-barcode"></i> Boleto
+                                    </a>
+                                @endif
+
+                                {{-- Se for Pix ou não especificado --}}
+                                @if($formaUpper === 'PIX' || empty($formaUpper))
+                                    <a href="{{ $pixCheckoutUrl }}" target="_blank" class="action-btn-sm" style="background: #008080; color: white;" title="Gerar PIX via Checkout">
+                                        <i class="fas fa-qrcode"></i> Pix
+                                    </a>
+                                @endif
+
+                                {{-- Se for Cartão ou não especificado (ou genérico) --}}
+                                @if($formaUpper === 'CREDIT_CARD' || empty($formaUpper))
+                                    <a href="{{ $checkoutUrl }}" target="_blank" class="action-btn-sm" style="background: var(--primary); color: white;" title="Link de Checkout Próprio">
+                                        <i class="fas fa-credit-card"></i> Cartão
+                                    </a>
+                                @endif
+
                                 <button onclick="navigator.clipboard.writeText('{{ $checkoutUrl }}').then(() => alert('Link copiado!'))" class="action-btn-sm" style="background: var(--success); color: white;" title="Copiar Link de Checkout">
                                     <i class="fas fa-copy"></i> Copiar
                                 </button>
@@ -152,16 +167,11 @@
                     @else
                         @if($linkBoleto)
                              <a href="{{ $linkBoleto }}" target="_blank" class="action-btn-sm action-btn-boleto" title="Baixar Boleto">
-                                <i class="fas fa-file-pdf"></i> PDF
+                                 <i class="fas fa-file-pdf"></i> PDF
                             </a>
                         @else
                             <span style="font-size: 0.8rem; color: var(--text-muted);">—</span>
                         @endif
-                    @endif
-                    @if(!in_array(strtoupper($venda->status), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']) && $venda->checkout_hash)
-                        <button onclick="copyCheckoutLink({{ $venda->id }})" class="action-btn-sm" style="background: var(--success); color: white; margin-left: 4px;" title="Link de Checkout Próprio">
-                            <i class="fas fa-credit-card"></i>
-                        </button>
                     @endif
                 </td>
                 <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $venda->created_at->format('d/m/Y') }}</td>
