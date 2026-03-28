@@ -71,6 +71,7 @@
             'vencimento' => $p->data_vencimento,
             'pagamento_data' => $p->data_pagamento,
             'link' => $p->bank_slip_url ?? $p->link_pagamento ?? null,
+            'checkout_hash' => $p->venda->checkout_hash ?? null,
             'created_at' => $p->created_at,
         ]);
     }
@@ -86,6 +87,7 @@
                 'vencimento' => null,
                 'pagamento_data' => strtolower($c->status) === 'received' ? $c->updated_at : null,
                 'link' => $c->link,
+                'checkout_hash' => $v->checkout_hash ?? null,
                 'created_at' => $c->created_at,
             ]);
         }
@@ -169,16 +171,47 @@
                 <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $pag->vencimento ? \Carbon\Carbon::parse($pag->vencimento)->format('d/m/Y') : '—' }}</td>
                 <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $pag->pagamento_data ? \Carbon\Carbon::parse($pag->pagamento_data)->format('d/m/Y') : '—' }}</td>
                 <td>
-                    @if($pag->link)
-                        @if(strtolower($pag->forma) === 'boleto')
-                            <a href="{{ $pag->link }}" target="_blank" class="action-btn-sm action-btn-boleto">
-                                <i class="fas fa-file-lines"></i> Boleto
+                    @php
+                        $checkoutUrl = $pag->checkout_hash ? url('/checkout/' . $pag->checkout_hash) : null;
+                        $formaClean = strtolower($pag->forma ?? '');
+                        $methodParam = match(true) {
+                            str_contains($formaClean, 'pix') => 'pix',
+                            str_contains($formaClean, 'boleto') => 'boleto',
+                            default => 'cartao'
+                        };
+                        $internalLink = $checkoutUrl ? $checkoutUrl . '?method=' . $methodParam : null;
+                    @endphp
+
+                    @if($pag->status === 'pendente' || $pag->status === 'vencido')
+                        @if($internalLink)
+                            <div class="d-flex flex-column gap-1">
+                                <a href="{{ $internalLink }}" target="_blank" class="action-btn-sm action-btn-boleto"
+                                   style="{{ $methodParam === 'pix' ? 'background: #008080; border-color: #008080;' : '' }}">
+                                    @if($methodParam === 'pix')
+                                        <i class="fas fa-qrcode"></i> Pix
+                                    @elseif($methodParam === 'boleto')
+                                        <i class="fas fa-barcode"></i> Boleto
+                                    @else
+                                        <i class="fas fa-credit-card"></i> Cartão
+                                    @endif
+                                </a>
+                                <button onclick="navigator.clipboard.writeText('{{ $checkoutUrl }}').then(() => alert('Link copiado!'))" class="action-btn-sm action-btn-link" style="background: var(--success); color: white;">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                            </div>
+                        @elseif($pag->link)
+                            <a href="{{ $pag->link }}" target="_blank" class="action-btn-sm action-btn-link">
+                                @if(str_contains($formaClean, 'boleto'))
+                                    <i class="fas fa-file-pdf"></i> Boleto
+                                @else
+                                    <i class="fas fa-link"></i> Pagamento
+                                @endif
                             </a>
-                        @else
-                            <button onclick="copyToClipboard('{{ $pag->link }}')" class="action-btn-sm action-btn-link">
-                                <i class="fas fa-link"></i> Copiar Link
-                            </button>
                         @endif
+                    @elseif($pag->link)
+                         <a href="{{ $pag->link }}" target="_blank" class="action-btn-sm action-btn-link">
+                             <i class="fas fa-check-circle"></i> @if(str_contains($formaClean, 'boleto')) PDF @else Pago @endif
+                        </a>
                     @else
                         <span style="font-size: 0.8rem; color: var(--text-muted);">—</span>
                     @endif

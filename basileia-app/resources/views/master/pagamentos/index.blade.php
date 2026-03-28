@@ -151,8 +151,15 @@
                     @if($pag->status === 'pendente' || $pag->status === 'vencido')
                         @if($internalLink)
                             <div class="d-flex flex-column gap-1">
-                                <a href="{{ $internalLink }}" target="_blank" class="action-btn-sm action-btn-boleto">
-                                    <i class="fas fa-barcode"></i> Checkout
+                                <a href="{{ $internalLink }}" target="_blank" class="action-btn-sm action-btn-boleto"
+                                   style="{{ $methodParam === 'pix' ? 'background: #008080; border-color: #008080;' : '' }}">
+                                    @if($methodParam === 'pix')
+                                        <i class="fas fa-qrcode"></i> Pix
+                                    @elseif($methodParam === 'boleto')
+                                        <i class="fas fa-barcode"></i> Boleto
+                                    @else
+                                        <i class="fas fa-credit-card"></i> Cartão
+                                    @endif
                                 </a>
                                 <button onclick="navigator.clipboard.writeText('{{ $checkoutUrl }}').then(() => alert('Link copiado!'))" class="action-btn-sm action-btn-copy">
                                     <i class="fas fa-copy"></i> Copiar
