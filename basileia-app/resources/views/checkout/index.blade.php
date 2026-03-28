@@ -3,77 +3,71 @@
 @section('title', 'Finalizar Registro - Basileia Vendas')
 
 @section('content')
-<div class="checkout-enterprise-grid">
-    <!-- Coluna Esquerda: O Plano e Valor (Foco em Valor Percebido) -->
-    <div class="checkout-left-area">
-        <div class="content-left-padding">
-            <span class="badge-premium mb-3">PLANO PROFISSIONAL ATIVADO</span>
-            <h1 class="plan-title-main">
-                {{ match($venda->tipo_negociacao ?? ($venda->plano ?? 'mensal')) {
-                    'mensal'       => 'Plano Mensal',
-                    'anual'        => 'Plano Anual Premium',
-                    'anual_avista' => 'Plano Anual à Vista',
-                    'anual_12x'    => 'Anual em 12 Parcelas',
-                    default        => 'Assinatura Basileia'
-                } }}
-            </h1>
+<div class="checkout-elite-grid">
+    <!-- Lado Esquerdo: Identidade e Valor (Roxo) -->
+    <div class="checkout-left-pane">
+        <div class="pane-content">
+            <div class="elite-logo">
+                <img src="/assets/img/logo_oficial.png" alt="Basiléia Vendas" style="max-width: 180px; filter: brightness(0) invert(1);">
+            </div>
             
-            <div class="price-container-main my-4">
-                <span class="currency-tag">R$</span>
-                <span class="price-big">{{ number_format($venda->valor, 2, ',', '.') }}</span>
-                <div class="billing-cycle-info text-uppercase">
-                   <i class="fas fa-sync-alt mr-1"></i> Cobrança {{ ($venda->tipo_negociacao ?? '') === 'mensal' ? 'Mensal' : 'Anual' }}
-                </div>
+            <div class="elite-status-badge mt-4">
+                PLANO PROFISSIONAL ATIVADO
             </div>
 
-            @php
-                $isAnual = str_contains($venda->tipo_negociacao ?? '', 'anual');
-            @endphp
+            <h1 class="elite-plan-name mt-3">Plano Mensal</h1>
             
-            @if($isAnual)
-            <div class="promo-seal mb-4 animate-up">
-                <i class="fas fa-sparkles mr-1"></i> Economia Exclusiva de Plano Anual
+            <div class="elite-price-row mt-2">
+                <span class="currency">R$</span>
+                <span class="value">{{ number_format($venda->valor, 2, ',', '.') }}</span>
+                <span class="cycle ml-2">COBRANÇA MENSAL</span>
             </div>
-            @endif
 
-            <ul class="feature-checklist-premium">
-                <li class="f-item">
-                    <div class="f-icon-circle"><i class="fas fa-check"></i></div>
-                    <div class="f-text-group">
-                        <strong class="f-title">Gestão com IA Integrada</strong>
-                        <p class="f-desc">IA aplicada para auxílio de solicitações da igreja.</p>
+            <ul class="elite-feature-list mt-5">
+                <li class="e-feature">
+                    <div class="e-check"><i class="fas fa-check"></i></div>
+                    <div class="e-text">
+                        <strong>Gestão com IA Integrada</strong>
+                        <p>Aplicação para solicitações da igreja.</p>
                     </div>
                 </li>
-                <li class="f-item">
-                    <div class="f-icon-circle"><i class="fas fa-check"></i></div>
-                    <div class="f-text-group">
-                        <strong class="f-title">Automação de Cultos</strong>
-                        <p class="f-desc">Lembretes e avisos 100% automáticos.</p>
+                <li class="e-feature">
+                    <div class="e-check"><i class="fas fa-check"></i></div>
+                    <div class="e-text">
+                        <strong>Automação de Cultos</strong>
+                        <p>Lembretes e avisos 100% automáticos.</p>
                     </div>
                 </li>
-                <li class="f-item">
-                    <div class="f-icon-circle"><i class="fas fa-check"></i></div>
-                    <div class="f-text-group">
-                        <strong class="f-title">Células e Eventos</strong>
-                        <p class="f-desc">Controle total de presença, cursos e células.</p>
+                <li class="e-feature">
+                    <div class="e-check"><i class="fas fa-check"></i></div>
+                    <div class="e-text">
+                        <strong>Células e Eventos</strong>
+                        <p>Controle total de presença, cursos e células.</p>
                     </div>
                 </li>
             </ul>
 
-            <div class="safe-seal-footer mt-auto pt-4 border-top">
-                <div class="d-flex align-items-center mb-1">
-                    <i class="fas fa-shield-check text-success fa-lg mr-2"></i>
-                    <strong class="small text-dark font-weight-800">Criptografia Segura (SSL)</strong>
+            <div class="elite-security-row mt-5">
+                <div class="icon-security"><i class="fas fa-shield-check"></i></div>
+                <div class="text-security">
+                    <strong>Pagamento 100% Seguro</strong>
+                    <p>Seus dados são protegidos por criptografia SSL.</p>
                 </div>
-                <p class="small text-muted mb-0">Seus dados estão protegidos sob os mais altos padrões de segurança bancária.</p>
+            </div>
+
+            <div class="elite-card-icons mt-4 opacity-75">
+                <img src="https://logodownload.org/wp-content/uploads/2016/10/visa-logo-1.png" style="height: 12px; margin-right: 15px;">
+                <img src="https://logodownload.org/wp-content/uploads/2014/07/mastercard-logo-1.png" style="height: 20px; margin-right: 15px;">
+                <img src="https://logodownload.org/wp-content/uploads/2015/05/amex-logo-american-express-1.png" style="height: 15px; margin-right: 15px;">
+                <img src="https://logodownload.org/wp-content/uploads/2015/02/elo-logo-1.png" style="height: 15px;">
             </div>
         </div>
     </div>
 
-    <!-- Coluna Direita: O Pagamento (Foco em Conversão) -->
-    <div class="checkout-right-area">
-        <div class="content-right-padding">
-            <h3 class="payment-header-title">Pagamento Seguro</h3>
+    <!-- Lado Direito: Formulário de Pagamento (Branco) -->
+    <div class="checkout-right-pane">
+        <div class="pane-content-right">
+            <h2 class="elite-pay-title">Pagamento Seguro</h2>
             
             <form action="{{ route('checkout.process', $venda->checkout_hash) }}" method="POST" id="checkout-form">
                 @csrf
@@ -82,163 +76,161 @@
                     $metodoAtual = old('payment_method', $restritoMetodo ?? 'credit_card');
                 @endphp
 
+                <div class="d-flex align-items-center mb-4 mt-2">
+                    <span class="text-muted small font-weight-bold mr-3" style="letter-spacing: 0.5px; opacity: 0.7;">PAGAMENTO VIA:</span>
+                    <div class="elite-method-pill">
+                        <i class="fas fa-credit-card mr-1"></i> CARTÃO DE CRÉDITO
+                    </div>
+                </div>
+
                 {{-- Só exibe as abas se não houver restrição --}}
                 @if(!isset($restritoMetodo))
-                <div class="payment-method-selector mb-4">
-                    <label class="p-item {{ $metodoAtual === 'credit_card' ? 'active' : '' }}" onclick="switchMode('credit_card', this)">
-                        <input type="radio" name="payment_method" value="credit_card" {{ $metodoAtual === 'credit_card' ? 'checked' : '' }}>
-                        <i class="fas fa-credit-card"></i> Cartão
+                <div class="payment-tabs-minimal mb-4">
+                    <label class="tab-btn {{ $metodoAtual === 'credit_card' ? 'active' : '' }}" onclick="selectMethod('credit_card', this)">
+                        <input type="radio" name="payment_method" value="credit_card" checked> CARTÃO
                     </label>
-                    <label class="p-item {{ $metodoAtual === 'pix' ? 'active' : '' }}" onclick="switchMode('pix', this)">
-                        <input type="radio" name="payment_method" value="pix" {{ $metodoAtual === 'pix' ? 'checked' : '' }}>
-                        <i class="fas fa-bolt"></i> PIX
+                    <label class="tab-btn {{ $metodoAtual === 'pix' ? 'active' : '' }}" onclick="selectMethod('pix', this)">
+                        <input type="radio" name="payment_method" value="pix"> PIX
                     </label>
-                    <label class="p-item {{ $metodoAtual === 'boleto' ? 'active' : '' }}" onclick="switchMode('boleto', this)">
-                        <input type="radio" name="payment_method" value="boleto" {{ $metodoAtual === 'boleto' ? 'checked' : '' }}>
-                        <i class="fas fa-barcode"></i> Boleto
+                    <label class="tab-btn {{ $metodoAtual === 'boleto' ? 'active' : '' }}" onclick="selectMethod('boleto', this)">
+                        <input type="radio" name="payment_method" value="boleto"> BOLETO
                     </label>
                 </div>
                 @else
                     <input type="hidden" name="payment_method" value="{{ $restritoMetodo }}">
-                    <div class="method-locked-pill mb-4 d-flex justify-content-between align-items-center">
-                        <span class="small font-weight-800 text-muted text-uppercase">Pagamento via:</span>
-                        <span class="btn-sm btn-outline-primary border-0 rounded-pill px-3 py-1 font-weight-800" style="background: rgba(76, 29, 149, 0.05);">
-                            <i class="fas fa-{{ $restritoMetodo === 'credit_card' ? 'credit-card' : ($restritoMetodo === 'pix' ? 'bolt' : 'barcode') }} mr-1"></i>
-                            {{ $restritoMetodo === 'credit_card' ? 'CARTÃO DE CRÉDITO' : ($restritoMetodo === 'pix' ? 'PIX INSTANTÂNEO' : 'BOLETO BANCÁRIO') }}
-                        </span>
-                    </div>
                 @endif
 
-                <div class="form-body-enterprise">
-                    <div class="form-group-enterprise">
-                        <label>E-mail de acesso ao painel</label>
-                        <input type="email" class="form-control-enterprise bg-light" value="{{ $venda->email_cliente ?? ($venda->cliente->email ?? '') }}" readonly>
-                        <p class="small text-muted mt-1">Este e-mail receberá suas credenciais de login.</p>
+                <div class="form-elite-inputs">
+                    <div class="form-group-lite">
+                        <label>E-MAIL DE ACESSO AO PAINEL</label>
+                        <input type="email" class="form-control-lite bg-white" value="{{ $venda->email_cliente ?? ($venda->cliente->email ?? '') }}" disabled>
+                        <span class="small text-muted mt-1 d-block opacity-75">Este e-mail receberá suas credenciais de login.</span>
                     </div>
 
-                    {{-- Seção: Cartão --}}
-                    <div id="section-card" style="{{ $metodoAtual === 'credit_card' ? 'display:block' : 'display:none' }}">
-                        <div class="form-group-enterprise">
-                            <label>Número do Cartão</label>
-                            <div class="input-with-icon">
-                                <input type="text" name="numero_cartao" class="form-control-enterprise" placeholder="0000 0000 0000 0000" oninput="formatCard(this)">
-                                <i class="fas fa-credit-card icon-inside text-muted"></i>
+                    <div id="box-card-elite" style="{{ $metodoAtual === 'credit_card' ? 'display:block' : 'display:none' }}">
+                        <div class="form-group-lite">
+                            <label>NÚMERO DO CARTÃO</label>
+                            <div class="input-icon-wrap">
+                                <input type="text" name="numero_cartao" class="form-control-lite" placeholder="0000 0000 0000 0000" oninput="formatCard(this)">
+                                <i class="fas fa-credit-card text-muted"></i>
                             </div>
                         </div>
-                        <div class="form-row">
+                        <div class="row">
                             <div class="col-7">
-                                <div class="form-group-enterprise">
-                                    <label>Expiração (MM/AA)</label>
-                                    <input type="text" name="expiry" class="form-control-enterprise text-center" placeholder="MM / AA" oninput="formatExpiry(this)">
+                                <div class="form-group-lite">
+                                    <label>EXPIRAÇÃO</label>
+                                    <input type="text" name="expiry" class="form-control-lite text-center" placeholder="01 / 26" oninput="formatExpiry(this)">
                                 </div>
                             </div>
                             <div class="col-5">
-                                <div class="form-group-enterprise">
+                                <div class="form-group-lite">
                                     <label>CVC</label>
-                                    <input type="text" name="cvv" class="form-control-enterprise text-center" placeholder="123" maxlength="4">
+                                    <input type="text" name="cvv" class="form-control-lite text-center" placeholder="123" maxlength="4">
                                 </div>
                             </div>
                         </div>
-                        <div class="form-group-enterprise">
-                            <label>Nome Completo (Escrito no Cartão)</label>
-                            <input type="text" name="nome_cartao" class="form-control-enterprise text-uppercase" placeholder="EX: FULANO DE TAL">
+                        <div class="form-group-lite">
+                            <label>NOME COMPLETO (ESCRITO NO CARTÃO)</label>
+                            <input type="text" name="nome_cartao" class="form-control-lite" placeholder="EDSON REINEHR">
                         </div>
                     </div>
 
-                    {{-- Informativo Pix/Boleto --}}
-                    <div id="section-status" style="{{ $metodoAtual === 'credit_card' ? 'display:none' : 'display:block' }}">
-                        <div class="payment-info-box mb-4">
-                            <i class="fas fa-clock fa-lg mr-2 text-primary"></i>
-                            <span id="hint-text">Seu código para pagamento será gerado imediatamente.</span>
+                    <div id="box-info-elite" style="{{ $metodoAtual === 'credit_card' ? 'display:none' : 'display:block' }}">
+                        <div class="alert alert-light border border-dashed text-center py-4 mb-3">
+                            <i class="fas fa-spinner fa-spin mr-2 text-primary"></i>
+                            <span class="small font-weight-bold text-muted">Aguardando geração do código...</span>
                         </div>
                     </div>
 
-                    <div class="form-group-enterprise">
-                        <label>Documento do Pagador (CPF ou CNPJ)</label>
-                        <input type="text" name="cpf_titular" class="form-control-enterprise" placeholder="000.000.000-00" oninput="formatDoc(this)" required>
+                    <div class="form-group-lite mb-4">
+                        <label>DOCUMENTO DO PAGADOR (CPF ou CNPJ)</label>
+                        <input type="text" name="cpf_titular" class="form-control-lite" placeholder="000.000.000-00" oninput="formatDoc(this)" required>
                     </div>
                 </div>
 
-                <button type="submit" class="btn-checkout-enterprise" id="btn-submit-main">
-                    Confirmar Assinatura - R$ {{ number_format($venda->valor, 2, ',', '.') }}
+                <button type="submit" class="btn-elite-confirm" id="btn-submit-elite">
+                    Assinar Plano por R$ {{ number_format($venda->valor, 2, ',', '.') }}
                 </button>
+
+                <div class="text-center mt-4 opacity-75">
+                    <span class="small font-weight-bold text-success">
+                        <i class="fas fa-lock mr-1"></i> Pagamento 100% Seguro
+                    </span>
+                </div>
             </form>
+            
+            <div class="elite-footer-disclaimer mt-auto pt-5 text-center small text-muted">
+                &copy; {{ date('Y') }} Basileia Vendas - Enterprise Cloud Operations
+            </div>
         </div>
     </div>
 </div>
 
 <style>
-    .checkout-enterprise-grid { display: flex; flex-direction: row; min-height: 650px; }
-    .checkout-left-area { width: 44%; background: #fdfdfe; padding: 60px 50px; border-right: 1px solid #f2f3f5; display: flex; flex-direction: column; }
-    .checkout-right-area { width: 56%; padding: 60px 70px; background: #fff; }
+    .checkout-elite-grid { display: flex; flex-direction: row; min-height: 720px; }
     
-    .badge-premium { display: inline-block; background: rgba(76, 29, 149, 0.06); color: var(--primary); font-size: 0.65rem; font-weight: 800; padding: 6px 14px; border-radius: 6px; letter-spacing: 1px; }
-    .plan-title-main { font-size: 2.25rem; font-weight: 800; color: #111827; letter-spacing: -1px; margin-top: 10px; }
+    /* Painel Esquerdo */
+    .checkout-left-pane { width: 44%; background: linear-gradient(135deg, #7C3AED 0%, #4C1D95 100%); padding: 60px 50px; color: white; display: flex; flex-direction: column; }
+    .elite-status-badge { display: inline-block; background: rgba(255,255,255,0.15); color: white; font-size: 0.65rem; font-weight: 800; padding: 6px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.2); letter-spacing: 0.5px; }
+    .elite-plan-name { font-size: 2.8rem; font-weight: 800; letter-spacing: -1.5px; }
+    .elite-price-row { display: flex; align-items: baseline; }
+    .elite-price-row .currency { font-size: 1.25rem; font-weight: 700; opacity: 0.8; }
+    .elite-price-row .value { font-size: 3.8rem; font-weight: 900; letter-spacing: -3px; margin: 0 4px; }
+    .elite-price-row .cycle { font-size: 0.75rem; font-weight: 700; opacity: 0.7; border-left: 2px solid rgba(255,255,255,0.3); padding-left: 10px; }
+
+    .e-feature { display: flex; gap: 16px; margin-bottom: 24px; align-items: flex-start; }
+    .e-check { width: 26px; height: 26px; background: #10B981; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; transform: translateY(3px); }
+    .e-text strong { font-size: 1rem; font-weight: 800; display: block; line-height: 1.2; }
+    .e-text p { font-size: 0.85rem; opacity: 0.7; margin: 2px 0 0; }
+
+    .elite-security-row { display: flex; gap: 16px; background: rgba(255,255,255,0.08); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); align-items: center; }
+    .icon-security { width: 36px; height: 36px; background: #10B981; color: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .text-security strong { font-size: 0.95rem; font-weight: 800; display: block; }
+    .text-security p { font-size: 0.8rem; opacity: 0.7; margin: 0; }
+
+    /* Painel Direito */
+    .checkout-right-pane { width: 56%; background: #ffffff; padding: 60px 80px; position: relative; }
+    .elite-pay-title { font-size: 1.8rem; font-weight: 800; color: #111827; letter-spacing: -0.5px; }
+    .elite-method-pill { background: #7C3AED; color: white; padding: 7px 18px; border-radius: 8px; font-size: 0.8rem; font-weight: 800; display: inline-flex; align-items: center; box-shadow: 0 4px 10px rgba(124, 58, 237, 0.2); }
+
+    .form-group-lite { margin-bottom: 22px; }
+    .form-group-lite label { display: block; font-size: 0.725rem; font-weight: 800; color: #4b5563; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-control-lite { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 13px 18px; font-size: 1rem; font-weight: 500; transition: 0.3s; background: #fdfdfd; }
+    .form-control-lite:focus { border-color: #7C3AED; box-shadow: 0 0 0 5px rgba(124, 58, 237, 0.08); outline: none; background: #fff; }
     
-    .price-container-main { display: flex; align-items: baseline; gap: 4px; }
-    .currency-tag { font-size: 1.25rem; font-weight: 700; color: #6b7280; }
-    .price-big { font-size: 3.5rem; font-weight: 900; letter-spacing: -3px; color: #4C1D95; line-height: 1; }
-    .billing-cycle-info { display: block; font-size: 0.75rem; font-weight: 800; color: #9ca3af; letter-spacing: 0.5px; margin-top: 8px; }
+    .input-icon-wrap { position: relative; }
+    .input-icon-wrap i { position: absolute; right: 18px; top: 16px; font-size: 1.1rem; }
 
-    .promo-seal { display: inline-block; background: #ecfdf5; color: #065f46; font-size: 0.8rem; font-weight: 700; padding: 10px 18px; border-radius: 10px; border: 1.5px solid #d1fae5; }
-    
-    .feature-checklist-premium { list-style: none; padding: 0; margin: 0; }
-    .f-item { display: flex; gap: 16px; margin-bottom: 25px; align-items: flex-start; }
-    .f-icon-circle { width: 22px; height: 22px; background: #10b981; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; flex-shrink: 0; margin-top: 3px; }
-    .f-title { display: block; font-size: 0.95rem; font-weight: 800; color: #111827; line-height: 1.2; }
-    .f-desc { font-size: 0.85rem; color: #6b7280; line-height: 1.4; margin-top: 2px; }
+    .btn-elite-confirm { background: #7C3AED; color: white; border: none; width: 100%; padding: 18px; border-radius: 14px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 8px 25px rgba(124, 58, 237, 0.3); transition: 0.3s; cursor: pointer; }
+    .btn-elite-confirm:hover { transform: translateY(-3px); box-shadow: 0 12px 35px rgba(124, 58, 237, 0.4); }
 
-    .payment-header-title { font-size: 1.5rem; font-weight: 800; color: #111827; letter-spacing: -0.5px; }
-
-    .payment-method-selector { display: flex; background: #f3f4f6; padding: 5px; border-radius: 14px; gap: 5px; }
-    .p-item { flex: 1; text-align: center; padding: 12px 0; font-size: 0.8rem; font-weight: 800; color: #6b7280; border-radius: 10px; cursor: pointer; transition: all 0.2s; margin-bottom: 0; text-transform: uppercase; letter-spacing: 0.5px; }
-    .p-item.active { background: #fff; color: var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-    .p-item i { margin-right: 6px; font-size: 0.95rem; }
-    .p-item input { display: none; }
-
-    .form-group-enterprise { margin-bottom: 22px; }
-    .form-group-enterprise label { display: block; font-size: 0.75rem; font-weight: 800; color: #4b5563; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .form-control-enterprise { width: 100%; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; font-size: 1rem; font-weight: 500; transition: all 0.3s; background: #fff; }
-    .form-control-enterprise:focus { border-color: var(--primary); box-shadow: 0 0 0 5px rgba(76, 29, 149, 0.08); outline: none; }
-    
-    .input-with-icon { position: relative; }
-    .icon-inside { position: absolute; right: 15px; top: 16px; font-size: 1.15rem; }
-
-    .payment-info-box { background: rgba(76, 29, 149, 0.04); color: var(--primary); font-size: 0.9rem; font-weight: 700; padding: 15px 20px; border-radius: 12px; border: 1.5px solid rgba(76, 29, 149, 0.08); display: flex; align-items: center; }
-
-    .btn-checkout-enterprise { background: var(--primary-gradient); color: white; border: none; width: 100%; padding: 20px; border-radius: 16px; font-weight: 800; font-size: 1.1rem; box-shadow: 0 15px 40px rgba(76, 29, 149, 0.3); transition: all 0.3s; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; }
-    .btn-checkout-enterprise:hover { transform: translateY(-4px); box-shadow: 0 20px 50px rgba(76, 29, 149, 0.4); }
+    .payment-tabs-minimal { display: flex; gap: 8px; }
+    .tab-btn { flex: 1; text-align: center; padding: 12px; border-radius: 10px; border: 1.5px solid #e5e7eb; font-size: 0.75rem; font-weight: 800; color: #6b7280; cursor: pointer; transition: 0.3s; }
+    .tab-btn.active { border-color: #7C3AED; color: #7C3AED; background: rgba(124, 58, 237, 0.04); }
+    .tab-btn input { display: none; }
 
     @media (max-width: 992px) {
-        .checkout-enterprise-grid { flex-direction: column; }
-        .checkout-left-area, .checkout-right-area { width: 100%; border: none; padding: 40px 25px; }
-        .checkout-left-area { order: 2; border-top: 1px solid #f2f3f5; }
-        .checkout-right-area { order: 1; }
-        .price-big { font-size: 3rem; }
+        .checkout-elite-grid { flex-direction: column; }
+        .checkout-left-pane, .checkout-right-pane { width: 100%; padding: 40px 25px; }
+        .checkout-left-pane { order: 2; border-top: 1px solid rgba(255,255,255,0.1); }
+        .checkout-right-pane { order: 1; padding-bottom: 50px; }
+        .elite-plan-name { font-size: 2.2rem; }
+        .elite-price-row .value { font-size: 3rem; }
     }
 </style>
 
 <script>
-function switchMode(metodo, element) {
-    document.querySelectorAll('.p-item').forEach(el => el.classList.remove('active'));
+function selectMethod(metodo, element) {
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     element.classList.add('active');
+    document.getElementById('box-card-elite').style.display = metodo === 'credit_card' ? 'block' : 'none';
+    document.getElementById('box-info-elite').style.display = metodo === 'credit_card' ? 'none' : 'block';
     
-    document.getElementById('section-card').style.display = metodo === 'credit_card' ? 'block' : 'none';
-    document.getElementById('section-status').style.display = metodo === 'credit_card' ? 'none' : 'block';
-    
-    const hint = document.getElementById('hint-text');
-    const btn = document.getElementById('btn-submit-main');
+    const btn = document.getElementById('btn-submit-elite');
     const valor = "R$ {{ number_format($venda->valor, 2, ',', '.') }}";
-    
-    if (metodo === 'pix') {
-        hint.innerText = "Um QR Code Pix dinâmico será gerado para liberação instantânea.";
-        btn.innerHTML = '<i class="fas fa-bolt mr-2 text-warning"></i> Gerar QR Code PIX - ' + valor;
-    } else if (metodo === 'boleto') {
-        hint.innerText = "Um boleto bancário será gerado e enviado para o seu e-mail.";
-        btn.innerHTML = '<i class="fas fa-barcode mr-2"></i> Gerar Boleto Bancário - ' + valor;
-    } else {
-        btn.innerHTML = 'Confirmar Assinatura - ' + valor;
-    }
+    if (metodo === 'pix') btn.innerText = "Gerar QR Code PIX - " + valor;
+    else if (metodo === 'boleto') btn.innerText = "Gerar Boleto de " + valor;
+    else btn.innerText = "Assinar Plano por " + valor;
 }
 
 function formatCard(input) { let v = input.value.replace(/\D/g, '').substring(0, 16); input.value = v.replace(/(.{4})/g, '$1 ').trim(); }
@@ -251,10 +243,9 @@ function formatDoc(input) {
 }
 
 document.getElementById('checkout-form').addEventListener('submit', function() {
-    const btn = document.getElementById('btn-submit-main');
+    const btn = document.getElementById('btn-submit-elite');
     btn.disabled = true;
-    btn.style.opacity = '0.8';
-    btn.innerHTML = '<i class="fas fa-sync fa-spin mr-2"></i> PROCESSANDO TRANSAÇÃO SEGURA...';
+    btn.innerHTML = '<i class="fas fa-sync fa-spin mr-2"></i> PROCESSANDO PAGAMENTO...';
 });
 </script>
 @endsection
