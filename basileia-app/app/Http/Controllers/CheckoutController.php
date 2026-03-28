@@ -10,16 +10,18 @@ use Carbon\Carbon;
 
 class CheckoutController extends Controller
 {
-    public function show($hash)
+    public function show(Request $request, $hash)
     {
         // Alterado para aceitar múltiplos status de pendência (Aguardando pagamento, pendente, etc)
         $venda = Venda::where('checkout_hash', $hash)
             ->whereIn('status', ['pendente', 'Aguardando pagamento', 'AGUARDANDO_PAGAMENTO', 'Aguardando aprovação', 'Aguardando Aprovação', 'pendente_asaas'])
             ->firstOrFail();
 
-        Log::info("Checkout acessado: Hash {$hash} | Venda ID: {$venda->id}");
+        $restritoMetodo = $request->get('method');
 
-        return view('checkout.index', compact('venda'));
+        Log::info("Checkout acessado: Hash {$hash} | Venda ID: {$venda->id} | Restrito: {$restritoMetodo}");
+
+        return view('checkout.index', compact('venda', 'restritoMetodo'));
     }
 
     public function process(Request $request, $hash)
