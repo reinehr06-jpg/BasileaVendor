@@ -1150,6 +1150,158 @@
             font-size: 1.1rem;
             color: var(--primary);
         }
+
+        /* ═══════════════════════════════════════════════════════════════
+           PHONE FIELD
+           ═══════════════════════════════════════════════════════════════ */
+        .phone-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .phone-prefix {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 14px;
+            background: var(--gray-50);
+            border-right: 1px solid var(--gray-200);
+            border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+            cursor: default;
+            z-index: 2;
+        }
+
+        .phone-flag {
+            font-size: 1.4rem;
+        }
+
+        .phone-code {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--gray-700);
+        }
+
+        .phone-input {
+            padding-left: 110px !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           DOCUMENT TOGGLE (CPF/CNPJ)
+           ═══════════════════════════════════════════════════════════════ */
+        .doc-toggle-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .doc-toggle-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            background: white;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .doc-toggle-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .doc-toggle-btn.active {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CARD BRAND RECOGNITION
+           ═══════════════════════════════════════════════════════════════ */
+        .card-input-wrapper {
+            position: relative;
+        }
+
+        .card-brand-display {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2rem;
+            transition: all 0.3s;
+            opacity: 0;
+        }
+
+        .card-brand-display.visible {
+            opacity: 1;
+        }
+
+        .card-brands-highlight {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .card-brands-highlight .brand-icon {
+            font-size: 2.2rem;
+            opacity: 0.3;
+            transition: all 0.3s;
+        }
+
+        .card-brands-highlight .brand-icon.active {
+            opacity: 1;
+            transform: scale(1.15);
+        }
+
+        /* Save Card Checkbox */
+        .save-card-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            padding: 14px 16px;
+            background: var(--gray-50);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--gray-200);
+        }
+
+        .save-card-row input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .save-card-row label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            cursor: pointer;
+        }
+
+        .save-card-row .save-card-hint {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-left: auto;
+        }
+
+        /* Card Input Validation */
+        .field-input.valid {
+            border-color: var(--success);
+        }
+
+        .field-input.invalid {
+            border-color: var(--danger);
+        }
     </style>
 </head>
 <body>
@@ -1232,16 +1384,29 @@
                         <input type="email" class="field-input" id="customer-email" placeholder="{{ __('checkout_new.email_placeholder') }}" required autocomplete="email">
                     </div>
 
-                    <div class="field-row">
-                        <div class="field">
-                            <label class="field-label">{{ __('checkout_new.phone') }}</label>
-                            <input type="tel" class="field-input" id="customer-phone" placeholder="{{ $currency === 'BRL' ? '(11) 99999-9999' : '+1 234 567 8900' }}" autocomplete="tel">
+                    <!-- Phone Field with Country Code -->
+                    <div class="field">
+                        <label class="field-label">{{ __('checkout_new.phone') }} *</label>
+                        <div class="phone-wrapper">
+                            <div class="phone-prefix" id="phone-prefix">
+                                <span class="phone-flag" id="phone-flag">🇧🇷</span>
+                                <span class="phone-code" id="phone-code">+55</span>
+                            </div>
+                            <input type="tel" class="field-input phone-input" id="customer-phone" placeholder="{{ $currency === 'BRL' ? '(11) 99999-9999' : '123 456 7890' }}" autocomplete="tel" style="padding-left: 110px;">
                         </div>
-                        <div class="field">
-                            <label class="field-label">{{ __('checkout_new.document') }}</label>
-                            <input type="text" class="field-input" id="customer-document" placeholder="{{ $currency === 'BRL' ? '000.000.000-00' : __('checkout_new.document_placeholder') }}" autocomplete="off">
-                            <p class="field-hint" id="doc-hint">{{ __('checkout_new.document_hint') }}</p>
+                        <p class="field-hint" id="phone-hint">{{ $currency === 'BRL' ? 'Formato: (DDD) 9XXXX-XXXX' : 'Número de telefone com código do país' }}</p>
+                    </div>
+
+                    <!-- CPF/CNPJ Field (Brazil Only) -->
+                    <div class="field" id="document-field" style="{{ $currency !== 'BRL' ? 'display: none;' : '' }}">
+                        <label class="field-label" id="doc-label">{{ __('checkout_new.document_cpf') }}</label>
+                        <div class="doc-toggle-row" id="doc-toggle-row">
+                            <button type="button" class="doc-toggle-btn active" id="btn-cpf" onclick="setDocType('cpf')">CPF</button>
+                            <button type="button" class="doc-toggle-btn" id="btn-cnpj" onclick="setDocType('cnpj')">CNPJ</button>
                         </div>
+                        <input type="text" class="field-input" id="customer-document" placeholder="000.000.000-00" autocomplete="off">
+                        <p class="field-hint" id="doc-hint">{{ __('checkout_new.document_hint') }}</p>
+                        <p class="field-error" id="doc-error" style="display: none; color: var(--danger); font-size: 0.85rem; margin-top: 4px;"></p>
                     </div>
 
                     <button type="submit" class="btn btn-primary" id="btn-continue">
@@ -1321,31 +1486,41 @@
                 @if(in_array('cartao', $paymentMethods))
                 <div class="payment-panel {{ !in_array('pix', $paymentMethods) ? 'active' : '' }}" id="panel-cartao">
                     <div class="card-form active">
-                        <div class="card-brands">
-                            <i class="fab fa-cc-visa" style="color: #1a1f71;"></i>
-                            <i class="fab fa-cc-mastercard" style="color: #eb001b;"></i>
-                            <i class="fab fa-cc-amex" style="color: #006fcf;"></i>
+                        <div class="card-brands-highlight" id="card-brands">
+                            <i class="fab fa-cc-visa brand-icon" data-brand="visa" style="color: #1a1f71;"></i>
+                            <i class="fab fa-cc-mastercard brand-icon" data-brand="mastercard" style="color: #eb001b;"></i>
+                            <i class="fab fa-cc-amex brand-icon" data-brand="amex" style="color: #006fcf;"></i>
+                            <i class="fas fa-credit-card brand-icon" data-brand="elo" style="color: #FFCB05;"></i>
+                            <i class="fab fa-cc-discover brand-icon" data-brand="discover" style="color: #FF6000;"></i>
+                        </div>
+
+                        <div class="field card-input-wrapper">
+                            <label class="field-label">{{ __('checkout_new.card_number') }} *</label>
+                            <input type="text" class="field-input" id="card-number" placeholder="0000 0000 0000 0000" maxlength="19" autocomplete="cc-number">
+                            <i class="card-brand-display" id="card-brand-icon"></i>
                         </div>
 
                         <div class="field">
-                            <label class="field-label">{{ __('checkout_new.card_number') }}</label>
-                            <input type="text" class="field-input" id="card-number" placeholder="0000 0000 0000 0000" maxlength="19">
-                        </div>
-
-                        <div class="field">
-                            <label class="field-label">{{ __('checkout_new.card_name') }}</label>
-                            <input type="text" class="field-input" id="card-name" placeholder="{{ __('checkout_new.card_name_placeholder') }}">
+                            <label class="field-label">{{ __('checkout_new.card_name') }} *</label>
+                            <input type="text" class="field-input" id="card-name" placeholder="{{ __('checkout_new.card_name_placeholder') }}" autocomplete="cc-name">
                         </div>
 
                         <div class="field-row">
                             <div class="field">
-                                <label class="field-label">{{ __('checkout_new.card_expiry') }}</label>
-                                <input type="text" class="field-input" id="card-expiry" placeholder="MM/AA" maxlength="5">
+                                <label class="field-label">{{ __('checkout_new.card_expiry') }} *</label>
+                                <input type="text" class="field-input" id="card-expiry" placeholder="MM/AA" maxlength="5" autocomplete="cc-exp">
                             </div>
                             <div class="field">
-                                <label class="field-label">CVV</label>
-                                <input type="text" class="field-input" id="card-cvv" placeholder="123" maxlength="4">
+                                <label class="field-label">CVV *</label>
+                                <input type="text" class="field-input" id="card-cvv" placeholder="123" maxlength="4" autocomplete="cc-csc">
                             </div>
+                        </div>
+
+                        <!-- Save Card Checkbox -->
+                        <div class="save-card-row">
+                            <input type="checkbox" id="save-card" checked>
+                            <label for="save-card">{{ __('checkout_new.save_card_label') }}</label>
+                            <span class="save-card-hint">{{ __('checkout_new.save_card_hint') }}</span>
                         </div>
 
                         <!-- Installments -->
@@ -1549,40 +1724,301 @@
         setInterval(updateTimer, 1000);
 
         // ═══════════════════════════════════════════════════════════════
-        // INPUT MASKS
+        // INPUT MASKS & VALIDATION
         // ═══════════════════════════════════════════════════════════════
+        
+        // Country codes map
+        const COUNTRY_CODES = {
+            'BRL': { flag: '🇧🇷', code: '+55', format: '(XX) XXXXX-XXXX', length: 11, name: 'Brasil' },
+            'USD': { flag: '🇺🇸', code: '+1', format: '(XXX) XXX-XXXX', length: 10, name: 'EUA' },
+            'EUR': { flag: '🇪🇸', code: '+34', format: 'XXX XXX XXX', length: 9, name: 'Espanha' },
+        };
+
+        let currentDocType = 'cpf';
+
+        // Phone mask - smart for all countries
         document.getElementById('customer-phone').addEventListener('input', function(e) {
             let v = e.target.value.replace(/\D/g, '');
+            const cfg = COUNTRY_CODES[CONFIG.currency] || COUNTRY_CODES['USD'];
+            
+            if (v.length > cfg.length) v = v.slice(0, cfg.length);
+
             if (CONFIG.currency === 'BRL') {
-                if (v.length > 11) v = v.slice(0, 11);
                 if (v.length > 7) v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
                 else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
                 else if (v.length > 0) v = `(${v}`;
+            } else if (CONFIG.currency === 'USD') {
+                if (v.length > 6) v = `(${v.slice(0,3)}) ${v.slice(3,6)}-${v.slice(6)}`;
+                else if (v.length > 3) v = `(${v.slice(0,3)}) ${v.slice(3)}`;
+                else if (v.length > 0) v = `(${v}`;
+            } else {
+                // Generic: groups of 3
+                v = v.replace(/(\d{3})(?=\d)/g, '$1 ').trim();
             }
             e.target.value = v;
         });
 
+        // Document toggle (CPF/CNPJ)
+        function setDocType(type) {
+            currentDocType = type;
+            const docInput = document.getElementById('customer-document');
+            const docLabel = document.getElementById('doc-label');
+            const docHint = document.getElementById('doc-hint');
+            const docError = document.getElementById('doc-error');
+            
+            document.getElementById('btn-cpf').classList.toggle('active', type === 'cpf');
+            document.getElementById('btn-cnpj').classList.toggle('active', type === 'cnpj');
+            
+            docError.style.display = 'none';
+            docInput.classList.remove('valid', 'invalid');
+            
+            if (type === 'cpf') {
+                docInput.placeholder = '000.000.000-00';
+                docInput.maxLength = 14;
+                docHint.textContent = '{{ __('checkout_new.document_hint') }}';
+            } else {
+                docInput.placeholder = '00.000.000/0000-00';
+                docInput.maxLength = 18;
+                docHint.textContent = '{{ __('checkout_new.cnpj_hint') }}';
+            }
+            docInput.value = '';
+        }
+
+        // Document mask and validation
         document.getElementById('customer-document').addEventListener('input', function(e) {
             let v = e.target.value.replace(/\D/g, '');
-            if (CONFIG.currency === 'BRL') {
+            const docError = document.getElementById('doc-error');
+            docError.style.display = 'none';
+            e.target.classList.remove('valid', 'invalid');
+
+            if (currentDocType === 'cpf') {
                 if (v.length > 11) v = v.slice(0, 11);
                 if (v.length > 9) v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6,9)}-${v.slice(9)}`;
                 else if (v.length > 6) v = `${v.slice(0,3)}.${v.slice(3,6)}.${v.slice(6)}`;
                 else if (v.length > 3) v = `${v.slice(0,3)}.${v.slice(3)}`;
+
+                if (v.replace(/\D/g, '').length === 11) {
+                    if (validateCPF(v.replace(/\D/g, ''))) {
+                        e.target.classList.add('valid');
+                    } else {
+                        e.target.classList.add('invalid');
+                        docError.textContent = '{{ __('checkout_new.cpf_invalid') }}';
+                        docError.style.display = 'block';
+                    }
+                }
+            } else {
+                if (v.length > 14) v = v.slice(0, 14);
+                if (v.length > 12) v = `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8,12)}-${v.slice(12)}`;
+                else if (v.length > 8) v = `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5,8)}/${v.slice(8)}`;
+                else if (v.length > 5) v = `${v.slice(0,2)}.${v.slice(2,5)}.${v.slice(5)}`;
+                else if (v.length > 2) v = `${v.slice(0,2)}.${v.slice(2)}`;
+
+                if (v.replace(/\D/g, '').length === 14) {
+                    if (validateCNPJ(v.replace(/\D/g, ''))) {
+                        e.target.classList.add('valid');
+                    } else {
+                        e.target.classList.add('invalid');
+                        docError.textContent = '{{ __('checkout_new.cnpj_invalid') }}';
+                        docError.style.display = 'block';
+                    }
+                }
             }
             e.target.value = v;
         });
 
+        // CPF Validation Algorithm
+        function validateCPF(cpf) {
+            if (cpf.length !== 11) return false;
+            if (/^(\d)\1+$/.test(cpf)) return false;
+
+            let sum = 0;
+            for (let i = 0; i < 9; i++) {
+                sum += parseInt(cpf.charAt(i)) * (10 - i);
+            }
+            let remainder = (sum * 10) % 11;
+            if (remainder === 10) remainder = 0;
+            if (remainder !== parseInt(cpf.charAt(9))) return false;
+
+            sum = 0;
+            for (let i = 0; i < 10; i++) {
+                sum += parseInt(cpf.charAt(i)) * (11 - i);
+            }
+            remainder = (sum * 10) % 11;
+            if (remainder === 10) remainder = 0;
+            return remainder === parseInt(cpf.charAt(10));
+        }
+
+        // CNPJ Validation Algorithm
+        function validateCNPJ(cnpj) {
+            if (cnpj.length !== 14) return false;
+            if (/^(\d)\1+$/.test(cnpj)) return false;
+
+            let weights = [5,4,3,2,9,8,7,6,5,4,3,2];
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                sum += parseInt(cnpj.charAt(i)) * weights[i];
+            }
+            let remainder = sum % 11;
+            if (remainder < 2) remainder = 0;
+            else remainder = 11 - remainder;
+            if (remainder !== parseInt(cnpj.charAt(12))) return false;
+
+            weights = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+            sum = 0;
+            for (let i = 0; i < 13; i++) {
+                sum += parseInt(cnpj.charAt(i)) * weights[i];
+            }
+            remainder = sum % 11;
+            if (remainder < 2) remainder = 0;
+            else remainder = 11 - remainder;
+            return remainder === parseInt(cnpj.charAt(13));
+        }
+
+        // Card Number - Brand Detection
+        const CARD_BRANDS = {
+            'visa':       { prefix: ['4'], length: [13,16,19], icon: 'fab fa-cc-visa', color: '#1a1f71' },
+            'mastercard': { prefix: ['51','52','53','54','55','2221-2720'], length: [16], icon: 'fab fa-cc-mastercard', color: '#eb001b' },
+            'amex':       { prefix: ['34','37'], length: [15], icon: 'fab fa-cc-amex', color: '#006fcf' },
+            'elo':        { prefix: ['4011','4312','4389','4514','4573','4576','5041','5066','5090','6277','6362','6363','6500','6504','6505','6509','6516','6550'], length: [16], icon: 'fas fa-credit-card', color: '#FFCB05' },
+            'discover':   { prefix: ['6011','6221-6229','644-649','65'], length: [16,19], icon: 'fab fa-cc-discover', color: '#FF6000' },
+            'diners':     { prefix: ['300-305','36','38'], length: [14,19], icon: 'fab fa-cc-diners-club', color: '#004B87' },
+            'jcb':        { prefix: ['3528-3589'], length: [16,19], icon: 'fab fa-cc-jcb', color: '#0E4C96' },
+            'hipercard':  { prefix: ['606282','3841'], length: [16], icon: 'fas fa-credit-card', color: '#D4242C' },
+        };
+
+        function detectCardBrand(number) {
+            const num = number.replace(/\D/g, '');
+            if (num.length < 4) return null;
+
+            // Check specific BIN ranges
+            const first4 = num.slice(0, 4);
+            const first6 = num.slice(0, 6);
+            
+            // Elo BINs
+            const eloBins = ['4011','4312','4389','4514','4573','4576','5041','5066','5090','6277','6362','6363','6500','6504','6505','6509','6516','6550'];
+            if (eloBins.includes(first4)) return 'elo';
+            
+            // Hipercard
+            if (first6 === '606282' || first4 === '3841') return 'hipercard';
+            
+            // Diners
+            const first3 = parseInt(num.slice(0,3));
+            if ((first3 >= 300 && first3 <= 305) || num.slice(0,2) === '36' || num.slice(0,2) === '38') return 'diners';
+            
+            // Amex
+            if (['34','37'].includes(num.slice(0,2))) return 'amex';
+            
+            // Discover
+            if (num.slice(0,4) === '6011' || num.slice(0,2) === '65') return 'discover';
+            const first4Int = parseInt(first4);
+            if (first4Int >= 6221 && first4Int <= 6229) return 'discover';
+            
+            // JCB
+            const first4Jcb = parseInt(first4);
+            if (first4Jcb >= 3528 && first4Jcb <= 3589) return 'jcb';
+            
+            // Visa
+            if (num[0] === '4') return 'visa';
+            
+            // Mastercard
+            const first2 = parseInt(num.slice(0,2));
+            if ((first2 >= 51 && first2 <= 55) || (first4Int >= 2221 && first4Int <= 2720)) return 'mastercard';
+
+            return null;
+        }
+
+        // Luhn Check for card number
+        function luhnCheck(num) {
+            const arr = num.split('').reverse().map(x => parseInt(x));
+            const sum = arr.reduce((acc, val, i) => {
+                if (i % 2 !== 0) {
+                    val *= 2;
+                    if (val > 9) val -= 9;
+                }
+                return acc + val;
+            }, 0);
+            return sum % 10 === 0;
+        }
+
         document.getElementById('card-number').addEventListener('input', function(e) {
-            let v = e.target.value.replace(/\D/g, '').slice(0, 16);
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 16) v = v.slice(0, 16);
+            
+            // Format with spaces
             v = v.replace(/(.{4})/g, '$1 ').trim();
             e.target.value = v;
+
+            const num = v.replace(/\D/g, '');
+            const brand = detectCardBrand(num);
+
+            // Update brand highlight
+            document.querySelectorAll('#card-brands .brand-icon').forEach(icon => {
+                icon.classList.remove('active');
+            });
+
+            if (brand) {
+                const brandIcon = document.querySelector(`#card-brands .brand-icon[data-brand="${brand}"]`);
+                if (brandIcon) brandIcon.classList.add('active');
+
+                // Show detected brand on input
+                const cardBrandIcon = document.getElementById('card-brand-icon');
+                const brandInfo = CARD_BRANDS[brand];
+                if (brandInfo) {
+                    cardBrandIcon.className = `card-brand-display visible ${brandInfo.icon}`;
+                    cardBrandIcon.style.color = brandInfo.color;
+                }
+            } else {
+                document.getElementById('card-brand-icon').className = 'card-brand-display';
+            }
+
+            // Validate with Luhn if full length
+            if (num.length >= 13) {
+                if (luhnCheck(num)) {
+                    e.target.classList.add('valid');
+                    e.target.classList.remove('invalid');
+                } else {
+                    e.target.classList.add('invalid');
+                    e.target.classList.remove('valid');
+                }
+            } else {
+                e.target.classList.remove('valid', 'invalid');
+            }
         });
 
         document.getElementById('card-expiry').addEventListener('input', function(e) {
             let v = e.target.value.replace(/\D/g, '').slice(0, 4);
             if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
             e.target.value = v;
+
+            // Validate expiry
+            if (v.length === 5) {
+                const [month, year] = v.split('/');
+                const m = parseInt(month);
+                const y = parseInt('20' + year);
+                const now = new Date();
+                const currentYear = now.getFullYear();
+                const currentMonth = now.getMonth() + 1;
+
+                if (m >= 1 && m <= 12 && (y > currentYear || (y === currentYear && m >= currentMonth))) {
+                    e.target.classList.add('valid');
+                    e.target.classList.remove('invalid');
+                } else {
+                    e.target.classList.add('invalid');
+                    e.target.classList.remove('valid');
+                }
+            }
+        });
+
+        document.getElementById('card-cvv').addEventListener('input', function(e) {
+            let v = e.target.value.replace(/\D/g, '');
+            if (v.length > 4) v = v.slice(0, 4);
+            e.target.value = v;
+
+            if (v.length >= 3) {
+                e.target.classList.add('valid');
+            } else {
+                e.target.classList.remove('valid');
+            }
         });
 
         // ═══════════════════════════════════════════════════════════════
@@ -1626,6 +2062,34 @@
             url.searchParams.set('moeda', currency);
             window.location.href = url.toString();
         }
+
+        // Update phone prefix based on currency
+        function updatePhonePrefix() {
+            const cfg = COUNTRY_CODES[CONFIG.currency] || COUNTRY_CODES['USD'];
+            document.getElementById('phone-flag').textContent = cfg.flag;
+            document.getElementById('phone-code').textContent = cfg.code;
+        }
+
+        // Toggle document field based on country
+        function updateDocumentVisibility() {
+            const docField = document.getElementById('document-field');
+            const docToggle = document.getElementById('doc-toggle-row');
+            const phoneHint = document.getElementById('phone-hint');
+
+            if (CONFIG.currency === 'BRL') {
+                docField.style.display = 'block';
+                docToggle.style.display = 'flex';
+                phoneHint.textContent = 'Formato: (DDD) 9XXXX-XXXX';
+            } else {
+                docField.style.display = 'none';
+                docToggle.style.display = 'none';
+                phoneHint.textContent = 'Número de telefone com código do país';
+            }
+        }
+
+        // Initialize on page load
+        updatePhonePrefix();
+        updateDocumentVisibility();
 
         document.addEventListener('click', function(e) {
             if (!document.querySelector('.lang-selector').contains(e.target)) {
@@ -1762,15 +2226,37 @@
                 session_token: CONFIG.sessionToken,
                 payment_method: selectedPayment,
                 installments: selectedInstallments,
-                order_bump: orderBumpActive
+                order_bump: orderBumpActive,
+                save_card: document.getElementById('save-card')?.checked || false
             };
 
             if (selectedPayment === 'cartao') {
+                const cardNumber = document.getElementById('card-number').value.replace(/\s/g, '');
+                const cardName = document.getElementById('card-name').value.trim();
+                const cardExpiry = document.getElementById('card-expiry').value;
+                const cardCvv = document.getElementById('card-cvv').value;
+
+                // Validate card before sending
+                if (!cardNumber || !cardName || !cardExpiry || !cardCvv) {
+                    alert('{{ __('checkout_new.fill_required') }}');
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                    return;
+                }
+
+                if (!luhnCheck(cardNumber)) {
+                    alert('{{ __('checkout_new.card_invalid') }}');
+                    btn.classList.remove('loading');
+                    btn.disabled = false;
+                    return;
+                }
+
                 payload.card = {
-                    number: document.getElementById('card-number').value.replace(/\s/g, ''),
-                    name: document.getElementById('card-name').value,
-                    expiry: document.getElementById('card-expiry').value,
-                    cvv: document.getElementById('card-cvv').value
+                    number: cardNumber,
+                    name: cardName,
+                    expiry: cardExpiry,
+                    cvv: cardCvv,
+                    brand: detectCardBrand(cardNumber)
                 };
             }
 

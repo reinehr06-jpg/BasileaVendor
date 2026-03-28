@@ -145,5 +145,14 @@
     "checkout.step_pix_pending": "O pagamento via PIX é instantâneo. Assim que pagar, seu acesso será liberado.",
     "checkout.step_boleto_pending": "O boleto pode levar até 3 dias úteis para ser compensado pelo banco.",
     "checkout.step_process_info": "Nosso time de suporte entrará em contato em breve.",
-    "checkout.order_received": "Pedido Recebido"
+    "checkout.order_received": "Pedido Recebido",
+    "checkout_new.document_cpf": "CPF",
+    "checkout_new.document_cnpj": "CNPJ",
+    "checkout_new.cnpj_hint": "Usado para nota fiscal de empresa",
+    "checkout_new.cpf_invalid": "CPF inválido. Verifique os dígitos.",
+    "checkout_new.cnpj_invalid": "CNPJ inválido. Verifique os dígitos.",
+    "checkout_new.save_card_label": "Salvar cartão para próximas compras",
+    "checkout_new.save_card_hint": "Renovação automática da assinatura",
+    "checkout_new.fill_required": "Por favor, preencha todos os campos obrigatórios",
+    "checkout_new.card_invalid": "Número do cartão inválido. Verifique e tente novamente."
 }

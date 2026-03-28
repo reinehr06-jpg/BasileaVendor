@@ -126,5 +126,14 @@
     "checkout_new.go_to_success": "Ver detalles del pedido",
     "checkout_new.identify_error": "Error al identificar. Verifica tus datos.",
     "checkout_new.payment_error": "Error al procesar el pago. Intenta de nuevo.",
-    "checkout_new.connection_error": "Error de conexión. Verifica tu internet."
+    "checkout_new.connection_error": "Error de conexión. Verifica tu internet.",
+    "checkout_new.document_cpf": "Número de identificación",
+    "checkout_new.document_cnpj": "RUC / ID de empresa",
+    "checkout_new.cnpj_hint": "Usado para factura de empresa",
+    "checkout_new.cpf_invalid": "Número de identificación inválido. Verifica los dígitos.",
+    "checkout_new.cnpj_invalid": "ID de empresa inválido. Verifica los dígitos.",
+    "checkout_new.save_card_label": "Guardar tarjeta para futuras compras",
+    "checkout_new.save_card_hint": "Renovación automática de suscripción",
+    "checkout_new.fill_required": "Por favor, completa todos los campos obligatorios",
+    "checkout_new.card_invalid": "Número de tarjeta inválido. Verifica e intenta de nuevo."
 }

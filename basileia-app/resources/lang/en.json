@@ -126,5 +126,14 @@
     "checkout_new.go_to_success": "View order details",
     "checkout_new.identify_error": "Error identifying. Please check your data.",
     "checkout_new.payment_error": "Error processing payment. Please try again.",
-    "checkout_new.connection_error": "Connection error. Check your internet."
+    "checkout_new.connection_error": "Connection error. Check your internet.",
+    "checkout_new.document_cpf": "ID Number",
+    "checkout_new.document_cnpj": "Company ID",
+    "checkout_new.cnpj_hint": "Used for company invoice",
+    "checkout_new.cpf_invalid": "Invalid ID number. Please check the digits.",
+    "checkout_new.cnpj_invalid": "Invalid company ID. Please check the digits.",
+    "checkout_new.save_card_label": "Save card for future purchases",
+    "checkout_new.save_card_hint": "Auto-renewal of subscription",
+    "checkout_new.fill_required": "Please fill in all required fields",
+    "checkout_new.card_invalid": "Invalid card number. Please check and try again."
 }

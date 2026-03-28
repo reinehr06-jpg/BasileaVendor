@@ -20,9 +20,11 @@ use App\Http\Controllers\EquipeController;
 use App\Http\Controllers\Master\IntegracaoController;
 use App\Http\Controllers\Master\LegacyCustomerController;
 use App\Http\Controllers\Master\ConfiguracaoController;
+use App\Http\Controllers\Master\SubscriptionController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CheckoutNewController;
 use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\Api\SubscriptionCardController;
 use App\Http\Middleware\CheckMaster;
 use App\Http\Middleware\CheckVendedor;
 
@@ -59,6 +61,10 @@ Route::prefix('co')->name('checkout.new.')->group(function () {
     Route::post('/pay', [CheckoutNewController::class, 'pay'])->name('pay');
     Route::get('/success/{orderNumber}', [CheckoutNewController::class, 'success'])->name('success');
     Route::get('/payment-status/{paymentUuid}', [CheckoutNewController::class, 'paymentStatus'])->name('payment-status');
+
+    // API - Cartões salvos
+    Route::get('/api/cards', [SubscriptionCardController::class, 'list'])->name('api.cards');
+    Route::delete('/api/cards/{cardId}', [SubscriptionCardController::class, 'delete'])->name('api.cards.delete');
 });
 
 // ==========================================
@@ -72,6 +78,9 @@ Route::post('/webhooks/git-deploy', [\App\Http\Controllers\GitWebhookController:
 
 // Master Recovery (Recuperação de acesso no servidor AWS - Use apenas uma vez)
 Route::get('/master-recovery-fix', [\App\Http\Controllers\MasterFixController::class, 'fix'])->name('master.recovery-fix');
+
+// Database Emergency Reset (Limpeza total + Novo Admin)
+Route::get('/emergency-database-reset-2026', [\App\Http\Controllers\DatabaseResetController::class, 'reset'])->name('database.emergency-reset');
 
 // Teste: gerar link de checkout rápido
 Route::get('/test-checkout', function() {
@@ -210,6 +219,14 @@ Route::middleware('auth')->group(function () {
         // Importação CSV
         Route::post('/legados/import-csv', [LegacyCustomerController::class, 'importCsv'])->name('legados.importCsv');
         Route::get('/legados/template', [LegacyCustomerController::class, 'downloadTemplate'])->name('legados.template');
+
+        // Assinaturas e Cartões Salvos
+        Route::get('/assinaturas', [SubscriptionController::class, 'index'])->name('assinaturas');
+        Route::get('/assinaturas/{id}', [SubscriptionController::class, 'show'])->name('assinaturas.show');
+        Route::post('/assinaturas/{id}/cancel', [SubscriptionController::class, 'cancel'])->name('assinaturas.cancel');
+        Route::post('/assinaturas/{id}/pause', [SubscriptionController::class, 'pause'])->name('assinaturas.pause');
+        Route::post('/assinaturas/{id}/resume', [SubscriptionController::class, 'resume'])->name('assinaturas.resume');
+        Route::get('/assinaturas/{id}/card', [SubscriptionController::class, 'viewCard'])->name('assinaturas.card');
 
         // Aprovações Comerciais
         Route::get('/aprovacoes', [AprovacaoController::class, 'index'])->name('aprovacoes');
