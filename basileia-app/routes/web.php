@@ -36,11 +36,10 @@ Route::get('/', function () {
 // Checkout Público (sem autenticação)
 // ==========================================
 Route::prefix('checkout')->name('checkout.')->group(function () {
-    Route::get('/{venda_hash}', [CheckoutController::class, 'show'])->name('show');
-    Route::post('/{venda_hash}/processar', [CheckoutController::class, 'processar'])->name('processar');
-    Route::get('/{venda_hash}/sucesso', [CheckoutController::class, 'sucesso'])->name('sucesso');
-    Route::get('/{venda_hash}/cancelado', [CheckoutController::class, 'cancelado'])->name('cancelado');
-    Route::get('/{venda_hash}/pix/{pagamento_id}', [CheckoutController::class, 'pix'])->name('pix');
+    Route::get('/{hash}', [CheckoutController::class, 'show'])->name('show');
+    Route::post('/{hash}/process', [CheckoutController::class, 'process'])->name('process');
+    Route::get('/{hash}/success', [CheckoutController::class, 'success'])->name('success');
+    Route::get('/{hash}/cancel', [CheckoutController::class, 'cancel'])->name('cancel');
 });
 
 // ==========================================

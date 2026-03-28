@@ -2,271 +2,128 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Plano;
 use App\Models\Venda;
-use App\Models\Vendedor;
-use App\Services\CheckoutService;
-use App\Services\CurrencyService;
-use App\Services\ExchangeRateService;
-use App\Services\LanguageService;
+use App\Services\AsaasService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class CheckoutController extends Controller
 {
-    protected CheckoutService $checkoutService;
-    protected ExchangeRateService $exchangeRateService;
-
-    public function __construct()
-    {
-        $this->checkoutService = new CheckoutService;
-        $this->exchangeRateService = new ExchangeRateService;
-    }
-
-    public function show(string $hash, Request $request)
+    public function show($hash)
     {
         $venda = Venda::where('checkout_hash', $hash)
-            ->with(['cliente', 'vendedor.user', 'plano', 'pagamentos'])
-            ->first();
+            ->where('status', 'pendente')
+            ->firstOrFail();
 
-        if (! $venda) {
-            abort(404, 'Checkout não encontrado');
-        }
+        Log::info("Checkout acessado: Hash {$hash} | Venda ID: {$venda->id}");
 
-        if ($venda->status === 'PAGO') {
-            return redirect()->route('checkout.sucesso', $hash);
-        }
-
-        // Detectar idioma e moeda
-        $language = $request->get('lang') ?? LanguageService::detectLanguage();
-        $currency = $request->get('moeda') ?? CurrencyService::detectCurrency();
-
-        // Aplicar locale para traduções via JSON
-        $baseLocale = explode('-', $language)[0]; // ex: 'pt' de 'pt-BR'
-        \Illuminate\Support\Facades\App::setLocale($baseLocale);
-
-        // Se o idioma foi alterado, usar a moeda associada ao idioma
-        if ($request->has('lang') && ! $request->has('moeda')) {
-            $currency = LanguageService::getCurrencyForLanguage($language);
-        }
-
-        // Obter informações de conversão
-        $valorOriginal = $venda->valor_original ?? $venda->valor;
-        $valorFinal = $venda->valor_final ?? $venda->valor;
-
-        $taxa = $this->exchangeRateService->getRate('BRL', $currency);
-        $valorConvertido = $this->exchangeRateService->convert($valorFinal, 'BRL', $currency);
-        $valorOriginalConvertido = $this->exchangeRateService->convert($valorOriginal, 'BRL', $currency);
-
-        // Informações de moeda para formatação
-        $currencyInfo = CurrencyService::getCurrencyInfo($currency);
-
-        // Idiomas disponíveis para o seletor
-        $availableLanguages = LanguageService::getLanguagesForSelector();
-
-        // Idioma atual
-        $currentLanguage = LanguageService::getLanguage($language);
-
-        // Métodos de pagamento disponíveis por moeda
-        $paymentMethods = static::getPaymentMethodsForCurrency($currency);
-
-        $planos = Plano::orderBy('faixa_min_membros')->get();
-
-        // Método de pagamento pré-selecionado via URL
-        $preSelectedMethod = $request->get('method');
-
-        return view('checkout.index', compact(
-            'venda',
-            'planos',
-            'currency',
-            'currencyInfo',
-            'language',
-            'availableLanguages',
-            'currentLanguage',
-            'taxa',
-            'valorConvertido',
-            'valorOriginalConvertido',
-            'paymentMethods',
-            'preSelectedMethod'
-        ));
+        return view('checkout.index', compact('venda'));
     }
 
-    public function processar(Request $request, string $hash)
+    public function process(Request $request, $hash)
     {
-        $venda = Venda::where('checkout_hash', $hash)->first();
+        $venda = Venda::where('checkout_hash', $hash)
+            ->where('status', 'pendente')
+            ->firstOrFail();
 
-        if (! $venda) {
-            return response()->json(['success' => false, 'message' => 'Checkout não encontrado'], 404);
-        }
-
-        $validated = $request->validate([
-            'payment_method' => 'required|string|in:cartao',
-            'plano_id' => 'required|integer|exists:planos,id',
-            'quantidade_membros' => 'required|integer|min:1',
-            'card_number' => 'required|string',
-            'card_name' => 'required|string',
-            'card_expiry' => 'required|string',
-            'card_cvv' => 'required|string',
-            'currency' => 'nullable|string|in:BRL,USD,EUR',
-            'language' => 'nullable|string',
+        $request->validate([
+            'payment_method' => 'required|in:credit_card,boleto,pix',
+            'cpf_titular'    => 'required|string',
+            'nome_cartao'    => 'required_if:payment_method,credit_card',
+            'numero_cartao'  => 'required_if:payment_method,credit_card',
+            'cvv'            => 'required_if:payment_method,credit_card',
+            'expiry'         => 'required_if:payment_method,credit_card',
         ]);
 
-        $currency = $validated['currency'] ?? 'BRL';
-
         try {
-            // Passar todos os dados validados para o serviço
-            $result = $this->checkoutService->criarPagamento($venda, $validated, $currency);
+            $asaas = app(AsaasService::class);
 
-            if ($result['success']) {
-                $venda->update([
-                    'checkout_status' => 'PROCESSANDO',
-                    'asaas_payment_id' => $result['payment_id'] ?? null,
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'redirect_url' => $result['redirect_url'] ?? null,
-                    'payment_id' => $result['payment_id'],
-                    'billing_type' => $result['billing_type'],
-                ]);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => $result['message'] ?? 'Erro ao processar pagamento',
-            ], 400);
-
-        } catch (\Exception $e) {
-            Log::error('[Checkout] Erro ao processar pagamento', [
-                'venda_id' => $venda->id,
-                'currency' => $currency,
-                'error' => $e->getMessage(),
+            // 1. Cria ou busca o cliente no Asaas pelo CPF
+            $customerId = $asaas->criarOuBuscarCliente([
+                'nome'     => $venda->nome_cliente,
+                'cpf_cnpj' => $request->cpf_titular,
+                'email'    => $venda->email_cliente,
+                'telefone' => $venda->telefone_cliente ?? null,
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro interno: '.$e->getMessage(),
-            ], 500);
-        }
-    }
-
-    public function sucesso(string $hash, Request $request)
-    {
-        $venda = Venda::where('checkout_hash', $hash)
-            ->with(['cliente', 'vendedor.user', 'plano', 'pagamentos'])
-            ->first();
-
-        if (! $venda) {
-            abort(404);
-        }
-
-        $language = $request->get('lang') ?? LanguageService::detectLanguage();
-        $baseLocale = explode('-', $language)[0];
-        \App::setLocale($baseLocale ?: $language);
-        $currentLanguage = LanguageService::getLanguage($language);
-        $availableLanguages = LanguageService::getLanguagesForSelector();
-
-        return view('checkout.sucesso', compact(
-            'venda',
-            'language',
-            'currentLanguage',
-            'availableLanguages'
-        ));
-    }
-
-    public function cancelado(string $hash)
-    {
-        $venda = Venda::where('checkout_hash', $hash)->first();
-
-        if (! $venda) {
-            abort(404);
-        }
-
-        return view('checkout.cancelado', compact('venda'));
-    }
-
-    public function pix(string $hash, string $pagamentoId)
-    {
-        $venda = Venda::where('checkout_hash', $hash)->first();
-
-        if (! $venda) {
-            abort(404);
-        }
-
-        try {
-            $pixData = $this->checkoutService->buscarPix($pagamentoId);
-
-            return response()->json($pixData);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    public function indicacao(string $vendedorHash)
-    {
-        $vendedor = Vendedor::where('hash_indicacao', $vendedorHash)
-            ->orWhere('id', $vendedorHash)
-            ->with('usuario')
-            ->first();
-
-        if (! $vendedor) {
-            abort(404, 'Link de indicação inválido');
-        }
-
-        $planos = Plano::orderBy('faixa_min_membros')->get();
-
-        return view('checkout.cadastro', compact('vendedor', 'planos'));
-    }
-
-    public function criarVenda(Request $request)
-    {
-        $validated = $request->validate([
-            'nome' => 'required|string|max:255',
-            'email' => 'required|email',
-            'documento' => 'required|string|max:20',
-            'telefone' => 'nullable|string|max:20',
-            'nome_igreja' => 'nullable|string|max:255',
-            'quantidade_membros' => 'nullable|integer|min:1',
-            'plano_id' => 'required|exists:planos,id',
-            'forma_pagamento' => 'required|in:pix,boleto,cartao',
-            'vendedor_id' => 'nullable|exists:vendedores,id',
-            'hash_indicacao' => 'nullable|string',
-        ]);
-
-        $plano = Plano::findOrFail($validated['plano_id']);
-
-        $vendedorId = $validated['vendedor_id'];
-        if (! empty($validated['hash_indicacao'])) {
-            $vendedorIndicacao = Vendedor::where('hash_indicacao', $validated['hash_indicacao'])->first();
-            if ($vendedorIndicacao) {
-                $vendedorId = $vendedorIndicacao->id;
+            // 2. Monta os dados do cartão se for credit_card
+            $cartao = null;
+            if ($request->payment_method === 'credit_card') {
+                // Separa mês e ano da validade (formato MM/AA ou MM/AAAA)
+                $partes = explode('/', $request->expiry);
+                $cartao = [
+                    'nome'   => $request->nome_cartao,
+                    'numero' => preg_replace('/\D/', '', $request->numero_cartao),
+                    'mes'    => trim($partes[0]),
+                    'ano'    => strlen(trim($partes[1] ?? '')) === 2
+                                    ? '20' . trim($partes[1])
+                                    : trim($partes[1] ?? ''),
+                    'cvv'    => $request->cvv,
+                ];
             }
+
+            // 3. Mapeia o método de pagamento para o formato do nosso AsaasService
+            $tipoPagamento = match($request->payment_method) {
+                'credit_card' => 'cartao',
+                'pix'         => 'pix',
+                'boleto'      => 'boleto',
+            };
+
+            // 4. Chama o Asaas e cria a cobrança
+            $cobranca = $asaas->criarCobranca($customerId, [
+                'id'             => $venda->id,
+                'valor_total'    => $venda->valor,
+                'tipo_plano'     => $venda->tipo_plano ?? 'mensal',
+                'cliente_nome'   => $venda->nome_cliente,
+                'cliente_email'  => $venda->email_cliente,
+                'cliente_cpf'    => $request->cpf_titular,
+                'tipo_pagamento' => $tipoPagamento,
+            ], $cartao);
+
+            // 5. Calcula a data de renovação baseada no plano
+            $dataInicio    = Carbon::today();
+            $dataRenovacao = match($venda->tipo_plano ?? 'mensal') {
+                'mensal'       => $dataInicio->copy()->addMonth(),
+                'anual_avista' => $dataInicio->copy()->addYear(),
+                'anual_12x'    => $dataInicio->copy()->addYear(),
+                default        => $dataInicio->copy()->addMonth(),
+            };
+
+            // 6. Salva tudo na venda
+            $venda->update([
+                'asaas_payment_id'  => $cobranca['asaas_payment_id'],
+                'asaas_customer_id' => $customerId,
+                'bank_slip_url'     => $cobranca['bank_slip_url'],
+                'invoice_url'       => $cobranca['invoice_url'],
+                'pix_copia_cola'    => $cobranca['pix_copia_cola'],
+                'pix_qrcode_base64' => $cobranca['pix_qrcode'],
+                'cartao_token'      => $cobranca['cartao_token'],
+                'cartao_bandeira'   => $cobranca['cartao_bandeira'],
+                'cartao_final'      => $cobranca['cartao_final'],
+                'tipo_pagamento'    => $tipoPagamento,
+                'data_inicio'       => $dataInicio,
+                'data_renovacao'    => $dataRenovacao,
+                'renovacao_ativa'   => true,
+                // Status: cartão já fica confirmado. PIX/boleto aguarda confirmação do Asaas.
+                'status'            => $tipoPagamento === 'cartao' ? 'pago' : 'pendente',
+            ]);
+
+            Log::info("Checkout processado com sucesso: Venda #{$venda->id} | Método: {$tipoPagamento}");
+
+            return redirect()->route('checkout.success', $hash)
+                ->with('venda', $venda)
+                ->with('cobranca', $cobranca);
+
+        } catch (\Exception $e) {
+            Log::error("Erro no Checkout Venda #{$venda->id}: " . $e->getMessage());
+            return back()->withErrors(['error' => 'Erro ao processar pagamento: ' . $e->getMessage()]);
         }
-
-        $clienteData = [
-            'nome' => $validated['nome'],
-            'email' => $validated['email'],
-            'documento' => preg_replace('/\D/', '', $validated['documento']),
-            'contato' => $validated['telefone'],
-            'nome_igreja' => $validated['nome_igreja'],
-            'quantidade_membros' => $validated['quantidade_membros'] ?? 1,
-            'status' => 'pendente',
-        ];
-
-        $venda = $this->checkoutService->criarVendaECheckout($clienteData, $plano, $vendedorId, $validated['forma_pagamento']);
-
-        return redirect()->route('checkout.show', $venda->checkout_hash);
     }
 
-    /**
-     * Métodos de pagamento disponíveis por moeda
-     */
-    protected static function getPaymentMethodsForCurrency(string $currency): array
+    public function success($hash)
     {
-        return match ($currency) {
-            'BRL' => ['pix', 'boleto', 'cartao'],
-            'USD', 'EUR' => ['cartao'],
-            default => ['pix', 'boleto', 'cartao'],
-        };
+        $venda = Venda::where('checkout_hash', $hash)->firstOrFail();
+        return view('checkout.success', compact('venda'));
     }
 }

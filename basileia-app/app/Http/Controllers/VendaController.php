@@ -516,8 +516,8 @@ class VendaController extends Controller
             DB::commit();
 
             $paymentMethod = $formaMap[$request->forma_pagamento] ?? 'pix';
-            return redirect()->route('checkout.show', ['venda_hash' => $venda->checkout_hash, 'method' => $paymentMethod])
-                ->with('success', 'Venda registrada com sucesso! Você foi redirecionado para o checkout para baixar o boleto ou realizar o pagamento.');
+            return redirect()->route('vendedor.vendas')
+                ->with('success', 'Venda registrada com sucesso! O link do checkout agora está disponível na lista abaixo para envio ao cliente.');
 
         } catch (\Exception $e) {
             DB::rollBack();
