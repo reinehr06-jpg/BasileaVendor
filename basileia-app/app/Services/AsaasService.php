@@ -57,7 +57,7 @@ class AsaasService
 
     public function createCustomer(string $name, string $cpfCnpj, ?string $phone = null, ?string $email = null): array
     {
-        // Primeiro tenta encontrar cliente existente
+        // ... (existing code remains as is)
         $existing = $this->findCustomerByCpfCnpj($cpfCnpj);
         if ($existing) {
             // Verifica se o nome bate. Se não, atualiza no Asaas
@@ -106,6 +106,59 @@ class AsaasService
             'status'   => $response->status(),
         ]);
         throw new \Exception('Falha ao registrar cliente no Asaas: ' . $response->body());
+    }
+
+    /**
+     * MÉTODO DE COMPATIBILIDADE PARA O NOVO CHECKOUT
+     * Mapeia os dados do formato array para o createPayment
+     */
+    public function criarCobranca(string $customerAsaasId, array $dadosVenda, ?array $creditCard = null): array
+    {
+        $venda = \App\Models\Venda::find($dadosVenda['id']);
+        
+        $billingType = match($dadosVenda['tipo_pagamento'] ?? 'pix') {
+            'cartao' => 'CREDIT_CARD',
+            'pix'    => 'PIX',
+            'boleto' => 'BOLETO',
+            default  => 'PIX'
+        };
+
+        $description = "Pagamento - " . ($venda->plano ?? 'Venda #' . $venda->id);
+        $dueDate = now()->addDays(3)->format('Y-m-d'); // 3 dias de validade por padrão
+        
+        // Se for cartão, a descrição pode ser mais específica
+        if ($billingType === 'CREDIT_CARD') {
+            $dueDate = now()->format('Y-m-d');
+        }
+
+        // Se houver split configurado para o vendedor
+        $split = [];
+        if ($venda && $venda->vendedor) {
+            $split = $this->buildSplitArray($venda->vendedor, $venda->valor, $venda->tipo_negociacao ?? 'inicial');
+        }
+
+        $asaasResponse = $this->createPayment(
+            $customerAsaasId,
+            (float) $dadosVenda['valor_total'],
+            $dueDate,
+            $billingType,
+            $description,
+            (string) $dadosVenda['id'],
+            $split,
+            $creditCard
+        );
+
+        // Mapeia o retorno para o que o CheckoutController espera
+        return [
+            'asaas_payment_id'  => $asaasResponse['id'],
+            'bank_slip_url'     => $asaasResponse['bankSlipUrl'] ?? null,
+            'invoice_url'       => $asaasResponse['invoiceUrl'] ?? null,
+            'pix_copia_cola'    => $asaasResponse['pixCopiaCola'] ?? null,
+            'pix_qrcode'        => $asaasResponse['pixQrCode'] ?? null, // Base64 se houver
+            'cartao_token'      => $asaasResponse['creditCardToken'] ?? null,
+            'cartao_bandeira'   => $asaasResponse['creditCard']['creditCardBrand'] ?? null,
+            'cartao_final'      => $asaasResponse['creditCard']['creditCardNumber'] ?? null,
+        ];
     }
 
     // ============================================
