@@ -70,7 +70,7 @@ class CheckoutController extends Controller
         // Métodos de pagamento disponíveis por moeda
         $paymentMethods = static::getPaymentMethodsForCurrency($currency);
 
-        $planos = Plano::orderBy('membros_minimos')->get();
+        $planos = Plano::orderBy('faixa_min_membros')->get();
 
         // Método de pagamento pré-selecionado via URL
         $preSelectedMethod = $request->get('method');
@@ -213,7 +213,7 @@ class CheckoutController extends Controller
             abort(404, 'Link de indicação inválido');
         }
 
-        $planos = Plano::orderBy('membros_minimos')->get();
+        $planos = Plano::orderBy('faixa_min_membros')->get();
 
         return view('checkout.cadastro', compact('vendedor', 'planos'));
     }
