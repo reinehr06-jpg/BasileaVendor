@@ -18,6 +18,9 @@ use App\Http\Controllers\VendedorConfiguracaoController;
 use App\Http\Controllers\GestorEquipeController;
 use App\Http\Controllers\EquipeController;
 use App\Http\Controllers\Master\IntegracaoController;
+use App\Http\Controllers\Master\IntegracaoVendasController;
+use App\Http\Controllers\Master\IntegracaoSiteController;
+use App\Http\Controllers\Master\IntegracaoEventoController;
 use App\Http\Controllers\Master\LegacyCustomerController;
 use App\Http\Controllers\Master\ConfiguracaoController;
 use App\Http\Controllers\Master\SubscriptionController;
@@ -52,6 +55,8 @@ Route::post('/checkout/criar', [CheckoutController::class, 'criarVenda'])->name(
 // NOVO Checkout SaaS (Alta Conversão)
 // ==========================================
 Route::prefix('co')->name('checkout.new.')->group(function () {
+    Route::get('/evento/{slug}', [CheckoutNewController::class, 'evento'])->name('evento');
+    Route::post('/evento/{slug}/pay', [CheckoutNewController::class, 'eventoPay'])->name('evento.pay');
     Route::get('/{offerSlug}', [CheckoutNewController::class, 'start'])->name('start');
     Route::get('/resume/{token}', [CheckoutNewController::class, 'resume'])->name('resume');
     Route::post('/identify', [CheckoutNewController::class, 'identify'])->name('identify');
@@ -258,6 +263,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/configuracoes-gerais', function() { return redirect()->route('master.configuracoes'); });
         Route::get('/configuracoes/integracoes', function() { return redirect()->route('master.configuracoes', ['tab' => 'integracoes']); })->name('configuracoes.integracoes');
         Route::get('/configuracoes/comissoes', function() { return redirect()->route('master.configuracoes', ['tab' => 'comissoes']); })->name('configuracoes.comissoes');
+
+        // ==========================================
+        // Integrações
+        // ==========================================
+        Route::get('/integracoes/basileia-vendas', [IntegracaoVendasController::class, 'index'])->name('integracoes.vendas');
+
+        Route::get('/integracoes/site', [IntegracaoSiteController::class, 'index'])->name('integracoes.site');
+        Route::post('/integracoes/site/keys', [IntegracaoSiteController::class, 'storeKey'])->name('integracoes.site.keys.store');
+        Route::patch('/integracoes/site/keys/{apiKey}', [IntegracaoSiteController::class, 'toggleKey'])->name('integracoes.site.keys.toggle');
+        Route::delete('/integracoes/site/keys/{apiKey}', [IntegracaoSiteController::class, 'destroyKey'])->name('integracoes.site.keys.destroy');
+        Route::post('/integracoes/site/webhooks', [IntegracaoSiteController::class, 'storeWebhook'])->name('integracoes.site.webhooks.store');
+        Route::delete('/integracoes/site/webhooks/{webhook}', [IntegracaoSiteController::class, 'destroyWebhook'])->name('integracoes.site.webhooks.destroy');
+
+        Route::get('/integracoes/eventos', [IntegracaoEventoController::class, 'index'])->name('integracoes.eventos');
+        Route::post('/integracoes/eventos', [IntegracaoEventoController::class, 'store'])->name('integracoes.eventos.store');
+        Route::patch('/integracoes/eventos/{evento}', [IntegracaoEventoController::class, 'toggle'])->name('integracoes.eventos.toggle');
+        Route::delete('/integracoes/eventos/{evento}', [IntegracaoEventoController::class, 'destroy'])->name('integracoes.eventos.destroy');
     });
 
     // ==========================================
@@ -307,3 +329,6 @@ Route::post('/webhook/saque', function () {
 // Webhooks externos (sem autenticação)
 Route::post('/webhook/asaas', [\App\Http\Controllers\BasileiaChurchWebhookController::class, 'webhookAsaas']);
 Route::post('/webhook/basileia-church/sync', [\App\Http\Controllers\BasileiaChurchWebhookController::class, 'syncCliente']);
+
+// Checkout Service - Webhook (recebe eventos do serviço de Checkout independente)
+Route::post('/webhook/checkout', [\App\Http\Controllers\Integration\CheckoutWebhookController::class, 'handle'])->name('webhook.checkout');

@@ -6,6 +6,8 @@ use App\Http\Controllers\AsaasWebhookController;
 use App\Http\Controllers\VendaCobrancaController;
 use App\Http\Controllers\CobrancaController;
 use App\Http\Controllers\Api\ClienteStatusController;
+use App\Http\Controllers\Api\CheckoutSessionController;
+use App\Http\Middleware\ApiKeyAuth;
 
 // ==========================================
 // Rotas Públicas Integracoes
@@ -27,3 +29,11 @@ Route::get('/client-status/{venda_id}', [ClienteStatusController::class, 'show']
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+// ==========================================
+// API Pública para Serviços Integrados (Site, etc)
+// ==========================================
+Route::middleware(ApiKeyAuth::class)->prefix('checkout')->group(function () {
+    Route::post('/session', [CheckoutSessionController::class, 'create']);
+    Route::get('/session/{id}', [CheckoutSessionController::class, 'show']);
+});

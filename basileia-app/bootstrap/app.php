@@ -14,7 +14,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: [
             'api/asaas/webhook',
+            'api/checkout/*',
             'webhook/saque',
+            'webhook/basileia-church/*',
+            'webhook/checkout',
         ]);
         $middleware->append(\App\Http\Middleware\ClearStaleCache::class);
         
@@ -30,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin.security' => \App\Http\Middleware\Security\AdminSecurity::class,
             'role.rate.limit' => \App\Http\Middleware\Security\RateLimitByRole::class,
             'force.password.change' => \App\Http\Middleware\ForcePasswordChange::class,
+            'api.key' => \App\Http\Middleware\ApiKeyAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

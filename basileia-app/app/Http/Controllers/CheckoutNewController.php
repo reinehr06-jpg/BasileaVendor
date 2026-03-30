@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\CheckoutSession;
+use App\Models\Evento;
 use App\Models\Offer;
+use App\Services\AsaasService;
 use App\Services\Checkout\PaymentOrchestrator;
 use App\Services\Checkout\PricingService;
 use App\Services\Checkout\TrackingService;
@@ -293,6 +295,75 @@ class CheckoutNewController extends Controller
             'status' => $payment->status,
             'is_paid' => $payment->isPaid(),
             'updated_at' => $payment->updated_at,
+        ]);
+    }
+
+    /**
+     * Checkout de evento com vagas limitadas
+     * GET /co/evento/{slug}
+     */
+    public function evento(string $slug)
+    {
+        $evento = Evento::where('slug', $slug)->firstOrFail();
+
+        if (!$evento->isDisponivel()) {
+            return view('checkout-new.esgotado', ['evento' => $evento]);
+        }
+
+        return view('checkout-new.evento', ['evento' => $evento]);
+    }
+
+    /**
+     * Processar pagamento de evento
+     * POST /co/evento/{slug}/pay
+     */
+    public function eventoPay(Request $request, string $slug, AsaasService $asaas)
+    {
+        $evento = Evento::where('slug', $slug)->firstOrFail();
+
+        if (!$evento->isDisponivel()) {
+            return back()->withErrors(['error' => 'Este evento não está mais disponível.'])->withInput();
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email',
+            'document' => 'required|string|max:20',
+            'phone' => 'nullable|string|max:20',
+            'billing_type' => 'required|in:PIX,BOLETO,CREDIT_CARD',
+        ]);
+
+        $cpf = preg_replace('/\D/', '', $request->document);
+
+        $customer = $asaas->createCustomer([
+            'name' => $request->name,
+            'email' => $request->email,
+            'cpfCnpj' => $cpf,
+            'phone' => $request->phone,
+        ]);
+
+        if (!$customer || isset($customer['errors'])) {
+            return back()->withErrors(['error' => 'Erro ao processar dados. Verifique o CPF/CNPJ.'])->withInput();
+        }
+
+        $payment = $asaas->createPayment([
+            'customer' => $customer['id'],
+            'billingType' => $request->billing_type,
+            'value' => (float) $evento->valor,
+            'dueDate' => now()->addDay()->format('Y-m-d'),
+            'description' => "Evento: {$evento->titulo}",
+        ]);
+
+        if (!$payment || isset($payment['errors'])) {
+            return back()->withErrors(['error' => 'Erro ao gerar cobrança. Tente novamente.'])->withInput();
+        }
+
+        $evento->incrementarVagas();
+
+        return view('checkout-new.evento-pagamento', [
+            'evento' => $evento,
+            'payment' => $payment,
+            'billing_type' => $request->billing_type,
         ]);
     }
 }
