@@ -9,18 +9,14 @@ use App\Models\User;
 
 class CreateAdminUserSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Check if easy admin already exists
-        $email = 'admin@basileia.global';
+        $email = 'basileia.vendas@basileia.com';
         if (!User::where('email', $email)->exists()) {
             User::create([
                 'name' => 'Administrador Master',
                 'email' => $email,
-                'password' => Hash::make('admin123'),
+                'password' => Hash::make('Basileia@2026'),
                 'perfil' => 'master',
                 'status' => 'ativo',
                 'two_factor_enabled' => false,
@@ -28,9 +24,9 @@ class CreateAdminUserSeeder extends Seeder
                 'security_notifications' => true
             ]);
             
-            $this->command->info('Easy Admin user created successfully!');
+            $this->command->info('Admin user created successfully!');
         } else {
-            $this->command->info('Admin user already exists.');
+            $this->command->info('Admin user already exists - keeping current password.');
         }
     }
 }
