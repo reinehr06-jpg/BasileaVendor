@@ -254,6 +254,23 @@
 </style>
 
 <div class="settings-page">
+    @if(session('success'))
+        <div class="materio-card" style="padding: 16px; border-left: 5px solid var(--materio-success); background: #f6ffed; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 12px; color: #389e0d; font-weight: 600;">
+                <i class="fas fa-check-circle" style="font-size: 1.2rem;"></i> {{ session('success') }}
+            </div>
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="materio-card" style="padding: 16px; border-left: 5px solid var(--materio-error); background: #fff2f0; margin-bottom: 20px;">
+            <div style="color: #cf1322; font-weight: 700; margin-bottom: 8px;"><i class="fas fa-exclamation-circle"></i> Houve um problema ao salvar:</div>
+            <ul style="color: #cf1322; font-size: 0.9rem; padding-left: 20px; margin:0;">
+                @foreach($errors->all() as $error) <li>{{ $error }}</li> @endforeach
+            </ul>
+        </div>
+    @endif
+
     {{-- HUB DE CONFIGURAÇÕES (ESTILO WINDOWS) --}}
     @if(!$activeTab)
     <div id="settings-hub" class="animate-up">
@@ -966,8 +983,7 @@
                     </p>
                 </div>
             </div>
-        </div>
-    </div>
+    @endif
 </div>
 
 <!-- Modal Upload CSV -->
