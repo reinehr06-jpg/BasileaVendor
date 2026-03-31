@@ -19,6 +19,7 @@ use App\Http\Controllers\GestorEquipeController;
 use App\Http\Controllers\EquipeController;
 use App\Http\Controllers\Master\IntegracaoController;
 use App\Http\Controllers\Master\IntegracaoVendasController;
+use App\Http\Controllers\Master\AsaasClienteSyncController;
 
 use App\Http\Controllers\Master\IntegracaoEventoController;
 
@@ -226,6 +227,11 @@ Route::middleware('auth')->group(function () {
         // Integrações
         // ==========================================
         Route::get('/integracoes/basileia-vendas', [IntegracaoVendasController::class, 'index'])->name('integracoes.vendas');
+
+        // Módulo: Clientes Asaas (Importação + Comissões Março/2026)
+        Route::get('/clientes-asaas', [AsaasClienteSyncController::class, 'index'])->name('clientes-asaas.index');
+        Route::post('/clientes-asaas/sincronizar', [AsaasClienteSyncController::class, 'sincronizar'])->name('clientes-asaas.sincronizar');
+        Route::patch('/clientes-asaas/{id}/vendedor', [AsaasClienteSyncController::class, 'atribuirVendedor'])->name('clientes-asaas.vendedor');
 
 
 
