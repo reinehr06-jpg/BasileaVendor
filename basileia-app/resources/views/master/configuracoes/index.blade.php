@@ -467,250 +467,457 @@
             </div>
         </div>
 
-        <!-- 3. INTEGRAÇÕES -->
+        <!-- 3. INTEGRAÇÕES - SUB-HUB PROFISSIONAL -->
         <div id="tab-integracoes" class="tab-pane" style="display: {{ $activeTab === 'integracoes' ? 'block' : 'none' }} !important;">
-            <!-- Seção Asaas -->
-            <div class="materio-card">
-                <div class="section-header">
+
+            <style>
+                /* Sub-Hub de Integrações */
+                .integ-hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+                .integ-card {
+                    display: flex; flex-direction: column; align-items: center; justify-content: center;
+                    padding: 22px 16px; border-radius: 14px; border: 2px solid var(--materio-border);
+                    background: var(--materio-surface); cursor: pointer; transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+                    text-align: center; gap: 10px; text-decoration: none; position: relative; overflow: hidden;
+                }
+                .integ-card:hover { border-color: var(--materio-primary); transform: translateY(-4px); box-shadow: 0 8px 20px rgba(145,85,253,0.15); }
+                .integ-card.active { border-color: var(--materio-primary); background: #fbf8ff; box-shadow: 0 4px 16px rgba(145,85,253,0.2); }
+                .integ-card.active::after {
+                    content: '✓'; position: absolute; top: 8px; right: 10px;
+                    font-size: 0.7rem; background: var(--materio-primary); color: white;
+                    border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-weight: 900;
+                }
+                .integ-logo { font-size: 2rem; line-height: 1; }
+                .integ-card-title { font-size: 0.82rem; font-weight: 700; color: var(--materio-text-main); line-height: 1.3; }
+                .integ-card-desc { font-size: 0.7rem; color: var(--materio-text-muted); }
+                .integ-badge-on { display: inline-block; font-size: 0.6rem; padding: 2px 6px; border-radius: 10px; background: #dcfce7; color: #166534; font-weight: 700; }
+                .integ-badge-off { display: inline-block; font-size: 0.6rem; padding: 2px 6px; border-radius: 10px; background: #f0f0f0; color: #888; font-weight: 700; }
+
+                /* Painel de formulário */
+                .integ-panel { display: none; animation: fadeIn 0.3s ease; }
+                .integ-panel.visible { display: block; }
+                .integ-panel-header {
+                    display: flex; align-items: center; gap: 14px; margin-bottom: 24px;
+                    padding: 20px; background: linear-gradient(135deg, #f4efff 0%, #fff 100%);
+                    border-radius: 12px; border: 1px solid #e9d9ff;
+                }
+                .integ-panel-icon { font-size: 2.2rem; }
+                .integ-panel-title { font-size: 1.2rem; font-weight: 800; color: var(--materio-text-main); margin: 0; }
+                .integ-panel-sub { font-size: 0.83rem; color: var(--materio-text-muted); }
+                .back-to-integ-hub { background: none; border: none; color: var(--materio-primary); font-weight: 700; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; padding: 0; margin-bottom: 20px; }
+                .back-to-integ-hub:hover { text-decoration: underline; }
+            </style>
+
+            {{-- SUB-HUB CARDS --}}
+            <div id="integ-hub-view">
+                <p style="color: var(--materio-text-muted); font-size: 0.9rem; margin-bottom: 18px;">Selecione uma integração para configurar:</p>
+                <div class="integ-hub">
+                    {{-- Asaas --}}
+                    <div class="integ-card {{ $integracoes['asaasApiKey'] ? 'active' : '' }}" onclick="showIntegPanel('asaas')">
+                        <div class="integ-logo">💳</div>
+                        <div class="integ-card-title">Asaas Gateway</div>
+                        <div class="integ-card-desc">API, Webhook, Ambiente</div>
+                        <span class="{{ $integracoes['asaasApiKey'] ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ $integracoes['asaasApiKey'] ? 'CONECTADO' : 'INATIVO' }}
+                        </span>
+                    </div>
+                    {{-- Checkout --}}
+                    <div class="integ-card {{ $integracoes['checkoutExternalUrl'] ? 'active' : '' }}" onclick="showIntegPanel('checkout')">
+                        <div class="integ-logo">🌐</div>
+                        <div class="integ-card-title">Site & Checkout</div>
+                        <div class="integ-card-desc">URL de pagamento externo</div>
+                        <span class="{{ $integracoes['checkoutExternalUrl'] ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ $integracoes['checkoutExternalUrl'] ? 'CONFIGURADO' : 'PENDENTE' }}
+                        </span>
+                    </div>
+                    {{-- Split --}}
+                    <div class="integ-card {{ $integracoes['splitGlobalAtivo'] ? 'active' : '' }}" onclick="showIntegPanel('split')">
+                        <div class="integ-logo">💰</div>
+                        <div class="integ-card-title">Split & Repasse</div>
+                        <div class="integ-card-desc">Comissões automáticas</div>
+                        <span class="{{ $integracoes['splitGlobalAtivo'] ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ $integracoes['splitGlobalAtivo'] ? 'ATIVO' : 'INATIVO' }}
+                        </span>
+                    </div>
+                    {{-- Comunicação --}}
+                    <div class="integ-card {{ $integracoes['emailSuporte'] ? 'active' : '' }}" onclick="showIntegPanel('email')">
+                        <div class="integ-logo">📧</div>
+                        <div class="integ-card-title">Comunicação</div>
+                        <div class="integ-card-desc">Email & WhatsApp suporte</div>
+                        <span class="{{ $integracoes['emailSuporte'] ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ $integracoes['emailSuporte'] ? 'CONFIGURADO' : 'PENDENTE' }}
+                        </span>
+                    </div>
+                    {{-- Google Calendar --}}
+                    <div class="integ-card {{ $integracoes['googleCalendarAtivo'] ? 'active' : '' }}" onclick="showIntegPanel('gcal')">
+                        <div class="integ-logo">📅</div>
+                        <div class="integ-card-title">Google Calendar</div>
+                        <div class="integ-card-desc">Sincronização de eventos</div>
+                        <span class="{{ $integracoes['googleCalendarAtivo'] ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ $integracoes['googleCalendarAtivo'] ? 'ATIVO' : 'INATIVO' }}
+                        </span>
+                    </div>
+                    {{-- Google Gmail --}}
+                    <div class="integ-card {{ $integracoes['googleGmailAtivo'] ? 'active' : '' }}" onclick="showIntegPanel('gmail')">
+                        <div class="integ-logo">✉️</div>
+                        <div class="integ-card-title">Google Gmail</div>
+                        <div class="integ-card-desc">Envio de email via API</div>
+                        <span class="{{ $integracoes['googleGmailAtivo'] ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ $integracoes['googleGmailAtivo'] ? 'ATIVO' : 'INATIVO' }}
+                        </span>
+                    </div>
+                    {{-- Basileia Church --}}
+                    <div class="integ-card {{ $integracoes['churchWebhookUrl'] ? 'active' : '' }}" onclick="showIntegPanel('church')">
+                        <div class="integ-logo">⛪</div>
+                        <div class="integ-card-title">Basileia Church</div>
+                        <div class="integ-card-desc">Sincronização de membros</div>
+                        <span class="{{ $integracoes['churchWebhookUrl'] ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ $integracoes['churchWebhookUrl'] ? 'CONFIGURADO' : 'PENDENTE' }}
+                        </span>
+                    </div>
+                    {{-- Carteiras --}}
+                    <div class="integ-card" onclick="showIntegPanel('wallets')">
+                        <div class="integ-logo">👥</div>
+                        <div class="integ-card-title">Carteiras</div>
+                        <div class="integ-card-desc">Status dos vendedores</div>
+                        <span class="integ-badge-on">VER</span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- PAINEL: Asaas --}}
+            <div id="integ-panel-asaas" class="integ-panel">
+                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
+                <div class="integ-panel-header">
+                    <div class="integ-panel-icon">💳</div>
                     <div>
-                        <h4>🔑 Asaas Gateway</h4>
-                        <div class="section-subtitle">Credenciais principais para cobranças e pagamentos.</div>
+                        <div class="integ-panel-title">Asaas Gateway</div>
+                        <div class="integ-panel-sub">Configure a API Key, Webhook Token e o ambiente de cobrança.</div>
                     </div>
-                    <button type="button" class="materio-btn-outline" onclick="testarConexao()">Testar Conexão</button>
+                    <button type="button" class="materio-btn-outline" style="margin-left:auto;" onclick="testarConexao()">Testar Conexão</button>
                 </div>
-                <form action="{{ route('master.configuracoes.integracoes.update') }}" method="POST">
-                    @csrf
-                    <div class="materio-row">
-                        <div class="materio-col-6">
-                            <div class="materio-form-group">
-                                <label class="materio-label">Ambiente Asaas <span class="required">*</span></label>
-                                <select name="asaas_environment" class="materio-select" required>
-                                    <option value="sandbox" {{ $integracoes['asaasEnvironment'] === 'sandbox' ? 'selected' : '' }}>🧪 Sandbox (Testes)</option>
-                                    <option value="production" {{ $integracoes['asaasEnvironment'] === 'production' ? 'selected' : '' }}>🚀 Produção (Real)</option>
-                                </select>
+                <div class="materio-card">
+                    <form action="{{ route('master.configuracoes.integracoes.update') }}" method="POST">
+                        @csrf
+                        <div class="materio-row">
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Ambiente Asaas <span class="required">*</span></label>
+                                    <select name="asaas_environment" class="materio-select" required>
+                                        <option value="sandbox" {{ $integracoes['asaasEnvironment'] === 'sandbox' ? 'selected' : '' }}>🧪 Sandbox (Testes)</option>
+                                        <option value="production" {{ $integracoes['asaasEnvironment'] === 'production' ? 'selected' : '' }}>🚀 Produção (Real)</option>
+                                    </select>
+                                </div>
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Webhook Token</label>
+                                    <input type="password" name="asaas_webhook_token" class="materio-input" value="{{ $integracoes['asaasWebhookToken'] }}">
+                                    <span class="help-text">Token definido no painel do Asaas para segurança do webhook.</span>
+                                </div>
                             </div>
-                            <div class="materio-form-group">
-                                <label class="materio-label">Webhook Token <span class="required">*</span></label>
-                                <input type="password" name="asaas_webhook_token" class="materio-input" value="{{ $integracoes['asaasWebhookToken'] }}" required>
-                                <span class="help-text">Token definido no painel do Asaas para segurança do webhook.</span>
-                            </div>
-                        </div>
-                        <div class="materio-col-6">
-                            <div class="materio-form-group">
-                                <label class="materio-label">API Key <span class="required">*</span></label>
-                                <input type="password" name="asaas_api_key" class="materio-input" value="{{ $integracoes['asaasApiKey'] }}" required>
-                                <span class="help-text">Chave de acesso total à API do Asaas.</span>
-                            </div>
-                            <div class="materio-form-group">
-                                <label class="materio-label">URL de Callback (Opcional)</label>
-                                <input type="url" name="asaas_callback_url" class="materio-input" value="{{ $integracoes['asaasCallbackUrl'] }}" placeholder="https://seudominio.com/callback">
-                            </div>
-                            <div class="materio-form-group">
-                                <label class="materio-label" style="color: var(--materio-primary)">🔗 URL do Checkout Externo <span class="required">*</span></label>
-                                <input type="url" name="checkout_external_url" class="materio-input" value="{{ $integracoes['checkoutExternalUrl'] }}" required placeholder="https://seucheckout.com/pagar?id=" style="border-color: var(--materio-primary); background: #fbf8ff;">
-                                <span class="help-text">Endereço da página onde seus clientes finalizam o pagamento.</span>
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" class="materio-btn-primary">Atualizar Gateway</button>
-                </form>
-            </div>
-
-            <!-- Seção Split -->
-            <div class="materio-card">
-                <div class="section-header">
-                    <h4>💰 Split de Pagamentos e Regras Financeiras</h4>
-                </div>
-                <form action="{{ route('master.configuracoes.integracoes.split') }}" method="POST">
-                    @csrf
-                    <div class="materio-form-group">
-                        <label class="materio-switch">
-                            <input type="checkbox" name="asaas_split_global_ativo" value="1" class="switch-input" {{ $integracoes['splitGlobalAtivo'] ? 'checked' : '' }}>
-                            <span class="switch-slider"></span>
-                            <div>
-                                <span style="font-weight: 700; display: block;">Ativar Split Global</span>
-                                <span class="help-text">Vendedores com Wallet ID configurado receberão suas comissões automaticamente via Asaas.</span>
-                            </div>
-                        </label>
-                    </div>
-                    <div class="materio-row">
-                        <div class="materio-col-6">
-                            <div class="materio-form-group">
-                                <label class="materio-label">Juros Padrão (% ao mês)</label>
-                                <input type="number" step="0.01" name="asaas_juros_padrao" class="materio-input" value="{{ $integracoes['jurosPadrao'] }}">
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">API Key <span class="required">*</span></label>
+                                    <input type="password" name="asaas_api_key" class="materio-input" value="{{ $integracoes['asaasApiKey'] }}">
+                                    <span class="help-text">Chave de acesso total à API do Asaas.</span>
+                                </div>
+                                <div class="materio-form-group">
+                                    <label class="materio-label">URL de Callback</label>
+                                    <input type="url" name="asaas_callback_url" class="materio-input" value="{{ $integracoes['asaasCallbackUrl'] }}" placeholder="https://seudominio.com/callback">
+                                </div>
+                                {{-- CAMPO CHECKOUT OCULTO para manter ao salvar --}}
+                                <input type="hidden" name="checkout_external_url" value="{{ $integracoes['checkoutExternalUrl'] }}">
                             </div>
                         </div>
-                        <div class="materio-col-6">
-                            <div class="materio-form-group">
-                                <label class="materio-label">Multa Padrão (%)</label>
-                                <input type="number" step="0.01" name="asaas_multa_padrao" class="materio-input" value="{{ $integracoes['multaPadrao'] }}">
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" class="materio-btn-primary">Salvar Config. Financeiras</button>
-                </form>
-            </div>
-
-            <!-- Seção Email -->
-            <div class="materio-card">
-                <div class="section-header">
-                    <h4>📧 Comunicação e Suporte</h4>
-                </div>
-                <form action="{{ route('master.configuracoes.integracoes.email') }}" method="POST">
-                    @csrf
-                    <div class="materio-row">
-                        <div class="materio-col-6">
-                            <div class="materio-form-group">
-                                <label class="materio-label">Email Remetente (Sistema)</label>
-                                <input type="email" name="email_vendedor_from" class="materio-input" value="{{ $integracoes['emailVendedorFrom'] }}">
-                            </div>
-                            <div class="materio-form-group">
-                                <label class="materio-label">Email Suporte</label>
-                                <input type="email" name="email_suporte" class="materio-input" value="{{ $integracoes['emailSuporte'] }}">
-                            </div>
-                        </div>
-                        <div class="materio-col-6">
-                            <div class="materio-form-group">
-                                <label class="materio-label">Email Remetente (Clientes)</label>
-                                <input type="email" name="email_cliente_from" class="materio-input" value="{{ $integracoes['emailClienteFrom'] }}">
-                            </div>
-                            <div class="materio-form-group">
-                                <label class="materio-label">WhatsApp Suporte (Somente números)</label>
-                                <input type="text" name="whatsapp_suporte" class="materio-input" value="{{ $integracoes['whatsappSuporte'] }}" placeholder="5599999999999">
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" class="materio-btn-primary">Salvar Comunicações</button>
-                </form>
-            </div>
-
-            <!-- Seção Google -->
-            <div class="materio-row">
-                <!-- Google Calendar -->
-                <div class="materio-col-6">
-                    <div class="materio-card">
-                        <div class="section-header"><h4>📅 Google Calendar</h4></div>
-                        <form action="{{ route('master.configuracoes.integracoes.google-calendar') }}" method="POST">
-                            @csrf
-                            <div class="materio-form-group">
-                                <label class="materio-label">Client ID</label>
-                                <input type="text" name="google_calendar_client_id" class="materio-input" value="{{ $integracoes['googleCalendarClientId'] }}">
-                            </div>
-                            <div class="materio-form-group">
-                                <label class="materio-label">Client Secret</label>
-                                <input type="password" name="google_calendar_client_secret" class="materio-input" value="{{ $integracoes['googleCalendarClientSecret'] }}">
-                            </div>
-                            <div class="materio-form-group">
-                                <label class="materio-label">Redirect URI</label>
-                                <input type="url" name="google_calendar_redirect_uri" class="materio-input" value="{{ $integracoes['googleCalendarRedirectUri'] }}" placeholder="{{ url('/auth/google/callback') }}">
-                            </div>
-                            <div class="materio-form-group">
-                                <label class="materio-switch">
-                                    <input type="checkbox" name="google_calendar_ativo" value="1" class="switch-input" {{ $integracoes['googleCalendarAtivo'] ? 'checked' : '' }}>
-                                    <span class="switch-slider"></span>
-                                    <span>Ativar Calendário</span>
-                                </label>
-                            </div>
-                            <button type="submit" class="materio-btn-primary">Salvar Calendar</button>
-                        </form>
-                    </div>
-                </div>
-                <!-- Google Gmail -->
-                <div class="materio-col-6">
-                    <div class="materio-card">
-                        <div class="section-header"><h4>✉️ Google Gmail</h4></div>
-                        <form action="{{ route('master.configuracoes.integracoes.google-gmail') }}" method="POST">
-                            @csrf
-                            <div class="materio-form-group">
-                                <label class="materio-label">Client ID</label>
-                                <input type="text" name="google_gmail_client_id" class="materio-input" value="{{ $integracoes['googleGmailClientId'] }}">
-                            </div>
-                            <div class="materio-form-group">
-                                <label class="materio-label">Client Secret</label>
-                                <input type="password" name="google_gmail_client_secret" class="materio-input" value="{{ $integracoes['googleGmailClientSecret'] }}">
-                            </div>
-                            <div class="materio-form-group">
-                                <label class="materio-label">Email para Envios</label>
-                                <input type="email" name="google_gmail_email" class="materio-input" value="{{ $integracoes['googleGmailEmail'] }}" placeholder="contato@empresa.com">
-                            </div>
-                            <div class="materio-form-group">
-                                <label class="materio-switch">
-                                    <input type="checkbox" name="google_gmail_ativo" value="1" class="switch-input" {{ $integracoes['googleGmailAtivo'] ? 'checked' : '' }}>
-                                    <span class="switch-slider"></span>
-                                    <span>Ativar Gmail API</span>
-                                </label>
-                            </div>
-                            <button type="submit" class="materio-btn-primary">Salvar Gmail API</button>
-                        </form>
-                    </div>
+                        <button type="submit" class="materio-btn-primary">Salvar Configurações do Asaas</button>
+                    </form>
                 </div>
             </div>
 
-            <!-- Seção Church Sync -->
-            <div class="materio-card">
-                <div class="section-header"><h4>⛪ Basileia Church Sync</h4></div>
-                <form action="{{ route('master.configuracoes.integracoes.church') }}" method="POST">
-                    @csrf
-                    <div class="materio-row">
-                        <div class="materio-col-6">
-                            <div class="materio-form-group">
-                                <label class="materio-label">Church Webhook URL</label>
-                                <input type="url" name="basileia_church_webhook_url" class="materio-input" value="{{ $integracoes['churchWebhookUrl'] }}">
-                            </div>
-                        </div>
-                        <div class="materio-col-6">
-                            <div class="materio-form-group">
-                                <label class="materio-label">Security Token</label>
-                                <input type="password" name="basileia_church_webhook_token" class="materio-input" value="{{ $integracoes['churchWebhookToken'] }}">
-                            </div>
-                        </div>
+            {{-- PAINEL: Site & Checkout --}}
+            <div id="integ-panel-checkout" class="integ-panel">
+                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
+                <div class="integ-panel-header">
+                    <div class="integ-panel-icon">🌐</div>
+                    <div>
+                        <div class="integ-panel-title">Site & Checkout</div>
+                        <div class="integ-panel-sub">Configure a URL onde seus clientes finalizam o pagamento.</div>
                     </div>
-                    <button type="submit" class="materio-btn-primary">Atualizar Church Sync</button>
-                    
-                    <div class="materio-info-box">
-                        <h5>🔗 Endpoints disponíveis:</h5>
-                        <ul>
-                            <li><i class="fas fa-link"></i> <code>GET/POST /webhook/basileia-church/sync</code> - Sincronização de status</li>
-                            <li><i class="fas fa-link"></i> <code>POST /webhook/asaas</code> - Escuta principal do Gateway</li>
-                        </ul>
-                    </div>
-                </form>
-            </div>
-            
-            <!-- Carteiras/Sellers Table -->
-            <div class="materio-card">
-                <div class="section-header"><h4>👥 Status de Carteiras (Vendedores)</h4></div>
-                <div class="table-container">
-                    <table class="materio-table">
-                        <thead>
-                            <tr>
-                                <th>Vendedor</th>
-                                <th>Wallet ID</th>
-                                <th>Status</th>
-                                <th>Validado em</th>
-                                <th>Comissão</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($integracoes['vendedoresComSplit'] as $v)
-                            <tr>
-                                <td style="font-weight: 700;">{{ $v->user->name ?? 'N/A' }}</td>
-                                <td><code>{{ $v->asaas_wallet_id }}</code></td>
-                                <td>
-                                    <span class="badge {{ $v->wallet_status === 'validado' ? 'bg-soft-success' : 'bg-soft-warning' }}">
-                                        {{ strtoupper($v->wallet_status ?? 'Pendente') }}
-                                    </span>
-                                </td>
-                                <td>{{ $v->wallet_validado_em ? \Carbon\Carbon::parse($v->wallet_validado_em)->format('d/m/Y H:i') : 'Nunca' }}</td>
-                                <td>{{ $v->comissao_inicial }}% / {{ $v->comissao_recorrencia }}%</td>
-                            </tr>
-                            @empty
-                            <tr><td colspan="5" class="text-center py-4 text-muted">Aba de split está desativada ou nenhum vendedor configurado.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                </div>
+                <div class="materio-card">
+                    <form action="{{ route('master.configuracoes.integracoes.update') }}" method="POST">
+                        @csrf
+                        {{-- Campos ocultos para não sobrescrever os outros --}}
+                        <input type="hidden" name="asaas_api_key" value="{{ $integracoes['asaasApiKey'] }}">
+                        <input type="hidden" name="asaas_webhook_token" value="{{ $integracoes['asaasWebhookToken'] }}">
+                        <input type="hidden" name="asaas_environment" value="{{ $integracoes['asaasEnvironment'] }}">
+                        <input type="hidden" name="asaas_callback_url" value="{{ $integracoes['asaasCallbackUrl'] }}">
+
+                        <div class="materio-form-group">
+                            <label class="materio-label" style="font-size: 1rem;">🔗 URL do Checkout Externo</label>
+                            <input type="url" name="checkout_external_url" class="materio-input"
+                                   value="{{ $integracoes['checkoutExternalUrl'] }}"
+                                   placeholder="https://seucheckout.com/pagar?id="
+                                   style="font-size: 1rem; padding: 14px; border-color: var(--materio-primary);">
+                            <span class="help-text" style="font-size: 0.85rem; margin-top: 8px; display: block;">
+                                Quando um vendedor clicar em "Copiar Link" de uma venda, o sistema irá gerar o link de checkout usando esta URL base.
+                                Vendas sem checkout configurado serão direcionadas automaticamente para o checkout do Asaas.
+                            </span>
+                        </div>
+
+                        <div class="materio-info-box" style="margin-bottom: 20px;">
+                            <h5>📌 Como funciona:</h5>
+                            <ul>
+                                <li><i class="fas fa-check"></i> O link gerado para o cliente será: <code>[URL base] + ?hash=[código da venda]</code></li>
+                                <li><i class="fas fa-check"></i> Se não configurado, o sistema usa o checkout padrão do Asaas</li>
+                                <li><i class="fas fa-check"></i> Mantém rastreamento de conversão e histórico de vendas</li>
+                            </ul>
+                        </div>
+
+                        <button type="submit" class="materio-btn-primary" style="padding: 12px 32px; font-size: 1rem;">
+                            <i class="fas fa-save"></i> Salvar URL do Checkout
+                        </button>
+                    </form>
                 </div>
             </div>
+
+            {{-- PAINEL: Split --}}
+            <div id="integ-panel-split" class="integ-panel">
+                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
+                <div class="integ-panel-header">
+                    <div class="integ-panel-icon">💰</div>
+                    <div>
+                        <div class="integ-panel-title">Split & Repasse Automático</div>
+                        <div class="integ-panel-sub">Configure as regras de comissão e taxas padrões.</div>
+                    </div>
+                </div>
+                <div class="materio-card">
+                    <form action="{{ route('master.configuracoes.integracoes.split') }}" method="POST">
+                        @csrf
+                        <div class="materio-form-group">
+                            <label class="materio-switch">
+                                <input type="checkbox" name="asaas_split_global_ativo" value="1" class="switch-input" {{ $integracoes['splitGlobalAtivo'] ? 'checked' : '' }}>
+                                <span class="switch-slider"></span>
+                                <div>
+                                    <span style="font-weight: 700; display: block;">Ativar Split Global</span>
+                                    <span class="help-text">Vendedores com Wallet ID configurado receberão suas comissões automaticamente via Asaas.</span>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="materio-row">
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Juros Padrão (% ao mês)</label>
+                                    <input type="number" step="0.01" name="asaas_juros_padrao" class="materio-input" value="{{ $integracoes['jurosPadrao'] }}">
+                                </div>
+                            </div>
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Multa Padrão (%)</label>
+                                    <input type="number" step="0.01" name="asaas_multa_padrao" class="materio-input" value="{{ $integracoes['multaPadrao'] }}">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="materio-btn-primary">Salvar Configurações Financeiras</button>
+                    </form>
+                </div>
+            </div>
+
+            {{-- PAINEL: Email --}}
+            <div id="integ-panel-email" class="integ-panel">
+                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
+                <div class="integ-panel-header">
+                    <div class="integ-panel-icon">📧</div>
+                    <div>
+                        <div class="integ-panel-title">Comunicação & Suporte</div>
+                        <div class="integ-panel-sub">Configure os canais de comunicação com clientes e time.</div>
+                    </div>
+                </div>
+                <div class="materio-card">
+                    <form action="{{ route('master.configuracoes.integracoes.email') }}" method="POST">
+                        @csrf
+                        <div class="materio-row">
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Email Remetente (Sistema)</label>
+                                    <input type="email" name="email_vendedor_from" class="materio-input" value="{{ $integracoes['emailVendedorFrom'] }}">
+                                </div>
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Email Suporte</label>
+                                    <input type="email" name="email_suporte" class="materio-input" value="{{ $integracoes['emailSuporte'] }}">
+                                </div>
+                            </div>
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Email Remetente (Clientes)</label>
+                                    <input type="email" name="email_cliente_from" class="materio-input" value="{{ $integracoes['emailClienteFrom'] }}">
+                                </div>
+                                <div class="materio-form-group">
+                                    <label class="materio-label">WhatsApp Suporte (Somente números)</label>
+                                    <input type="text" name="whatsapp_suporte" class="materio-input" value="{{ $integracoes['whatsappSuporte'] }}" placeholder="5599999999999">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="materio-btn-primary">Salvar Comunicações</button>
+                    </form>
+                </div>
+            </div>
+
+            {{-- PAINEL: Google Calendar --}}
+            <div id="integ-panel-gcal" class="integ-panel">
+                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
+                <div class="integ-panel-header">
+                    <div class="integ-panel-icon">📅</div>
+                    <div>
+                        <div class="integ-panel-title">Google Calendar</div>
+                        <div class="integ-panel-sub">Sincronize eventos de vendas com o Google Calendar.</div>
+                    </div>
+                </div>
+                <div class="materio-card">
+                    <form action="{{ route('master.configuracoes.integracoes.google-calendar') }}" method="POST">
+                        @csrf
+                        <div class="materio-form-group">
+                            <label class="materio-label">Client ID</label>
+                            <input type="text" name="google_calendar_client_id" class="materio-input" value="{{ $integracoes['googleCalendarClientId'] }}">
+                        </div>
+                        <div class="materio-form-group">
+                            <label class="materio-label">Client Secret</label>
+                            <input type="password" name="google_calendar_client_secret" class="materio-input" value="{{ $integracoes['googleCalendarClientSecret'] }}">
+                        </div>
+                        <div class="materio-form-group">
+                            <label class="materio-label">Redirect URI</label>
+                            <input type="url" name="google_calendar_redirect_uri" class="materio-input" value="{{ $integracoes['googleCalendarRedirectUri'] }}" placeholder="{{ url('/auth/google/callback') }}">
+                        </div>
+                        <div class="materio-form-group">
+                            <label class="materio-switch">
+                                <input type="checkbox" name="google_calendar_ativo" value="1" class="switch-input" {{ $integracoes['googleCalendarAtivo'] ? 'checked' : '' }}>
+                                <span class="switch-slider"></span>
+                                <span>Ativar Google Calendar</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="materio-btn-primary">Salvar Google Calendar</button>
+                    </form>
+                </div>
+            </div>
+
+            {{-- PAINEL: Google Gmail --}}
+            <div id="integ-panel-gmail" class="integ-panel">
+                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
+                <div class="integ-panel-header">
+                    <div class="integ-panel-icon">✉️</div>
+                    <div>
+                        <div class="integ-panel-title">Google Gmail API</div>
+                        <div class="integ-panel-sub">Envie e-mails usando sua conta do Gmail via API.</div>
+                    </div>
+                </div>
+                <div class="materio-card">
+                    <form action="{{ route('master.configuracoes.integracoes.google-gmail') }}" method="POST">
+                        @csrf
+                        <div class="materio-form-group">
+                            <label class="materio-label">Client ID</label>
+                            <input type="text" name="google_gmail_client_id" class="materio-input" value="{{ $integracoes['googleGmailClientId'] }}">
+                        </div>
+                        <div class="materio-form-group">
+                            <label class="materio-label">Client Secret</label>
+                            <input type="password" name="google_gmail_client_secret" class="materio-input" value="{{ $integracoes['googleGmailClientSecret'] }}">
+                        </div>
+                        <div class="materio-form-group">
+                            <label class="materio-label">Email para Envios</label>
+                            <input type="email" name="google_gmail_email" class="materio-input" value="{{ $integracoes['googleGmailEmail'] }}" placeholder="contato@empresa.com">
+                        </div>
+                        <div class="materio-form-group">
+                            <label class="materio-switch">
+                                <input type="checkbox" name="google_gmail_ativo" value="1" class="switch-input" {{ $integracoes['googleGmailAtivo'] ? 'checked' : '' }}>
+                                <span class="switch-slider"></span>
+                                <span>Ativar Gmail API</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="materio-btn-primary">Salvar Gmail API</button>
+                    </form>
+                </div>
+            </div>
+
+            {{-- PAINEL: Basileia Church --}}
+            <div id="integ-panel-church" class="integ-panel">
+                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
+                <div class="integ-panel-header">
+                    <div class="integ-panel-icon">⛪</div>
+                    <div>
+                        <div class="integ-panel-title">Basileia Church Sync</div>
+                        <div class="integ-panel-sub">Sincronize membros e status com o sistema da Igreja.</div>
+                    </div>
+                </div>
+                <div class="materio-card">
+                    <form action="{{ route('master.configuracoes.integracoes.church') }}" method="POST">
+                        @csrf
+                        <div class="materio-row">
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Church Webhook URL</label>
+                                    <input type="url" name="basileia_church_webhook_url" class="materio-input" value="{{ $integracoes['churchWebhookUrl'] }}">
+                                </div>
+                            </div>
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Security Token</label>
+                                    <input type="password" name="basileia_church_webhook_token" class="materio-input" value="{{ $integracoes['churchWebhookToken'] }}">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="materio-btn-primary">Atualizar Church Sync</button>
+                        <div class="materio-info-box" style="margin-top: 16px;">
+                            <h5>🔗 Endpoints disponíveis:</h5>
+                            <ul>
+                                <li><i class="fas fa-link"></i> <code>GET/POST /webhook/basileia-church/sync</code> - Sincronização de status</li>
+                                <li><i class="fas fa-link"></i> <code>POST /webhook/asaas</code> - Escuta principal do Gateway</li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {{-- PAINEL: Carteiras --}}
+            <div id="integ-panel-wallets" class="integ-panel">
+                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
+                <div class="integ-panel-header">
+                    <div class="integ-panel-icon">👥</div>
+                    <div>
+                        <div class="integ-panel-title">Status de Carteiras</div>
+                        <div class="integ-panel-sub">Vendedores com Wallet ID e status de split configurados.</div>
+                    </div>
+                </div>
+                <div class="materio-card">
+                    <div class="table-container">
+                        <table class="materio-table">
+                            <thead>
+                                <tr>
+                                    <th>Vendedor</th>
+                                    <th>Wallet ID</th>
+                                    <th>Status</th>
+                                    <th>Validado em</th>
+                                    <th>Comissão</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($integracoes['vendedoresComSplit'] as $v)
+                                <tr>
+                                    <td style="font-weight: 700;">{{ $v->user->name ?? 'N/A' }}</td>
+                                    <td><code>{{ $v->asaas_wallet_id }}</code></td>
+                                    <td>
+                                        <span class="badge {{ $v->wallet_status === 'validado' ? 'bg-soft-success' : 'bg-soft-warning' }}">
+                                            {{ strtoupper($v->wallet_status ?? 'Pendente') }}
+                                        </span>
+                                    </td>
+                                    <td>{{ $v->wallet_validado_em ? \Carbon\Carbon::parse($v->wallet_validado_em)->format('d/m/Y H:i') : 'Nunca' }}</td>
+                                    <td>{{ $v->comissao_inicial }}% / {{ $v->comissao_recorrencia }}%</td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--materio-text-muted);">Nenhum vendedor com split configurado.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
 
@@ -946,6 +1153,38 @@
         });
     }
 
+    // ===== SUB-HUB DE INTEGRAÇÕES =====
+    function showIntegPanel(panelId) {
+        // Esconder o hub de cards
+        const hub = document.getElementById('integ-hub-view');
+        if (hub) hub.style.display = 'none';
+
+        // Esconder todos os painéis
+        document.querySelectorAll('.integ-panel').forEach(p => {
+            p.classList.remove('visible');
+            p.style.display = 'none';
+        });
+
+        // Mostrar o painel selecionado
+        const panel = document.getElementById('integ-panel-' + panelId);
+        if (panel) {
+            panel.style.display = 'block';
+            panel.classList.add('visible');
+        }
+    }
+
+    function hideIntegPanels() {
+        // Esconder todos os painéis
+        document.querySelectorAll('.integ-panel').forEach(p => {
+            p.classList.remove('visible');
+            p.style.display = 'none';
+        });
+
+        // Mostrar o hub de cards
+        const hub = document.getElementById('integ-hub-view');
+        if (hub) hub.style.display = 'block';
+    }
+
     // Inicialização
     window.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
@@ -955,5 +1194,6 @@
             configSwitchTab(tab);
         }
     });
+
 </script>
 @endsection
