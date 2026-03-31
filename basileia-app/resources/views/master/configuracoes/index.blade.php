@@ -206,25 +206,176 @@
     }
     .action-btn:hover { color: var(--materio-primary); border-color: var(--materio-primary); background: var(--materio-primary-light); }
     .action-danger:hover { color: var(--materio-error); border-color: var(--materio-error); background: #FFF0F0; }
+
+    /* HUB STYLES */
+    .hub-card {
+        display: flex;
+        flex-direction: column;
+        background: var(--materio-surface);
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid var(--materio-border);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-decoration: none !important;
+        height: 100%;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    .hub-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border-color: var(--materio-primary);
+    }
+    .hub-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 16px;
+    }
+    .hub-content h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--materio-text-main);
+        margin-bottom: 8px;
+    }
+    .hub-content p {
+        font-size: 0.85rem;
+        color: var(--materio-text-muted);
+        line-height: 1.5;
+        margin: 0;
+    }
+    #setting-search:focus {
+        border-color: var(--materio-primary) !important;
+        box-shadow: 0 0 0 4px rgba(145, 85, 253, 0.15) !important;
+    }
 </style>
 
 <div class="settings-page">
-    @if(session('success'))
-        <div class="materio-card" style="padding: 16px; border-left: 5px solid var(--materio-success); background: #f6ffed; margin-bottom: 20px;">
-            <div style="display: flex; align-items: center; gap: 12px; color: #389e0d; font-weight: 600;">
-                <i class="fas fa-check-circle" style="font-size: 1.2rem;"></i> {{ session('success') }}
+    {{-- HUB DE CONFIGURAÇÕES (ESTILO WINDOWS) --}}
+    @if(!$activeTab)
+    <div id="settings-hub" class="animate-up">
+        <div style="text-align: center; margin-bottom: 50px;">
+            <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--materio-text-main); margin-bottom: 30px;">Configurações</h1>
+            <div style="position: relative; max-width: 600px; margin: 0 auto;">
+                <i class="fas fa-search" style="position: absolute; left: 20px; top: 18px; color: var(--materio-text-muted); font-size: 1.2rem;"></i>
+                <input type="text" id="setting-search" placeholder="Localizar uma configuração..." 
+                       style="width: 100%; padding: 16px 20px 16px 55px; border-radius: 50px; border: 2px solid var(--materio-border); font-size: 1.1rem; outline: none; transition: all 0.3s; box-shadow: var(--shadow-sm);"
+                       onkeyup="filterSettings()">
             </div>
         </div>
+
+        <div class="materio-row" id="settings-grid">
+            {{-- Perfil --}}
+            <div class="materio-col-4 setting-card" data-tags="perfil conta nome email administrador">
+                <a href="?tab=geral" class="hub-card">
+                    <div class="hub-icon" style="background: #e0f2fe; color: #0369a1;"><i class="fas fa-user-gear"></i></div>
+                    <div class="hub-content">
+                        <h3>Perfil & Conta</h3>
+                        <p>Alterar seu nome, e-mail e dados de acesso.</p>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Segurança --}}
+            <div class="materio-col-4 setting-card" data-tags="segurança senha proteção acesso">
+                <a href="?tab=seguranca" class="hub-card">
+                    <div class="hub-icon" style="background: #fef2f2; color: #dc2626;"><i class="fas fa-shield-halved"></i></div>
+                    <div class="hub-content">
+                        <h3>Segurança</h3>
+                        <p>Gerenciar sua senha e proteção de conta.</p>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Integração Asaas --}}
+            <div class="materio-col-4 setting-card" data-tags="asaas integração gateway pagamento split webhook">
+                <a href="?tab=integracoes" class="hub-card">
+                    <div class="hub-icon" style="background: #f0fdf4; color: #166534;"><i class="fas fa-wallet"></i></div>
+                    <div class="hub-content">
+                        <h3>Integração Asaas</h3>
+                        <p>API Keys, Webhooks, Ambiente e Split Global.</p>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Site & Checkout --}}
+            <div class="materio-col-4 setting-card" data-tags="site checkout externo url api keys contratacao">
+                <a href="?tab=integracoes" class="hub-card">
+                    <div class="hub-icon" style="background: #fff7ed; color: #9a3412;"><i class="fas fa-globe"></i></div>
+                    <div class="hub-content">
+                        <h3>Site & Checkout</h3>
+                        <p>Configurar URL de checkout e chaves do site.</p>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Links de Eventos --}}
+            <div class="materio-col-4 setting-card" data-tags="eventos links pagamentos permanentes temporários">
+                <a href="{{ route('master.integracoes.eventos') }}" class="hub-card">
+                    <div class="hub-icon" style="background: #fdf4ff; color: #86198f;"><i class="fas fa-link"></i></div>
+                    <div class="hub-content">
+                        <h3>Links de Eventos</h3>
+                        <p>Gestão de links recorrentes e temporários.</p>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Comissões --}}
+            <div class="materio-col-4 setting-card" data-tags="comissões regras repasse porcentagem fixo">
+                <a href="?tab=comissoes" class="hub-card">
+                    <div class="hub-icon" style="background: #eff6ff; color: #1e40af;"><i class="fas fa-coins"></i></div>
+                    <div class="hub-content">
+                        <h3>Regras de Comissões</h3>
+                        <p>Valores fixos e taxas de repasse por plano.</p>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Clientes Legados --}}
+            <div class="materio-col-4 setting-card" data-tags="legados importação histórico clientes antigos csv">
+                <a href="?tab=legados" class="hub-card">
+                    <div class="hub-icon" style="background: #f5f3ff; color: #5b21b6;"><i class="fas fa-database"></i></div>
+                    <div class="hub-content">
+                        <h3>Clientes Legados</h3>
+                        <p>Importação e sincronização de base antiga.</p>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Cartões Salvos --}}
+            <div class="materio-col-4 setting-card" data-tags="cartões cartao tokens renovação automática">
+                <a href="?tab=cartoes" class="hub-card">
+                    <div class="hub-icon" style="background: #fff1f2; color: #9f1239;"><i class="fas fa-credit-card"></i></div>
+                    <div class="hub-content">
+                        <h3>Cartões Salvos</h3>
+                        <p>Visualizar clientes com métodos tokenizados.</p>
+                    </div>
+                </a>
+            </div>
+
+            {{-- Basileia Vendas Logs --}}
+            <div class="materio-col-4 setting-card" data-tags="logs vendas asaas sistema integrações status">
+                <a href="{{ route('master.integracoes.vendas') }}" class="hub-card">
+                    <div class="hub-icon" style="background: #f0f9ff; color: #075985;"><i class="fas fa-store"></i></div>
+                    <div class="hub-content">
+                        <h3>Monitor de Vendas</h3>
+                        <p>Logs de Webhook e status geral de cobranças.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
     @endif
 
-    @if($errors->any())
-        <div class="materio-card" style="padding: 16px; border-left: 5px solid var(--materio-error); background: #fff2f0; margin-bottom: 20px;">
-            <div style="color: #cf1322; font-weight: 700; margin-bottom: 8px;"><i class="fas fa-exclamation-circle"></i> Houve um problema ao salvar:</div>
-            <ul style="color: #cf1322; font-size: 0.9rem; padding-left: 20px; margin:0;">
-                @foreach($errors->all() as $error) <li>{{ $error }}</li> @endforeach
-            </ul>
-        </div>
-    @endif
+    @if($activeTab)
+    <div style="margin-bottom: 20px;">
+        <a href="{{ route('master.configuracoes') }}" class="materio-btn-outline" style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-arrow-left"></i> Voltar ao Hub
+        </a>
+    </div>
 
     <div class="materio-tabs">
         <button class="materio-tab-btn {{ $activeTab === 'geral' ? 'active' : '' }}" onclick="configSwitchTab('geral')">
@@ -846,9 +997,40 @@
 </div>
 
 <script>
-    // Navegação entre Abas (Renomeada para evitar conflito com basileia.js)
+    // HUB FILTER
+    function filterSettings() {
+        const input = document.getElementById('setting-search');
+        const filter = input.value.toLowerCase();
+        const cards = document.getElementsByClassName('setting-card');
+
+        for (let i = 0; i < cards.length; i++) {
+            const title = cards[i].querySelector('h3').innerText.toLowerCase();
+            const desc = cards[i].querySelector('p').innerText.toLowerCase();
+            const tags = cards[i].getAttribute('data-tags').toLowerCase();
+            
+            if (title.indexOf(filter) > -1 || desc.indexOf(filter) > -1 || tags.indexOf(filter) > -1) {
+                cards[i].style.display = "";
+                cards[i].style.animation = "fadeIn 0.3s ease";
+            } else {
+                cards[i].style.display = "none";
+            }
+        }
+    }
+
+    // Navegação entre Abas (Unificada para Hub e Abas)
     function configSwitchTab(tabId) {
+        if (!tabId) {
+            window.location.href = "{{ route('master.configuracoes') }}";
+            return;
+        }
+        
         try {
+            // Se estiver no Hub, redirecionar para a aba
+            if (!document.querySelector('.materio-tabs')) {
+                window.location.href = "?tab=" + tabId;
+                return;
+            }
+
             const panes = document.querySelectorAll('.tab-pane');
             const buttons = document.querySelectorAll('.materio-tab-btn');
             
@@ -858,8 +1040,6 @@
             const targetPane = document.getElementById('tab-' + tabId);
             if (targetPane) {
                 targetPane.style.display = 'block';
-                // Garante que o container pai esteja visível
-                targetPane.closest('.tab-content').style.display = 'block';
             }
 
             // Ativa o botão correspondente
@@ -878,6 +1058,7 @@
             }
         } catch (e) {
             console.error('Erro ao trocar aba:', e);
+            window.location.href = "?tab=" + tabId;
         }
     }
 
@@ -920,11 +1101,10 @@
     // Inicialização
     window.addEventListener('DOMContentLoaded', () => {
         const params = new URLSearchParams(window.location.search);
-        const tab = params.get('tab') || '{{ $activeTab }}';
+        const tab = params.get('tab');
+        
         if (tab && document.getElementById('tab-' + tab)) {
             configSwitchTab(tab);
-        } else {
-            configSwitchTab('geral');
         }
     });
 </script>

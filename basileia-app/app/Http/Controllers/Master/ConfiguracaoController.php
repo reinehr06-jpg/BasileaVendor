@@ -35,8 +35,8 @@ class ConfiguracaoController extends Controller
      */
     public function index(Request $request, $tab = null)
     {
-        // Prioritize tab from parameter, then query string, then default
-        $activeTab = $tab ?? $request->query('tab', 'geral');
+        // Prioritize tab from parameter, then query string, then null (for Hub)
+        $activeTab = $tab ?? $request->query('tab');
         
         $data = [
             'activeTab' => $activeTab,
