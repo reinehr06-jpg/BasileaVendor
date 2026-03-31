@@ -646,48 +646,85 @@
                 </div>
             </div>
 
-            {{-- PAINEL: Site & Checkout --}}
+            {{-- PAINEL: Site & Checkout (Os 6 Passos) --}}
             <div id="integ-panel-checkout" class="integ-panel">
                 <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
                 <div class="integ-panel-header">
-                    <div class="integ-panel-icon">🌐</div>
+                    <div class="integ-panel-icon" style="background:var(--primary-dark); color:white;">🛒</div>
                     <div>
-                        <div class="integ-panel-title">Site & Checkout</div>
-                        <div class="integ-panel-sub">Configure a URL onde seus clientes finalizam o pagamento.</div>
+                        <div class="integ-panel-title">Integração Externa de Checkout</div>
+                        <div class="integ-panel-sub">Siga os 6 passos abaixo para conectar qualquer Checkout ao Basileia.</div>
                     </div>
                 </div>
+                
                 <div class="materio-card">
                     <form action="{{ route('master.configuracoes.integracoes.update') }}" method="POST">
                         @csrf
-                        {{-- Campos ocultos para não sobrescrever os outros --}}
-                        <input type="hidden" name="asaas_api_key" value="{{ $integracoes['asaasApiKey'] }}">
-                        <input type="hidden" name="asaas_webhook_token" value="{{ $integracoes['asaasWebhookToken'] }}">
-                        <input type="hidden" name="asaas_environment" value="{{ $integracoes['asaasEnvironment'] }}">
-                        <input type="hidden" name="asaas_callback_url" value="{{ $integracoes['asaasCallbackUrl'] }}">
+                        {{-- Preservando as configurações antigas --}}
+                        <input type="hidden" name="asaas_api_key" value="{{ $integracoes['asaasApiKey'] ?? '' }}">
+                        <input type="hidden" name="asaas_webhook_token" value="{{ $integracoes['asaasWebhookToken'] ?? '' }}">
+                        <input type="hidden" name="asaas_environment" value="{{ $integracoes['asaasEnvironment'] ?? '' }}">
+                        <input type="hidden" name="asaas_callback_url" value="{{ $integracoes['asaasCallbackUrl'] ?? '' }}">
 
-                        <div class="materio-form-group">
-                            <label class="materio-label" style="font-size: 1rem;">🔗 URL do Checkout Externo</label>
+                        {{-- PASSO 1 & 2: Secret --}}
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:20px;">
+                            <h4 style="font-size:1rem; font-weight:800; color:var(--materio-text-main); margin-bottom:8px;"><span style="background:var(--primary); color:white; padding:2px 8px; border-radius:6px; font-size:0.8rem; margin-right:6px;">Passos 1 e 2</span> Webhook Secret</h4>
+                            <p style="font-size:0.85rem; color:var(--materio-text-muted); margin-bottom:12px;">Esta chave protege seu sistema para que apenas o seu Checkout possa enviar pagamentos pagos para cá.</p>
+                            
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="webhook_secret" name="checkout_webhook_secret" class="materio-input" 
+                                       value="{{ \App\Models\Configuracao::get('checkout_webhook_secret') }}" 
+                                       placeholder="Clique em Gerar para criar um secret..." readonly style="background:#f1f5f9; font-family:monospace; font-weight:700;">
+                                <button type="button" class="materio-btn-secondary" onclick="gerarSecretCheckout()" title="Gerar ou Substituir Chave">
+                                    <i class="fas fa-key"></i> Gerar
+                                </button>
+                                <button type="button" class="materio-btn-primary" onclick="copiarTexto('webhook_secret')" title="Copiar Chave">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <p style="font-size:0.75rem; color:#dc2626; margin-top:8px; font-weight:600;"><i class="fas fa-info-circle"></i> Após gerar, clique no botão Copiar e cole no seu sistema de Checkout (geralmente em Configurações > Sistemas).</p>
+                        </div>
+
+                        {{-- PASSO 3 & 4: Webhook URL --}}
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:20px;">
+                            <h4 style="font-size:1rem; font-weight:800; color:var(--materio-text-main); margin-bottom:8px;"><span style="background:var(--primary); color:white; padding:2px 8px; border-radius:6px; font-size:0.8rem; margin-right:6px;">Passos 3 e 4</span> Endpoint do Webhook</h4>
+                            <p style="font-size:0.85rem; color:var(--materio-text-muted); margin-bottom:12px;">Para onde o seu Checkout deve enviar o sinal de "PAGO" ou "RECUSADO"?</p>
+                            
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="webhook_url" class="materio-input" 
+                                       value="{{ url('/api/webhook/checkout') }}" 
+                                       readonly style="background:#f1f5f9; font-family:monospace; color:#0369a1; font-weight:700;">
+                                <button type="button" class="materio-btn-primary" onclick="copiarTexto('webhook_url')" title="Copiar Endpoint">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <p style="font-size:0.75rem; color:#dc2626; margin-top:8px; font-weight:600;"><i class="fas fa-info-circle"></i> Cole esta URL no cadastro de webhook do seu Checkout.</p>
+                        </div>
+
+                        {{-- PASSO 5: URL do Checkout --}}
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:20px;">
+                            <h4 style="font-size:1rem; font-weight:800; color:var(--materio-text-main); margin-bottom:8px;"><span style="background:var(--primary); color:white; padding:2px 8px; border-radius:6px; font-size:0.8rem; margin-right:6px;">Passo 5</span> URL Base do Checkout</h4>
+                            <p style="font-size:0.85rem; color:var(--materio-text-muted); margin-bottom:12px;">Para onde o Basileia deve redirecionar o cliente na hora da compra? (Ex: `https://pay.seucheckout.com/`)</p>
+                            
                             <input type="url" name="checkout_external_url" class="materio-input"
-                                   value="{{ $integracoes['checkoutExternalUrl'] }}"
-                                   placeholder="https://seucheckout.com/pagar?id="
+                                   value="{{ $integracoes['checkoutExternalUrl'] ?? '' }}"
+                                   placeholder="Ex: https://checkout.basileia-vendas.com/"
                                    style="font-size: 1rem; padding: 14px; border-color: var(--materio-primary);">
-                            <span class="help-text" style="font-size: 0.85rem; margin-top: 8px; display: block;">
-                                Quando um vendedor clicar em "Copiar Link" de uma venda, o sistema irá gerar o link de checkout usando esta URL base.
-                                Vendas sem checkout configurado serão direcionadas automaticamente para o checkout do Asaas.
-                            </span>
+                        </div>
+                        
+                        {{-- PASSO 6: Testar e Entender --}}
+                        <div class="materio-info-box" style="margin-bottom: 20px; border-color:#0284c7; background:#f0f9ff;">
+                            <h5 style="color:#0369a1;"><span style="background:#0284c7; color:white; padding:2px 8px; border-radius:6px; font-size:0.8rem; margin-right:6px;">Passo 6</span> Como testar a automação:</h5>
+                            <p style="font-size:0.8rem; color:var(--materio-text-main); margin-top:6px; line-height:1.6;">
+                                1. Crie uma <b>Venda</b> no Basileia (O link de checkout será gerado instantaneamente).<br>
+                                2. Copie e abra o link gerado (Sua tela de checkout deve abrir montada).<br>
+                                3. Faça um pagamento teste (PIX ou Boleto).<br>
+                                4. Aguarde e veja se essa Venda muda para "PAGO" no seu painel.
+                            </p>
                         </div>
 
-                        <div class="materio-info-box" style="margin-bottom: 20px;">
-                            <h5>📌 Como funciona:</h5>
-                            <ul>
-                                <li><i class="fas fa-check"></i> O link gerado para o cliente será: <code>[URL base] + ?hash=[código da venda]</code></li>
-                                <li><i class="fas fa-check"></i> Se não configurado, o sistema usa o checkout padrão do Asaas</li>
-                                <li><i class="fas fa-check"></i> Mantém rastreamento de conversão e histórico de vendas</li>
-                            </ul>
-                        </div>
-
-                        <button type="submit" class="materio-btn-primary" style="padding: 12px 32px; font-size: 1rem;">
-                            <i class="fas fa-save"></i> Salvar URL do Checkout
+                        <button type="submit" class="materio-btn-primary" style="width:100%; padding: 14px 32px; font-size: 1.1rem; font-weight:800;">
+                            <i class="fas fa-save"></i> Salvar Integração de Checkout
                         </button>
                     </form>
                 </div>
@@ -1208,6 +1245,34 @@
             configSwitchTab(tab);
         }
     });
+
+    // ===== FUNÇÕES DO CHECKOUT AUTOMÁTICO =====
+    function gerarSecretCheckout() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_';
+        let secret = 'whsec_';
+        for(let i = 0; i < 32; i++) {
+            secret += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById('webhook_secret').value = secret;
+    }
+
+    function copiarTexto(elementId) {
+        const inp = document.getElementById(elementId);
+        inp.select();
+        inp.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(inp.value);
+        
+        // feedback visual rápido
+        const originalBg = inp.style.background;
+        inp.style.background = '#dcfce7'; // green light
+        setTimeout(() => { inp.style.background = originalBg; }, 600);
+        // Toast style alert
+        const btn = inp.nextElementSibling;
+        const origIcon = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+        btn.style.width = '120px';
+        setTimeout(() => { btn.innerHTML = origIcon; btn.style.width = ''; }, 2000);
+    }
 
 </script>
 @endsection

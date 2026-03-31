@@ -325,20 +325,9 @@ class VendaController extends Controller
                     ->with('success', $mensagemSucesso);
             }
 
-            // 9.2 — Criar transação no Checkout Externo Desacoplado
-            $checkoutTransactionUuid = null;
-            try {
-                $checkoutService = new \App\Services\ExternalCheckoutService();
-                $checkoutTransactionUuid = $checkoutService->createTransactionForVenda($venda, $cliente);
-                
-                if ($checkoutTransactionUuid) {
-                    Log::info('Checkout Externo: Transação criada com sucesso', ['venda_id' => $venda->id, 'uuid' => $checkoutTransactionUuid]);
-                } else {
-                    Log::warning('Checkout Externo: Erro ao criar transação ou API não configurada', ['venda_id' => $venda->id]);
-                }
-            } catch (\Exception $e) {
-                Log::warning('Checkout Externo: Falha ao conectar', ['venda_id' => $venda->id, 'error' => $e->getMessage()]);
-            }
+            // 9.2 — (Removido: Geração de Link de Checkout Externo via API prematura movido para o Passo 9.4)
+            
+
 
             // 9.3 — Integrar com Asaas (apenas se não requer aprovação)
             $asaasId = null;
@@ -535,6 +524,32 @@ class VendaController extends Controller
                 'linha_digitavel' => $linhaDigitavel,
                 'nota_fiscal_status' => 'pendente',
             ]);
+
+            // 9.4 — Gerar Link de Checkout Externo Próprio (Passo 6)
+            $checkoutBaseUrl = \App\Models\Setting::get('checkout_external_url', '');
+            if (!empty($checkoutBaseUrl) && $paymentIdSalvar) {
+                // Prepara os parâmetros para encodar
+                $cleanCpf = preg_replace('/[^0-9]/', '', $cliente->documento ?? '');
+                $cleanCep = preg_replace('/[^0-9]/', '', $cliente->cep ?? '');
+
+                $params = http_build_query([
+                    'asaas_payment_id' => $paymentIdSalvar,
+                    'cpf_cnpj' => $cleanCpf,
+                    'cep' => $cleanCep,
+                    'endereco' => $cliente->endereco ?? '',
+                    'numero' => $cliente->numero ?? '',
+                    'complemento' => $cliente->complemento ?? '',
+                    'bairro' => $cliente->bairro ?? '',
+                    'cidade' => $cliente->cidade ?? '',
+                    'estado' => $cliente->estado ?? '',
+                ]);
+
+                $separator = str_contains($checkoutBaseUrl, '?') ? '&' : '?';
+                $linkCheckoutNativo = rtrim($checkoutBaseUrl, '/') . $separator . $params;
+
+                $venda->update(['checkout_payment_link' => $linkCheckoutNativo]);
+                Log::info('Link de Checkout NATIVO gerado e salvo', ['venda_id' => $venda->id, 'link' => $linkCheckoutNativo]);
+            }
 
             DB::commit();
 

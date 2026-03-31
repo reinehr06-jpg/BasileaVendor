@@ -116,6 +116,7 @@ class IntegracaoController extends Controller
         Setting::set('asaas_environment', $request->input('asaas_environment'));
         Setting::set('asaas_callback_url', $request->input('asaas_callback_url'));
         Setting::set('checkout_external_url', $request->input('checkout_external_url'));
+        Setting::set('checkout_webhook_secret', $request->input('checkout_webhook_secret'));
 
         // Forçar limpeza de todo cache de configurações para garantir atualização instantânea
         Setting::clearAllCache();
