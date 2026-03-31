@@ -123,9 +123,24 @@
                 <select name="vendedor_id" style="padding:8px 12px; border:1px solid var(--materio-border); border-radius:8px; font-size:0.82rem;">
                     <option value="">Todos</option>
                     <option value="sem_vendedor" {{ request('vendedor_id') === 'sem_vendedor' ? 'selected' : '' }}>— Sem vendedor —</option>
-                    @foreach($vendedores as $v)
-                        <option value="{{ $v->id }}" {{ request('vendedor_id') == $v->id ? 'selected' : '' }}>{{ $v->user->name ?? 'N/A' }}</option>
-                    @endforeach
+                    @php
+                        $listaG = $vendedores->where('is_gestor', true);
+                        $listaV = $vendedores->where('is_gestor', false);
+                    @endphp
+                    @if($listaG->count() > 0)
+                    <optgroup label="Gestores">
+                        @foreach($listaG as $v)
+                            <option value="{{ $v->id }}" {{ request('vendedor_id') == $v->id ? 'selected' : '' }}>{{ $v->user->name ?? 'N/A' }}</option>
+                        @endforeach
+                    </optgroup>
+                    @endif
+                    @if($listaV->count() > 0)
+                    <optgroup label="Vendedores">
+                        @foreach($listaV as $v)
+                            <option value="{{ $v->id }}" {{ request('vendedor_id') == $v->id ? 'selected' : '' }}>{{ $v->user->name ?? 'N/A' }}</option>
+                        @endforeach
+                    </optgroup>
+                    @endif
                 </select>
             </div>
             <div>
@@ -330,11 +345,20 @@
                                 onchange="atribuirVendedor(this)"
                                 style="width:100%; padding:6px 10px; border:1px solid var(--materio-border); border-radius:8px; font-size:0.78rem; background:white;">
                                 <option value="">— Atribuir vendedor —</option>
-                                @foreach($vendedores as $v)
-                                <option value="{{ $v->id }}" {{ $c->vendedor_id == $v->id ? 'selected' : '' }}>
-                                    {{ $v->user->name ?? 'N/A' }}
-                                </option>
-                                @endforeach
+                                @if($listaG->count() > 0)
+                                <optgroup label="Gestores">
+                                    @foreach($listaG as $v)
+                                    <option value="{{ $v->id }}" {{ $c->vendedor_id == $v->id ? 'selected' : '' }}>{{ $v->user->name ?? 'N/A' }}</option>
+                                    @endforeach
+                                </optgroup>
+                                @endif
+                                @if($listaV->count() > 0)
+                                <optgroup label="Vendedores">
+                                    @foreach($listaV as $v)
+                                    <option value="{{ $v->id }}" {{ $c->vendedor_id == $v->id ? 'selected' : '' }}>{{ $v->user->name ?? 'N/A' }}</option>
+                                    @endforeach
+                                </optgroup>
+                                @endif
                             </select>
                             @if($c->comissao_tipo === 'inicial_antecipada' && !$c->vendedor_id)
                             <div style="font-size:0.6rem; color:#dc2626; margin-top:3px;">⚠️ Parcelado — atribua o vendedor para antecipar comissão</div>
