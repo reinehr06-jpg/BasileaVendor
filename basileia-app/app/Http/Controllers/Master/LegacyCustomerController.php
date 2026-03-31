@@ -7,6 +7,7 @@ use App\Jobs\ImportLegacyCustomerJob;
 use App\Jobs\PullAllAsaasCustomersJob;
 use App\Models\LegacyCommission;
 use App\Models\LegacyCustomerImport;
+use App\Models\LegacyCustomerPayment;
 use App\Models\Plano;
 use App\Models\Vendedor;
 use App\Services\LegacyCommissionService;
