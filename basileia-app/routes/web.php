@@ -249,6 +249,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/integracoes/basileia-vendas', [IntegracaoVendasController::class, 'index'])->name('integracoes.vendas');
 
         Route::get('/integracoes/site', [IntegracaoSiteController::class, 'index'])->name('integracoes.site');
+        Route::post('/integracoes/site/settings', [IntegracaoSiteController::class, 'updateSettings'])->name('integracoes.site.settings.store');
         Route::post('/integracoes/site/keys', [IntegracaoSiteController::class, 'storeKey'])->name('integracoes.site.keys.store');
         Route::patch('/integracoes/site/keys/{apiKey}', [IntegracaoSiteController::class, 'toggleKey'])->name('integracoes.site.keys.toggle');
         Route::delete('/integracoes/site/keys/{apiKey}', [IntegracaoSiteController::class, 'destroyKey'])->name('integracoes.site.keys.destroy');

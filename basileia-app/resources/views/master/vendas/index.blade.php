@@ -125,26 +125,28 @@
                     @endphp
                     @if(!in_array(strtoupper($venda->getStatusEfetivo()), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']))
                         <div class="d-flex flex-column gap-1">
-                            @if($formaUpper === 'BOLETO' || empty($formaUpper))
-                                <button onclick="copyCheckoutLink({{ $venda->id }}, 'boleto')" class="action-btn-sm action-btn-boleto" title="Gerar Link Boleto">
-                                    <i class="fas fa-barcode"></i> Boleto
-                                </button>
-                            @endif
+                            <div style="display: flex; gap: 4px;">
+                                @if($formaUpper === 'BOLETO' || empty($formaUpper))
+                                    <button onclick="openCheckoutLink({{ $venda->id }}, 'boleto')" class="action-btn-sm action-btn-boleto" style="flex: 1;" title="Abrir Checkout Boleto">
+                                        <i class="fas fa-barcode"></i> Boleto
+                                    </button>
+                                @endif
 
-                            @if($formaUpper === 'PIX' || empty($formaUpper))
-                                <button onclick="copyCheckoutLink({{ $venda->id }}, 'pix')" class="action-btn-sm" style="background: #008080; color: white;" title="Gerar Link PIX">
-                                    <i class="fas fa-qrcode"></i> Pix
-                                </button>
-                            @endif
+                                @if($formaUpper === 'PIX' || empty($formaUpper))
+                                    <button onclick="openCheckoutLink({{ $venda->id }}, 'pix')" class="action-btn-sm" style="background: #008080; color: white; flex: 1;" title="Abrir Checkout PIX">
+                                        <i class="fas fa-qrcode"></i> Pix
+                                    </button>
+                                @endif
 
-                            @if($formaUpper === 'CREDIT_CARD' || empty($formaUpper))
-                                <button onclick="copyCheckoutLink({{ $venda->id }}, 'credit_card')" class="action-btn-sm" style="background: var(--primary); color: white;" title="Gerar Link Cartão">
-                                    <i class="fas fa-credit-card"></i> Cartão
-                                </button>
-                            @endif
+                                @if($formaUpper === 'CREDIT_CARD' || empty($formaUpper))
+                                    <button onclick="openCheckoutLink({{ $venda->id }}, 'credit_card')" class="action-btn-sm" style="background: var(--primary); color: white; flex: 1;" title="Abrir Checkout Cartão">
+                                        <i class="fas fa-credit-card"></i> Cartão
+                                    </button>
+                                @endif
+                            </div>
 
                             <button onclick="copyCheckoutLink({{ $venda->id }})" class="action-btn-sm" style="background: var(--success); color: white;" title="Copiar Link de Checkout">
-                                <i class="fas fa-copy"></i> Copiar
+                                <i class="fas fa-copy"></i> Copiar Link
                             </button>
                         </div>
                     @else
@@ -276,6 +278,23 @@ async function copyCheckoutLink(vendaId, method = null) {
     } catch (error) {
         console.error('Erro:', error);
         alert('❌ Erro ao copiar link. Tente novamente.');
+    }
+}
+
+async function openCheckoutLink(vendaId, method = null) {
+    try {
+        const urlParams = method ? `?method=${method}` : '';
+        const response = await fetch(`/master/vendas/${vendaId}/checkout-link${urlParams}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            window.open(data.url, '_blank');
+        } else {
+            alert('❌ ' + (data.error || 'Erro ao gerar link'));
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('❌ Erro ao abrir checkout.');
     }
 }
 </script>

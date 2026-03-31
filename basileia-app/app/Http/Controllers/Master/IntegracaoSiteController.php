@@ -23,7 +23,20 @@ class IntegracaoSiteController extends Controller
             ->limit(20)
             ->get();
 
-        return view('master.integracoes.site', compact('apiKeys', 'webhooks', 'recentLogs'));
+        $checkoutUrl = \App\Models\Setting::get('checkout_external_url', '');
+
+        return view('master.integracoes.site', compact('apiKeys', 'webhooks', 'recentLogs', 'checkoutUrl'));
+    }
+
+    public function updateSettings(Request $request)
+    {
+        $request->validate([
+            'checkout_external_url' => 'nullable|url|max:500',
+        ]);
+
+        \App\Models\Setting::set('checkout_external_url', $request->checkout_external_url);
+
+        return back()->with('success', 'Configurações de integração atualizadas com sucesso');
     }
 
     public function storeKey(Request $request)

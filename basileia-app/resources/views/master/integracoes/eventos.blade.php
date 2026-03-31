@@ -124,11 +124,14 @@
                         @endif
                     </td>
                     <td>
-                        <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
                             <button type="button" class="btn btn-icon btn-outline" onclick="copyToClipboard('{{ $evento->checkout_url }}', this)" title="Copiar Link">
                                 <i class="fas fa-copy"></i>
                             </button>
-                            <a href="{{ $evento->checkout_url }}" target="_blank" class="text-primary font-weight-bold" style="font-size: 0.8rem;">Ver Checkout <i class="fas fa-external-link-alt ml-1"></i></a>
+                            <a href="{{ $evento->checkout_url }}" target="_blank" class="btn btn-icon btn-outline" title="Visualizar Checkout">
+                                <i class="fas fa-eye text-primary"></i>
+                            </a>
+                            <a href="{{ $evento->checkout_url }}" target="_blank" class="text-primary font-weight-bold" style="font-size: 0.8rem; text-decoration: none;">Ver Checkout <i class="fas fa-external-link-alt ml-1"></i></a>
                         </div>
                     </td>
                     <td style="text-align: right; white-space: nowrap;">

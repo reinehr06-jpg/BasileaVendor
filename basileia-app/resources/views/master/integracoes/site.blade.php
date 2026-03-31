@@ -3,6 +3,26 @@
 
 @section('content')
 <div class="integracoes-page">
+    <div class="card animate-up" style="margin-bottom:24px; border-left: 4px solid var(--primary);">
+        <div class="card-header" style="padding:20px; border-bottom:1px solid var(--border-light);">
+            <h2 style="font-size:1.1rem; font-weight:700;"><i class="fas fa-cog text-primary mr-2"></i>Configuração de Fluxo</h2>
+            <p style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">Defina a URL base para onde os clientes serão direcionados para concluir o pagamento</p>
+        </div>
+        <div style="padding:20px;">
+            <form action="{{ route('master.integracoes.site.settings.store') }}" method="POST">
+                @csrf
+                <div class="form-group mb-0" style="display: flex; gap: 15px; align-items: flex-end;">
+                    <div style="flex: 1;">
+                        <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:4px;">URL Externa de Checkout (Asaas/Site)</label>
+                        <input type="url" name="checkout_external_url" value="{{ $checkoutUrl }}" class="form-control" placeholder="https://seu-checkout.com/pagar" style="width: 100%;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">Se preenchido, os links de vendas manuais redirecionarão para esta URL com os parâmetros do Asaas.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="height: 42px;"><i class="fas fa-save mr-2"></i>Salvar Configuração</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="card" style="margin-bottom:24px;">
         <div class="card-header" style="padding:20px; border-bottom:1px solid var(--border-light);">
             <h2 style="font-size:1.1rem; font-weight:700;">API Keys</h2>
