@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Master;
 use App\Http\Controllers\Controller;
 use App\Services\AsaasService;
 use App\Models\Vendedor;
-use App\Models\Setting;
+use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +13,13 @@ use Carbon\Carbon;
 
 class AsaasClienteSyncController extends Controller
 {
+    // Status de pagamento que indicam pagamento confirmado
+    const PAGAMENTOS_CONFIRMADOS = ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'];
+    // Status que indicam pagamento pendente/em aberto
+    const PAGAMENTOS_PENDENTES = ['PENDING', 'OVERDUE', 'AWAITING_RISK_ANALYSIS'];
+    // Mês de referência para comissões
+    const MES_REFERENCIA = '2026-03';
+
     protected AsaasService $asaas;
 
     public function __construct()
@@ -20,340 +27,372 @@ class AsaasClienteSyncController extends Controller
         $this->asaas = new AsaasService();
     }
 
-    /**
-     * Lista todos os clientes importados do Asaas com filtros
-     */
+    // ──────────────────────────────────────────────────────────────
+    // LISTAGEM PRINCIPAL COM ABAS
+    // ──────────────────────────────────────────────────────────────
+
     public function index(Request $request)
     {
         $vendedores = Vendedor::where('status', 'ativo')->with('user')->get();
+        $aba        = $request->get('aba', 'todos');
 
-        $query = DB::table('legacy_customer_imports as lci')
+        $base = DB::table('legacy_customer_imports as lci')
             ->leftJoin('vendedores as v', 'lci.vendedor_id', '=', 'v.id')
             ->leftJoin('users as u', 'v.usuario_id', '=', 'u.id')
-            ->select(
-                'lci.*',
-                'u.name as vendedor_nome'
-            )
-            ->orderBy('lci.nome');
+            ->select('lci.*', 'u.name as vendedor_nome');
 
-        // Filtros
-        if ($request->filled('vendedor_id')) {
-            if ($request->vendedor_id === 'sem_vendedor') {
-                $query->whereNull('lci.vendedor_id');
-            } else {
-                $query->where('lci.vendedor_id', $request->vendedor_id);
-            }
-        }
+        // Filtros de aba
+        $base = match($aba) {
+            'ativos'      => $base->where('lci.diagnostico_status', 'ATIVO'),
+            'churn'       => $base->where('lci.diagnostico_status', 'CHURN'),
+            'cancelados'  => $base->where('lci.diagnostico_status', 'CANCELADO'),
+            'sem_vendedor'=> $base->whereNull('lci.vendedor_id'),
+            default       => $base, // todos
+        };
 
-        if ($request->filled('status')) {
-            $query->where('lci.customer_status', $request->status);
-        }
-
-        if ($request->filled('tipo_comissao')) {
-            $query->where('lci.comissao_tipo', $request->tipo_comissao);
-        }
-
-        if ($request->filled('tipo_cobranca')) {
-            $query->where('lci.tipo_cobranca', $request->tipo_cobranca);
-        }
-
+        // Filtros adicionais
         if ($request->filled('search')) {
-            $search = '%' . $request->search . '%';
-            $query->where(function($q) use ($search) {
-                $q->where('lci.nome', 'like', $search)
-                  ->orWhere('lci.documento', 'like', $search)
-                  ->orWhere('lci.email', 'like', $search);
-            });
+            $s = '%' . $request->search . '%';
+            $base->where(fn($q) => $q
+                ->where('lci.nome', 'like', $s)
+                ->orWhere('lci.documento', 'like', $s)
+                ->orWhere('lci.email', 'like', $s)
+            );
+        }
+        if ($request->filled('vendedor_id')) {
+            $request->vendedor_id === 'sem_vendedor'
+                ? $base->whereNull('lci.vendedor_id')
+                : $base->where('lci.vendedor_id', $request->vendedor_id);
+        }
+        if ($request->filled('tipo_cobranca')) {
+            $base->where('lci.tipo_cobranca', $request->tipo_cobranca);
         }
 
-        $clientes = $query->paginate(50)->withQueryString();
+        $clientes = $base->orderBy('lci.nome')->paginate(50)->withQueryString();
 
-        // Totais
-        $totais = DB::table('legacy_customer_imports')
-            ->selectRaw('
-                COUNT(*) as total,
-                COUNT(CASE WHEN vendedor_id IS NOT NULL THEN 1 END) as com_vendedor,
-                COUNT(CASE WHEN vendedor_id IS NULL THEN 1 END) as sem_vendedor,
-                SUM(comissao_vendedor_calculada) as total_comissao_vendedor,
-                SUM(comissao_gestor_calculada) as total_comissao_gestor,
-                COUNT(CASE WHEN customer_status = "ACTIVE" THEN 1 END) as ativos,
-                COUNT(CASE WHEN customer_status = "OVERDUE" THEN 1 END) as vencidos,
-                COUNT(CASE WHEN tipo_cobranca = "installment" THEN 1 END) as parcelados
-            ')
-            ->first();
+        // KPIs
+        $totais = DB::table('legacy_customer_imports')->selectRaw('
+            COUNT(*)                                                          as total,
+            COUNT(CASE WHEN diagnostico_status = "ATIVO"     THEN 1 END)     as ativos,
+            COUNT(CASE WHEN diagnostico_status = "CHURN"     THEN 1 END)     as churn,
+            COUNT(CASE WHEN diagnostico_status = "CANCELADO" THEN 1 END)     as cancelados,
+            COUNT(CASE WHEN vendedor_id IS NULL               THEN 1 END)     as sem_vendedor,
+            COUNT(CASE WHEN tipo_cobranca = "installment"    THEN 1 END)     as parcelados,
+            SUM(comissao_vendedor_calculada)                                  as total_comissao_vendedor,
+            SUM(comissao_gestor_calculada)                                    as total_comissao_gestor
+        ')->first();
 
-        // Identificar duplicatas (mesmo documento aparece mais de uma vez)
+        // Duplicatas por CPF
         $dupCpfs = DB::table('legacy_customer_imports')
             ->select('documento')
-            ->whereNotNull('documento')
-            ->where('documento', '!=', '')
-            ->groupBy('documento')
-            ->havingRaw('COUNT(*) > 1')
-            ->pluck('documento')
-            ->toArray();
+            ->whereNotNull('documento')->where('documento', '!=', '')
+            ->groupBy('documento')->havingRaw('COUNT(*) > 1')
+            ->pluck('documento')->toArray();
 
-        $ultimaSincronizacao = DB::table('legacy_customer_imports')
-            ->max('asaas_synced_at');
+        $ultimaSincronizacao = DB::table('legacy_customer_imports')->max('asaas_synced_at');
 
         return view('master.clientes_asaas.index', compact(
-            'clientes', 'vendedores', 'totais', 'dupCpfs', 'ultimaSincronizacao'
+            'clientes', 'vendedores', 'totais', 'dupCpfs', 'ultimaSincronizacao', 'aba'
         ));
     }
 
-    /**
-     * Sincroniza clientes do Asaas (paginado, inclui duplicatas)
-     */
+    // ──────────────────────────────────────────────────────────────
+    // SINCRONIZAÇÃO — PAGINADA COM PROGRESS VIA SSE
+    // ──────────────────────────────────────────────────────────────
+
     public function sincronizar(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        // Trava de execução: max 10 min
+        set_time_limit(600);
+        ini_set('max_execution_time', 600);
+
+        $offset    = 0;
+        $limit     = 100;
+        $totalSinc = 0;
+        $erros     = 0;
 
         try {
-            $offset = 0;
-            $limit = 100;
-            $totalSinc = 0;
-            $medMes = '2026-03'; // Mês de referência fixo para este ciclo
-
             do {
-                $response = $this->asaas->requestAsaas('GET', '/customers', [
+                $response  = $this->asaas->requestAsaas('GET', '/customers', [
                     'limit'  => $limit,
                     'offset' => $offset,
                 ]);
-
                 $customers = $response['data'] ?? [];
                 if (empty($customers)) break;
 
                 foreach ($customers as $customer) {
-                    $this->processarCliente($customer, $medMes);
-                    $totalSinc++;
+                    try {
+                        $this->processarCliente($customer);
+                        $totalSinc++;
+                    } catch (\Exception $e) {
+                        $erros++;
+                        Log::warning("AsaasSync: falha no cliente {$customer['id']}", ['error' => $e->getMessage()]);
+                    }
+                    // Delay para não saturar a API do Asaas (~3 req/cliente)
+                    usleep(300_000); // 300ms
                 }
 
-                $offset += $limit;
-                $hasMore = $response['hasMore'] ?? false;
+                $offset  += $limit;
+                $hasMore  = $response['hasMore'] ?? false;
 
             } while ($hasMore);
 
             return response()->json([
                 'success' => true,
-                'message' => "✅ Sincronizado com sucesso! {$totalSinc} clientes importados/atualizados.",
+                'message' => "✅ Sincronizado! {$totalSinc} clientes processados." . ($erros > 0 ? " ({$erros} com erro)" : ''),
                 'total'   => $totalSinc,
+                'erros'   => $erros,
             ]);
 
         } catch (\Exception $e) {
-            Log::error('AsaasSync: erro na sincronização', ['error' => $e->getMessage()]);
+            Log::error('AsaasSync: erro geral', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'message' => '❌ Erro na sincronização: ' . $e->getMessage(),
+                'message' => '❌ Erro: ' . $e->getMessage(),
             ], 500);
         }
     }
 
-    /**
-     * Processa cada cliente do Asaas e salva no banco (incluindo duplicatas como linhas separadas)
-     */
-    private function processarCliente(array $customer, string $mesMes): void
+    // ──────────────────────────────────────────────────────────────
+    // PROCESSAMENTO DE CADA CLIENTE
+    // ──────────────────────────────────────────────────────────────
+
+    private function processarCliente(array $customer): void
     {
-        $asaasId = $customer['id'];
-        $now = now();
+        $now      = now();
+        $asaasId  = $customer['id'];
 
-        // Buscar assinaturas do cliente
-        $subscriptions = $this->getClienteSubscriptions($asaasId);
-
-        // Buscar cobranças avulsas (não vinculadas a assinatura)
+        // 1. Buscar TODOS os pagamentos do cliente
         $allPayments = $this->getClientePayments($asaasId);
 
-        // Se tem assinaturas, processar cada uma como uma entrada separada
+        // 2. Buscar assinaturas
+        $subscriptions = $this->getClienteSubscriptions($asaasId);
+
+        // 3. Analisar histórico de pagamentos
+        $confirmados = array_filter($allPayments, fn($p) =>
+            in_array($p['status'] ?? '', self::PAGAMENTOS_CONFIRMADOS)
+        );
+        $pendentes = array_filter($allPayments, fn($p) =>
+            in_array($p['status'] ?? '', self::PAGAMENTOS_PENDENTES)
+        );
+
+        $temConfirmado = !empty($confirmados);
+        $temPendente   = !empty($pendentes);
+
+        // 4. Determinar diagnóstico de status
+        $subscriptionCancelada = !empty($subscriptions) && collect($subscriptions)->every(fn($s) =>
+            in_array(strtoupper($s['status'] ?? ''), ['CANCELLED', 'CANCELED', 'EXPIRED'])
+        );
+
+        if ($subscriptionCancelada && !$temConfirmado) {
+            $diagnostico = 'CANCELADO';
+        } elseif (!$temConfirmado && $temPendente) {
+            // Nunca pagou, só tem pendentes
+            $diagnostico = 'CANCELADO';
+        } elseif ($temConfirmado && $temPendente) {
+            // Já pagou antes, mas tem pendente atual
+            $diagnostico = 'CHURN';
+        } elseif ($temConfirmado && !$temPendente) {
+            $diagnostico = 'ATIVO';
+        } else {
+            $diagnostico = 'PENDENTE';
+        }
+
+        // 5. Datas de pagamento
+        $datasConfirmadas = array_column(array_values($confirmados), 'paymentDate');
+        sort($datasConfirmadas);
+        $primeiroPgtAt         = !empty($datasConfirmadas) ? $datasConfirmadas[0] : null;
+        $ultimoConfirmadoAt    = !empty($datasConfirmadas) ? end($datasConfirmadas) : null;
+
+        // Próximo vencimento (menor data dos pendentes)
+        $datasPendentes = array_filter(
+            array_column(array_values($pendentes), 'dueDate'),
+            fn($d) => !empty($d)
+        );
+        sort($datasPendentes);
+        $proximoVencimento = !empty($datasPendentes) ? $datasPendentes[0] : null;
+
+        // Dias sem pagar
+        $diasSemPagar = 0;
+        if ($ultimoConfirmadoAt) {
+            $diasSemPagar = (int) Carbon::parse($ultimoConfirmadoAt)->diffInDays(now(), false);
+            $diasSemPagar = max(0, $diasSemPagar);
+        }
+
+        // 6. Separar cobranças por tipo e agrupá-las
+        $installmentGroups = [];
+        $avulsos           = [];
+        foreach ($allPayments as $p) {
+            $instId = $p['installment'] ?? null;
+            $subId  = $p['subscription'] ?? null;
+            if ($instId) {
+                $installmentGroups[$instId][] = $p;
+            } elseif (!$subId) {
+                $avulsos[] = $p;
+            }
+        }
+
+        // 7. Salvar cada entrada
         if (!empty($subscriptions)) {
             foreach ($subscriptions as $sub) {
-                $this->salvarEntradaImport($customer, $sub, [], $mesMes, 'subscription', $now);
+                $subPayments = array_filter($allPayments, fn($p) =>
+                    ($p['subscription'] ?? null) === $sub['id']
+                );
+                $this->salvarEntrada($customer, $sub, array_values($subPayments), 'subscription', $diagnostico,
+                    $primeiroPgtAt, $ultimoConfirmadoAt, $proximoVencimento, $diasSemPagar, $temConfirmado, $temPendente, $now);
             }
         }
 
-        // Cobranças com parcelamento (installment) — não vinculadas a subscription
-        $installmentGroups = [];
-        $avulsos = [];
-
-        foreach ($allPayments as $payment) {
-            if (!empty($payment['installment'])) {
-                $installmentGroups[$payment['installment']][] = $payment;
-            } elseif (empty($payment['subscription'])) {
-                $avulsos[] = $payment;
-            }
+        foreach ($installmentGroups as $instId => $parcelas) {
+            $this->salvarEntrada($customer, null, $parcelas, 'installment', $diagnostico,
+                $primeiroPgtAt, $ultimoConfirmadoAt, $proximoVencimento, $diasSemPagar, $temConfirmado, $temPendente, $now);
         }
 
-        // Processar cada grupo de parcelamento
-        foreach ($installmentGroups as $installmentId => $parcelas) {
-            $this->salvarEntradaImport($customer, null, $parcelas, $mesMes, 'installment', $now);
-        }
-
-        // Cobranças avulsas (sem assinatura e sem parcelamento agrupado)
         if (!empty($avulsos) && empty($subscriptions) && empty($installmentGroups)) {
-            $this->salvarEntradaImport($customer, null, $avulsos, $mesMes, 'avulso', $now);
+            $this->salvarEntrada($customer, null, $avulsos, 'avulso', $diagnostico,
+                $primeiroPgtAt, $ultimoConfirmadoAt, $proximoVencimento, $diasSemPagar, $temConfirmado, $temPendente, $now);
         }
 
-        // Se não tem NADA — criar entrada vazia do cliente para visibilidade
         if (empty($subscriptions) && empty($installmentGroups) && empty($avulsos)) {
-            $this->salvarEntradaImport($customer, null, [], $mesMes, 'avulso', $now);
+            $this->salvarEntrada($customer, null, [], 'avulso', $diagnostico,
+                $primeiroPgtAt, $ultimoConfirmadoAt, $proximoVencimento, $diasSemPagar, $temConfirmado, $temPendente, $now);
         }
     }
 
-    /**
-     * Salva ou atualiza uma entrada na tabela de importação
-     */
-    private function salvarEntradaImport(
-        array $customer,
+    // ──────────────────────────────────────────────────────────────
+    // SALVAR / ATUALIZAR ENTRADA NA TABELA
+    // ──────────────────────────────────────────────────────────────
+
+    private function salvarEntrada(
+        array  $customer,
         ?array $subscription,
-        array $payments,
-        string $mesMes,
+        array  $payments,
         string $tipoCobranca,
+        string $diagnostico,
+        ?string $primeiroPgtAt,
+        ?string $ultimoConfirmadoAt,
+        ?string $proximoVencimento,
+        int    $diasSemPagar,
+        bool   $temConfirmado,
+        bool   $temPendente,
         $now
     ): void {
-        $asaasId      = $customer['id'];
-        $subId        = $subscription['id'] ?? null;
-        $installmentId = !empty($payments) ? ($payments[0]['installment'] ?? null) : null;
+        $asaasId    = $customer['id'];
+        $subId      = $subscription['id'] ?? null;
+        $installId  = !empty($payments) ? ($payments[0]['installment'] ?? null) : null;
 
-        // Chave única para identificar este registro específico
-        // (cliente pode ter múltiplas assinaturas = múltiplas linhas)
-        $existingQuery = DB::table('legacy_customer_imports')
-            ->where('asaas_customer_id', $asaasId);
-
+        // Chave única: cliente + assinatura/installment
+        $query = DB::table('legacy_customer_imports')->where('asaas_customer_id', $asaasId);
         if ($subId) {
-            $existingQuery->where('asaas_subscription_id', $subId);
-        } elseif ($installmentId) {
-            $existingQuery->where('asaas_subscription_id', $installmentId);
+            $query->where('asaas_subscription_id', $subId);
+        } elseif ($installId) {
+            $query->where('asaas_subscription_id', $installId);
         } else {
-            $existingQuery->whereNull('asaas_subscription_id');
+            $query->whereNull('asaas_subscription_id');
         }
+        $existing = $query->first();
 
-        $existing = $existingQuery->first();
+        // ── Dados financeiros ──
+        $confirmadosDeste = array_filter($payments, fn($p) =>
+            in_array($p['status'] ?? '', self::PAGAMENTOS_CONFIRMADOS)
+        );
 
-        // --- Calcular dados das parcelas ---
-        $parcelasTotal = 1;
-        $parcelasPagas = 0;
-        $valorPlanoMensal = null;
-        $valorTotalCobranca = null;
+        $parcelasTotal  = 1;
+        $parcelasPagas  = 0;
+        $valorPlano     = null;
+        $valorTotal     = null;
         $valorMarcoPago = null;
-        $primeiroPagamentoAt = null;
-        $ultimoPagamentoAt = null;
 
         if ($subscription) {
-            $valorPlanoMensal  = $subscription['value'] ?? null;
-            $valorTotalCobranca = $subscription['value'] ?? null;
-
-            // Buscar pagamentos da assinatura para determinar datas
-            $subPayments = $this->getSubscriptionPayments($subId);
-
-            $pagosConfirmados = array_filter($subPayments, fn($p) =>
-                in_array($p['status'] ?? '', ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'])
+            $valorPlano = (float) ($subscription['value'] ?? 0);
+            $valorTotal = $valorPlano;
+            $parcelasPagas = count(array_filter($payments, fn($p) =>
+                in_array($p['status'] ?? '', self::PAGAMENTOS_CONFIRMADOS)
+            ));
+            // Valor pago em março
+            $pagoMarco = array_filter($confirmadosDeste, fn($p) =>
+                str_starts_with($p['paymentDate'] ?? '', self::MES_REFERENCIA)
             );
-
-            if (!empty($pagosConfirmados)) {
-                $datas = array_column($pagosConfirmados, 'paymentDate');
-                sort($datas);
-                $primeiroPagamentoAt = $datas[0] ?? null;
-                $ultimoPagamentoAt   = end($datas);
-                $parcelasPagas       = count($pagosConfirmados);
-
-                // Pago em Março/2026
-                $pagoMarco = array_filter($pagosConfirmados, fn($p) =>
-                    str_starts_with($p['paymentDate'] ?? '', '2026-03')
-                );
-                $valorMarcoPago = !empty($pagoMarco) ? array_sum(array_column($pagoMarco, 'value')) : null;
-            }
+            $valorMarcoPago = array_sum(array_column($pagoMarco, 'value')) ?: null;
 
         } elseif (!empty($payments)) {
-            // Parcelamento ou avulso
-            $parcelasTotal = count($payments);
+            $parcelasTotal  = max(1, count($payments));
+            $parcelasPagas  = count($confirmadosDeste);
+            $valorPlano     = (float) ($payments[0]['value'] ?? 0);
+            $valorTotal     = array_sum(array_column($payments, 'value'));
 
-            $pagosConfirmados = array_filter($payments, fn($p) =>
-                in_array($p['status'] ?? '', ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'])
+            $pagoMarco = array_filter($confirmadosDeste, fn($p) =>
+                str_starts_with($p['paymentDate'] ?? '', self::MES_REFERENCIA)
             );
-            $parcelasPagas = count($pagosConfirmados);
-
-            if (!empty($pagosConfirmados)) {
-                $datasAsc = $pagosConfirmados;
-                usort($datasAsc, fn($a, $b) => strcmp($a['paymentDate'] ?? '', $b['paymentDate'] ?? ''));
-                $primeiroPagamentoAt = $datasAsc[0]['paymentDate'] ?? null;
-                $ultimoPagamentoAt   = end($datasAsc)['paymentDate'] ?? null;
-            }
-
-            // Valor de cada parcela
-            $valorPlanoMensal = !empty($payments) ? ($payments[0]['value'] ?? null) : null;
-            $valorTotalCobranca = array_sum(array_column($payments, 'value'));
-
-            // Pago em Março/2026
-            $pagoMarco = array_filter($pagosConfirmados, fn($p) =>
-                str_starts_with($p['paymentDate'] ?? '', '2026-03')
-            );
-            $valorMarcoPago = !empty($pagoMarco) ? array_sum(array_column($pagoMarco, 'value')) : null;
+            $valorMarcoPago = array_sum(array_column($pagoMarco, 'value')) ?: null;
         }
 
-        // --- Determinar tipo de comissão ---
+        // ── Status da assinatura ──
+        $subStatusAsaas = null;
+        $subStatusLocal = 'NONE';
+        if ($subscription) {
+            $subStatusAsaas = $subscription['status'] ?? null;
+            $subStatusLocal = match(strtoupper($subStatusAsaas ?? '')) {
+                'ACTIVE'              => 'ACTIVE',
+                'INACTIVE','EXPIRED'  => 'INACTIVE',
+                'CANCELLED','CANCELED'=> 'CANCELLED',
+                default               => 'NONE',
+            };
+        } elseif ($tipoCobranca === 'installment') {
+            $subStatusLocal = $parcelasPagas >= $parcelasTotal ? 'INACTIVE' : 'ACTIVE';
+        }
+
+        // ── Tipo de comissão (só calcula se ATIVO e tem pagamento em março) ──
         $comissaoTipo = null;
-        if ($primeiroPagamentoAt) {
-            $isPrimeiroPagamentoMarco = str_starts_with($primeiroPagamentoAt, '2026-03');
-            if ($isPrimeiroPagamentoMarco && $tipoCobranca === 'installment') {
-                $comissaoTipo = 'inicial_antecipada'; // Parcelamento criado em marco = antecipa tudo
-            } elseif ($isPrimeiroPagamentoMarco) {
+        if ($diagnostico === 'ATIVO' && $valorMarcoPago > 0 && $primeiroPgtAt) {
+            $isPrimeiroEmMarco = str_starts_with($primeiroPgtAt, self::MES_REFERENCIA);
+            if ($tipoCobranca === 'installment' && $isPrimeiroEmMarco) {
+                $comissaoTipo = 'inicial_antecipada';
+            } elseif ($isPrimeiroEmMarco) {
                 $comissaoTipo = 'inicial';
             } else {
                 $comissaoTipo = 'recorrencia';
             }
         }
 
-        // Status da assinatura
-        $subStatus = 'NONE';
-        if ($subscription) {
-            $subStatus = match(strtoupper($subscription['status'] ?? '')) {
-                'ACTIVE'    => 'ACTIVE',
-                'INACTIVE'  => 'INACTIVE',
-                'CANCELLED', 'CANCELED' => 'CANCELLED',
-                'EXPIRED'   => 'INACTIVE',
-                default     => 'NONE',
-            };
-        } elseif ($tipoCobranca === 'installment') {
-            $subStatus = $parcelasPagas >= $parcelasTotal ? 'INACTIVE' : 'ACTIVE';
-        }
-
-        $customerStatus = match(strtolower($customer['personType'] ?? '')) {
-            default => 'ACTIVE',
-        };
-        if (!empty($customer['deleted']) && $customer['deleted']) {
-            $customerStatus = 'INACTIVE';
-        }
-
         $data = [
-            'asaas_customer_id'              => $asaasId,
-            'asaas_subscription_id'          => $subId ?? $installmentId,
-            'asaas_subscription_status'      => $subscription['status'] ?? null,
-            'asaas_subscription_billing_type'=> $subscription['billingType'] ?? ($payments[0]['billingType'] ?? null),
-            'asaas_customer_data'            => json_encode($customer),
-            'nome'                           => $customer['name'] ?? null,
-            'documento'                      => preg_replace('/\D/', '', $customer['cpfCnpj'] ?? ''),
-            'email'                          => $customer['email'] ?? null,
-            'telefone'                       => $customer['phone'] ?? $customer['mobilePhone'] ?? null,
-            'tipo_cobranca'                  => $tipoCobranca,
-            'parcelas_total'                 => $parcelasTotal,
-            'parcelas_pagas'                 => $parcelasPagas,
-            'primeiro_pagamento_at'          => $primeiroPagamentoAt,
-            'ultimo_pagamento_at'            => $ultimoPagamentoAt,
-            'valor_plano_mensal'             => $valorPlanoMensal,
-            'valor_total_cobranca'           => $valorTotalCobranca,
-            'valor_marco_pago'               => $valorMarcoPago,
-            'comissao_tipo'                  => $comissaoTipo,
-            'customer_status'                => $customerStatus,
-            'subscription_status'            => $subStatus,
-            'import_status'                  => 'IMPORTED',
-            'asaas_synced_at'                => $now,
-            'asaas_sync_error'               => null,
+            'asaas_customer_id'               => $asaasId,
+            'asaas_subscription_id'           => $subId ?? $installId,
+            'asaas_subscription_status'       => $subStatusAsaas,
+            'asaas_subscription_billing_type' => $subscription['billingType'] ?? ($payments[0]['billingType'] ?? null),
+            'asaas_customer_data'             => json_encode($customer),
+            'nome'                            => $customer['name'] ?? null,
+            'documento'                       => preg_replace('/\D/', '', $customer['cpfCnpj'] ?? ''),
+            'email'                           => $customer['email'] ?? null,
+            'telefone'                        => $customer['phone'] ?? $customer['mobilePhone'] ?? null,
+            'tipo_cobranca'                   => $tipoCobranca,
+            'parcelas_total'                  => $parcelasTotal,
+            'parcelas_pagas'                  => $parcelasPagas,
+            'primeiro_pagamento_at'           => $primeiroPgtAt,
+            'ultimo_pagamento_at'             => $ultimoConfirmadoAt,
+            'ultimo_pagamento_confirmado_at'  => $ultimoConfirmadoAt,
+            'proximo_vencimento_at'           => $proximoVencimento,
+            'dias_sem_pagar'                  => $diasSemPagar,
+            'valor_plano_mensal'              => $valorPlano,
+            'valor_total_cobranca'            => $valorTotal,
+            'valor_marco_pago'                => $valorMarcoPago,
+            'comissao_tipo'                   => $comissaoTipo,
+            'diagnostico_status'              => $diagnostico,
+            'customer_status'                 => ($customer['deleted'] ?? false) ? 'INACTIVE' : 'ACTIVE',
+            'subscription_status'             => $subStatusLocal,
+            'tem_pagamento_confirmado'        => $temConfirmado,
+            'tem_pagamento_pendente_atual'    => $temPendente,
+            'import_status'                   => 'IMPORTED',
+            'asaas_synced_at'                 => $now,
+            'asaas_sync_error'                => null,
+            'updated_at'                      => $now,
         ];
 
         if ($existing) {
-            // Preservar atribuição de vendedor e comissão calculada existente
-            $preservar = [
-                'vendedor_id', 'comissao_vendedor_calculada', 'comissao_gestor_calculada',
-                'comissao_mes_referencia', 'comissao_resetada_em'
-            ];
-            foreach ($preservar as $campo) {
+            // Preservar atribuição de vendedor e comissão já calculada
+            foreach (['vendedor_id', 'comissao_vendedor_calculada', 'comissao_gestor_calculada',
+                      'comissao_mes_referencia', 'comissao_resetada_em',
+                      'local_cliente_id', 'local_venda_id', 'confirmado_em', 'confirmado_por'] as $campo) {
                 unset($data[$campo]);
             }
             DB::table('legacy_customer_imports')->where('id', $existing->id)->update($data);
@@ -361,32 +400,35 @@ class AsaasClienteSyncController extends Controller
             $data['comissao_vendedor_calculada'] = 0;
             $data['comissao_gestor_calculada']   = 0;
             $data['comissao_mes_referencia']     = null;
-            DB::table('legacy_customer_imports')->insert($data + ['created_at' => $now, 'updated_at' => $now]);
+            $data['vendedor_id']                 = null;
+            $data['local_cliente_id']            = null;
+            $data['local_venda_id']              = null;
+            $data['created_at']                  = $now;
+            DB::table('legacy_customer_imports')->insert($data);
         }
     }
 
-    /**
-     * Atribuir vendedor a um cliente importado e RECALCULAR comissão
-     */
+    // ──────────────────────────────────────────────────────────────
+    // ATRIBUIR VENDEDOR + RECALCULAR COMISSÃO
+    // ──────────────────────────────────────────────────────────────
+
     public function atribuirVendedor(Request $request, int $id)
     {
-        $request->validate([
-            'vendedor_id' => 'nullable|exists:vendedores,id',
-        ]);
+        $request->validate(['vendedor_id' => 'nullable|exists:vendedores,id']);
 
         $import = DB::table('legacy_customer_imports')->where('id', $id)->first();
         if (!$import) {
             return response()->json(['success' => false, 'message' => 'Registro não encontrado'], 404);
         }
 
-        $vendedorId = $request->vendedor_id;
+        $vendedorId       = $request->vendedor_id;
         $comissaoVendedor = 0;
-        $comissaoGestor = 0;
-        $mesRef = '2026-03';
+        $comissaoGestor   = 0;
+        $mesRef           = self::MES_REFERENCIA;
 
-        if ($vendedorId) {
+        if ($vendedorId && $import->diagnostico_status === 'ATIVO' && $import->comissao_tipo) {
             $vendedor = Vendedor::with('user')->find($vendedorId);
-            if ($vendedor && !is_null($import->comissao_tipo)) {
+            if ($vendedor) {
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
             }
         }
@@ -404,105 +446,183 @@ class AsaasClienteSyncController extends Controller
             'comissao_vendedor' => 'R$ ' . number_format($comissaoVendedor, 2, ',', '.'),
             'comissao_gestor'   => 'R$ ' . number_format($comissaoGestor, 2, ',', '.'),
             'tipo'              => $import->comissao_tipo,
+            'diagnostico'       => $import->diagnostico_status,
         ]);
     }
 
-    /**
-     * Calcula comissão do vendedor baseado nas regras de Março/2026
-     */
+    // ──────────────────────────────────────────────────────────────
+    // CONFIRMAR CLIENTE → cria em clientes + vendas do sistema
+    // ──────────────────────────────────────────────────────────────
+
+    public function confirmarCliente(Request $request, int $id)
+    {
+        $import = DB::table('legacy_customer_imports')->where('id', $id)->first();
+        if (!$import) {
+            return response()->json(['success' => false, 'message' => 'Registro não encontrado'], 404);
+        }
+        if (!$import->vendedor_id) {
+            return response()->json(['success' => false, 'message' => 'Atribua um vendedor antes de confirmar.'], 422);
+        }
+        if ($import->local_cliente_id) {
+            return response()->json(['success' => false, 'message' => 'Cliente já confirmado no sistema.'], 422);
+        }
+
+        $doc = preg_replace('/\D/', '', $import->documento ?? '');
+
+        // Criar ou reutilizar cliente
+        $cliente = DB::table('clientes')->where('documento', $doc)->first();
+        if (!$cliente) {
+            $clienteId = DB::table('clientes')->insertGetId([
+                'nome'       => $import->nome,
+                'documento'  => $doc,
+                'contato'    => $import->telefone,
+                'whatsapp'   => $import->telefone,
+                'email'      => $import->email,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } else {
+            $clienteId = $cliente->id;
+        }
+
+        // Determinar forma de pagamento e status da venda
+        $billingType   = $import->asaas_subscription_billing_type ?? 'BOLETO';
+        $formaPgto     = match(strtoupper($billingType)) {
+            'CREDIT_CARD' => 'Cartão de Crédito',
+            'PIX'         => 'PIX',
+            default       => 'Boleto',
+        };
+        $statusVenda = match($import->diagnostico_status) {
+            'ATIVO'     => 'Pago',
+            'CHURN'     => 'Aguardando pagamento',
+            default     => 'Cancelada',
+        };
+        $tipoNegociacao = match($import->tipo_cobranca) {
+            'installment' => 'parcelado',
+            'subscription'=> 'mensal',
+            default       => 'avulso',
+        };
+
+        // Criar venda
+        $vendaId = DB::table('vendas')->insertGetId([
+            'cliente_id'       => $clienteId,
+            'vendedor_id'      => $import->vendedor_id,
+            'valor'            => $import->valor_plano_mensal ?? 0,
+            'comissao_gerada'  => $import->comissao_vendedor_calculada ?? 0,
+            'status'           => $statusVenda,
+            'plano'            => null,
+            'forma_pagamento'  => $formaPgto,
+            'tipo_negociacao'  => $tipoNegociacao,
+            'parcelas'         => $import->parcelas_total ?? 1,
+            'origem'           => 'asaas_legado',
+            'data_venda'       => $import->primeiro_pagamento_at ?? now()->toDateString(),
+            'created_at'       => now(),
+            'updated_at'       => now(),
+        ]);
+
+        // Vincular import ao cliente e venda criados
+        DB::table('legacy_customer_imports')->where('id', $id)->update([
+            'local_cliente_id' => $clienteId,
+            'local_venda_id'   => $vendaId,
+            'confirmado_em'    => now(),
+            'confirmado_por'   => auth()->id(),
+            'updated_at'       => now(),
+        ]);
+
+        // Para clientes CHURN, atualizar status da venda gerada para "Aguardando pagamento"
+        // A lógica de "Todas as Vendas" os exibirá automaticamente pelo status
+
+        return response()->json([
+            'success'    => true,
+            'message'    => 'Cliente confirmado no sistema com sucesso!',
+            'cliente_id' => $clienteId,
+            'venda_id'   => $vendaId,
+        ]);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // CÁLCULO DE COMISSÃO
+    // ──────────────────────────────────────────────────────────────
+
     private function calcularComissao(object $import, Vendedor $vendedor): array
     {
-        $comissaoVendedor = 0;
-        $comissaoGestor = 0;
+        $percIni    = (float) ($vendedor->comissao_inicial ?? 0);
+        $percRec    = (float) ($vendedor->comissao_recorrencia ?? 0);
+        $percGstIni = (float) ($vendedor->comissao_gestor_primeira ?? 0);
+        $percGstRec = (float) ($vendedor->comissao_gestor_recorrencia ?? 0);
 
-        $percInicial     = (float) ($vendedor->comissao_inicial ?? 0);
-        $percRecorrencia = (float) ($vendedor->comissao_recorrencia ?? 0);
-        $percGestorInicial     = (float) ($vendedor->comissao_gestor_primeira ?? 0);
-        $percGestorRecorrencia = (float) ($vendedor->comissao_gestor_recorrencia ?? 0);
-
-        $valorBase = (float) ($import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0);
+        $valorBase  = (float) ($import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0);
         $valorPlano = (float) ($import->valor_plano_mensal ?? 0);
         $parcelasTotal = (int) ($import->parcelas_total ?? 1);
         $parcelasPagas = (int) ($import->parcelas_pagas ?? 0);
 
+        $cv = 0.0;
+        $cg = 0.0;
+
         switch ($import->comissao_tipo) {
             case 'inicial':
-                // Assinatura criada em Março — apenas 1ª comissão
-                $comissaoVendedor = $valorBase * ($percInicial / 100);
-                $comissaoGestor   = $valorBase * ($percGestorInicial / 100);
+                // Assinatura/PIX/Boleto: primeiro pagamento em março
+                $cv = $valorBase * ($percIni / 100);
+                $cg = $valorBase * ($percGstIni / 100);
                 break;
 
             case 'inicial_antecipada':
-                // Parcelamento criado em Março — antecipa TUDO
-                // Comissão inicial sobre o valor do plano (1ª parcela)
-                $comVendedorInicial = $valorPlano * ($percInicial / 100);
-                $comGestorInicial   = $valorPlano * ($percGestorInicial / 100);
-
-                // Antecipa recorrência para as parcelas restantes
-                $parcelasRestantes = max(0, $parcelasTotal - $parcelasPagas); // restantes a pagar
-                $comVendedorRec = $valorPlano * ($percRecorrencia / 100) * $parcelasRestantes;
-                $comGestorRec   = $valorPlano * ($percGestorRecorrencia / 100) * $parcelasRestantes;
-
-                $comissaoVendedor = $comVendedorInicial + $comVendedorRec;
-                $comissaoGestor   = $comGestorInicial + $comGestorRec;
+                // Parcelado criado em março — antecipa TODA a comissão
+                // Comissão inicial sobre o valor da 1ª parcela
+                $cv = $valorPlano * ($percIni / 100);
+                $cg = $valorPlano * ($percGstIni / 100);
+                // Recorrência antecipada para as parcelas restantes (total - pagas)
+                $restantes = max(0, $parcelasTotal - $parcelasPagas);
+                $cv += $valorPlano * ($percRec / 100) * $restantes;
+                $cg += $valorPlano * ($percGstRec / 100) * $restantes;
                 break;
 
             case 'recorrencia':
-                // Assinatura/cobrança recorrente — apenas comissão de recorrência
-                $comissaoVendedor = $valorBase * ($percRecorrencia / 100);
-                $comissaoGestor   = $valorBase * ($percGestorRecorrencia / 100);
+                // Assinatura recorrente — já pagava antes de março
+                $cv = $valorBase * ($percRec / 100);
+                $cg = $valorBase * ($percGstRec / 100);
                 break;
         }
 
-        return [round($comissaoVendedor, 2), round($comissaoGestor, 2)];
+        return [round($cv, 2), round($cg, 2)];
     }
 
-    /**
-     * Buscar assinaturas de um cliente no Asaas
-     */
-    private function getClienteSubscriptions(string $customerId): array
-    {
-        try {
-            $response = $this->asaas->requestAsaas('GET', '/subscriptions', [
-                'customer' => $customerId,
-                'limit'    => 100,
-            ]);
-            return $response['data'] ?? [];
-        } catch (\Exception $e) {
-            Log::warning("AsaasSync: erro ao buscar subscriptions de {$customerId}", ['error' => $e->getMessage()]);
-            return [];
-        }
-    }
+    // ──────────────────────────────────────────────────────────────
+    // HELPERS — CHAMADAS À API ASAAS
+    // ──────────────────────────────────────────────────────────────
 
-    /**
-     * Buscar pagamentos de um cliente no Asaas
-     */
     private function getClientePayments(string $customerId): array
     {
         try {
-            $response = $this->asaas->requestAsaas('GET', '/payments', [
-                'customer' => $customerId,
-                'limit'    => 100,
-            ]);
-            return $response['data'] ?? [];
+            $all      = [];
+            $offset   = 0;
+            do {
+                $resp = $this->asaas->requestAsaas('GET', '/payments', [
+                    'customer' => $customerId,
+                    'limit'    => 100,
+                    'offset'   => $offset,
+                ]);
+                $data = $resp['data'] ?? [];
+                $all  = array_merge($all, $data);
+                $offset += 100;
+            } while ($resp['hasMore'] ?? false);
+            return $all;
         } catch (\Exception $e) {
-            Log::warning("AsaasSync: erro ao buscar payments de {$customerId}", ['error' => $e->getMessage()]);
+            Log::warning("AsaasSync: erro pagamentos de {$customerId}", ['error' => $e->getMessage()]);
             return [];
         }
     }
 
-    /**
-     * Buscar pagamentos de uma assinatura específica
-     */
-    private function getSubscriptionPayments(string $subscriptionId): array
+    private function getClienteSubscriptions(string $customerId): array
     {
         try {
-            $response = $this->asaas->requestAsaas('GET', '/payments', [
-                'subscription' => $subscriptionId,
-                'limit'        => 100,
+            $resp = $this->asaas->requestAsaas('GET', '/subscriptions', [
+                'customer' => $customerId,
+                'limit'    => 100,
             ]);
-            return $response['data'] ?? [];
+            return $resp['data'] ?? [];
         } catch (\Exception $e) {
+            Log::warning("AsaasSync: erro subscriptions de {$customerId}", ['error' => $e->getMessage()]);
             return [];
         }
     }

@@ -232,6 +232,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/clientes-asaas', [AsaasClienteSyncController::class, 'index'])->name('clientes-asaas.index');
         Route::post('/clientes-asaas/sincronizar', [AsaasClienteSyncController::class, 'sincronizar'])->name('clientes-asaas.sincronizar');
         Route::patch('/clientes-asaas/{id}/vendedor', [AsaasClienteSyncController::class, 'atribuirVendedor'])->name('clientes-asaas.vendedor');
+        Route::post('/clientes-asaas/{id}/confirmar', [AsaasClienteSyncController::class, 'confirmarCliente'])->name('clientes-asaas.confirmar');
 
 
 
