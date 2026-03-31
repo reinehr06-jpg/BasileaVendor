@@ -40,7 +40,7 @@ class EquipeController extends Controller
         });
 
         $gestores = User::where('perfil', 'gestor')
-            ->where('status', 'ativo')
+            ->whereIn('status', ['ativo', '1', 1])
             ->whereHas('vendedor', function ($q) { $q->where('is_gestor', true); })
             ->with('vendedor')
             ->get();
@@ -51,7 +51,7 @@ class EquipeController extends Controller
 
         $vendedoresSemEquipe = Vendedor::with('user')
             ->whereNull('equipe_id')
-            ->whereHas('user', function ($q) { $q->where('status', 'ativo'); })
+            ->whereHas('user', function ($q) { $q->whereIn('status', ['ativo', '1', 1]); })
             ->get();
 
         return view('master.equipes.index', compact('equipes', 'gestoresDisponiveis', 'vendedoresSemEquipe'));

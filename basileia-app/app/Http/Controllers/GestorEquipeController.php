@@ -67,7 +67,7 @@ class GestorEquipeController extends Controller
         // Vendedores disponíveis (sem equipe)
         $vendedoresDisponiveis = Vendedor::whereNull('equipe_id')
             ->whereHas('user', function ($q) { 
-                $q->where('status', 'ativo'); 
+                $q->whereIn('status', ['ativo', '1', 1]); 
             })
             ->with('user')
             ->get();

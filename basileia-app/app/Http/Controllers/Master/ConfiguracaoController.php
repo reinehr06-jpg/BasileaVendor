@@ -112,7 +112,7 @@ class ConfiguracaoController extends Controller
                 'commission_pending_value' => LegacyCommission::where('status', 'GENERATED')->sum('seller_commission_amount') + LegacyCommission::where('status', 'GENERATED')->sum('gestor_commission_amount'),
             ],
             'recentImports' => $legacyQuery->orderBy('created_at', 'desc')->paginate(15)->withQueryString(),
-            'vendedores' => Vendedor::where('status', 'ativo')->with('user')->get(),
+            'vendedores' => Vendedor::whereIn('status', ['ativo', '1', 1])->with('user')->get(),
             'gestores' => Vendedor::where('is_gestor', true)->with('user')->get(),
             'planos' => Plano::orderBy('nome')->get(),
         ];
