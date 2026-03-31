@@ -92,11 +92,11 @@ class LegacyCommissionService
         return $commission;
     }
 
-    public function generateRecurringForAll(?int $vendedorId = null): array
+    public function generateRecurringForAll(?int $vendedorId = null, ?string $month = null): array
     {
         $query = LegacyCustomerImport::where('import_status', 'IMPORTED')
             ->where('generate_recurring_commission', true)
-            ->where('subscription_status', 'ACTIVE');
+            ->whereIn('subscription_status', ['ACTIVE', 'OVERDUE']);
 
         if ($vendedorId) {
             $query->where('vendedor_id', $vendedorId);
@@ -116,7 +116,7 @@ class LegacyCommissionService
         foreach ($imports as $import) {
             $stats['processed']++;
             try {
-                $result = $importService->generateCommissions($import);
+                $result = $importService->generateCommissions($import, $month);
                 $stats['generated'] += $result['old_sale'] + $result['recurring'];
                 if (empty($result['old_sale']) && empty($result['recurring'])) {
                     $stats['skipped']++;

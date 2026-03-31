@@ -92,13 +92,36 @@ class IntegracaoController extends Controller
             'asaas_callback_url' => 'nullable|url|max:255',
         ]);
 
-        Setting::set('asaas_api_key', $request->input('asaas_api_key'));
+        $apiKey = $request->input('asaas_api_key');
+        
+        // Limpeza inteligente e obsessiva: remove lixo, múltiplos pedaços e caracteres invisíveis (BOM, etc)
+        if ($apiKey) {
+            // Remove qualquer caractere que não seja imprimível (espaços invisíveis, etc)
+            $apiKey = preg_replace('/[[:^print:]]/', '', $apiKey);
+            
+            if (str_contains($apiKey, ':')) {
+                $parts = preg_split('/[:\s]+/', $apiKey, -1, PREG_SPLIT_NO_EMPTY);
+                foreach ($parts as $p) {
+                    if (str_starts_with($p, '$aact_')) {
+                        $apiKey = $p;
+                        break;
+                    }
+                }
+            }
+            $apiKey = trim($apiKey);
+        }
+
+        Setting::set('asaas_api_key', $apiKey);
         Setting::set('asaas_webhook_token', $request->input('asaas_webhook_token'));
         Setting::set('asaas_environment', $request->input('asaas_environment'));
         Setting::set('asaas_callback_url', $request->input('asaas_callback_url'));
+        Setting::set('checkout_external_url', $request->input('checkout_external_url'));
 
-        return redirect()->route('master.configuracoes.integracoes')
-                         ->with('success', 'Configurações de integração atualizadas com sucesso.');
+        // Forçar limpeza de todo cache de configurações para garantir atualização instantânea
+        Setting::clearAllCache();
+
+        return redirect()->route('master.configuracoes', ['tab' => 'integracoes'])
+                         ->with('success', 'Configurações de integração atualizadas com sucesso e aplicadas imediatamente.');
     }
 
     /**

@@ -18,9 +18,13 @@ class AsaasService
         
         $this->baseUrl = $ambiente === 'production'
             ? 'https://api.asaas.com/v3'
-            : 'https://sandbox.asaas.com/api/v3';
+            : 'https://api-sandbox.asaas.com/v3';
 
         $this->apiKey = \App\Models\Setting::get('asaas_api_key', config('services.asaas.api_key', env('ASAAS_API_KEY', '')));
+
+        if (empty($this->apiKey)) {
+            Log::warning('AsaasService: API Key não configurada. As requisições irão falhar.');
+        }
     }
 
     public function headers(): array
@@ -452,6 +456,71 @@ class AsaasService
             'status'   => $response->status(),
         ]);
         throw new \Exception("Falha na requisição para o Asaas ($endpoint): " . $response->body());
+    }
+
+    // ============================================
+    // 9.2.9 — Criar Link de Pagamento
+    // ============================================
+    public function createPaymentLink(array $data): array
+    {
+        $payload = [
+            'name'                => $data['name'],
+            'billingType'         => $data['billingType'] ?? 'UNDEFINED',
+            'chargeType'          => $data['chargeType'] ?? 'DETACHED',
+            'description'         => $data['description'] ?? null,
+            'value'               => $data['value'] ?? null,
+            'dueDateLimitDays'    => $data['dueDateLimitDays'] ?? null,
+            'notificationEnabled' => (bool) ($data['notificationEnabled'] ?? true),
+            'maxAllowedUsage'     => $data['maxAllowedUsage'] ?? null,
+            'endDate'             => $data['endDate'] ?? null,
+        ];
+
+        // Se houver configuração de endereço
+        if (isset($data['isAddressRequired'])) {
+            $payload['isAddressRequired'] = (bool) $data['isAddressRequired'];
+        }
+
+        $response = Http::withHeaders($this->headers())
+            ->post("{$this->baseUrl}/paymentLinks", $payload);
+
+        if ($response->successful()) {
+            $result = $response->json();
+            Log::info('Asaas: link de pagamento criado', ['id' => $result['id'] ?? null, 'url' => $result['url'] ?? null]);
+            return $result;
+        }
+
+        Log::error('Asaas: erro ao criar link de pagamento', [
+            'request'  => $payload,
+            'response' => $response->body(),
+            'status'   => $response->status(),
+        ]);
+        throw new \Exception('Falha ao gerar link no Asaas: ' . $response->body());
+    }
+
+    /**
+     * Excluir (arquivar) link de pagamento no Asaas
+     */
+    public function deletePaymentLink(string $id): bool
+    {
+        try {
+            $response = Http::withHeaders($this->headers())
+                ->delete("{$this->baseUrl}/paymentLinks/{$id}");
+
+            if ($response->successful() || $response->status() === 404) {
+                Log::info('Asaas: link de pagamento excluído/arquivado (ou já não existia)', ['id' => $id]);
+                return true;
+            }
+
+            Log::warning('Asaas: falha crítica ao excluir link de pagamento', [
+                'id' => $id,
+                'status' => $response->status(),
+                'response' => $response->body()
+            ]);
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Asaas: exceção ao excluir link', ['error' => $e->getMessage()]);
+            return false;
+        }
     }
 
     // ============================================

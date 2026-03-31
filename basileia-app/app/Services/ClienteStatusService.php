@@ -26,8 +26,14 @@ class ClienteStatusService
             ->orderByDesc('created_at')
             ->first();
 
-        // Sem venda ativa → verificar se já teve alguma venda paga
+        // Sem venda ativa → verificar se já teve alguma venda paga ou se é LEGADO
         if (!$ultimaVenda) {
+            // Verificar se é legado
+            $legado = \App\Models\LegacyCustomerImport::where('local_cliente_id', $cliente->id)->first();
+            if ($legado) {
+                return mb_strtolower($legado->customer_status ?? 'pendente');
+            }
+
             $teveVendaCancelada = $cliente->vendas()
                 ->whereIn('status', ['Cancelado', 'Expirado'])
                 ->exists();

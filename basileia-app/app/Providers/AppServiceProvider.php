@@ -20,9 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Força HTTPS para evitar erros de Mixed Content e falhas de POST via túneis (localtunnel/ngrok)
-        if (request()->header('x-forwarded-proto') === 'https' || str_contains(config('app.url'), 'https://') || env('APP_ENV') == 'local') {
-            URL::forceScheme('https');
-        }
+        // Comentado temporariamente para permitir acesso direto pelo IP sem SSL
+        // if (request()->header('x-forwarded-proto') === 'https' || str_contains(config('app.url'), 'https://') || env('APP_ENV') == 'local') {
+        //     URL::forceScheme('https');
+        // }
     }
 }

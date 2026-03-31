@@ -348,6 +348,11 @@
                                 <label class="materio-label">URL de Callback (Opcional)</label>
                                 <input type="url" name="asaas_callback_url" class="materio-input" value="{{ $integracoes['asaasCallbackUrl'] }}" placeholder="https://seudominio.com/callback">
                             </div>
+                            <div class="materio-form-group">
+                                <label class="materio-label" style="color: var(--materio-primary)">🔗 URL do Checkout Externo <span class="required">*</span></label>
+                                <input type="url" name="checkout_external_url" class="materio-input" value="{{ $integracoes['checkoutExternalUrl'] }}" required placeholder="https://seucheckout.com/pagar?id=" style="border-color: var(--materio-primary); background: #fbf8ff;">
+                                <span class="help-text">Endereço da página onde seus clientes finalizam o pagamento.</span>
+                            </div>
                         </div>
                     </div>
                     <button type="submit" class="materio-btn-primary">Atualizar Gateway</button>

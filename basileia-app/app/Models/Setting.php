@@ -49,6 +49,8 @@ class Setting extends Model
             ['key' => $key],
             ['value' => $value]
         );
+        
+        Cache::forget("setting_{$key}");
         Cache::put("setting_{$key}", $value);
     }
 

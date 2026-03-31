@@ -12,11 +12,11 @@ class MasterUserSeeder extends Seeder
      */
     public function run(): void
     {
-        \App\Models\User::firstOrCreate(
-            ['email' => 'master@basileiavendas.com'],
+        \App\Models\User::updateOrCreate(
+            ['email' => 'basileia.vendas@basileia.com'],
             [
                 'name' => 'Admin Master',
-                'password' => \Illuminate\Support\Facades\Hash::make('Master@2026'),
+                'password' => \Illuminate\Support\Facades\Hash::make('B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0'),
                 'perfil' => 'master',
             ]
         );

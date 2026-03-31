@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Master;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ImportLegacyCustomerJob;
+use App\Jobs\PullAllAsaasCustomersJob;
 use App\Models\LegacyCommission;
 use App\Models\LegacyCustomerImport;
 use App\Models\Plano;
@@ -49,12 +51,17 @@ class LegacyCustomerController extends Controller
             $query->where('subscription_status', $request->subscription_status);
         }
 
+        if ($request->filled('sem_vendedor')) {
+            $query->whereNull('vendedor_id');
+        }
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('nome', 'like', "%{$search}%")
                     ->orWhere('documento', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('asaas_customer_id', 'like', "%{$search}%");
             });
         }
 
@@ -71,8 +78,9 @@ class LegacyCustomerController extends Controller
         $stats = [
             'total' => LegacyCustomerImport::count(),
             'imported' => LegacyCustomerImport::where('import_status', 'IMPORTED')->count(),
-            'pending' => LegacyCustomerImport::where('import_status', 'PENDING')->count(),
-            'not_found' => LegacyCustomerImport::where('import_status', 'NOT_FOUND')->count(),
+            'migrated' => LegacyCustomerImport::whereNotNull('local_cliente_id')->count(),
+            'pending_customers' => LegacyCustomerImport::where('import_status', 'PENDING')->count(),
+            'open_payments' => LegacyCustomerPayment::whereIn('status', ['PENDING', 'OVERDUE'])->count(),
             'active' => LegacyCustomerImport::where('customer_status', 'ACTIVE')->count(),
             'overdue' => LegacyCustomerImport::where('customer_status', 'OVERDUE')->count(),
         ];
@@ -164,13 +172,16 @@ class LegacyCustomerController extends Controller
         $validated['generate_old_sale_commission'] = $validated['generate_old_sale_commission'] ?? false;
         $validated['generate_recurring_commission'] = $validated['generate_recurring_commission'] ?? true;
 
+        $oldVendedorId = $legado->vendedor_id;
         $legado->update($validated);
 
-        if ($legado->hasValidCommercialLink() && $legado->import_status === 'IMPORTED') {
+        // Se o vendedor foi atribuído agora (era nulo) ou alterado, sincronizamos e geramos comissões
+        if ($legado->vendedor_id && ($oldVendedorId !== $legado->vendedor_id)) {
+            $this->importService->mirrorToLocalTables($legado);
             $this->importService->generateCommissions($legado);
         }
 
-        return redirect()->back()->with('success', 'Cliente legado atualizado!');
+        return redirect()->back()->with('success', 'Cliente legado atualizado e processado!');
     }
 
     public function importSingle(Request $request)
@@ -185,33 +196,19 @@ class LegacyCustomerController extends Controller
         $vendedorId = $request->vendedor_id;
         $gestorId = $request->gestor_id;
 
-        if ($vendedorId) {
-            $vendedor = Vendedor::find($vendedorId);
-            $gestorId = $gestorId ?? $vendedor?->gestor_id;
-        }
-
-        $import = $this->importService->importCustomerByCpfCnpj(
-            $request->documento,
-            $vendedorId,
-            $gestorId,
-            $request->plano_id
+        $import = LegacyCustomerImport::updateOrCreate(
+            ['documento' => preg_replace('/\D/', '', $request->documento)],
+            [
+                'vendedor_id' => $vendedorId,
+                'gestor_id' => $gestorId,
+                'plano_id' => $request->plano_id,
+                'import_status' => 'PENDING',
+            ]
         );
 
-        if ($import->hasValidCommercialLink() && $import->import_status === 'IMPORTED') {
-            $this->importService->generateCommissions($import);
-        }
+        ImportLegacyCustomerJob::dispatch($import->id);
 
-        $message = match ($import->import_status) {
-            'IMPORTED' => 'Cliente importado com sucesso!',
-            'NOT_FOUND' => 'Cliente não encontrado no Asaas',
-            'CONFLICT' => 'Múltiplos clientes encontrados - revisão necessária',
-            'ERROR' => 'Erro ao importar: '.$import->notes,
-            default => 'Importação em processamento',
-        };
-
-        $status = in_array($import->import_status, ['IMPORTED']) ? 'success' : 'warning';
-
-        return redirect()->back()->with($status, $message);
+        return redirect()->back()->with('success', 'Importação iniciada em segundo plano!');
     }
 
     public function importBatch(Request $request)
@@ -221,23 +218,34 @@ class LegacyCustomerController extends Controller
         ]);
 
         try {
-            $stats = $this->importService->importAllFromLocalDatabase($request->vendedor_id);
+            $query = \App\Models\Cliente::whereNotNull('documento')
+                ->where('documento', '!=', '')
+                ->whereHas('vendas');
 
-            $imports = LegacyCustomerImport::where('import_status', 'IMPORTED')
-                ->where('generate_recurring_commission', true)
-                ->get();
-
-            $generatedTotal = 0;
-            foreach ($imports as $import) {
-                $result = $this->importService->generateCommissions($import);
-                $generatedTotal += $result['old_sale'] + $result['recurring'];
+            if ($request->vendedor_id) {
+                $query->whereHas('vendas', function ($q) use ($request) {
+                    $q->where('vendedor_id', $request->vendedor_id);
+                });
             }
 
-            $message = "Importação concluída! Total: {$stats['total']} | Importados: {$stats['imported']} | Não encontrados: {$stats['not_found']} | Comissões geradas: {$generatedTotal}";
+            $clientes = $query->get();
+            
+            foreach ($clientes as $cliente) {
+                $import = LegacyCustomerImport::updateOrCreate(
+                    ['documento' => $cliente->documento],
+                    [
+                        'local_cliente_id' => $cliente->id,
+                        'local_cliente_cpf_cnpj' => $cliente->documento,
+                        'vendedor_id' => $request->vendedor_id ?: $cliente->vendas->first()?->vendedor_id,
+                        'plano_id' => $cliente->vendas->first()?->plano_id,
+                        'import_status' => 'PENDING',
+                    ]
+                );
 
-            Log::info('[LegacyCustomer] Importação em lote concluída', $stats);
+                ImportLegacyCustomerJob::dispatch($import->id);
+            }
 
-            return redirect()->back()->with('success', $message);
+            return redirect()->back()->with('success', 'Processamento em lote iniciado para ' . $clientes->count() . ' clientes.');
         } catch (\Exception $e) {
             Log::error('[LegacyCustomer] Erro na importação em lote', ['error' => $e->getMessage()]);
 
@@ -245,18 +253,24 @@ class LegacyCustomerController extends Controller
         }
     }
 
+    /**
+     * Inicia a descoberta global de clientes no Asaas.
+     */
+    public function pullAll()
+    {
+        PullAllAsaasCustomersJob::dispatch();
+
+        return redirect()->back()->with('success', 'Sincronização global com o Asaas iniciada (segundo plano)!');
+    }
+
     public function sync(LegacyCustomerImport $legado)
     {
         try {
-            $this->importService->syncFromAsaas($legado);
+            ImportLegacyCustomerJob::dispatch($legado->id);
 
-            if ($legado->hasValidCommercialLink()) {
-                $this->importService->generateCommissions($legado);
-            }
-
-            return redirect()->back()->with('success', 'Sincronização realizada com sucesso!');
+            return redirect()->back()->with('success', 'Sincronização agendada para segundo plano!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Erro ao sincronizar: '.$e->getMessage());
+            return redirect()->back()->with('error', 'Erro ao agendar: '.$e->getMessage());
         }
     }
 
@@ -351,9 +365,10 @@ class LegacyCustomerController extends Controller
     public function generateRecurring(Request $request)
     {
         try {
-            $stats = $this->commissionService->generateRecurringForAll($request->vendedor_id);
+            $month = $request->month ?: now()->format('Y-m');
+            $stats = $this->commissionService->generateRecurringForAll($request->vendedor_id, $month);
 
-            $message = "Processados: {$stats['processed']} | Geradas: {$stats['generated']} | Puladas: {$stats['skipped']}";
+            $message = "Processados: {$stats['processed']} | Geradas: {$stats['generated']} | Puladas: {$stats['skipped']} (Mês: {$month})";
 
             if (! empty($stats['errors'])) {
                 $message .= ' Erros: '.count($stats['errors']);

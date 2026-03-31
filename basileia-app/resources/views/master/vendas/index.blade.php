@@ -121,49 +121,32 @@
                     @php
                         $pagamento = $venda->pagamentos->first();
                         $cobranca = $venda->cobrancas->first();
-                        $forma = strtolower($venda->forma_pagamento ?? $pagamento->forma_pagamento ?? '');
-                        $linkBoleto = $pagamento->bank_slip_url ?? null;
-                        $linkPagamento = $pagamento->link_pagamento ?? $pagamento->invoice_url ?? $cobranca->link ?? null;
-
-                        $checkoutUrl = $venda->checkout_hash ? url('/checkout/' . $venda->checkout_hash) : null;
-                        $boletoCheckoutUrl = $checkoutUrl ? $checkoutUrl . '?method=boleto' : null;
-                        $pixCheckoutUrl = $checkoutUrl ? $checkoutUrl . '?method=pix' : null;
+                        $formaUpper = strtoupper($venda->forma_pagamento ?? '');
                     @endphp
                     @if(!in_array(strtoupper($venda->getStatusEfetivo()), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']))
-                        @if($checkoutUrl)
-                            <div class="d-flex flex-column gap-1">
-                                @php
-                                    $formaUpper = strtoupper($venda->forma_pagamento ?? '');
-                                @endphp
-
-                                {{-- Se for Boleto ou não especificado --}}
-                                @if($formaUpper === 'BOLETO' || empty($formaUpper))
-                                    <a href="{{ $boletoCheckoutUrl }}" target="_blank" class="action-btn-sm action-btn-boleto" title="Gerar Boleto via Checkout">
-                                        <i class="fas fa-barcode"></i> Boleto
-                                    </a>
-                                @endif
-
-                                {{-- Se for Pix ou não especificado --}}
-                                @if($formaUpper === 'PIX' || empty($formaUpper))
-                                    <a href="{{ $pixCheckoutUrl }}" target="_blank" class="action-btn-sm" style="background: #008080; color: white;" title="Gerar PIX via Checkout">
-                                        <i class="fas fa-qrcode"></i> Pix
-                                    </a>
-                                @endif
-
-                                {{-- Se for Cartão ou não especificado (ou genérico) --}}
-                                @if($formaUpper === 'CREDIT_CARD' || empty($formaUpper))
-                                    <a href="{{ $checkoutUrl }}" target="_blank" class="action-btn-sm" style="background: var(--primary); color: white;" title="Link de Checkout Próprio">
-                                        <i class="fas fa-credit-card"></i> Cartão
-                                    </a>
-                                @endif
-
-                                <button onclick="navigator.clipboard.writeText('{{ $checkoutUrl }}').then(() => alert('Link copiado!'))" class="action-btn-sm" style="background: var(--success); color: white;" title="Copiar Link de Checkout">
-                                    <i class="fas fa-copy"></i> Copiar
+                        <div class="d-flex flex-column gap-1">
+                            @if($formaUpper === 'BOLETO' || empty($formaUpper))
+                                <button onclick="copyCheckoutLink({{ $venda->id }}, 'boleto')" class="action-btn-sm action-btn-boleto" title="Gerar Link Boleto">
+                                    <i class="fas fa-barcode"></i> Boleto
                                 </button>
-                            </div>
-                        @else
-                            <span style="font-size: 0.8rem; color: var(--warning);"><i class="fas fa-clock"></i> Gerando...</span>
-                        @endif
+                            @endif
+
+                            @if($formaUpper === 'PIX' || empty($formaUpper))
+                                <button onclick="copyCheckoutLink({{ $venda->id }}, 'pix')" class="action-btn-sm" style="background: #008080; color: white;" title="Gerar Link PIX">
+                                    <i class="fas fa-qrcode"></i> Pix
+                                </button>
+                            @endif
+
+                            @if($formaUpper === 'CREDIT_CARD' || empty($formaUpper))
+                                <button onclick="copyCheckoutLink({{ $venda->id }}, 'credit_card')" class="action-btn-sm" style="background: var(--primary); color: white;" title="Gerar Link Cartão">
+                                    <i class="fas fa-credit-card"></i> Cartão
+                                </button>
+                            @endif
+
+                            <button onclick="copyCheckoutLink({{ $venda->id }})" class="action-btn-sm" style="background: var(--success); color: white;" title="Copiar Link de Checkout">
+                                <i class="fas fa-copy"></i> Copiar
+                            </button>
+                        </div>
                     @else
                         @if($linkBoleto)
                              <a href="{{ $linkBoleto }}" target="_blank" class="action-btn-sm action-btn-boleto" title="Baixar Boleto">
@@ -278,9 +261,10 @@ function openRefundModal(vendaId, cliente, valor, modo, parcelas) {
     BasileiaModal.open('refundModal');
 }
 
-async function copyCheckoutLink(vendaId) {
+async function copyCheckoutLink(vendaId, method = null) {
     try {
-        const response = await fetch(`/master/vendas/${vendaId}/checkout-link`);
+        const urlParams = method ? `?method=${method}` : '';
+        const response = await fetch(`/master/vendas/${vendaId}/checkout-link${urlParams}`);
         const data = await response.json();
         
         if (data.success) {

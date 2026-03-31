@@ -12,6 +12,9 @@ class Evento extends Model
         'vagas_total', 'vagas_ocupadas', 'whatsapp_vendedor',
         'telefone_vendedor', 'data_inicio', 'data_fim',
         'status', 'asaas_payment_link_id', 'checkout_url', 'created_by',
+        'billing_type', 'charge_type', 'due_date_limit_days',
+        'notification_enabled', 'is_address_required',
+        'max_allowed_usage', 'end_date',
     ];
 
     protected $casts = [
@@ -20,6 +23,10 @@ class Evento extends Model
         'vagas_ocupadas' => 'integer',
         'data_inicio' => 'datetime',
         'data_fim' => 'datetime',
+        'notification_enabled' => 'boolean',
+        'is_address_required' => 'boolean',
+        'max_allowed_usage' => 'integer',
+        'end_date' => 'date',
     ];
 
     public function creator(): BelongsTo

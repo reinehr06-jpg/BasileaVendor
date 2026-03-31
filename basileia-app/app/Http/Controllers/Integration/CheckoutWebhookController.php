@@ -18,14 +18,16 @@ class CheckoutWebhookController extends Controller
     public function handle(Request $request)
     {
         $signature = $request->header('X-Checkout-Signature');
-        $secret = config('checkout-integration.webhook_secret');
+        $secret = config('checkout-integration.webhook_secret', env('CHECKOUT_WEBHOOK_SECRET'));
 
         if ($secret && $signature) {
             $payload = $request->getContent();
             $expected = hash_hmac('sha256', $payload, $secret);
 
             if (!hash_equals($expected, $signature)) {
-                Log::warning('Checkout webhook: assinatura inválida');
+                Log::warning('Checkout webhook: assinatura inválida', [
+                    'ip' => $request->ip(),
+                ]);
                 return response()->json(['error' => 'Invalid signature'], 401);
             }
         }
@@ -33,7 +35,11 @@ class CheckoutWebhookController extends Controller
         $event = $request->input('event');
         $transaction = $request->input('transaction', []);
 
-        Log::info('Checkout webhook recebido', ['event' => $event, 'transaction_uuid' => $transaction['uuid'] ?? null]);
+        Log::info('Checkout webhook recebido', [
+            'event' => $event, 
+            'transaction_uuid' => $transaction['uuid'] ?? null,
+            'external_id' => $transaction['external_id'] ?? null,
+        ]);
 
         match ($event) {
             'payment.approved' => $this->handlePaymentApproved($transaction),
@@ -41,8 +47,8 @@ class CheckoutWebhookController extends Controller
             'payment.pending' => $this->handlePaymentPending($transaction),
             'payment.overdue' => $this->handlePaymentOverdue($transaction),
             'payment.refunded' => $this->handlePaymentRefunded($transaction),
-            'boleto.generated' => $this->handleBoletoGenerated($transaction),
-            'pix.generated' => $this->handlePixGenerated($transaction),
+            'payment.cancelled' => $this->handlePaymentCancelled($transaction),
+            'payment.refund_pending' => $this->handlePaymentRefundPending($transaction),
             default => Log::info("Checkout webhook: evento não tratado: {$event}"),
         };
 
@@ -108,6 +114,7 @@ class CheckoutWebhookController extends Controller
         if (!$venda) return;
 
         $venda->update(['status' => 'pendente']);
+        Log::info("Venda {$venda->id} atualizada via Checkout webhook: pagamento pendente");
     }
 
     private function handlePaymentOverdue(array $transaction): void
@@ -119,6 +126,7 @@ class CheckoutWebhookController extends Controller
         if (!$venda) return;
 
         $venda->update(['status' => 'vencida']);
+        Log::info("Venda {$venda->id} atualizada via Checkout webhook: pagamento vencido");
     }
 
     private function handlePaymentRefunded(array $transaction): void
@@ -135,37 +143,31 @@ class CheckoutWebhookController extends Controller
         if ($pagamento) {
             $pagamento->update(['status' => 'estornado']);
         }
+
+        Log::info("Venda {$venda->id} atualizada via Checkout webhook: pagamento estornado");
     }
 
-    private function handleBoletoGenerated(array $transaction): void
+    private function handlePaymentCancelled(array $transaction): void
     {
-        $payment = $transaction['payment'] ?? [];
         $externalId = $transaction['external_id'] ?? null;
-
         if (!$externalId) return;
 
-        $pagamento = Pagamento::whereHas('venda', fn($q) => $q->where('id', $externalId))->first();
-        if ($pagamento) {
-            $pagamento->update([
-                'boleto_url' => $payment['boleto_url'] ?? null,
-                'boleto_barcode' => $payment['boleto_barcode'] ?? null,
-            ]);
-        }
+        $venda = Venda::find($externalId);
+        if (!$venda) return;
+
+        $venda->update(['status' => 'cancelada']);
+        Log::info("Venda {$venda->id} atualizada via Checkout webhook: pagamento cancelado");
     }
 
-    private function handlePixGenerated(array $transaction): void
+    private function handlePaymentRefundPending(array $transaction): void
     {
-        $payment = $transaction['payment'] ?? [];
         $externalId = $transaction['external_id'] ?? null;
-
         if (!$externalId) return;
 
-        $pagamento = Pagamento::whereHas('venda', fn($q) => $q->where('id', $externalId))->first();
-        if ($pagamento) {
-            $pagamento->update([
-                'pix_qrcode' => $payment['pix_qrcode'] ?? null,
-                'pix_expira_em' => $payment['pix_expires_at'] ?? null,
-            ]);
-        }
+        $venda = Venda::find($externalId);
+        if (!$venda) return;
+
+        $venda->update(['status' => 'estorno_pendente']);
+        Log::info("Venda {$venda->id} atualizada via Checkout webhook: estorno pendente");
     }
 }

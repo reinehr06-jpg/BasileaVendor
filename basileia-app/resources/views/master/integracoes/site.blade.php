@@ -19,7 +19,7 @@
                     <label style="font-size:0.8rem; font-weight:600; display:block; margin-bottom:4px;">Serviço</label>
                     <select name="service" class="form-control">
                         <option value="site">Site</option>
-                        <option value="eventos">Eventos</option>
+                        <option value="eventos">Gestão Comercial (Links)</option>
                         <option value="other">Outro</option>
                     </select>
                 </div>

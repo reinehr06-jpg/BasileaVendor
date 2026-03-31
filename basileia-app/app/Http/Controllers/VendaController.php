@@ -12,6 +12,7 @@ use App\Models\Pagamento;
 use App\Models\Venda;
 use App\Models\Vendedor;
 use App\Services\AsaasService;
+use App\Services\Checkout\CheckoutClient;
 use App\Services\ChurchProvisioningService;
 use App\Services\PagamentoService;
 use Carbon\Carbon;
@@ -315,6 +316,43 @@ class VendaController extends Controller
 
                 return redirect()->route('vendedor.vendas')
                     ->with('success', $mensagemSucesso);
+            }
+
+            // 9.2 — Criar transação no Checkout (se integrado)
+            $checkoutTransactionUuid = null;
+            try {
+                $checkoutClient = new CheckoutClient();
+                $paymentMethodMap = ['PIX' => 'pix', 'BOLETO' => 'boleto', 'CREDIT_CARD' => 'credit_card'];
+                $installments = ($request->forma_pagamento === 'CREDIT_CARD' && $request->parcelas > 1) ? ($request->parcelas ?? 1) : 1;
+
+                $checkoutResponse = $checkoutClient->createTransaction([
+                    'external_id' => 'venda_' . $venda->id,
+                    'amount' => (float) $valorFinal,
+                    'description' => "Plano {$request->plano} - {$cliente->nome_igreja}",
+                    'payment_method' => $paymentMethodMap[$request->forma_pagamento] ?? 'pix',
+                    'installments' => $installments,
+                    'customer' => [
+                        'name' => $cliente->nome_igreja,
+                        'email' => $cliente->email,
+                        'document' => preg_replace('/\D/', '', $cliente->cpf_cnpj),
+                        'phone' => $cliente->whatsapp,
+                    ],
+                    'metadata' => [
+                        'venda_id' => $venda->id,
+                        'plano' => $request->plano,
+                        'tipo_negociacao' => $request->tipo_negociacao,
+                    ],
+                ]);
+
+                if (empty($checkoutResponse['error'])) {
+                    $checkoutTransactionUuid = $checkoutResponse['transaction']['uuid'] ?? null;
+                    $venda->update(['checkout_transaction_uuid' => $checkoutTransactionUuid]);
+                    Log::info('Checkout: Transação criada com sucesso', ['venda_id' => $venda->id, 'uuid' => $checkoutTransactionUuid]);
+                } else {
+                    Log::warning('Checkout: Erro ao criar transação', ['venda_id' => $venda->id, 'error' => $checkoutResponse['message'] ?? 'Erro desconhecido']);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Checkout: Falha ao conectar', ['venda_id' => $venda->id, 'error' => $e->getMessage()]);
             }
 
             // 9.3 — Integrar com Asaas (apenas se não requer aprovação)
@@ -1049,39 +1087,111 @@ class VendaController extends Controller
     // ==========================================
     // Checkout - Gerar Link de Pagamento
     // ==========================================
-    public function gerarLinkCheckout(Venda $venda)
+    public function gerarLinkCheckout(Request $request, Venda $venda)
     {
-        // Verificar se a venda pertence ao vendedor atual ou se é master
         $user = Auth::user();
         if ($user->perfil !== 'master' && $venda->vendedor_id !== $user->vendedor->id) {
             return response()->json(['error' => 'Você não tem permissão para gerar link desta venda.'], 403);
         }
 
-        // Se já tem hash, retorna o existente
-        if ($venda->checkout_hash) {
-            $url = url('/checkout/'.$venda->checkout_hash);
+        $method = $request->get('method', $venda->forma_pagamento ?? 'credit_card');
+        $methodMap = [
+            'CREDIT_CARD' => 'credit_card',
+            'PIX' => 'pix',
+            'BOLETO' => 'boleto',
+            'cartao' => 'credit_card',
+        ];
+        $paymentMethod = $methodMap[strtoupper($method)] ?? 'credit_card';
 
+        $checkoutBaseUrl = config('checkout-integration.base_url', 'http://localhost:8001');
+        $checkoutUuid = $venda->checkout_transaction_uuid;
+
+        if (!$checkoutUuid) {
+            try {
+                $checkoutClient = new CheckoutClient();
+                $paymentMethodMap = ['PIX' => 'pix', 'BOLETO' => 'boleto', 'CREDIT_CARD' => 'credit_card'];
+                $formaPagamento = $venda->forma_pagamento ?? 'CREDIT_CARD';
+                $installments = ($formaPagamento === 'CREDIT_CARD' && $venda->parcelas > 1) ? ($venda->parcelas ?? 1) : 1;
+
+                $valor = (float) $venda->valor_final;
+                if ($venda->tipo_negociacao === 'anual' && $installments > 1) {
+                    $plano = \App\Models\Plano::where('nome', $venda->plano)->first();
+                    if ($plano && $plano->valor_anual > 0) {
+                        $valor = (float) $plano->valor_anual;
+                    }
+                }
+
+                $cliente = $venda->cliente;
+                $checkoutResponse = $checkoutClient->createTransaction([
+                    'external_id' => 'venda_' . $venda->id,
+                    'amount' => $valor,
+                    'description' => "Plano {$venda->plano} - {$cliente->nome_igreja}",
+                    'payment_method' => $paymentMethodMap[$formaPagamento] ?? 'pix',
+                    'installments' => $installments,
+                    'customer' => [
+                        'name' => $cliente->nome_igreja,
+                        'email' => $cliente->email,
+                        'document' => preg_replace('/\D/', '', $cliente->cpf_cnpj),
+                        'phone' => $cliente->whatsapp,
+                    ],
+                    'metadata' => [
+                        'venda_id' => $venda->id,
+                        'plano' => $venda->plano,
+                        'tipo_negociacao' => $venda->tipo_negociacao,
+                    ],
+                ]);
+
+                if (empty($checkoutResponse['error'])) {
+                    $checkoutUuid = $checkoutResponse['transaction']['uuid'] ?? null;
+                    $venda->update(['checkout_transaction_uuid' => $checkoutUuid]);
+                    Log::info('Checkout: Transação criada via gerarLinkCheckout', ['venda_id' => $venda->id, 'uuid' => $checkoutUuid]);
+                } else {
+                    Log::warning('Checkout: Erro ao criar transação via gerarLinkCheckout', ['venda_id' => $venda->id, 'error' => $checkoutResponse['message'] ?? 'Erro desconhecido']);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Checkout: Falha ao conectar em gerarLinkCheckout', ['venda_id' => $venda->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        // 1. Tentar URL do Checkout Externo (do Painel Master)
+        $externalBaseUrl = \App\Models\Setting::get('checkout_external_url');
+        
+        if ($externalBaseUrl) {
+            $pagamento = $venda->pagamentos->first();
+            $asaasId = $pagamento ? $pagamento->asaas_payment_id : ($venda->asaas_payment_link_id ?? null);
+            
+            $params = [
+                'id_asaas' => $asaasId,
+                'venda_id' => $venda->id,
+                'valor'    => (float) $venda->valor_final,
+                'plano'    => $venda->plano,
+                'ciclo'    => $venda->tipo_negociacao,
+                'metodo'   => $paymentMethod,
+                'hash'     => $venda->checkout_hash,
+                'cliente'  => $venda->cliente->nome_igreja ?? '',
+            ];
+            
+            $url = rtrim($externalBaseUrl, '/') . (str_contains($externalBaseUrl, '?') ? '&' : '?') . http_build_query($params);
+            
             return response()->json([
                 'success' => true,
                 'url' => $url,
-                'hash' => $venda->checkout_hash,
-                'message' => 'Link de pagamento copiado!',
+                'message' => 'Redirecionando para checkout externo...',
             ]);
         }
 
-        // Gerar novo hash
-        $hash = Str::random(32);
-        $venda->update([
-            'checkout_hash' => $hash,
-            'checkout_status' => 'PENDENTE',
-        ]);
-
-        $url = url('/checkout/'.$hash);
+        // 2. Fallback antigo
+        if ($checkoutUuid) {
+            $url = rtrim($checkoutBaseUrl, '/') . '/checkout/' . $checkoutUuid . '?method=' . $paymentMethod;
+        } else {
+            $url = url('/checkout/' . $venda->checkout_hash . '?method=' . $paymentMethod);
+        }
 
         return response()->json([
             'success' => true,
             'url' => $url,
-            'hash' => $hash,
+            'checkout_uuid' => $checkoutUuid,
+            'hash' => $venda->checkout_hash,
             'message' => 'Link de pagamento gerado!',
         ]);
     }

@@ -68,6 +68,12 @@
             <h3 class="page-title">Clientes Legados Asaas</h3>
         </div>
         <div class="col-auto">
+            <form method="POST" action="{{ route('master.legados.pullAll') }}" class="d-inline">
+                @csrf
+                <button type="submit" class="btn btn-outline-info" onclick="return confirm('Deseja iniciar a descoberta de todos os clientes no Asaas?')">
+                    <i class="fas fa-search-dollar"></i> Puxar Todos do Asaas
+                </button>
+            </form>
             <a href="{{ route('master.legados.template') }}" class="btn btn-outline-secondary" target="_blank">
                 <i class="fas fa-download"></i> Baixar Modelo
             </a>
@@ -161,20 +167,20 @@
     </div>
     <div class="col-md-2">
         <div class="stat-card">
-            <div class="number text-success">{{ $stats['imported'] }}</div>
-            <div class="label">Importados</div>
+            <div class="number text-info">{{ $stats['migrated'] }}</div>
+            <div class="label">Migrados (Auto)</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="stat-card">
-            <div class="number text-warning">{{ $stats['pending'] }}</div>
-            <div class="label">Pendentes</div>
+            <div class="number text-warning">{{ $stats['open_payments'] }}</div>
+            <div class="label">Cobranças em Aberto</div>
         </div>
     </div>
     <div class="col-md-2">
         <div class="stat-card">
-            <div class="number text-danger">{{ $stats['not_found'] }}</div>
-            <div class="label">Não Encontrados</div>
+            <div class="number text-info">{{ $stats['pending_customers'] }}</div>
+            <div class="label">Pendentes Sync</div>
         </div>
     </div>
     <div class="col-md-2">
@@ -206,7 +212,8 @@
             </div>
             <div class="col-md-2">
                 <select name="vendedor_id" class="form-select">
-                    <option value="">Todos os Vendedores</option>
+                    <option value="">Vendedor</option>
+                    <option value="none" {{ request('vendedor_id') == 'none' || request('sem_vendedor') ? 'selected' : '' }}>Sem Vendedor</option>
                     @foreach($vendedores as $vendedor)
                         <option value="{{ $vendedor->id }}" {{ request('vendedor_id') == $vendedor->id ? 'selected' : '' }}>
                             {{ $vendedor->user->name ?? 'Vendedor #' . $vendedor->id }}
@@ -243,6 +250,20 @@
                 </select>
             </div>
             <div class="col-md-2">
+                <select name="reference_month" class="form-select">
+                    <option value="">Mês de Referência (Comissões)</option>
+                    @php
+                        $start = \Carbon\Carbon::now()->addMonths(2);
+                        $end = \Carbon\Carbon::now()->subMonths(12);
+                    @endphp
+                    @for($m = $start; $m->gt($end); $m->subMonth())
+                        <option value="{{ $m->format('Y-m') }}" {{ request('reference_month') == $m->format('Y-m') ? 'selected' : '' }}>
+                            {{ $m->translatedFormat('F/Y') }}
+                        </option>
+                    @endfor
+                </select>
+            </div>
+            <div class="col-md-1">
                 <button type="submit" class="btn btn-primary w-100">Filtrar</button>
             </div>
         </form>
@@ -256,11 +277,18 @@
                 <h5 class="card-title">Clientes Importados ({{ $imports->total() }})</h5>
             </div>
             <div class="col-auto">
+                <form method="POST" action="{{ route('master.legados.generateRecurring') }}" class="d-inline me-2">
+                    @csrf
+                    <input type="hidden" name="month" value="{{ request('reference_month', now()->format('Y-m')) }}">
+                    <button type="submit" class="btn btn-outline-primary" onclick="return confirm('Deseja gerar as comissões recorrentes para o mês {{ request('reference_month', now()->format('Y-m')) }}?')">
+                        <i class="fas fa-money-check-alt"></i> Gerar Comissões ({{ request('reference_month', now()->format('Y-m')) }})
+                    </button>
+                </form>
                 <form method="POST" action="{{ route('master.legados.importBatch') }}" class="d-inline">
                     @csrf
                     <input type="hidden" name="vendedor_id" value="{{ request('vendedor_id') }}">
                     <button type="submit" class="btn btn-outline-success" onclick="return confirm('Isso irá buscar clientes do Asaas. Continuar?')">
-                        <i class="fas fa-download"></i> Importar do Asaas
+                        <i class="fas fa-download"></i> Atualizar do Asaas
                     </button>
                 </form>
             </div>
@@ -275,8 +303,8 @@
                     <th>Vendedor</th>
                     <th>Plano</th>
                     <th>Status Asaas</th>
-                    <th>Recorrência</th>
-                    <th>Importação</th>
+                    <th>Migração</th>
+                    <th>Última Cobrança</th>
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -291,14 +319,42 @@
                     <td>
                         @if($import->vendedor)
                             <span class="badge bg-primary">{{ $import->vendedor->user->name ?? 'Vendedor #' . $import->vendedor_id }}</span>
+                            @if(str_contains($import->notes, 'Vendedor descoberto'))
+                                <span class="badge bg-info p-1 ms-1" style="font-size: 0.5rem;" title="Identificado automaticamente"><i class="fas fa-magic"></i> AUTO</span>
+                            @endif
                         @else
-                            <span class="badge bg-secondary">Não definido</span>
+                            <form action="{{ route('master.legados.update', $import->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                @method('PUT')
+                                <select name="vendedor_id" class="form-select form-select-sm" onchange="this.form.submit()" style="max-width: 150px;">
+                                    <option value="">Atribuir...</option>
+                                    @foreach($vendedores as $v)
+                                        <option value="{{ $v->id }}">{{ $v->user->name ?? 'Vendedor #'.$v->id }}</option>
+                                    @endforeach
+                                </select>
+                            </form>
                         @endif
                     </td>
                     <td>
                         @if($import->plano)
-                            {{ $import->plano->nome }}
-                            <div class="small text-muted">R$ {{ number_format($import->plano_valor_recorrente ?? 0, 2, ',', '.') }}/mês</div>
+                            <div class="fw-bold">
+                                {{ $import->plano->nome }}
+                                @if(str_contains($import->notes, 'Plano identificado'))
+                                    <span class="badge bg-info p-1 ms-1" style="font-size: 0.5rem;" title="Identificado automaticamente"><i class="fas fa-magic"></i> AUTO</span>
+                                @endif
+                            </div>
+                            <div class="small text-muted">R$ {{ number_format($import->plano_valor_recorrente ?? 0, 2, ',', '.') }}</div>
+                            @if($import->payments()->where('total_installments', '>', 1)->exists())
+                                @php 
+                                    $inst = $import->payments()->where('total_installments', '>', 1)->orderByDesc('installment_number')->first(); 
+                                    $totalInst = ($inst && $inst->total_installments > 0) ? $inst->total_installments : 1;
+                                    $paidCount = $import->payments()->whereIn('status', ['RECEIVED', 'CONFIRMED'])->count();
+                                @endphp
+                                <div class="progress mt-1" style="height: 6px;" title="{{ $paidCount }}/{{ $totalInst }} parcelas">
+                                    <div class="progress-bar bg-success" style="width: {{ ($paidCount / $totalInst) * 100 }}%"></div>
+                                </div>
+                                <div class="small text-muted" style="font-size: 0.65rem;">{{ $paidCount }}/{{ $totalInst }} parcelas</div>
+                            @endif
                         @else
                             <span class="badge bg-secondary">Não definido</span>
                         @endif
@@ -309,14 +365,34 @@
                         </span>
                     </td>
                     <td>
-                        <span class="status-badge {{ $import->subscription_status === 'ACTIVE' ? 'success' : ($import->subscription_status === 'NONE' ? 'secondary' : 'warning') }}">
-                            {{ $import->subscription_status ?? 'N/A' }}
-                        </span>
+                        @if($import->local_cliente_id)
+                            <span class="status-badge success"><i class="fas fa-check-circle me-1"></i> MIGRADO</span>
+                            <div class="mt-1">
+                                <a href="{{ route('master.clientes.show', $import->local_cliente_id) }}" class="btn btn-xs btn-outline-info p-1" style="font-size: 0.6rem;" target="_blank">
+                                    <i class="fas fa-external-link-alt"></i> Ver Ativo
+                                </a>
+                            </div>
+                        @else
+                            <span class="status-badge secondary">AGUARDANDO</span>
+                        @endif
                     </td>
                     <td>
-                        <span class="status-badge {{ $import->status_color }}">
-                            {{ $import->import_status }}
-                        </span>
+                        @php
+                            $lastPayment = $import->payments()->orderBy('due_date', 'desc')->first();
+                            $hasOpen = $import->payments()->whereIn('status', ['PENDING', 'OVERDUE'])->exists();
+                        @endphp
+                        @if($lastPayment)
+                            <div class="small">
+                                <span class="badge bg-light text-dark">{{ $lastPayment->billing_type }} {{ $lastPayment->installment_number ? "({$lastPayment->installment_number}/{$lastPayment->total_installments})" : '' }}</span>
+                                @if($hasOpen)
+                                    <span class="badge bg-danger ms-1" title="Existem pagamentos em haver">EM HAVER</span>
+                                @endif
+                            </div>
+                            <div class="small text-muted">Venc: {{ $lastPayment->due_date?->format('d/m/Y') }}</div>
+                            <span class="status-badge {{ $lastPayment->getStatusColorAttribute() }}" style="font-size: 0.6rem; padding: 2px 6px;">{{ $lastPayment->status }}</span>
+                        @else
+                            <span class="text-muted small">Nenhuma</span>
+                        @endif
                     </td>
                     <td>
                         <a href="{{ route('master.legados.show', $import->id) }}" class="action-btn" title="Ver detalhes">

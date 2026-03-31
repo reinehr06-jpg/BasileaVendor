@@ -38,38 +38,38 @@ Route::get('/', function () {
 // ==========================================
 // Checkout Público (sem autenticação)
 // ==========================================
-Route::prefix('checkout')->name('checkout.')->group(function () {
-    Route::get('/{hash}', [CheckoutController::class, 'show'])->name('show');
-    Route::post('/{hash}/process', [CheckoutController::class, 'process'])->name('process');
-    Route::get('/{hash}/success', [CheckoutController::class, 'success'])->name('success');
-    Route::get('/{hash}/cancel', [CheckoutController::class, 'cancel'])->name('cancel');
-});
+// Route::prefix('checkout')->name('checkout.')->group(function () {
+//     Route::get('/{hash}', [CheckoutController::class, 'show'])->name('show');
+//     Route::post('/{hash}/process', [CheckoutController::class, 'process'])->name('process');
+//     Route::get('/{hash}/success', [CheckoutController::class, 'success'])->name('success');
+//     Route::get('/{hash}/cancel', [CheckoutController::class, 'cancel'])->name('cancel');
+// });
 
 // ==========================================
 // Link de indicação do vendedor
 // ==========================================
-Route::get('/indicar/{vendedor_hash}', [CheckoutController::class, 'indicacao'])->name('indicacao');
-Route::post('/checkout/criar', [CheckoutController::class, 'criarVenda'])->name('checkout.criar');
+// Route::get('/indicar/{vendedor_hash}', [CheckoutController::class, 'indicacao'])->name('indicacao');
+// Route::post('/checkout/criar', [CheckoutController::class, 'criarVenda'])->name('checkout.criar');
 
 // ==========================================
 // NOVO Checkout SaaS (Alta Conversão)
 // ==========================================
-Route::prefix('co')->name('checkout.new.')->group(function () {
-    Route::get('/evento/{slug}', [CheckoutNewController::class, 'evento'])->name('evento');
-    Route::post('/evento/{slug}/pay', [CheckoutNewController::class, 'eventoPay'])->name('evento.pay');
-    Route::get('/{offerSlug}', [CheckoutNewController::class, 'start'])->name('start');
-    Route::get('/resume/{token}', [CheckoutNewController::class, 'resume'])->name('resume');
-    Route::post('/identify', [CheckoutNewController::class, 'identify'])->name('identify');
-    Route::post('/pricing', [CheckoutNewController::class, 'calculatePricing'])->name('pricing');
-    Route::post('/validate-coupon', [CheckoutNewController::class, 'validateCoupon'])->name('validate-coupon');
-    Route::post('/pay', [CheckoutNewController::class, 'pay'])->name('pay');
-    Route::get('/success/{orderNumber}', [CheckoutNewController::class, 'success'])->name('success');
-    Route::get('/payment-status/{paymentUuid}', [CheckoutNewController::class, 'paymentStatus'])->name('payment-status');
+// Route::prefix('co')->name('checkout.new.')->group(function () {
+//     Route::get('/evento/{slug}', [CheckoutNewController::class, 'evento'])->name('evento');
+//     Route::post('/evento/{slug}/pay', [CheckoutNewController::class, 'eventoPay'])->name('evento.pay');
+//     Route::get('/{offerSlug}', [CheckoutNewController::class, 'start'])->name('start');
+//     Route::get('/resume/{token}', [CheckoutNewController::class, 'resume'])->name('resume');
+//     Route::post('/identify', [CheckoutNewController::class, 'identify'])->name('identify');
+//     Route::post('/pricing', [CheckoutNewController::class, 'calculatePricing'])->name('pricing');
+//     Route::post('/validate-coupon', [CheckoutNewController::class, 'validateCoupon'])->name('validate-coupon');
+//     Route::post('/pay', [CheckoutNewController::class, 'pay'])->name('pay');
+//     Route::get('/success/{orderNumber}', [CheckoutNewController::class, 'success'])->name('success');
+//     Route::get('/payment-status/{paymentUuid}', [CheckoutNewController::class, 'paymentStatus'])->name('payment-status');
 
-    // API - Cartões salvos
-    Route::get('/api/cards', [SubscriptionCardController::class, 'list'])->name('api.cards');
-    Route::delete('/api/cards/{cardId}', [SubscriptionCardController::class, 'delete'])->name('api.cards.delete');
-});
+//     // API - Cartões salvos
+//     Route::get('/api/cards', [SubscriptionCardController::class, 'list'])->name('api.cards');
+//     Route::delete('/api/cards/{cardId}', [SubscriptionCardController::class, 'delete'])->name('api.cards.delete');
+// });
 
 // ==========================================
 // Webhooks e Manutenção (Deploy AWS)
@@ -87,31 +87,9 @@ Route::get('/master-recovery-fix', [\App\Http\Controllers\MasterFixController::c
 Route::get('/emergency-database-reset-2026', [\App\Http\Controllers\DatabaseResetController::class, 'reset'])->name('database.emergency-reset');
 
 // Teste: gerar link de checkout rápido
-Route::get('/test-checkout', function() {
-    $plano = \App\Models\Plano::first();
-    
-    if (!$plano) {
-        return response('Nenhum plano cadastrado', 400);
-    }
-    
-    $venda = \App\Models\Venda::create([
-        'cliente_id' => 1,
-        'vendedor_id' => 1,
-        'plano_id' => $plano->id,
-        'plano' => $plano->nome,
-        'valor' => $plano->valor_mensal ?? 97,
-        'valor_original' => $plano->valor_mensal ?? 97,
-        'valor_final' => $plano->valor_mensal ?? 97,
-        'forma_pagamento' => 'pix',
-        'status' => 'AGUARDANDO_PAGAMENTO',
-        'data_venda' => now()->format('Y-m-d'),
-        'checkout_hash' => \Illuminate\Support\Str::random(32),
-        'checkout_status' => 'PENDENTE',
-        'origem' => 'checkout_proprio',
-    ]);
-    
-    return redirect('/checkout/' . $venda->checkout_hash);
-});
+// Route::get('/test-checkout', function() {
+// ... (comentado)
+// });
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::get('/Login', function() { return redirect('/login'); });
@@ -211,6 +189,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/legados/{legado}', [LegacyCustomerController::class, 'destroy'])->name('legados.destroy');
         Route::post('/legados/import-single', [LegacyCustomerController::class, 'importSingle'])->name('legados.importSingle');
         Route::post('/legados/import-batch', [LegacyCustomerController::class, 'importBatch'])->name('legados.importBatch');
+        Route::post('/legados/pull-all', [LegacyCustomerController::class, 'pullAll'])->name('legados.pullAll');
         Route::post('/legados/{legado}/sync', [LegacyCustomerController::class, 'sync'])->name('legados.sync');
         
         // Comissões Legadas
@@ -330,5 +309,5 @@ Route::post('/webhook/saque', function () {
 Route::post('/webhook/asaas', [\App\Http\Controllers\BasileiaChurchWebhookController::class, 'webhookAsaas']);
 Route::post('/webhook/basileia-church/sync', [\App\Http\Controllers\BasileiaChurchWebhookController::class, 'syncCliente']);
 
-// Checkout Service - Webhook (recebe eventos do serviço de Checkout independente)
+// Checkout - Webhook que recebe eventos do Checkout (serviço externo)
 Route::post('/webhook/checkout', [\App\Http\Controllers\Integration\CheckoutWebhookController::class, 'handle'])->name('webhook.checkout');

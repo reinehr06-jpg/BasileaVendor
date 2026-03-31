@@ -12,7 +12,34 @@ class CheckoutController extends Controller
 {
     public function show(Request $request, $hash)
     {
-        // Alterado para aceitar múltiplos status de pendência (Aguardando pagamento, pendente, etc)
+        // 1. Tentar redirecionar para o Checkout Externo se configurado
+        $externalBaseUrl = \App\Models\Setting::get('checkout_external_url');
+        $venda = Venda::where('checkout_hash', $hash)->first();
+
+        if ($externalBaseUrl && $venda) {
+            $pagamento = $venda->pagamentos->first();
+            $asaasId = $pagamento ? $pagamento->asaas_payment_id : ($venda->asaas_payment_link_id ?? null);
+            $restritoMetodo = $request->get('method', 'credit_card');
+
+            $params = [
+                'id_asaas' => $asaasId,
+                'venda_id' => $venda->id,
+                'valor'    => (float) $venda->valor_final,
+                'plano'    => $venda->plano,
+                'ciclo'    => $venda->tipo_negociacao,
+                'metodo'   => $restritoMetodo,
+                'hash'     => $venda->checkout_hash,
+                'cliente'  => $venda->cliente->nome_igreja ?? '',
+                'redirect' => 'true' // Flag para indicar que veio de redirecionamento
+            ];
+
+            $url = rtrim($externalBaseUrl, '/') . (str_contains($externalBaseUrl, '?') ? '&' : '?') . http_build_query($params);
+            return redirect()->away($url);
+        }
+
+        // 2. Lógica antiga (caso não tenha URL externa ou venda não encontrada)
+        if (!$venda) abort(404);
+        
         $venda = Venda::where('checkout_hash', $hash)
             ->whereIn('status', ['pendente', 'Aguardando pagamento', 'AGUARDANDO_PAGAMENTO', 'Aguardando aprovação', 'Aguardando Aprovação', 'pendente_asaas'])
             ->firstOrFail();

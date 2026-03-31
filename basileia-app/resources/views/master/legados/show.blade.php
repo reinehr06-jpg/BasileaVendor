@@ -119,6 +119,27 @@
                         <div class="value">{{ $legado->asaas_customer_id ?? 'N/A' }}</div>
                     </div>
                 </div>
+
+                @if($legado->payments()->where('total_installments', '>', 1)->exists())
+                    @php 
+                        $inst = $legado->payments()->where('total_installments', '>', 1)->orderByDesc('installment_number')->first();
+                        $paidCount = $legado->payments()->whereIn('status', ['RECEIVED', 'CONFIRMED'])->count();
+                        $totalInst = ($inst && $inst->total_installments > 0) ? $inst->total_installments : 1;
+                        $percent = ($paidCount / $totalInst) * 100;
+                    @endphp
+                    <div class="mt-4 p-3 border rounded bg-light">
+                        <label class="small fw-bold text-uppercase text-muted d-block mb-2">Progresso do Parcelamento ({{ $totalInst }}x)</label>
+                        <div class="d-flex align-items-center">
+                            <div class="progress flex-grow-1" style="height: 12px;">
+                                <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ $percent }}%"></div>
+                            </div>
+                            <span class="ms-3 fw-bold">{{ $paidCount }}/{{ $totalInst }}</span>
+                        </div>
+                        <div class="mt-1 small text-muted">
+                            Total já pago: <strong>R$ {{ number_format($legado->payments()->whereIn('status', ['RECEIVED', 'CONFIRMED'])->sum('value'), 2, ',', '.') }}</strong>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
 
@@ -189,6 +210,8 @@
                             <th>Valor</th>
                             <th>Vencimento</th>
                             <th>Pagamento</th>
+                            <th>Parcela</th>
+                            <th>Método</th>
                             <th>Status</th>
                             <th>Tipo</th>
                         </tr>
@@ -199,6 +222,14 @@
                             <td>R$ {{ number_format($payment->value, 2, ',', '.') }}</td>
                             <td>{{ $payment->due_date?->format('d/m/Y') ?? 'N/A' }}</td>
                             <td>{{ $payment->paid_at?->format('d/m/Y') ?? '-' }}</td>
+                            <td>
+                                @if($payment->installment_number)
+                                    <span class="badge bg-light text-dark">{{ $payment->installment_number }}/{{ $payment->total_installments }}</span>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td><small>{{ $payment->billing_type }} {{ $payment->payment_method ? "($payment->payment_method)" : "" }}</small></td>
                             <td>
                                 <span class="status-badge {{ $payment->status_color }}">
                                     {{ $payment->status }}
@@ -223,6 +254,26 @@
                 <h5 class="card-title">Comissões</h5>
             </div>
             <div class="card-body">
+                @php 
+                    $marchComm = $legado->commissions()->where('reference_month', '2026-03')->first();
+                @endphp
+                
+                @if($marchComm)
+                <div class="alert alert-info border-info mb-4">
+                    <h6 class="alert-heading fw-bold mb-1"><i class="fas fa-calendar-check"></i> Comissão de Março/2026</h6>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-{{ $marchComm->status === 'PAID' ? 'success' : 'primary' }} mb-1">
+                                {{ $marchComm->status === 'PAID' ? 'PAGO' : 'GERADA' }}
+                            </span>
+                            <div class="fs-4 fw-bold">R$ {{ number_format($marchComm->seller_commission_amount, 2, ',', '.') }}</div>
+                        </div>
+                        <i class="fas fa-hand-holding-usd fa-2x opacity-25"></i>
+                    </div>
+                </div>
+                @endif
+
+                <h6 class="small fw-bold text-muted text-uppercase mb-3">Histórico de Comissões</h6>
                 @forelse($legado->commissions as $commission)
                 <div class="border rounded p-2 mb-2">
                     <div class="d-flex justify-content-between">

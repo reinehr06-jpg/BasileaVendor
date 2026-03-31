@@ -39,7 +39,7 @@ class PasswordChangeController extends Controller
         $user = Auth::user();
         
         // Update password and clear requirement
-        $user->password = Hash::make($request->password);
+        $user->password = $request->password;
         $user->require_password_change = false;
         $user->save();
 
