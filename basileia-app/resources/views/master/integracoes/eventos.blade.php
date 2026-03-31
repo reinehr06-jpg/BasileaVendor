@@ -16,6 +16,8 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 28px;
+        position: relative;
+        z-index: 10;
     }
 
     .page-title h1 {
@@ -180,13 +182,18 @@
     /* Modal Styles */
     .modal-overlay {
         position: fixed;
-        inset: 0;
-        background: rgba(15, 23, 42, 0.75);
-        backdrop-filter: blur(4px);
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(8px);
         display: none;
         align-items: center;
         justify-content: center;
-        z-index: 1000;
+        z-index: 9999 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
     }
 
     .modal-content {
@@ -266,7 +273,7 @@
             <p>Monitore suas vendas por link em tempo real</p>
         </div>
         @if(!$config_faltante)
-        <button class="btn-create-link" onclick="toggleModal(true)">
+        <button class="btn-create-link" onclick="openBasileiaModal(true)">
             <i class="fas fa-plus"></i> Novo Link de Pagamento
         </button>
         @endif
@@ -404,7 +411,7 @@
                         <td colspan="6" class="text-center py-5 text-muted">
                             <img src="https://illustrations.popsy.co/purple/searching.svg" style="width: 120px; margin-bottom: 20px;" alt="Vazio">
                             <p class="font-weight-bold">Nenhum link ativo encontrado.</p>
-                            <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="toggleModal(true)">Crie o seu primeiro agora</button>
+                            <button class="btn btn-outline-primary btn-sm rounded-pill" onclick="openBasileiaModal(true)">Crie o seu primeiro agora</button>
                         </td>
                     </tr>
                     @endforelse
@@ -419,7 +426,7 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3 class="m-0 font-weight-bold" style="font-size: 1.1rem; color: #1e293b;">Gerar Novo Link Master</h3>
-            <button class="btn btn-sm btn-light rounded-circle" onclick="toggleModal(false)">
+            <button type="button" class="btn btn-sm btn-light rounded-circle" onclick="openBasileiaModal(false)">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -502,7 +509,7 @@
                     <button type="submit" class="btn-create-link w-100 justify-content-center py-3">
                         <i class="fas fa-rocket mr-2"></i> Criar e Ativar Link no Asaas
                     </button>
-                    <button type="button" class="btn btn-link w-100 mt-2 text-muted small" onclick="toggleModal(false)">Cancelar</button>
+                    <button type="button" class="btn btn-link w-100 mt-2 text-muted small" onclick="openBasileiaModal(false)">Cancelar</button>
                 </div>
             </form>
         </div>
@@ -510,8 +517,19 @@
 </div>
 
 <script>
-    function toggleModal(show) {
-        document.getElementById('modalNovoLink').style.display = show ? 'flex' : 'none';
+    function openBasileiaModal(show) {
+        console.log('Tentando abrir modal:', show);
+        const modal = document.getElementById('modalNovoLink');
+        if (modal) {
+            modal.style.display = show ? 'flex' : 'none';
+            if(show) {
+                document.body.style.overflow = 'hidden'; // Trava o scroll do fundo
+            } else {
+                document.body.style.overflow = 'auto'; 
+            }
+        } else {
+            console.error('Modal modalNovoLink não encontrado no DOM');
+        }
     }
 
     function copyToClipboard(text, btn) {
@@ -529,7 +547,7 @@
     window.onclick = function(event) {
         let modal = document.getElementById('modalNovoLink');
         if (event.target == modal) {
-            toggleModal(false);
+            openBasileiaModal(false);
         }
     }
 </script>
