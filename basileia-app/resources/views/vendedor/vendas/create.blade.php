@@ -146,6 +146,40 @@
                 @error('email_cliente') <div class="field-error">{{ $message }}</div> @enderror
             </div>
         </div>
+
+        <div class="form-row">
+            <div class="form-group" style="flex: 0.3;">
+                <label>CEP</label>
+                <input type="text" name="cep" id="inputCep" class="form-control" value="{{ old('cep') }}" placeholder="00000-000">
+            </div>
+            <div class="form-group" style="flex: 0.5;">
+                <label>Endereço</label>
+                <input type="text" name="endereco" id="inputEndereco" class="form-control" value="{{ old('endereco') }}" placeholder="Avenida Brasil">
+            </div>
+            <div class="form-group" style="flex: 0.2;">
+                <label>Número</label>
+                <input type="text" name="numero" id="inputNumero" class="form-control" value="{{ old('numero') }}" placeholder="123">
+            </div>
+        </div>
+        
+        <div class="form-row" style="margin-top: 5px;">
+            <div class="form-group" style="flex: 0.3;">
+                <label>Complemento</label>
+                <input type="text" name="complemento" id="inputComplemento" class="form-control" value="{{ old('complemento') }}" placeholder="Sala 4, Bloco B">
+            </div>
+            <div class="form-group" style="flex: 0.3;">
+                <label>Bairro</label>
+                <input type="text" name="bairro" id="inputBairro" class="form-control" value="{{ old('bairro') }}" placeholder="Centro">
+            </div>
+            <div class="form-group" style="flex: 0.3;">
+                <label>Cidade</label>
+                <input type="text" name="cidade" id="inputCidade" class="form-control" value="{{ old('cidade') }}" placeholder="São Paulo">
+            </div>
+            <div class="form-group" style="flex: 0.1;">
+                <label>UF</label>
+                <input type="text" name="estado" id="inputEstado" class="form-control" value="{{ old('estado') }}" placeholder="SP" maxlength="2">
+            </div>
+        </div>
     </div>
 
     <!-- ===== BLOCO 2: Dados Comerciais ===== -->
@@ -633,6 +667,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         this.value = v;
     });
+
+    // CEP mask e ViaCEP
+    const inputCep = document.getElementById('inputCep');
+    if (inputCep) {
+        inputCep.addEventListener('input', function(e) {
+            let v = this.value.replace(/\D/g, '');
+            if (v.length > 5) v = v.substring(0,5) + '-' + v.substring(5,8);
+            this.value = v;
+        });
+
+        inputCep.addEventListener('blur', function() {
+            let cep = this.value.replace(/\D/g, '');
+            if (cep.length === 8) {
+                fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data.erro) {
+                            document.getElementById('inputEndereco').value = data.logradouro;
+                            document.getElementById('inputBairro').value = data.bairro;
+                            document.getElementById('inputCidade').value = data.localidade;
+                            document.getElementById('inputEstado').value = data.uf;
+                            document.getElementById('inputNumero').focus();
+                        }
+                    });
+            }
+        });
+    }
 
     // Init
     if (inputMembros.value) inputMembros.dispatchEvent(new Event('input'));

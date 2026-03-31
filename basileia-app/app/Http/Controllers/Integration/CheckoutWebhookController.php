@@ -41,29 +41,41 @@ class CheckoutWebhookController extends Controller
             'external_id' => $transaction['external_id'] ?? null,
         ]);
 
-        match ($event) {
-            'payment.approved' => $this->handlePaymentApproved($transaction),
-            'payment.refused' => $this->handlePaymentRefused($transaction),
-            'payment.pending' => $this->handlePaymentPending($transaction),
-            'payment.overdue' => $this->handlePaymentOverdue($transaction),
-            'payment.refunded' => $this->handlePaymentRefunded($transaction),
-            'payment.cancelled' => $this->handlePaymentCancelled($transaction),
-            'payment.refund_pending' => $this->handlePaymentRefundPending($transaction),
+        // Suporte para eventos em maiúsculo (padrão) ou minúsculo
+        $eventNormalized = strtoupper($event);
+
+        match ($eventNormalized) {
+            'PAYMENT_APPROVED', 'PAYMENT.APPROVED' => $this->handlePaymentApproved($transaction),
+            'PAYMENT_REFUSED', 'PAYMENT.REFUSED' => $this->handlePaymentRefused($transaction),
+            'PAYMENT_PENDING', 'PAYMENT.PENDING' => $this->handlePaymentPending($transaction),
+            'PAYMENT_OVERDUE', 'PAYMENT.OVERDUE' => $this->handlePaymentOverdue($transaction),
+            'PAYMENT_REFUNDED', 'PAYMENT.REFUNDED' => $this->handlePaymentRefunded($transaction),
+            'PAYMENT_CANCELLED', 'PAYMENT.CANCELLED' => $this->handlePaymentCancelled($transaction),
+            'PAYMENT_REFUND_PENDING', 'PAYMENT.REFUND_PENDING' => $this->handlePaymentRefundPending($transaction),
             default => Log::info("Checkout webhook: evento não tratado: {$event}"),
         };
 
         return response()->json(['received' => true]);
     }
 
+    private function extractVendaId($externalId): ?int
+    {
+        if (!$externalId) return null;
+        // Se externalId vier como "venda_84", retorna 84
+        return (int) preg_replace('/\D/', '', $externalId);
+    }
+
     private function handlePaymentApproved(array $transaction): void
     {
         $externalId = $transaction['external_id'] ?? null;
-        if (!$externalId) {
+        $vendaId = $this->extractVendaId($externalId);
+        
+        if (!$vendaId) {
             Log::warning('Checkout webhook: external_id não encontrado');
             return;
         }
 
-        $venda = Venda::find($externalId);
+        $venda = Venda::find($vendaId);
         if (!$venda) {
             Log::warning("Checkout webhook: venda {$externalId} não encontrada");
             return;
@@ -90,9 +102,10 @@ class CheckoutWebhookController extends Controller
     private function handlePaymentRefused(array $transaction): void
     {
         $externalId = $transaction['external_id'] ?? null;
-        if (!$externalId) return;
+        $vendaId = $this->extractVendaId($externalId);
+        if (!$vendaId) return;
 
-        $venda = Venda::find($externalId);
+        $venda = Venda::find($vendaId);
         if (!$venda) return;
 
         $venda->update(['status' => 'recusada']);
@@ -108,9 +121,10 @@ class CheckoutWebhookController extends Controller
     private function handlePaymentPending(array $transaction): void
     {
         $externalId = $transaction['external_id'] ?? null;
-        if (!$externalId) return;
+        $vendaId = $this->extractVendaId($externalId);
+        if (!$vendaId) return;
 
-        $venda = Venda::find($externalId);
+        $venda = Venda::find($vendaId);
         if (!$venda) return;
 
         $venda->update(['status' => 'pendente']);
@@ -120,9 +134,10 @@ class CheckoutWebhookController extends Controller
     private function handlePaymentOverdue(array $transaction): void
     {
         $externalId = $transaction['external_id'] ?? null;
-        if (!$externalId) return;
+        $vendaId = $this->extractVendaId($externalId);
+        if (!$vendaId) return;
 
-        $venda = Venda::find($externalId);
+        $venda = Venda::find($vendaId);
         if (!$venda) return;
 
         $venda->update(['status' => 'vencida']);
@@ -132,9 +147,10 @@ class CheckoutWebhookController extends Controller
     private function handlePaymentRefunded(array $transaction): void
     {
         $externalId = $transaction['external_id'] ?? null;
-        if (!$externalId) return;
+        $vendaId = $this->extractVendaId($externalId);
+        if (!$vendaId) return;
 
-        $venda = Venda::find($externalId);
+        $venda = Venda::find($vendaId);
         if (!$venda) return;
 
         $venda->update(['status' => 'estornada']);
@@ -150,9 +166,10 @@ class CheckoutWebhookController extends Controller
     private function handlePaymentCancelled(array $transaction): void
     {
         $externalId = $transaction['external_id'] ?? null;
-        if (!$externalId) return;
+        $vendaId = $this->extractVendaId($externalId);
+        if (!$vendaId) return;
 
-        $venda = Venda::find($externalId);
+        $venda = Venda::find($vendaId);
         if (!$venda) return;
 
         $venda->update(['status' => 'cancelada']);
@@ -162,9 +179,10 @@ class CheckoutWebhookController extends Controller
     private function handlePaymentRefundPending(array $transaction): void
     {
         $externalId = $transaction['external_id'] ?? null;
-        if (!$externalId) return;
+        $vendaId = $this->extractVendaId($externalId);
+        if (!$vendaId) return;
 
-        $venda = Venda::find($externalId);
+        $venda = Venda::find($vendaId);
         if (!$venda) return;
 
         $venda->update(['status' => 'estorno_pendente']);

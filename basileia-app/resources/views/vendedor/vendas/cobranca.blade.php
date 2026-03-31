@@ -119,9 +119,15 @@
                 </button>
             @endif
 
+            @if($venda->checkout_payment_link)
+                <button type="button" onclick="copyToClipboard('{{ $venda->checkout_payment_link }}')" class="btn btn-primary" style="background: var(--success); border-color: var(--success); color: #fff; box-shadow: 0 4px 10px rgba(34,197,94,0.3);">
+                    <i class="fas fa-external-link-alt"></i> Copiar Link do Checkout
+                </button>
+            @endif
+
             @if($invoiceUrl)
-                <button onclick="copyToClipboard('{{ $invoiceUrl }}')" class="btn btn-outline-primary">
-                    <i class="fas fa-link"></i> Copiar URL de Compra
+                <button type="button" onclick="copyToClipboard('{{ $invoiceUrl }}')" class="btn btn-outline-primary">
+                    <i class="fas fa-link"></i> Copiar Link Asaas
                 </button>
             @endif
 

@@ -27,7 +27,7 @@ class Venda extends Model
         'valor_original', 'valor_desconto', 'valor_final', 'valor_comissao', 'observacao', 'observacao_interna', 'observacoes', 'origem', 'data_venda',
         'parcelas',
         // Campos de checkout
-        'checkout_hash', 'checkout_status', 'checkout_transaction_uuid',
+        'checkout_hash', 'checkout_status', 'checkout_transaction_uuid', 'checkout_payment_link',
         // Campos de aprovação
         'requer_aprovacao', 'status_aprovacao', 'aprovado_por', 'aprovado_em',
         // Campos Asaas

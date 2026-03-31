@@ -247,6 +247,13 @@ class VendaController extends Controller
                     'whatsapp' => $request->whatsapp,
                     'contato' => $request->whatsapp,
                     'email' => $request->email_cliente,
+                    'cep' => $request->cep,
+                    'endereco' => $request->endereco,
+                    'numero' => $request->numero,
+                    'complemento' => $request->complemento,
+                    'bairro' => $request->bairro,
+                    'cidade' => $request->cidade,
+                    'estado' => $request->estado,
                 ]
             );
 
@@ -318,41 +325,19 @@ class VendaController extends Controller
                     ->with('success', $mensagemSucesso);
             }
 
-            // 9.2 — Criar transação no Checkout (se integrado)
+            // 9.2 — Criar transação no Checkout Externo Desacoplado
             $checkoutTransactionUuid = null;
             try {
-                $checkoutClient = new CheckoutClient();
-                $paymentMethodMap = ['PIX' => 'pix', 'BOLETO' => 'boleto', 'CREDIT_CARD' => 'credit_card'];
-                $installments = ($request->forma_pagamento === 'CREDIT_CARD' && $request->parcelas > 1) ? ($request->parcelas ?? 1) : 1;
-
-                $checkoutResponse = $checkoutClient->createTransaction([
-                    'external_id' => 'venda_' . $venda->id,
-                    'amount' => (float) $valorFinal,
-                    'description' => "Plano {$request->plano} - {$cliente->nome_igreja}",
-                    'payment_method' => $paymentMethodMap[$request->forma_pagamento] ?? 'pix',
-                    'installments' => $installments,
-                    'customer' => [
-                        'name' => $cliente->nome_igreja,
-                        'email' => $cliente->email,
-                        'document' => preg_replace('/\D/', '', $cliente->cpf_cnpj),
-                        'phone' => $cliente->whatsapp,
-                    ],
-                    'metadata' => [
-                        'venda_id' => $venda->id,
-                        'plano' => $request->plano,
-                        'tipo_negociacao' => $request->tipo_negociacao,
-                    ],
-                ]);
-
-                if (empty($checkoutResponse['error'])) {
-                    $checkoutTransactionUuid = $checkoutResponse['transaction']['uuid'] ?? null;
-                    $venda->update(['checkout_transaction_uuid' => $checkoutTransactionUuid]);
-                    Log::info('Checkout: Transação criada com sucesso', ['venda_id' => $venda->id, 'uuid' => $checkoutTransactionUuid]);
+                $checkoutService = new \App\Services\ExternalCheckoutService();
+                $checkoutTransactionUuid = $checkoutService->createTransactionForVenda($venda, $cliente);
+                
+                if ($checkoutTransactionUuid) {
+                    Log::info('Checkout Externo: Transação criada com sucesso', ['venda_id' => $venda->id, 'uuid' => $checkoutTransactionUuid]);
                 } else {
-                    Log::warning('Checkout: Erro ao criar transação', ['venda_id' => $venda->id, 'error' => $checkoutResponse['message'] ?? 'Erro desconhecido']);
+                    Log::warning('Checkout Externo: Erro ao criar transação ou API não configurada', ['venda_id' => $venda->id]);
                 }
             } catch (\Exception $e) {
-                Log::warning('Checkout: Falha ao conectar', ['venda_id' => $venda->id, 'error' => $e->getMessage()]);
+                Log::warning('Checkout Externo: Falha ao conectar', ['venda_id' => $venda->id, 'error' => $e->getMessage()]);
             }
 
             // 9.3 — Integrar com Asaas (apenas se não requer aprovação)
