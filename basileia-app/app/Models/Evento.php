@@ -14,7 +14,7 @@ class Evento extends Model
         'status', 'asaas_payment_link_id', 'checkout_url', 'created_by',
         'billing_type', 'charge_type', 'due_date_limit_days',
         'notification_enabled', 'is_address_required',
-        'max_allowed_usage', 'end_date',
+        'max_allowed_usage', 'end_date', 'max_installments',
     ];
 
     protected $casts = [
@@ -27,6 +27,7 @@ class Evento extends Model
         'is_address_required' => 'boolean',
         'max_allowed_usage' => 'integer',
         'end_date' => 'date',
+        'max_installments' => 'integer',
     ];
 
     public function creator(): BelongsTo

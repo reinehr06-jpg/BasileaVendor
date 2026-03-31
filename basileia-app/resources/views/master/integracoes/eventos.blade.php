@@ -2,6 +2,33 @@
 @section('title', 'Links de Pagamento')
 
 @section('content')
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+    /* Custom Flatpickr Theme - Basileia Vendas */
+    .flatpickr-calendar {
+        background: var(--surface) !important;
+        box-shadow: var(--shadow-lg) !important;
+        border: 1px solid var(--border-light) !important;
+        border-radius: var(--radius-lg) !important;
+        font-family: var(--font) !important;
+    }
+    .flatpickr-day.selected {
+        background: var(--primary) !important;
+        border-color: var(--primary) !important;
+    }
+    .flatpickr-day:hover {
+        background: var(--bg) !important;
+    }
+    .flatpickr-months .flatpickr-month {
+        color: var(--text-primary) !important;
+        fill: var(--text-primary) !important;
+    }
+    .flatpickr-current-month .flatpickr-monthDropdown-months {
+        font-weight: 700 !important;
+    }
+</style>
+
 <!-- Header padrão do sistema -->
 <div class="page-header animate-up">
     <div>
@@ -44,7 +71,7 @@
             @php $total_vagas = max(1, $eventos->sum('vagas_total')); @endphp
             {{ number_format(($eventos->sum('vagas_ocupadas') / $total_vagas * 100), 0) }}%
         </div>
-        <div class="stat-label">Ocupação Médica</div>
+        <div class="stat-label">Ocupação Média</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon info"><i class="fas fa-chart-line"></i></div>
@@ -180,7 +207,7 @@
                     </div>
                     <div class="form-group">
                         <label>Expiração do Link</label>
-                        <input type="date" name="data_fim" class="form-control">
+                        <input type="text" name="data_fim" class="form-control datepicker" placeholder="Selecione uma data...">
                     </div>
                 </div>
 
@@ -196,12 +223,23 @@
                     </div>
                     <div class="form-group">
                         <label>Tipo de Cobrança</label>
-                        <select name="charge_type" class="form-control">
+                        <select name="charge_type" id="charge_type_select" class="form-control" onchange="toggleInstallmentField()">
                             <option value="DETACHED">Cobrança Avulsa</option>
                             <option value="INSTALLMENT">Venda Parcelada</option>
                             <option value="RECURRENT">Assinatura</option>
                         </select>
                     </div>
+                </div>
+
+                <!-- Campo de Parcelas (Oculto por padrão) -->
+                <div class="form-group" id="installment_field_group" style="display: none;">
+                    <label>Máximo de Parcelas <span class="required">*</span></label>
+                    <select name="max_installments" class="form-control">
+                        @for($i = 1; $i <= 12; $i++)
+                            <option value="{{ $i }}">{{ $i }}x</option>
+                        @endfor
+                    </select>
+                    <div class="field-hint">Apenas para vendas no cartão de crédito.</div>
                 </div>
 
                 <div style="background: var(--bg); padding: 15px; border-radius: var(--radius-md); margin-top: 10px;">
@@ -223,7 +261,32 @@
     </div>
 </div>
 
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+
 <script>
+    // Inicializar Flatpickr
+    document.addEventListener('DOMContentLoaded', function() {
+        flatpickr(".datepicker", {
+            locale: "pt",
+            dateFormat: "Y-m-d",
+            disableMobile: "true",
+            minDate: "today",
+            animate: true
+        });
+    });
+
+    function toggleInstallmentField() {
+        const select = document.getElementById('charge_type_select');
+        const group = document.getElementById('installment_field_group');
+        if (select.value === 'INSTALLMENT') {
+            group.style.display = 'block';
+        } else {
+            group.style.display = 'none';
+        }
+    }
+
     function openBasileiaModal(show) {
         const overlay = document.getElementById('modalNovoLink');
         if (overlay) {

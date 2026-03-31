@@ -38,6 +38,7 @@ class IntegracaoEventoController extends Controller
             'charge_type' => 'required|string|in:DETACHED,RECURRENT,INSTALLMENT',
             'due_date_limit_days' => 'nullable|integer|min:1|max:30',
             'max_allowed_usage' => 'nullable|integer|min:1',
+            'max_installments' => 'nullable|integer|min:1|max:12',
             'notification_enabled' => 'nullable|boolean',
             'is_address_required' => 'nullable|boolean',
         ]);
@@ -55,6 +56,7 @@ class IntegracaoEventoController extends Controller
                 'maxAllowedUsage'     => (int) $request->vagas_total, // Sincroniza vagas com o limite do Asaas
                 'endDate'             => $request->data_fim ?: null,
                 'isAddressRequired'   => $request->has('is_address_required'),
+                'maxInstallmentCount' => $request->charge_type === 'INSTALLMENT' ? (int) $request->max_installments : null,
             ]);
 
             $asaasId = $asaasResult['id'] ?? null;
@@ -93,6 +95,7 @@ class IntegracaoEventoController extends Controller
                 'is_address_required'  => $request->has('is_address_required'),
                 'max_allowed_usage'    => (int) $request->vagas_total,
                 'end_date'             => $request->data_fim,
+                'max_installments'     => (int) ($request->max_installments ?? 1),
                 'created_by'           => auth()->id(),
             ]);
 

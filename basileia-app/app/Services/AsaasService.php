@@ -473,6 +473,7 @@ class AsaasService
             'notificationEnabled' => (bool) ($data['notificationEnabled'] ?? true),
             'maxAllowedUsage'     => $data['maxAllowedUsage'] ?? null,
             'endDate'             => $data['endDate'] ?? null,
+            'maxInstallmentCount' => $data['maxInstallmentCount'] ?? null,
         ];
 
         // Se houver configuração de endereço
