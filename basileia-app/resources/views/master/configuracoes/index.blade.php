@@ -351,16 +351,7 @@
                 </a>
             </div>
 
-            {{-- Clientes Legados --}}
-            <div class="materio-col-4 setting-card" data-tags="legados importação histórico clientes antigos csv">
-                <a href="?tab=legados" class="hub-card">
-                    <div class="hub-icon" style="background: #f5f3ff; color: #5b21b6;"><i class="fas fa-database"></i></div>
-                    <div class="hub-content">
-                        <h3>Clientes Legados</h3>
-                        <p>Importação e sincronização de base antiga.</p>
-                    </div>
-                </a>
-            </div>
+
 
             {{-- Cartões Salvos --}}
             <div class="materio-col-4 setting-card" data-tags="cartões cartao tokens renovação automática">
@@ -404,9 +395,7 @@
         <button class="materio-tab-btn {{ $activeTab === 'integracoes' ? 'active' : '' }}" onclick="configSwitchTab('integracoes')">
             <i class="fas fa-link"></i> Integrações
         </button>
-        <button class="materio-tab-btn {{ $activeTab === 'legados' ? 'active' : '' }}" onclick="configSwitchTab('legados')">
-            <i class="fas fa-history"></i> Clientes Legados
-        </button>
+
         <button class="materio-tab-btn {{ $activeTab === 'comissoes' ? 'active' : '' }}" onclick="configSwitchTab('comissoes')">
             <i class="fas fa-percent"></i> Regras de Planos
         </button>
@@ -724,135 +713,7 @@
             </div>
         </div>
 
-        <!-- 4. LEGADOS -->
-        <div id="tab-legados" class="tab-pane" style="display: {{ $activeTab === 'legados' ? 'block' : 'none' }} !important;">
-            <div class="status-grid">
-                <div class="status-item">
-                    <span class="status-label">Base Total</span>
-                    <span class="status-value">{{ $legados['stats']['total'] }}</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Importados</span>
-                    <span class="status-value status-val-active">{{ $legados['stats']['imported'] }}</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Não Encontrados</span>
-                    <span class="status-value status-val-inactive">{{ $legados['stats']['not_found'] }}</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Ativos CRM</span>
-                    <span class="status-value status-val-active" style="color:#16B1FF">{{ $legados['stats']['active'] }}</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Inadimplentes</span>
-                    <span class="status-value status-val-inactive">{{ $legados['stats']['overdue'] }}</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Pendente Repasse</span>
-                    <span class="status-value" style="color:var(--materio-primary)">R$ {{ number_format($legados['stats']['commission_pending_value'], 2, ',', '.') }}</span>
-                </div>
-            </div>
 
-            <div class="materio-card">
-                <div class="section-header">
-                    <div>
-                        <h4>📚 Clientes Legados (Base Antiga)</h4>
-                        <div class="section-subtitle">Gestão de históricos e sincronização de recorrências.</div>
-                    </div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <a href="{{ route('master.legados.commissions') }}" class="materio-btn-outline" style="background:#fdf4ff; border-color:#d946ef; color:#d946ef;"><i class="fas fa-money-bill-wave"></i> Comissões Pendentes</a>
-                        <button class="materio-btn-outline" onclick="location.href='{{ route('master.legados.template') }}'"><i class="fas fa-download"></i> Modelo CSV</button>
-                        <button class="materio-btn-primary" onclick="openImportModal()"><i class="fas fa-upload"></i> Importar CSV</button>
-                        <button class="materio-btn-primary" style="background:var(--materio-success)" onclick="batchImportAsaas()"><i class="fas fa-sync"></i> Sincronizar Tudo do Asaas</button>
-                        <button class="materio-btn-primary" style="background:#000" onclick="location.href='{{ route('master.legados.create') }}'"><i class="fas fa-plus"></i> Novo Manual</button>
-                    </div>
-                </div>
-
-                <!-- Filtros -->
-                <div class="filter-bar">
-                    <form action="{{ route('master.configuracoes', ['tab' => 'legados']) }}" method="GET" style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <input type="hidden" name="tab" value="legados">
-                        <input type="text" name="search" class="materio-input" style="flex: 2; min-width: 200px;" value="{{ request('search') }}" placeholder="Nome, documento ou email...">
-                        <select name="vendedor_id" class="materio-select" style="flex: 1; min-width: 150px;">
-                            <option value="">Vendedores</option>
-                            @foreach($legados['vendedores'] as $v)
-                                <option value="{{ $v->id }}" {{ request('vendedor_id') == $v->id ? 'selected' : '' }}>{{ $v->user->name }}</option>
-                            @endforeach
-                        </select>
-                        <select name="import_status" class="materio-select" style="flex: 1; min-width: 150px;">
-                            <option value="">Status Import.</option>
-                            <option value="IMPORTED" {{ request('import_status') == 'IMPORTED' ? 'selected' : '' }}>Importado</option>
-                            <option value="PENDING" {{ request('import_status') == 'PENDING' ? 'selected' : '' }}>Pendente</option>
-                            <option value="NOT_FOUND" {{ request('import_status') == 'NOT_FOUND' ? 'selected' : '' }}>Não Encontrado</option>
-                        </select>
-                        <button type="submit" class="materio-btn-primary">Filtrar</button>
-                        <a href="{{ route('master.configuracoes', ['tab' => 'legados']) }}" class="materio-btn-outline" style="text-decoration:none;">Limpar</a>
-                    </form>
-                </div>
-
-                <div class="table-container">
-                    <table class="materio-table">
-                        <thead>
-                            <tr>
-                                <th>Cliente</th>
-                                <th>Vendedor</th>
-                                <th>Status Asaas</th>
-                                <th>Subscrição</th>
-                                <th>Importação</th>
-                                <th style="text-align: right;">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($legados['recentImports'] as $import)
-                            <tr>
-                                <td>
-                                    <div style="font-weight: 700; color: var(--materio-text-main);">{{ $import->nome }}</div>
-                                    <div style="font-size: 0.75rem; color: var(--materio-text-muted);">{{ $import->documento }}</div>
-                                </td>
-                                <td>{{ $import->vendedor->user->name ?? '---' }}</td>
-                                <td>
-                                    @php
-                                        $csClass = match($import->customer_status) {
-                                            'ACTIVE' => 'chip-success',
-                                            'OVERDUE' => 'chip-danger',
-                                            'INACTIVE' => 'chip-secondary',
-                                            default => 'chip-secondary'
-                                        };
-                                    @endphp
-                                    <span class="status-chip {{ $csClass }}">{{ $import->customer_status }}</span>
-                                </td>
-                                <td>
-                                    <span class="status-chip {{ $import->subscription_status === 'ACTIVE' ? 'chip-info' : 'chip-secondary' }}">
-                                        {{ $import->subscription_status }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge {{ $import->import_status === 'IMPORTED' ? 'bg-soft-success' : 'bg-soft-warning' }}">
-                                        {{ strtoupper($import->import_status) }}
-                                    </span>
-                                </td>
-                                <td style="text-align: right; display: flex; gap: 4px; justify-content: flex-end;">
-                                    <a href="{{ route('master.legados.show', $import->id) }}" class="action-btn" title="Ver Detalhes"><i class="fas fa-eye"></i></a>
-                                    <form action="{{ route('master.legados.sync', $import->id) }}" method="POST" style="margin:0;">
-                                        @csrf <button type="submit" class="action-btn" title="Sincronizar Agora"><i class="fas fa-sync"></i></button>
-                                    </form>
-                                    <form action="{{ route('master.legados.destroy', $import->id) }}" method="POST" style="margin:0;" onsubmit="return confirm('Deseja realmente excluir este histórico?')">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="action-btn action-danger" title="Excluir"><i class="fas fa-trash"></i></button>
-                                    </form>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr><td colspan="6" class="text-center py-5 text-muted">Nenhum registro encontrado para os filtros aplicados.</td></tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                <div style="margin-top: 24px;">
-                    {{ $legados['recentImports']->links() }}
-                </div>
-            </div>
-        </div>
 
         <!-- 5. COMISSÕES -->
         <div id="tab-comissoes" class="tab-pane" style="display: {{ $activeTab === 'comissoes' ? 'block' : 'none' }} !important;">
@@ -993,31 +854,7 @@
     @endif
 </div>
 
-<!-- Modal Upload CSV -->
-<div id="modal-import-csv" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(5px);">
-    <div class="materio-card" style="width: 550px; padding: 0; overflow: hidden; border: none;">
-        <div class="section-header" style="padding: 24px; background: #F9FAFB; margin: 0; border-bottom: 1px solid var(--materio-border);">
-            <h4 style="margin: 0;"><i class="fas fa-file-import" style="color:var(--materio-primary)"></i> Importação via Planilha CSV</h4>
-            <i class="fas fa-times" style="cursor: pointer; color: var(--materio-text-muted); font-size: 1.2rem;" onclick="closeImportModal()"></i>
-        </div>
-        <form method="POST" action="{{ route('master.legados.importCsv') }}" enctype="multipart/form-data" style="padding: 24px;">
-            @csrf
-            <div class="materio-form-group">
-                <label class="materio-label">Selecione o arquivo CSV (Ponto-e-vírgula)</label>
-                <input type="file" name="csv_file" class="materio-input" required accept=".csv,.txt">
-                <span class="help-text">O arquivo deve ser codificado em UTF-8 ou ISO-8859-1.</span>
-            </div>
-            <div style="background: var(--materio-primary-light); color: #6d28d9; padding: 15px; border-radius: 8px; font-size: 0.8rem; margin-bottom: 24px; line-height: 1.5;">
-                <i class="fas fa-info-circle"></i> <strong>Colunas Requeridas:</strong><br>
-                nome, documento, email, telefone, vendedor, gestor, plano, valor_original, valor_recorrente, data_venda.
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 12px;">
-                <button type="button" class="materio-btn-outline" onclick="closeImportModal()">Cancelar Operação</button>
-                <button type="submit" class="materio-btn-primary">Processar Arquivo</button>
-            </div>
-        </form>
-    </div>
-</div>
+
 
 <script>
     // HUB FILTER
@@ -1085,19 +922,7 @@
         }
     }
 
-    // Modais e Ações Bulk
-    function openImportModal() { document.getElementById('modal-import-csv').style.display = 'flex'; }
-    function closeImportModal() { document.getElementById('modal-import-csv').style.display = 'none'; }
 
-    function batchImportAsaas() {
-        if(confirm('Atenção: O sistema fará uma varredura completa em sua conta Asaas. Isso pode levar alguns minutos se você tiver milhares de clientes. Deseja continuar?')) {
-            const f = document.createElement('form');
-            f.method = 'POST'; f.action = "{{ route('master.legados.importBatch') }}";
-            f.innerHTML = `<input type="hidden" name="_token" value="{{ csrf_token() }}">`;
-            document.body.appendChild(f);
-            f.submit();
-        }
-    }
 
     // Teste de Conexão API
     function testarConexao() {
