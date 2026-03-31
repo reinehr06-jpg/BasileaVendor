@@ -33,7 +33,7 @@ class AsaasClienteSyncController extends Controller
 
     public function index(Request $request)
     {
-        $vendedores = Vendedor::where('status', 'ativo')->with('user')->get();
+        $vendedores = Vendedor::whereIn('status', ['ativo', '1', 1])->with('user')->get();
         $aba        = $request->get('aba', 'todos');
 
         $base = DB::table('legacy_customer_imports as lci')
