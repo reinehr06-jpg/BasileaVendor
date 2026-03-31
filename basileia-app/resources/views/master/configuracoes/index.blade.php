@@ -364,6 +364,20 @@
                 </a>
             </div>
 
+            {{-- Clientes Asaas Sincronização --}}
+            <div class="materio-col-4 setting-card" data-tags="asaas clientes legados importação sincronização">
+                <a href="{{ route('master.clientes-asaas.index') }}" class="hub-card">
+                    <div class="hub-icon" style="background: #fffafa; color: #f97316;"><i class="fas fa-cloud-arrow-down"></i></div>
+                    <div class="hub-content">
+                        <h3 style="display:flex; align-items:center; gap:6px;">
+                            Clientes Asaas 
+                            <span style="font-size:0.6rem; background:#f97316; color:white; padding:1px 5px; border-radius:8px;">MARÇO</span>
+                        </h3>
+                        <p>Importe vendas e identifique o "primeiro mês" das assinaturas.</p>
+                    </div>
+                </a>
+            </div>
+
             {{-- Basileia Vendas Logs --}}
             <div class="materio-col-4 setting-card" data-tags="logs vendas asaas sistema integrações status">
                 <a href="{{ route('master.integracoes.vendas') }}" class="hub-card">

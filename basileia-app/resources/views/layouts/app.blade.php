@@ -277,11 +277,7 @@
                 <a href="{{ route('master.aprovacoes') }}" class="menu-item {{ request()->routeIs('master.aprovacoes') ? 'active' : '' }}">
                     <i class="fas fa-check-double"></i> Aprovações Pendentes
                 </a>
-                <a href="{{ route('master.clientes-asaas.index') }}" class="menu-item {{ request()->routeIs('master.clientes-asaas*') ? 'active' : '' }}" style="{{ request()->routeIs('master.clientes-asaas*') ? '' : 'border-left: 3px solid #f97316;' }}">
-                    <i class="fas fa-cloud-arrow-down" style="color: #f97316;"></i>
-                    <span>Clientes Asaas</span>
-                    <span style="font-size:0.6rem; background:#f97316; color:white; padding:1px 5px; border-radius:8px; margin-left:auto;">MARÇO</span>
-                </a>
+
 
 
                 <div class="menu-section">Financeiro</div>

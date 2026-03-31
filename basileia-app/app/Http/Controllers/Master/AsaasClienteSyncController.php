@@ -97,6 +97,29 @@ class AsaasClienteSyncController extends Controller
     }
 
     // ──────────────────────────────────────────────────────────────
+    // EXIBIR DETALHES DE UM CLIENTE
+    // ──────────────────────────────────────────────────────────────
+    public function show(Request $request, $id)
+    {
+        $cliente = DB::table('legacy_customer_imports')->where('id', $id)->first();
+        if (!$cliente) {
+            return redirect()->route('master.clientes-asaas.index')->with('error', 'Cliente não encontrado.');
+        }
+
+        $vendedores = Vendedor::whereIn('status', ['ativo', '1', 1])->with('user')->get();
+        // Separando Gestores e Vendedores
+        $listaG = collect();
+        $listaV = collect();
+        foreach($vendedores as $v) {
+            $r = strtolower($v->role ?? ($v->user->role ?? ''));
+            if(str_contains($r, 'gestor') || str_contains($r, 'master')) $listaG->push($v);
+            else $listaV->push($v);
+        }
+
+        return view('master.clientes_asaas.show', compact('cliente', 'listaG', 'listaV'));
+    }
+
+    // ──────────────────────────────────────────────────────────────
     // SINCRONIZAÇÃO — PAGINADA COM PROGRESS VIA SSE
     // ──────────────────────────────────────────────────────────────
 

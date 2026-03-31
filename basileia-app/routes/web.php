@@ -230,6 +230,7 @@ Route::middleware('auth')->group(function () {
 
         // Módulo: Clientes Asaas (Importação + Comissões Março/2026)
         Route::get('/clientes-asaas', [AsaasClienteSyncController::class, 'index'])->name('clientes-asaas.index');
+        Route::get('/clientes-asaas/{id}', [AsaasClienteSyncController::class, 'show'])->name('clientes-asaas.show');
         Route::post('/clientes-asaas/sincronizar', [AsaasClienteSyncController::class, 'sincronizar'])->name('clientes-asaas.sincronizar');
         Route::patch('/clientes-asaas/{id}/vendedor', [AsaasClienteSyncController::class, 'atribuirVendedor'])->name('clientes-asaas.vendedor');
         Route::post('/clientes-asaas/{id}/confirmar', [AsaasClienteSyncController::class, 'confirmarCliente'])->name('clientes-asaas.confirmar');

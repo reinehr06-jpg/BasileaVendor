@@ -186,14 +186,9 @@
                         <th style="padding:12px 16px; text-align:left; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted); white-space:nowrap;">CLIENTE</th>
                         <th style="padding:12px 8px; text-align:center; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted);">STATUS</th>
                         <th style="padding:12px 8px; text-align:center; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted);">TIPO</th>
-                        <th style="padding:12px 8px; text-align:center; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted);">PARCELAS</th>
                         <th style="padding:12px 8px; text-align:center; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted);">1º PAGAMENTO</th>
                         <th style="padding:12px 8px; text-align:center; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted);">ÚLT. CONFIRMADO</th>
-                        <th style="padding:12px 8px; text-align:right; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted);">VLR. MARÇO</th>
-                        <th style="padding:12px 8px; text-align:center; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted);">COMISSÃO</th>
-                        <th style="padding:12px 8px; text-align:right; font-size:0.68rem; font-weight:800; color:#166534;">R$ COMISSÃO</th>
-                        <th style="padding:12px 16px; text-align:left; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted); min-width:200px;">VENDEDOR</th>
-                        <th style="padding:12px 8px; text-align:center; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted);">AÇÃO</th>
+                        <th style="padding:12px 8px; text-align:center; font-size:0.68rem; font-weight:800; color:var(--materio-text-muted);">AÇÕES</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -269,20 +264,6 @@
                             {{ $tipoLabel }}
                         </td>
 
-                        {{-- PARCELAS --}}
-                        <td style="padding:12px 8px; text-align:center;">
-                            @if(($c->tipo_cobranca ?? '') === 'installment')
-                                <div style="font-weight:700; color:var(--materio-text-main);">{{ $c->parcelas_pagas }}/{{ $c->parcelas_total }}</div>
-                                <div style="font-size:0.66rem; color:{{ $parcelasRestantes > 0 ? '#f97316' : '#22c55e' }}; font-weight:600;">
-                                    {{ $parcelasRestantes > 0 ? "{$parcelasRestantes} restantes" : 'quitado' }}
-                                </div>
-                            @elseif(($c->tipo_cobranca ?? '') === 'subscription')
-                                <span style="font-size:0.72rem; color:var(--materio-text-muted);">Recorrente</span>
-                            @else
-                                <span style="color:var(--materio-text-muted);">—</span>
-                            @endif
-                        </td>
-
                         {{-- 1º PAGAMENTO --}}
                         <td style="padding:12px 8px; text-align:center; white-space:nowrap;">
                             @if($c->primeiro_pagamento_at)
@@ -308,78 +289,11 @@
                             @endif
                         </td>
 
-                        {{-- VALOR MARÇO --}}
-                        <td style="padding:12px 8px; text-align:right; white-space:nowrap; font-weight:700; color:{{ ($c->valor_marco_pago ?? 0) > 0 ? '#166534' : 'var(--materio-text-muted)' }};">
-                            @if(($c->valor_marco_pago ?? 0) > 0)
-                                R$ {{ number_format($c->valor_marco_pago, 2, ',', '.') }}
-                            @else
-                                <span style="font-size:0.72rem;">sem pagto</span>
-                            @endif
-                        </td>
-
-                        {{-- TIPO COMISSÃO --}}
-                        <td style="padding:12px 8px; text-align:center;">
-                            <span style="font-size:0.7rem; font-weight:700; color:{{ $comissaoLabel['color'] }}; white-space:nowrap;">
-                                {{ $comissaoLabel['label'] }}
-                            </span>
-                        </td>
-
-                        {{-- COMISSÃO CALCULADA --}}
-                        <td style="padding:12px 8px; text-align:right;">
-                            <div id="comissao-{{ $c->id }}" style="font-weight:800; font-size:0.88rem; color:{{ ($c->comissao_vendedor_calculada ?? 0) > 0 ? '#166534' : 'var(--materio-text-muted)' }};">
-                                @if(($c->comissao_vendedor_calculada ?? 0) > 0)
-                                    R$ {{ number_format($c->comissao_vendedor_calculada, 2, ',', '.') }}
-                                @else —
-                                @endif
-                            </div>
-                            @if(($c->comissao_gestor_calculada ?? 0) > 0)
-                            <div id="comissao-gestor-{{ $c->id }}" style="font-size:0.66rem; color:#2563eb;">
-                                Gest: R$ {{ number_format($c->comissao_gestor_calculada, 2, ',', '.') }}
-                            </div>
-                            @endif
-                        </td>
-
-                        {{-- VENDEDOR DROPDOWN --}}
-                        <td style="padding:10px 16px; min-width:200px;">
-                            <select class="vendedor-select" data-id="{{ $c->id }}"
-                                onchange="atribuirVendedor(this)"
-                                style="width:100%; padding:6px 10px; border:1px solid var(--materio-border); border-radius:8px; font-size:0.78rem; background:white;">
-                                <option value="">— Atribuir vendedor —</option>
-                                @if($listaG->count() > 0)
-                                <optgroup label="Gestores">
-                                    @foreach($listaG as $v)
-                                    <option value="{{ $v->id }}" {{ $c->vendedor_id == $v->id ? 'selected' : '' }}>{{ $v->user->name ?? 'N/A' }}</option>
-                                    @endforeach
-                                </optgroup>
-                                @endif
-                                @if($listaV->count() > 0)
-                                <optgroup label="Vendedores">
-                                    @foreach($listaV as $v)
-                                    <option value="{{ $v->id }}" {{ $c->vendedor_id == $v->id ? 'selected' : '' }}>{{ $v->user->name ?? 'N/A' }}</option>
-                                    @endforeach
-                                </optgroup>
-                                @endif
-                            </select>
-                            @if($c->comissao_tipo === 'inicial_antecipada' && !$c->vendedor_id)
-                            <div style="font-size:0.6rem; color:#dc2626; margin-top:3px;">⚠️ Parcelado — atribua o vendedor para antecipar comissão</div>
-                            @endif
-                            @if($diag === 'CHURN')
-                            <div style="font-size:0.6rem; color:#c2410c; margin-top:3px;">ℹ️ Em churn — vai para "Todas as Vendas" ao confirmar</div>
-                            @endif
-                        </td>
-
-                        {{-- AÇÃO: CONFIRMAR --}}
+                        {{-- AÇÃO BOTÃO OLHINHO --}}
                         <td style="padding:10px 8px; text-align:center;">
-                            @if($jaConfirmado)
-                                <span style="font-size:0.7rem; color:#166534; font-weight:700;">✓ Confirmado</span>
-                            @elseif($c->vendedor_id)
-                                <button onclick="confirmarCliente({{ $c->id }}, this)"
-                                    style="padding:5px 10px; background:#166534; color:white; border:none; border-radius:8px; font-size:0.72rem; font-weight:700; cursor:pointer; white-space:nowrap;">
-                                    ✓ Confirmar
-                                </button>
-                            @else
-                                <span style="font-size:0.68rem; color:var(--materio-text-muted);">Aguarda vendedor</span>
-                            @endif
+                            <a href="{{ route('master.clientes-asaas.show', $c->id) }}" class="materio-btn-primary" style="padding:6px 12px; font-size:0.8rem; text-decoration:none;">
+                                <i class="fas fa-eye"></i> Detalhes
+                            </a>
                         </td>
                     </tr>
                     @endforeach
@@ -460,95 +374,6 @@ async function sincronizarAsaas() {
     }
 }
 
-// ── Atribuir Vendedor ──
-async function atribuirVendedor(select) {
-    const id        = select.getAttribute('data-id');
-    const vendId    = select.value;
-    const origBorder = select.style.borderColor;
 
-    select.disabled = true;
-    select.style.borderColor = '#f97316';
-
-    try {
-        const resp = await fetch(`{{ url('master/clientes-asaas') }}/${id}/vendedor`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-            body: JSON.stringify({ vendedor_id: vendId || null }),
-        });
-        const data = await resp.json();
-
-        if (data.success) {
-            const el  = document.getElementById('comissao-' + id);
-            const elG = document.getElementById('comissao-gestor-' + id);
-            if (el) {
-                el.innerHTML = vendId && data.comissao_vendedor !== 'R$ 0,00'
-                    ? `<strong style="color:#166534;">${data.comissao_vendedor}</strong>`
-                    : '<span style="color:var(--materio-text-muted);">—</span>';
-            }
-            select.style.borderColor = '#22c55e';
-            setTimeout(() => { select.style.borderColor = origBorder; }, 2000);
-
-            // Mostrar botão confirmar se ainda não aparecia
-            const row = select.closest('tr');
-            const actionCell = row.querySelector('td:last-child');
-            if (vendId && actionCell && actionCell.innerText.trim() === 'Aguarda vendedor') {
-                actionCell.innerHTML = `<button onclick="confirmarCliente(${id}, this)"
-                    style="padding:5px 10px; background:#166534; color:white; border:none; border-radius:8px; font-size:0.72rem; font-weight:700; cursor:pointer; white-space:nowrap;">
-                    ✓ Confirmar</button>`;
-            }
-        } else {
-            alert('Erro: ' + (data.message || 'Não foi possível atribuir o vendedor.'));
-            select.style.borderColor = '#ef4444';
-        }
-    } catch (e) {
-        alert('Erro de conexão: ' + e.message);
-    } finally {
-        select.disabled = false;
-    }
-}
-
-// ── Confirmar Cliente → cria no sistema ──
-async function confirmarCliente(id, btn) {
-    if (!confirm('Confirmar este cliente no sistema? Isso criará o cliente e a venda correspondente.')) return;
-
-    const origText = btn.innerHTML;
-    btn.disabled  = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-
-    try {
-        const resp = await fetch(`{{ url('master/clientes-asaas') }}/${id}/confirmar`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-        });
-        const data = await resp.json();
-
-        if (data.success) {
-            btn.innerHTML = '✓ Confirmado';
-            btn.style.background = '#22c55e';
-            btn.disabled = true;
-            // Adicionar badge "NO SISTEMA" ao nome
-            const row      = btn.closest('tr');
-            const nomeCell = row.querySelector('td:first-child > div:first-child');
-            if (nomeCell && !nomeCell.querySelector('.badge-sistema')) {
-                const badge = document.createElement('span');
-                badge.className = 'badge-sistema';
-                badge.style.cssText = 'font-size:0.55rem; background:#22c55e; color:white; padding:1px 5px; border-radius:8px; font-weight:800; vertical-align:middle; margin-left:4px;';
-                badge.textContent = '✓ NO SISTEMA';
-                nomeCell.appendChild(badge);
-            }
-        } else {
-            alert('Erro: ' + (data.message || 'Não foi possível confirmar.'));
-            btn.innerHTML = origText;
-        }
-    } catch (e) {
-        alert('Erro de conexão: ' + e.message);
-        btn.innerHTML = origText;
-    } finally {
-        if (btn.innerHTML.includes('spinner')) {
-            btn.disabled  = false;
-            btn.innerHTML = origText;
-        }
-    }
-}
 </script>
 @endsection
