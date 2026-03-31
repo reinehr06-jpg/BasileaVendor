@@ -19,9 +19,9 @@ use App\Http\Controllers\GestorEquipeController;
 use App\Http\Controllers\EquipeController;
 use App\Http\Controllers\Master\IntegracaoController;
 use App\Http\Controllers\Master\IntegracaoVendasController;
-use App\Http\Controllers\Master\IntegracaoSiteController;
+
 use App\Http\Controllers\Master\IntegracaoEventoController;
-use App\Http\Controllers\Master\LegacyCustomerController;
+
 use App\Http\Controllers\Master\ConfiguracaoController;
 use App\Http\Controllers\Master\SubscriptionController;
 use App\Http\Controllers\CheckoutController;
@@ -180,28 +180,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/resumo', [ComissaoController::class, 'apiResumo'])->name('resumo');
         });
 
-        // Clientes Legados Asaas
-        Route::get('/legados', [LegacyCustomerController::class, 'index'])->name('legados.index');
-        Route::get('/legados/create', [LegacyCustomerController::class, 'create'])->name('legados.create');
-        Route::post('/legados', [LegacyCustomerController::class, 'store'])->name('legados.store');
-        Route::get('/legados/{legado}', [LegacyCustomerController::class, 'show'])->name('legados.show');
-        Route::put('/legados/{legado}', [LegacyCustomerController::class, 'update'])->name('legados.update');
-        Route::delete('/legados/{legado}', [LegacyCustomerController::class, 'destroy'])->name('legados.destroy');
-        Route::post('/legados/import-single', [LegacyCustomerController::class, 'importSingle'])->name('legados.importSingle');
-        Route::post('/legados/import-batch', [LegacyCustomerController::class, 'importBatch'])->name('legados.importBatch');
-        Route::post('/legados/pull-all', [LegacyCustomerController::class, 'pullAll'])->name('legados.pullAll');
-        Route::post('/legados/{legado}/sync', [LegacyCustomerController::class, 'sync'])->name('legados.sync');
-        
-        // Comissões Legadas
-        Route::get('/legados/comissoes', [LegacyCustomerController::class, 'commissions'])->name('legados.commissions');
-        Route::post('/legados/comissoes/generate-recurring', [LegacyCustomerController::class, 'generateRecurring'])->name('legados.generateRecurring');
-        Route::post('/legados/comissoes/{commission}/paid', [LegacyCustomerController::class, 'markCommissionPaid'])->name('legados.commission.paid');
-        Route::post('/legados/comissoes/mark-multiple-paid', [LegacyCustomerController::class, 'markMultiplePaid'])->name('legados.markMultiplePaid');
-        Route::post('/legados/comissoes/{commission}/block', [LegacyCustomerController::class, 'blockCommission'])->name('legados.commission.block');
-        
-        // Importação CSV
-        Route::post('/legados/import-csv', [LegacyCustomerController::class, 'importCsv'])->name('legados.importCsv');
-        Route::get('/legados/template', [LegacyCustomerController::class, 'downloadTemplate'])->name('legados.template');
+
 
         // Assinaturas e Cartões Salvos
         Route::get('/assinaturas', [SubscriptionController::class, 'index'])->name('assinaturas');
@@ -248,13 +227,7 @@ Route::middleware('auth')->group(function () {
         // ==========================================
         Route::get('/integracoes/basileia-vendas', [IntegracaoVendasController::class, 'index'])->name('integracoes.vendas');
 
-        Route::get('/integracoes/site', [IntegracaoSiteController::class, 'index'])->name('integracoes.site');
-        Route::post('/integracoes/site/settings', [IntegracaoSiteController::class, 'updateSettings'])->name('integracoes.site.settings.store');
-        Route::post('/integracoes/site/keys', [IntegracaoSiteController::class, 'storeKey'])->name('integracoes.site.keys.store');
-        Route::patch('/integracoes/site/keys/{apiKey}', [IntegracaoSiteController::class, 'toggleKey'])->name('integracoes.site.keys.toggle');
-        Route::delete('/integracoes/site/keys/{apiKey}', [IntegracaoSiteController::class, 'destroyKey'])->name('integracoes.site.keys.destroy');
-        Route::post('/integracoes/site/webhooks', [IntegracaoSiteController::class, 'storeWebhook'])->name('integracoes.site.webhooks.store');
-        Route::delete('/integracoes/site/webhooks/{webhook}', [IntegracaoSiteController::class, 'destroyWebhook'])->name('integracoes.site.webhooks.destroy');
+
 
         Route::get('/integracoes/eventos', [IntegracaoEventoController::class, 'index'])->name('integracoes.eventos');
         Route::post('/integracoes/eventos', [IntegracaoEventoController::class, 'store'])->name('integracoes.eventos.store');
