@@ -277,9 +277,7 @@
                 <a href="{{ route('master.aprovacoes') }}" class="menu-item {{ request()->routeIs('master.aprovacoes') ? 'active' : '' }}">
                     <i class="fas fa-check-double"></i> Aprovações Pendentes
                 </a>
-                <a href="{{ route('master.integracoes.eventos') }}" class="menu-item {{ request()->routeIs('master.integracoes.eventos*') ? 'active' : '' }}">
-                    <i class="fas fa-link"></i> Links de Pagamento
-                </a>
+
 
                 <div class="menu-section">Financeiro</div>
                 <a href="{{ route('master.pagamentos') }}" class="menu-item {{ request()->routeIs('master.pagamentos') ? 'active' : '' }}">
