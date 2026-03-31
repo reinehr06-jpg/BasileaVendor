@@ -415,9 +415,9 @@
         </button>
     </div>
 
-    <div class="tab-content">
+    <div class="tab-content" style="display: block !important;">
         <!-- 1. PERFIL -->
-        <div id="tab-geral" class="tab-pane" style="display: {{ $activeTab === 'geral' ? 'block' : 'none' }}">
+        <div id="tab-geral" class="tab-pane" style="display: {{ $activeTab === 'geral' ? 'block' : 'none' }} !important;">
             <div class="materio-card">
                 <div class="section-header">
                     <h4><i class="fas fa-id-card"></i> Informações do Administrador</h4>
@@ -444,7 +444,7 @@
         </div>
 
         <!-- 2. SEGURANÇA -->
-        <div id="tab-seguranca" class="tab-pane" style="display: {{ $activeTab === 'seguranca' ? 'block' : 'none' }}">
+        <div id="tab-seguranca" class="tab-pane" style="display: {{ $activeTab === 'seguranca' ? 'block' : 'none' }} !important;">
             <div class="materio-card">
                 <div class="section-header">
                     <h4><i class="fas fa-shield-alt"></i> Alterar Senha</h4>
@@ -479,7 +479,7 @@
         </div>
 
         <!-- 3. INTEGRAÇÕES -->
-        <div id="tab-integracoes" class="tab-pane" style="display: {{ $activeTab === 'integracoes' ? 'block' : 'none' }}">
+        <div id="tab-integracoes" class="tab-pane" style="display: {{ $activeTab === 'integracoes' ? 'block' : 'none' }} !important;">
             <!-- Seção Asaas -->
             <div class="materio-card">
                 <div class="section-header">
@@ -725,7 +725,7 @@
         </div>
 
         <!-- 4. LEGADOS -->
-        <div id="tab-legados" class="tab-pane" style="display: {{ $activeTab === 'legados' ? 'block' : 'none' }}">
+        <div id="tab-legados" class="tab-pane" style="display: {{ $activeTab === 'legados' ? 'block' : 'none' }} !important;">
             <div class="status-grid">
                 <div class="status-item">
                     <span class="status-label">Base Total</span>
@@ -786,7 +786,7 @@
                             <option value="NOT_FOUND" {{ request('import_status') == 'NOT_FOUND' ? 'selected' : '' }}>Não Encontrado</option>
                         </select>
                         <button type="submit" class="materio-btn-primary">Filtrar</button>
-                        <a href="{{ route('master.configuracoes', ['tab' => 'legados']) }}" class="materio-btn-outline">Limpar</a>
+                        <a href="{{ route('master.configuracoes', ['tab' => 'legados']) }}" class="materio-btn-outline" style="text-decoration:none;">Limpar</a>
                     </form>
                 </div>
 
@@ -855,7 +855,7 @@
         </div>
 
         <!-- 5. COMISSÕES -->
-        <div id="tab-comissoes" class="tab-pane" style="display: {{ $activeTab === 'comissoes' ? 'block' : 'none' }}">
+        <div id="tab-comissoes" class="tab-pane" style="display: {{ $activeTab === 'comissoes' ? 'block' : 'none' }} !important;">
             <div class="materio-card">
                 <div class="section-header">
                     <h4><i class="fas fa-coins"></i> Regras de Repasse Fixo por Categoria de Plano</h4>
@@ -874,34 +874,37 @@
                         </thead>
                         <tbody>
                             @foreach($comissoes['rules'] as $rule)
-                            <form action="{{ route('master.configuracoes.comissoes.update', $rule->id) }}" method="POST">
-                                @csrf @method('PUT')
-                                <tr>
-                                    <td>
+                            <tr>
+                                <td>
+                                    <form id="form-rule-active-{{ $rule->id }}" action="{{ route('master.configuracoes.comissoes.update', $rule->id) }}" method="POST" style="margin:0;">
+                                        @csrf @method('PUT')
                                         <label class="materio-switch" style="gap:0;">
                                             <input type="checkbox" name="active" value="1" class="switch-input" {{ $rule->active ? 'checked' : '' }} onchange="this.form.submit()">
                                             <span class="switch-slider" style="width: 32px; height: 16px;"></span>
                                         </label>
-                                    </td>
-                                    <td style="font-weight: 800; color: var(--materio-primary)">{{ $rule->plano_nome }}</td>
-                                    <td>Até {{ $rule->max_membros }}</td>
-                                    <td>
-                                        <div style="display: flex; gap: 4px; align-items: center;">
-                                            R$ <input type="number" step="0.01" name="seller_fixed_value_first_payment" class="materio-input" style="width: 75px; padding: 6px; font-weight: 700;" value="{{ $rule->seller_fixed_value_first_payment }}">
-                                            / R$ <input type="number" step="0.01" name="seller_fixed_value_recurring" class="materio-input" style="width: 75px; padding: 6px; font-weight: 700;" value="{{ $rule->seller_fixed_value_recurring }}">
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style="display: flex; gap: 4px; align-items: center;">
-                                            R$ <input type="number" step="0.01" name="manager_fixed_value_first_payment" class="materio-input" style="width: 75px; padding: 6px; font-weight: 700;" value="{{ $rule->manager_fixed_value_first_payment }}">
-                                            / R$ <input type="number" step="0.01" name="manager_fixed_value_recurring" class="materio-input" style="width: 75px; padding: 6px; font-weight: 700;" value="{{ $rule->manager_fixed_value_recurring }}">
-                                        </div>
-                                    </td>
-                                    <td>
+                                    </form>
+                                </td>
+                                <td style="font-weight: 800; color: var(--materio-primary)">{{ $rule->plano_nome }}</td>
+                                <td>Até {{ $rule->max_membros }}</td>
+                                <td>
+                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                        R$ <input type="number" step="0.01" name="seller_fixed_value_first_payment" form="form-rule-{{ $rule->id }}" class="materio-input" style="width: 75px; padding: 6px; font-weight: 700;" value="{{ $rule->seller_fixed_value_first_payment }}">
+                                        / R$ <input type="number" step="0.01" name="seller_fixed_value_recurring" form="form-rule-{{ $rule->id }}" class="materio-input" style="width: 75px; padding: 6px; font-weight: 700;" value="{{ $rule->seller_fixed_value_recurring }}">
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; gap: 4px; align-items: center;">
+                                        R$ <input type="number" step="0.01" name="manager_fixed_value_first_payment" form="form-rule-{{ $rule->id }}" class="materio-input" style="width: 75px; padding: 6px; font-weight: 700;" value="{{ $rule->manager_fixed_value_first_payment }}">
+                                        / R$ <input type="number" step="0.01" name="manager_fixed_value_recurring" form="form-rule-{{ $rule->id }}" class="materio-input" style="width: 75px; padding: 6px; font-weight: 700;" value="{{ $rule->manager_fixed_value_recurring }}">
+                                    </div>
+                                </td>
+                                <td>
+                                    <form id="form-rule-{{ $rule->id }}" action="{{ route('master.configuracoes.comissoes.update', $rule->id) }}" method="POST" style="margin:0;">
+                                        @csrf @method('PUT')
                                         <button type="submit" class="materio-btn-primary" style="padding: 6px 12px; font-size: 0.75rem;">Atualizar</button>
-                                    </td>
-                                </tr>
-                            </form>
+                                    </form>
+                                </td>
+                            </tr>
                             @endforeach
                         </tbody>
                     </table>
@@ -914,8 +917,10 @@
                     </p>
                 </div>
             </div>
+        </div>
+
         <!-- 6. CARTÕES SALVOS -->
-        <div id="tab-cartoes" class="tab-pane" style="display: {{ $activeTab === 'cartoes' ? 'block' : 'none' }}">
+        <div id="tab-cartoes" class="tab-pane" style="display: {{ $activeTab === 'cartoes' ? 'block' : 'none' }} !important;">
             <div class="materio-card">
                 <div class="section-header">
                     <div>
@@ -929,7 +934,7 @@
                         <thead>
                             <tr>
                                 <th>Cliente / Email</th>
-                                <th>Bandeira</th>
+                               <th>Bandeira</th>
                                 <th>Final do Cartão</th>
                                 <th>Token (Asaas)</th>
                                 <th>Salvo em</th>
