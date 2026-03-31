@@ -94,9 +94,9 @@
         $comissaoGestor = ($cliente->comissao_gestor_calculada ?? 0) > 0 ? 'R$ ' . number_format($cliente->comissao_gestor_calculada, 2, ',', '.') : '—';
     @endphp
 
-    <div class="row">
-        {{-- COLUNA ESQUERDA: INFOS DO CLIENTE --}}
-        <div class="col-md-8">
+    <div style="display: flex; flex-wrap: wrap; gap: 24px;">
+        {{-- COLUNA ESQUERDA: INFOS DO CLIENTE (Ocupa 2/3 da tela) --}}
+        <div style="flex: 1 1 60%; min-width: 320px;">
             <div class="detail-card">
                 <div class="detail-header">
                     <h2>{{ $cliente->nome }}</h2>
@@ -168,8 +168,8 @@
             </div>
         </div>
 
-        {{-- COLUNA DIREITA: VENDEDOR & COMISSÃO --}}
-        <div class="col-md-4">
+        {{-- COLUNA DIREITA: VENDEDOR & COMISSÃO (Ocupa 1/3 da tela) --}}
+        <div style="flex: 1 1 30%; min-width: 300px;">
             <div class="detail-card" style="border: 2px solid #f97316;">
                 <div class="detail-header" style="border-bottom-color: #fcd34d;">
                     <h2 style="color: #ea580c;"><i class="fas fa-users"></i> Atribuição Comercial</h2>
