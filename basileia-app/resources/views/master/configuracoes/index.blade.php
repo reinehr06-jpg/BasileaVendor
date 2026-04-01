@@ -673,7 +673,7 @@
                             
                             <div style="display:flex; gap:10px;">
                                 <input type="text" id="webhook_secret" name="checkout_webhook_secret" class="materio-input" 
-                                       value="{{ \App\Models\Configuracao::get('checkout_webhook_secret') }}" 
+                                       value="{{ \App\Models\Setting::get('checkout_webhook_secret') }}" 
                                        placeholder="Clique em Gerar para criar um secret..." readonly style="background:#f1f5f9; font-family:monospace; font-weight:700;">
                                 <button type="button" class="materio-btn-secondary" onclick="gerarSecretCheckout()" title="Gerar ou Substituir Chave">
                                     <i class="fas fa-key"></i> Gerar
