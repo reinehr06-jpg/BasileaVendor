@@ -18,25 +18,19 @@ class MasterFixController extends Controller
     {
         Log::info('Master Recovery: Tentativa de restauração de conta Master.');
 
-        $email = 'Basileia.vendas@Basileia.com';
+        $email = 'basileia.vendas@basileia.com';
         $password = 'B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0';
 
-        // 1. Localizar ou criar o usuário
-        $user = User::where('email', $email)->first();
-
-        if (!$user) {
-            $user = new User();
-            $user->name = 'Administrador Master';
-            $user->email = $email;
-            $user->perfil = 'master'; // Define como Master
-        }
-
-        // 2. Definir senha e garantir acesso
-        // IMPORTANTE: O modelo User.php já tem 'password' => 'hashed' nos casts.
-        // Atribuir o texto plano aqui fará o Laravel encriptar CORRETAMENTE uma única vez.
-        $user->password = $password;
-        $user->status = 'ativo';
-        $user->save();
+        // Usar updateOrCreate para evitar conflito de constraint UNIQUE
+        $user = User::updateOrCreate(
+            ['email' => $email],
+            [
+                'name' => 'Administrador Master',
+                'password' => $password, // O cast 'hashed' do model cuida do hash
+                'perfil' => 'master',
+                'status' => 'ativo',
+            ]
+        );
 
         Log::info('Master Recovery: Conta Master restaurada com sucesso!', ['user_id' => $user->id]);
 
