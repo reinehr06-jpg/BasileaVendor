@@ -102,7 +102,15 @@ Route::get('/debug-asaas', function () {
     try {
         $result = [];
         
-        // 1. Verificar settings table
+        // 1. Descobrir IP do servidor
+        try {
+            $ipResponse = \Illuminate\Support\Facades\Http::timeout(5)->get('https://api.ipify.org?format=json');
+            $result['server_ip'] = $ipResponse->successful() ? $ipResponse->json()['ip'] : 'N/A';
+        } catch (\Exception $e) {
+            $result['server_ip'] = 'ERRO: ' . $e->getMessage();
+        }
+        
+        // 2. Verificar settings table
         try {
             $hasSettings = \Illuminate\Support\Facades\Schema::hasTable('settings');
             $result['settings_table'] = $hasSettings ? 'EXISTS' : 'NOT FOUND';
@@ -110,7 +118,7 @@ Route::get('/debug-asaas', function () {
             $result['settings_table'] = 'ERROR: ' . $e->getMessage();
         }
         
-        // 2. Verificar API key
+        // 3. Verificar API key
         try {
             $apiKey = \App\Models\Setting::get('asaas_api_key', '');
             $result['api_key_configured'] = !empty($apiKey);
@@ -119,7 +127,7 @@ Route::get('/debug-asaas', function () {
             $result['api_key_error'] = $e->getMessage();
         }
         
-        // 3. Verificar ambiente
+        // 4. Verificar ambiente
         try {
             $env = \App\Models\Setting::get('asaas_environment', 'sandbox');
             $result['environment'] = $env;
@@ -127,7 +135,7 @@ Route::get('/debug-asaas', function () {
             $result['environment_error'] = $e->getMessage();
         }
         
-        // 4. Testar conexão HTTP
+        // 5. Testar conexão HTTP
         try {
             $asaas = new \App\Services\AsaasService();
             $result['base_url'] = $asaas->baseUrl;
