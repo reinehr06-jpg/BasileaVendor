@@ -32,7 +32,7 @@ DB_USERNAME=${DB_USERNAME:-postgres}
 DB_PASSWORD=${DB_PASSWORD:-secret}
 DBEOF
 
-# Configurações de sessão/cache/fila - usar file para não depender de tabelas
+# Configurações de sessão/cache/fila
 cat >> .env <<APPEOF
 SESSION_DRIVER=file
 SESSION_LIFETIME=120
@@ -62,23 +62,27 @@ until php -r "try { new PDO('pgsql:host=${DB_HOST:-postgres};port=${DB_PORT:-543
 done
 echo "Banco disponível!"
 
-# Limpar caches antes de tudo
+# Limpar caches
 echo "Limpando caches..."
 php artisan config:clear 2>/dev/null || true
 php artisan cache:clear 2>/dev/null || true
 php artisan route:clear 2>/dev/null || true
 php artisan view:clear 2>/dev/null || true
 
-# Rodar migrations (graceful para ignorar erros de colunas duplicadas)
+# Rodar migrations
 echo "Rodando migrations..."
 php artisan migrate --force --graceful 2>&1 || echo "AVISO: Algumas migrations podem ter falhado, continuando..."
 
 # Criar link de storage
 php artisan storage:link 2>/dev/null || true
 
-# Rodar seeder do admin se a tabela users estiver vazia
-echo "Verificando seeders..."
-php artisan db:seed --class=DatabaseSeeder --force 2>&1 || echo "AVISO: Seeder pode ter falhado, continuando..."
+# SEMPRE rodar o seeder para garantir o admin com senha correta
+echo "Rodando seeder do admin..."
+php artisan db:seed --class=DatabaseSeeder --force 2>&1
+
+# Verificar se o admin existe
+echo "Verificando usuário admin..."
+php artisan tinker --execute="try { \$u = \App\Models\User::where('email', 'basileia.vendas@basileia.com')->first(); echo \$u ? 'Admin OK: ' . \$u->email . ' (perfil: ' . \$u->perfil . ')' : 'Admin NÃO ENCONTRADO'; } catch (\Exception \$e) { echo 'Erro: ' . \$e->getMessage(); }" 2>&1 || true
 
 # Cachear config e routes para produção
 echo "Cachear configurações..."
@@ -87,4 +91,5 @@ php artisan route:cache 2>&1 || echo "AVISO: route:cache falhou"
 php artisan view:cache 2>&1 || echo "AVISO: view:cache falhou"
 
 echo "=== Iniciando servidor na porta 8000 ==="
+echo "=== Login: basileia.vendas@basileia.com ==="
 exec php artisan serve --host=0.0.0.0 --port=8000
