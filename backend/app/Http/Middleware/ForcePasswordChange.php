@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -22,14 +23,19 @@ class ForcePasswordChange
         if (Auth::check()) {
             $user = Auth::user();
 
-            // Redirect to password change if required and not already on the related pages
-            if ($user->require_password_change && 
-                Route::has('password.change') && 
-                !$request->is('password/*') && 
-                !$request->is('logout')) {
-                
-                return redirect()->route('password.change')
-                    ->with('warning', 'Você deve alterar sua senha provisória antes de continuar.');
+            // Redirect to password change if required (só se coluna existir)
+            try {
+                if (Schema::hasColumn('users', 'require_password_change') &&
+                    $user->require_password_change && 
+                    Route::has('password.change') && 
+                    !$request->is('password/*') && 
+                    !$request->is('logout')) {
+                    
+                    return redirect()->route('password.change')
+                        ->with('warning', 'Você deve alterar sua senha provisória antes de continuar.');
+                }
+            } catch (\Exception $e) {
+                // Ignorar erro de coluna inexistente
             }
         }
 

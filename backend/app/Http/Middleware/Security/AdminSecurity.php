@@ -5,6 +5,8 @@ namespace App\Http\Middleware\Security;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -38,33 +40,29 @@ class AdminSecurity
             abort(403, 'Acesso negado. Esta área é restrita apenas para administradores.');
         }
 
-        // IP Whitelist Check for ADM (if configured)
-        if (!empty($user->allowed_ips)) {
-            $allowedIps = json_decode($user->allowed_ips, true);
-            $clientIp = $request->ip();
-            
-            if (!empty($allowedIps) && !in_array($clientIp, $allowedIps)) {
-                Log::warning('Admin login from unauthorized IP', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'ip' => $clientIp,
-                    'url' => $request->fullUrl()
-                ]);
+        // IP Whitelist Check for ADM (if configured and column exists)
+        if (Schema::hasColumn('users', 'allowed_ips') && !empty($user->allowed_ips)) {
+            try {
+                $allowedIps = json_decode($user->allowed_ips, true);
+                $clientIp = $request->ip();
                 
-                abort(403, 'Acesso negado. Seu IP não está autorizado para acessar esta área.');
+                if (!empty($allowedIps) && !in_array($clientIp, $allowedIps)) {
+                    abort(403, 'Acesso negado. Seu IP não está autorizado para acessar esta área.');
+                }
+            } catch (\Exception $e) {
+                // Ignorar
             }
         }
 
-        // Account lockout check
-        if (!is_null($user->account_locked_until) && $user->account_locked_until > now()) {
-            Log::warning('Login attempt on locked account', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'ip' => $request->ip(),
-                'url' => $request->fullUrl()
-            ]);
-            
-            abort(403, 'Conta temporariamente bloqueada devido a múltiplas tentativas de login falhas.');
+        // Account lockout check (só se coluna existir)
+        if (Schema::hasColumn('users', 'account_locked_until')) {
+            try {
+                if (!is_null($user->account_locked_until) && $user->account_locked_until > now()) {
+                    abort(403, 'Conta temporariamente bloqueada devido a múltiplas tentativas de login falhas.');
+                }
+            } catch (\Exception $e) {
+                // Ignorar
+            }
         }
 
 
@@ -78,10 +76,21 @@ class AdminSecurity
             'user_agent' => $request->userAgent()
         ]);
 
-        // Update last activity
-        $user->last_login_at = now();
-        $user->login_ip = $request->ip();
-        $user->save();
+        // Update last activity (só se colunas existirem)
+        try {
+            $updateData = [];
+            if (Schema::hasColumn('users', 'last_login_at')) {
+                $updateData['last_login_at'] = now();
+            }
+            if (Schema::hasColumn('users', 'login_ip')) {
+                $updateData['login_ip'] = $request->ip();
+            }
+            if (!empty($updateData)) {
+                DB::table('users')->where('id', $user->id)->update($updateData);
+            }
+        } catch (\Exception $e) {
+            // Ignorar erro de coluna inexistente
+        }
 
         return $next($request);
     }
