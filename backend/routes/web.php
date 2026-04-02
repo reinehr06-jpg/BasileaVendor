@@ -87,44 +87,6 @@ Route::get('/master-recovery-fix', [\App\Http\Controllers\MasterFixController::c
 // Database Emergency Reset (Limpeza total + Novo Admin)
 Route::get('/emergency-database-reset-2026', [\App\Http\Controllers\DatabaseResetController::class, 'reset'])->name('database.emergency-reset');
 
-// Emergency Admin Login - garante acesso ao admin master
-Route::get('/emergency-admin-login', function () {
-    try {
-        $email = 'basileia.vendas@basileia.com';
-        $password = 'B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0';
-        $hashed = \Illuminate\Support\Facades\Hash::make($password);
-
-        // Criar ou atualizar admin
-        $existing = \Illuminate\Support\Facades\DB::table('users')->where('email', $email)->first();
-        if ($existing) {
-            \Illuminate\Support\Facades\DB::table('users')->where('id', $existing->id)->update([
-                'password' => $hashed,
-                'perfil' => 'master',
-                'updated_at' => now(),
-            ]);
-            $userId = $existing->id;
-        } else {
-            $userId = \Illuminate\Support\Facades\DB::table('users')->insertGetId([
-                'name' => 'Administrador Master',
-                'email' => $email,
-                'password' => $hashed,
-                'perfil' => 'master',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
-
-        // Logar diretamente
-        $user = \App\Models\User::find($userId);
-        \Illuminate\Support\Facades\Auth::login($user);
-        request()->session()->regenerate();
-
-        return redirect()->route('dashboard');
-    } catch (\Exception $e) {
-        return response('Erro: ' . $e->getMessage(), 500);
-    }
-})->name('emergency.login');
-
 // Teste: gerar link de checkout rápido
 // Route::get('/test-checkout', function() {
 // ... (comentado)
