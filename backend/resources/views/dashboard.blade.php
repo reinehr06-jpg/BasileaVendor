@@ -76,7 +76,7 @@
         .welcome-section { flex-direction: column; text-align: center; gap: 20px; }
     }
     .period-selector { display: flex; gap: 4px; background: rgba(255,255,255,0.1); border-radius: 8px; padding: 3px; }
-    .period-btn { padding: 6px 14px; border: none; background: transparent; color: rgba(255,255,255,0.7); border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: 0.2s; }
+    .period-btn { padding: 5px 12px; border: none; background: transparent; color: rgba(255,255,255,0.7); border-radius: 6px; cursor: pointer; font-size: 0.75rem; font-weight: 600; transition: 0.2s; }
     .period-btn.active { background: white; color: var(--primary-dark); }
     .period-btn:hover:not(.active) { background: rgba(255,255,255,0.15); color: white; }
 </style>
@@ -87,17 +87,10 @@
             <h1>Olá, {{ Auth::user()->name }} 👋</h1>
             <p>{{ $tituloSessao }} — {{ $periodoLabel }}.</p>
         </div>
-        <div style="display:flex; align-items:center; gap:12px;">
-            <div class="period-selector">
-                <a href="?periodo=week" class="period-btn {{ $periodo === 'week' ? 'active' : '' }}">Semana</a>
-                <a href="?periodo=month" class="period-btn {{ $periodo === 'month' ? 'active' : '' }}">Mês</a>
-                <a href="?periodo=year" class="period-btn {{ $periodo === 'year' ? 'active' : '' }}">Ano</a>
-            </div>
-            <div class="welcome-badge">
-                <span class="badge badge-primary" style="background: rgba(255,255,255,0.1); color: white; padding: 10px 20px; border-radius: 12px; font-size: 0.85rem;">
-                    Basileia Vendas <i class="fas fa-check-circle" style="margin-left: 8px;"></i>
-                </span>
-            </div>
+        <div class="welcome-badge">
+            <span class="badge badge-primary" style="background: rgba(255,255,255,0.1); color: white; padding: 10px 20px; border-radius: 12px; font-size: 0.85rem;">
+                Basileia Vendas <i class="fas fa-check-circle" style="margin-left: 8px;"></i>
+            </span>
         </div>
     </div>
 </div>
@@ -158,7 +151,11 @@
     <div class="chart-container animate-up" style="animation-delay: 0.6s;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
             <h3 style="font-size: 1.1rem; color: var(--text-primary);">{{ $isPersonal ? 'Meu Desempenho' : 'Desempenho da Operação' }}</h3>
-            <div class="badge badge-secondary" style="font-size: 0.7rem;">{{ $periodoLabel }}</div>
+            <div class="period-selector" style="background: #f1f5f9;">
+                <a href="?periodo=week" class="period-btn {{ $periodo === 'week' ? 'active' : '' }}" style="color: #64748b;">Semana</a>
+                <a href="?periodo=month" class="period-btn {{ $periodo === 'month' ? 'active' : '' }}" style="color: #64748b;">Mês</a>
+                <a href="?periodo=year" class="period-btn {{ $periodo === 'year' ? 'active' : '' }}" style="color: #64748b;">Ano</a>
+            </div>
         </div>
         <canvas id="revenueChart" style="max-height: 280px;"></canvas>
     </div>
