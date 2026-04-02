@@ -27,6 +27,11 @@ class AsaasService
         }
     }
 
+    public function getApiKey(): string
+    {
+        return $this->apiKey;
+    }
+
     public function headers(): array
     {
         return [

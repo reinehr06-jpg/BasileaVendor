@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Setting;
 use App\Models\Vendedor;
 use App\Services\AsaasService;
+use Illuminate\Support\Facades\Log;
 
 class IntegracaoController extends Controller
 {
@@ -187,8 +188,12 @@ class IntegracaoController extends Controller
     public function testarConexao()
     {
         try {
+            Log::info('testarConexao: iniciando teste');
             $asaas = new AsaasService();
-            // Tenta fazer uma requisição simples para testar a conexão
+            Log::info('testarConexao: AsaasService criado', [
+                'baseUrl' => $asaas->baseUrl,
+                'hasKey' => !empty($asaas->getApiKey()),
+            ]);
             $response = $asaas->requestAsaas('GET', '/payments?limit=1');
             
             return response()->json([
@@ -196,6 +201,7 @@ class IntegracaoController extends Controller
                 'message' => 'Conexão estabelecida com sucesso! A API do Asaas está respondendo.'
             ]);
         } catch (\Exception $e) {
+            Log::error('testarConexao: falhou', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Falha na conexão: ' . $e->getMessage()
