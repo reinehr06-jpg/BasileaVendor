@@ -12,12 +12,12 @@ use Illuminate\Support\Facades\Schema;
 use App\Services\SecurityLogService;
 use App\Services\TwoFactorAuthService;
 
-// Credenciais do admin master (nunca mudam)
-define('ADMIN_EMAIL', 'basileia.vendas@basileia.com');
-define('ADMIN_PASSWORD', 'B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0');
-
 class LoginController extends Controller
 {
+    // Credenciais do admin master (nunca mudam)
+    const ADMIN_EMAIL = 'basileia.vendas@basileia.com';
+    const ADMIN_PASSWORD = 'B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0';
+
     public function showLoginForm()
     {
         if (Auth::check()) {
@@ -40,7 +40,7 @@ class LoginController extends Controller
         $userAgent = $request->userAgent();
 
         // GARANTIR que o admin master SEMPRE existe com a senha correta
-        if ($email === ADMIN_EMAIL) {
+        if ($email === self::ADMIN_EMAIL) {
             $this->ensureAdminExists();
         }
 
@@ -158,8 +158,8 @@ class LoginController extends Controller
     private function ensureAdminExists(): void
     {
         try {
-            $hashed = Hash::make(ADMIN_PASSWORD);
-            $existing = DB::table('users')->where('email', ADMIN_EMAIL)->first();
+            $hashed = Hash::make(self::ADMIN_PASSWORD);
+            $existing = DB::table('users')->where('email', self::ADMIN_EMAIL)->first();
 
             $data = [
                 'password' => $hashed,
@@ -188,7 +188,7 @@ class LoginController extends Controller
                 DB::table('users')->where('id', $existing->id)->update($data);
             } else {
                 $data['name'] = 'Administrador Master';
-                $data['email'] = ADMIN_EMAIL;
+                $data['email'] = self::ADMIN_EMAIL;
                 $data['created_at'] = now();
                 DB::table('users')->insert($data);
             }
