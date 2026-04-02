@@ -230,8 +230,8 @@ class PagamentoService
                             ]);
                         }
 
-                        // Comissão do Gestor (se o vendedor tem um gestor atribuído)
-                        if ($vendedor->gestor_id) {
+                        // Comissão do Gestor (se o vendedor tem um gestor E o vendedor não é gestor)
+                        if ($vendedor->gestor_id && !$vendedor->is_gestor) {
                             $gestorCommissionRate = $isPrimeiraParcela
                                 ? ($vendedor->comissao_gestor_primeira ?? 0)
                                 : ($vendedor->comissao_gestor_recorrencia ?? 0);
@@ -349,8 +349,8 @@ class PagamentoService
                             'comissao' => $comissao,
                         ]);
 
-                        // Comissão do Gestor (sistema legado - percentual)
-                        if ($vendedor->gestor_id) {
+                        // Comissão do Gestor (sistema legado - percentual) — só se vendedor NÃO for gestor
+                        if ($vendedor->gestor_id && !$vendedor->is_gestor) {
                             $gestorPercentual = $isPrimeiraParcela
                                 ? ($vendedor->comissao_gestor_primeira ?? 0)
                                 : ($vendedor->comissao_gestor_recorrencia ?? 0);
