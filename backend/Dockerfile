@@ -15,10 +15,13 @@ WORKDIR /var/www/html
 
 # Copiar arquivos do projeto e instalar dependências no build
 COPY composer.json composer.lock ./
-RUN composer install --no-interaction --no-dev --optimize-autoloader
+RUN composer install --no-interaction --no-dev --optimize-autoloader --no-scripts
 
 # Copiar o restante do projeto
 COPY . .
+
+# Rodar scripts do composer que dependem do artisan
+RUN composer dump-autoload --optimize
 
 # Expor porta do artisan serve
 EXPOSE 8000
