@@ -64,4 +64,4 @@ php artisan config:cache 2>&1 || true
 php artisan route:cache 2>&1 || true
 
 echo "=== Servidor na porta 8000 ==="
-exec php artisan serve --host=0.0.0.0 --port=8000
+exec php -d max_execution_time=600 -d memory_limit=512M artisan serve --host=0.0.0.0 --port=8000

@@ -26,6 +26,12 @@ RUN composer dump-autoload --optimize
 # Expor porta do artisan serve
 EXPOSE 8000
 
+# Configurações PHP para produção
+RUN echo "max_execution_time=600" > /usr/local/etc/php/conf.d/custom.ini && \
+    echo "memory_limit=512M" >> /usr/local/etc/php/conf.d/custom.ini && \
+    echo "upload_max_filesize=50M" >> /usr/local/etc/php/conf.d/custom.ini && \
+    echo "post_max_size=50M" >> /usr/local/etc/php/conf.d/custom.ini
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
