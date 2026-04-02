@@ -223,5 +223,10 @@
         </div>
     </div>
 
+    <script>
+    document.querySelectorAll('form').forEach(function(f){f.setAttribute('autocomplete','off')});
+    document.querySelectorAll('input').forEach(function(i){i.setAttribute('autocomplete','off')});
+    </script>
+
 </body>
 </html>
