@@ -304,7 +304,7 @@
                     <div class="form-group">
                         <label>Telefone</label>
                         <div style="display:flex; gap:8px;">
-                            <select name="telefone_ddi" class="form-control" style="flex:0 0 120px; font-size:0.82rem;">
+                            <select name="telefone_ddi" class="form-control" style="flex:0 0 85px; font-size:0.78rem; padding:8px 6px; min-width:0;">
                                 <option value="55">🇧🇷 +55</option>
                                 <option value="1">🇺🇸 +1</option>
                                 <option value="7">🇷🇺 +7</option>
@@ -631,7 +631,7 @@
                             <div class="form-group">
                                 <label>Telefone</label>
                                 <div style="display:flex; gap:8px;">
-                                    <select id="editTelefoneDdi" class="form-control" style="flex:0 0 120px; font-size:0.82rem;">
+                                    <select id="editTelefoneDdi" class="form-control" style="flex:0 0 85px; font-size:0.78rem; padding:8px 6px; min-width:0;">
                                         <option value="55">🇧🇷 +55</option>
                                         <option value="1">🇺🇸 +1</option>
                                         <option value="7">🇷🇺 +7</option>
