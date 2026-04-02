@@ -216,6 +216,7 @@
                         'comissao_inicial' => $vendedor->vendedor?->comissao_inicial ?? 0,
                         'comissao_recorrencia' => $vendedor->vendedor?->comissao_recorrencia ?? 0,
                         'meta_mensal' => $vendedor->vendedor?->meta_mensal ?? 0,
+                        'meta_pessoal' => $vendedor->vendedor?->meta_pessoal ?? 0,
                         'status' => $vendedor->status,
                         'created_at' => $vendedor->created_at->format('d/m/Y H:i'),
                         'split_ativo' => $vendedor->vendedor?->split_ativo ?? false,
@@ -234,6 +235,7 @@
                         'comissao_inicial' => $vendedor->vendedor?->comissao_inicial ?? $vendedor->vendedor?->comissao ?? 0,
                         'comissao_recorrencia' => $vendedor->vendedor?->comissao_recorrencia ?? $vendedor->vendedor?->comissao ?? 0,
                         'meta_mensal' => $vendedor->vendedor?->meta_mensal ?? 0,
+                        'meta_pessoal' => $vendedor->vendedor?->meta_pessoal ?? 0,
                         'status' => $vendedor->status,
                         'gestor_id' => $vendedor->vendedor?->gestor_id ?? '',
                         'comissao_gestor_primeira' => $vendedor->vendedor?->comissao_gestor_primeira ?? 0,
@@ -897,6 +899,27 @@
                         </div>
                     </div>
                     <div class="form-section">
+                        <div class="form-section-title"><i class="fas fa-bullseye"></i> Metas</div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Meta Pessoal (R$)</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" name="meta_pessoal" id="editMetaPessoal" class="form-control" min="0" placeholder="0.00">
+                                    <span class="input-group-addon">R$</span>
+                                </div>
+                                <div class="field-hint">Meta individual deste vendedor.</div>
+                            </div>
+                            <div class="form-group">
+                                <label>Meta da Equipe (R$)</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" name="meta_mensal" id="editMetaMensal" class="form-control" min="0" placeholder="0.00">
+                                    <span class="input-group-addon">R$</span>
+                                </div>
+                                <div class="field-hint">Meta geral da equipe (soma das metas individuais).</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-section">
                         <div class="form-section-title"><i class="fas fa-user-tie"></i> Comissões do Gestor</div>
                         <div class="form-row">
                             <div class="form-group">
@@ -1070,7 +1093,7 @@
          document.getElementById('viewComissaoRecorrencia').textContent = parseFloat(data.comissao_recorrencia || 0).toFixed(1) + '%';
          document.getElementById('viewComissaoGestorPrimeira').textContent = parseFloat(data.comissao_gestor_primeira || 0).toFixed(1) + '%';
          document.getElementById('viewComissaoGestorRecorrencia').textContent = parseFloat(data.comissao_gestor_recorrencia || 0).toFixed(1) + '%';
-         document.getElementById('viewMeta').textContent = 'R$ ' + parseFloat(data.meta_mensal || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+         document.getElementById('viewMeta').textContent = 'R$ ' + parseFloat(data.meta_pessoal || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + (data.meta_mensal > 0 ? ' (Equipe: R$ ' + parseFloat(data.meta_mensal || 0).toLocaleString('pt-BR', {minimumFractionDigits: 2}) + ')' : '');
          document.getElementById('viewCreated').textContent = data.created_at;
         BasileiaModal.open('viewModal');
     }
@@ -1092,6 +1115,8 @@
         document.getElementById('editTipoSplit').value = data.tipo_split || 'percentual';
         document.getElementById('editSplitInicial').value = data.valor_split_inicial || 0;
         document.getElementById('editSplitRecorrencia').value = data.valor_split_recorrencia || 0;
+        document.getElementById('editMetaMensal').value = data.meta_mensal || 0;
+        document.getElementById('editMetaPessoal').value = data.meta_pessoal || 0;
 
         // Reset to first tab
         var firstTab = document.querySelector('#editModal .tab-btn');

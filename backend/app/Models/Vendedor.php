@@ -13,6 +13,7 @@ class Vendedor extends Model
         'percentual_comissao',
         'telefone',
         'meta_mensal',
+        'meta_pessoal',
         'status',
         // Campos de Split Asaas
         'asaas_wallet_id',

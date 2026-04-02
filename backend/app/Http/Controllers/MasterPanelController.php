@@ -114,6 +114,7 @@ class MasterPanelController extends Controller
             'comissao_gestor_recorrencia' => 'nullable|numeric|min:0|max:100',
             'gestor_id' => 'nullable|exists:users,id',
             'meta_mensal' => 'nullable|numeric|min:0',
+            'meta_pessoal' => 'nullable|numeric|min:0',
             // Validações de Split
             'asaas_wallet_id' => 'nullable|string|max:255',
             'tipo_split' => 'nullable|in:percentual,fixo',
@@ -146,7 +147,8 @@ class MasterPanelController extends Controller
                     'comissao_recorrencia' => $request->comissao_recorrencia,
                     'comissao_gestor_primeira' => $request->comissao_gestor_primeira ?? 0,
                     'comissao_gestor_recorrencia' => $request->comissao_gestor_recorrencia ?? 0,
-                    'meta_mensal' => $request->meta_mensal ?? 0,
+                'meta_mensal' => $request->meta_mensal ?? 0,
+                'meta_pessoal' => $request->meta_pessoal ?? 0,
                     'asaas_wallet_id' => $request->asaas_wallet_id,
                     'split_ativo' => $request->boolean('split_ativo'),
                     'tipo_split' => $request->tipo_split ?? 'percentual',

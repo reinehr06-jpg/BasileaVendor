@@ -167,7 +167,6 @@
             <option value="pix" {{ $filtros['forma_pagamento'] == 'pix' ? 'selected' : '' }}>PIX</option>
             <option value="boleto" {{ $filtros['forma_pagamento'] == 'boleto' ? 'selected' : '' }}>Boleto</option>
             <option value="cartao" {{ $filtros['forma_pagamento'] == 'cartao' ? 'selected' : '' }}>Cartão</option>
-            <option value="recorrente" {{ $filtros['forma_pagamento'] == 'recorrente' ? 'selected' : '' }}>Recorrente</option>
         </select>
     </div>
     <div class="filter-group">
