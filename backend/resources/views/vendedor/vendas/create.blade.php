@@ -608,7 +608,8 @@ document.addEventListener('DOMContentLoaded', function() {
         resumoDetalhes.textContent = detalhes;
     }
 
-    // CPF/CNPJ mask
+    // CPF/CNPJ mask + validação em tempo real
+    let documentoInputTimeout;
     inputDocumento.addEventListener('input', function(e) {
         let v = this.value.replace(/\D/g, '');
         if (v.length <= 11) {
@@ -623,6 +624,30 @@ document.addEventListener('DOMContentLoaded', function() {
             v = v.replace(/(\d{4})(\d)/, '$1-$2');
         }
         this.value = v;
+
+        // Validação em tempo real enquanto digita
+        const doc = v.replace(/\D/g, '');
+        const warning = document.getElementById('documentoWarning');
+        warning.style.display = 'none';
+
+        if (doc.length === 11 || doc.length === 14) {
+            clearTimeout(documentoInputTimeout);
+            documentoInputTimeout = setTimeout(() => {
+                fetch('{{ route("vendedor.vendas.verificar-documento") }}?documento=' + doc, {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.exists && data.has_active_sale) {
+                        warning.style.display = 'block';
+                        warning.innerHTML = '<div class="warning-box" style="border-color:#dc2626;background:#fef2f2;"><i class="fas fa-triangle-exclamation" style="color:#dc2626;"></i><div><div class="warning-title" style="color:#dc2626;">Cliente já possui venda ativa!</div><div class="warning-text" style="color:#7f1d1d;"><strong>' + (data.cliente.nome_igreja||'') + '</strong> — Venda #' + (data.venda.id||'') + '</div></div></div>';
+                    } else if (data.exists) {
+                        warning.style.display = 'block';
+                        warning.innerHTML = '<div class="warning-box" style="border-color:#f59e0b;background:#fef3c7;"><i class="fas fa-info-circle" style="color:#f59e0b;"></i><div><div class="warning-title" style="color:#92400e;">Cliente já cadastrado</div><div class="warning-text" style="color:#78350f;"><strong>' + (data.cliente.nome_igreja||'') + '</strong> já existe no sistema.</div></div></div>';
+                    }
+                }).catch(() => { warning.style.display = 'none'; });
+            }, 600);
+        }
     });
 
     // Verificar documento ao perder foco

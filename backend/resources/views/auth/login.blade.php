@@ -224,11 +224,8 @@
     </div>
 
     <script>
-    document.querySelectorAll('form').forEach(function(f){f.setAttribute('autocomplete','off')});
-    document.querySelectorAll('input').forEach(function(i){
-        if(i.type==='password'){i.setAttribute('autocomplete','new-password')}
-        else{i.setAttribute('autocomplete','off')}
-    });
+    document.querySelectorAll('input[type=password]').forEach(function(i){i.setAttribute('autocomplete','new-password')});
+    document.querySelectorAll('input[type=email],input[name=email]').forEach(function(i){i.setAttribute('autocomplete','email')});
     </script>
 
 </body>
