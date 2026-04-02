@@ -10,11 +10,11 @@ return new class extends Migration
     {
         Schema::create('legacy_commissions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('legacy_import_id')->constrained('legacy_customer_imports')->cascadeOnDelete();
-            $table->foreignId('legacy_payment_id')->nullable()->constrained('legacy_customer_payments')->nullOnDelete();
-            $table->foreignId('vendedor_id')->constrained('vendedores')->cascadeOnDelete();
-            $table->foreignId('gestor_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('cliente_id')->constrained('clientes')->cascadeOnDelete();
+            $table->unsignedBigInteger('legacy_import_id');
+            $table->unsignedBigInteger('legacy_payment_id')->nullable();
+            $table->unsignedBigInteger('vendedor_id');
+            $table->unsignedBigInteger('gestor_id')->nullable();
+            $table->unsignedBigInteger('cliente_id');
             $table->enum('commission_type', ['OLD_SALE', 'RECURRING'])->default('RECURRING');
             $table->string('reference_month')->nullable();
             $table->decimal('base_amount', 12, 2)->nullable();
@@ -35,6 +35,8 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
 
+            $table->index('legacy_import_id');
+            $table->index('legacy_payment_id');
             $table->index(['vendedor_id', 'reference_month']);
             $table->index(['gestor_id', 'reference_month']);
             $table->index('status');

@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('legacy_customer_imports', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('local_cliente_id')->nullable()->constrained('clientes')->nullOnDelete();
+            $table->unsignedBigInteger('local_cliente_id')->nullable();
             $table->string('local_cliente_cpf_cnpj')->nullable();
             $table->string('asaas_customer_id')->nullable();
             $table->json('asaas_customer_data')->nullable();
@@ -18,9 +18,9 @@ return new class extends Migration
             $table->string('documento')->nullable();
             $table->string('email')->nullable();
             $table->string('telefone')->nullable();
-            $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->nullOnDelete();
-            $table->foreignId('gestor_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('plano_id')->nullable()->constrained('planos')->nullOnDelete();
+            $table->unsignedBigInteger('vendedor_id')->nullable();
+            $table->unsignedBigInteger('gestor_id')->nullable();
+            $table->unsignedBigInteger('plano_id')->nullable();
             $table->decimal('plano_valor_original', 12, 2)->nullable();
             $table->decimal('plano_valor_recorrente', 12, 2)->nullable();
             $table->date('data_venda_original')->nullable();
@@ -37,7 +37,7 @@ return new class extends Migration
             ])->default('PENDING');
             $table->boolean('generate_old_sale_commission')->default(false);
             $table->boolean('generate_recurring_commission')->default(true);
-            $table->foreignId('imported_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('imported_by')->nullable();
             $table->timestamp('imported_at')->nullable();
             $table->timestamp('last_sync_at')->nullable();
             $table->text('notes')->nullable();

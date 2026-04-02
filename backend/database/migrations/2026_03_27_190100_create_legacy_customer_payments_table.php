@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('legacy_customer_payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('legacy_import_id')->constrained('legacy_customer_imports')->cascadeOnDelete();
+            $table->unsignedBigInteger('legacy_import_id');
             $table->string('asaas_payment_id')->nullable();
             $table->string('asaas_subscription_id')->nullable();
             $table->enum('billing_type', ['PIX', 'BOLETO', 'CREDIT_CARD', 'UNDEFINED'])->default('UNDEFINED');
@@ -24,6 +24,7 @@ return new class extends Migration
             $table->json('raw_payload')->nullable();
             $table->timestamps();
 
+            $table->index('legacy_import_id');
             $table->index('asaas_payment_id');
             $table->index('asaas_subscription_id');
             $table->index('reference_month');
