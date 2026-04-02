@@ -151,7 +151,7 @@ class VendaController extends Controller
         $request->validate([
             'nome_igreja' => 'required|string|max:255',
             'nome_pastor' => 'required|string|max:255',
-            'localidade' => 'nullable|string|max:255',
+            'localidade' => 'required|string|max:255',
             'moeda' => 'required|string|max:10',
             'quantidade_membros' => 'required|integer|min:1',
             'documento' => 'required|string|max:18',
@@ -164,6 +164,13 @@ class VendaController extends Controller
             'valor_performance' => 'nullable|numeric|min:0.01',
             'observacao' => 'nullable|string|max:1000',
             'parcelas' => 'nullable|integer|min:1|max:12',
+            'cep' => 'required|string|max:10',
+            'endereco' => 'required|string|max:255',
+            'numero' => 'required|string|max:20',
+            'bairro' => 'required|string|max:255',
+            'cidade' => 'required|string|max:255',
+            'estado' => 'required|string|max:2',
+            'complemento' => 'nullable|string|max:255',
         ], [
             'documento.required' => 'Informe um CPF ou CNPJ válido.',
             'desconto.max' => 'O desconto informado ultrapassa o limite permitido ('.self::MAX_DESCONTO.'%).',

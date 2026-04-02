@@ -107,8 +107,8 @@
 
         <div class="form-row">
             <div class="form-group">
-                <label>Localidade</label>
-                <input type="text" name="localidade" class="form-control" value="{{ old('localidade') }}" placeholder="Cidade, estado ou país">
+                <label>Localidade <span class="required">*</span></label>
+                <input type="text" name="localidade" class="form-control" value="{{ old('localidade') }}" required placeholder="Cidade, estado ou país">
             </div>
             <div class="form-group">
                 <label>Moeda <span class="required">*</span></label>
@@ -149,16 +149,16 @@
 
         <div class="form-row">
             <div class="form-group" style="flex: 0.3;">
-                <label>CEP</label>
-                <input type="text" name="cep" id="inputCep" class="form-control" value="{{ old('cep') }}" placeholder="00000-000">
+                <label>CEP <span class="required">*</span></label>
+                <input type="text" name="cep" id="inputCep" class="form-control" value="{{ old('cep') }}" required placeholder="00000-000">
             </div>
             <div class="form-group" style="flex: 0.5;">
-                <label>Endereço</label>
-                <input type="text" name="endereco" id="inputEndereco" class="form-control" value="{{ old('endereco') }}" placeholder="Avenida Brasil">
+                <label>Endereço <span class="required">*</span></label>
+                <input type="text" name="endereco" id="inputEndereco" class="form-control" value="{{ old('endereco') }}" required placeholder="Avenida Brasil">
             </div>
             <div class="form-group" style="flex: 0.2;">
-                <label>Número</label>
-                <input type="text" name="numero" id="inputNumero" class="form-control" value="{{ old('numero') }}" placeholder="123">
+                <label>Número <span class="required">*</span></label>
+                <input type="text" name="numero" id="inputNumero" class="form-control" value="{{ old('numero') }}" required placeholder="123">
             </div>
         </div>
         
@@ -168,16 +168,16 @@
                 <input type="text" name="complemento" id="inputComplemento" class="form-control" value="{{ old('complemento') }}" placeholder="Sala 4, Bloco B">
             </div>
             <div class="form-group" style="flex: 0.3;">
-                <label>Bairro</label>
-                <input type="text" name="bairro" id="inputBairro" class="form-control" value="{{ old('bairro') }}" placeholder="Centro">
+                <label>Bairro <span class="required">*</span></label>
+                <input type="text" name="bairro" id="inputBairro" class="form-control" value="{{ old('bairro') }}" required placeholder="Centro">
             </div>
             <div class="form-group" style="flex: 0.3;">
-                <label>Cidade</label>
-                <input type="text" name="cidade" id="inputCidade" class="form-control" value="{{ old('cidade') }}" placeholder="São Paulo">
+                <label>Cidade <span class="required">*</span></label>
+                <input type="text" name="cidade" id="inputCidade" class="form-control" value="{{ old('cidade') }}" required placeholder="São Paulo">
             </div>
             <div class="form-group" style="flex: 0.1;">
-                <label>UF</label>
-                <input type="text" name="estado" id="inputEstado" class="form-control" value="{{ old('estado') }}" placeholder="SP" maxlength="2">
+                <label>UF <span class="required">*</span></label>
+                <input type="text" name="estado" id="inputEstado" class="form-control" value="{{ old('estado') }}" required placeholder="SP" maxlength="2">
             </div>
         </div>
     </div>
