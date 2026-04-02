@@ -50,9 +50,6 @@
     <button class="tab-btn active" onclick="switchTab('tab-cobrancas', this)">
         <i class="fas fa-credit-card" style="margin-right: 6px;"></i> Cobranças Clients
     </button>
-    <button class="tab-btn" onclick="switchTab('tab-repasses', this)">
-        <i class="fas fa-university" style="margin-right: 6px;"></i> Repasses Basileia
-    </button>
 </div>
 
 <!-- Tab: Cobranças dos Clientes -->
@@ -227,86 +224,6 @@
         <p>Os pagamentos aparecerão aqui conforme vendas forem realizadas.</p>
     </div>
     @endif
-</div>
-
-<!-- Tab: Repasses da Basileia -->
-<div id="tab-repasses" class="tab-content">
-    @php
-    $repasses = \App\Models\Comissao::where('vendedor_id', $vendedor->id)
-        ->orderByDesc('created_at')
-        ->limit(50)
-        ->get()
-        ->map(function($c) {
-            return (object)[
-                'cliente' => $c->cliente->nome_igreja ?? $c->cliente->nome ?? 'N/A',
-                'valor_venda' => $c->valor_venda,
-                'valor_comissao' => $c->valor_comissao,
-                'tipo' => $c->tipo_comissao,
-                'status' => $c->status,
-                'data' => $c->data_pagamento ?? $c->created_at,
-            ];
-        });
-    @endphp
-
-    <!-- Stats -->
-    <div class="stats-bar">
-        <div class="stat-card">
-            <div class="stat-icon success"><i class="fas fa-sack-dollar"></i></div>
-            <div class="stat-value">R$ {{ number_format($repasses->sum('valor_comissao'), 2, ',', '.') }}</div>
-            <div class="stat-label">Total Recebido</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
-            <div class="stat-value" style="color: var(--warning);">R$ {{ number_format($repasses->where('status', 'pendente')->sum('valor_comissao'), 2, ',', '.') }}</div>
-            <div class="stat-label">Pendente</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon success"><i class="fas fa-check-circle"></i></div>
-            <div class="stat-value" style="color: var(--success);">R$ {{ number_format($repasses->whereIn('status', ['paga', 'confirmada'])->sum('valor_comissao'), 2, ',', '.') }}</div>
-            <div class="stat-label">Confirmado</div>
-        </div>
-    </div>
-
-    <div class="table-container">
-        @if($repasses->count() > 0)
-        <table>
-            <thead>
-                <tr>
-                    <th><i class="fas fa-building"></i> Cliente</th>
-                    <th><i class="fas fa-dollar-sign"></i> Valor Venda</th>
-                    <th><i class="fas fa-hand-holding-dollar"></i> Repasse</th>
-                    <th><i class="fas fa-tag"></i> Tipo</th>
-                    <th><i class="fas fa-circle-check"></i> Status</th>
-                    <th><i class="fas fa-calendar-check"></i> Data</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($repasses as $r)
-                <tr>
-                    <td style="font-weight: 600; color: var(--text-primary);">{{ $r->cliente }}</td>
-                    <td>R$ {{ number_format($r->valor_venda, 2, ',', '.') }}</td>
-                    <td style="font-weight: 700; color: var(--success);">R$ {{ number_format($r->valor_comissao, 2, ',', '.') }}</td>
-                    <td>
-                        @if($r->tipo === 'recorrencia')
-                        <span class="repasse-badge"><i class="fas fa-redo"></i> Recorrência</span>
-                        @else
-                        <span class="repasse-badge"><i class="fas fa-star"></i> Primeira Venda</span>
-                        @endif
-                    </td>
-                    <td><span class="badge status-{{ $r->status }}">{{ ucfirst($r->status) }}</span></td>
-                    <td style="font-size: 0.85rem; color: var(--text-muted);">{{ \Carbon\Carbon::parse($r->data)->format('d/m/Y') }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-        @else
-        <div class="empty-state">
-            <div class="empty-icon"><i class="fas fa-university"></i></div>
-            <h3>Nenhum repasse registrado</h3>
-            <p>Os repasses da Basileia aparecerão aqui quando houverem vendas confirmadas.</p>
-        </div>
-        @endif
-    </div>
 </div>
 
 <script>

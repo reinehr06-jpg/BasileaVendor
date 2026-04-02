@@ -248,31 +248,36 @@
 <!-- Meta da Equipe -->
 <div class="meta-progress-card animate-in">
     <div class="meta-progress-header">
-        <h3><i class="fas fa-bullseye" style="margin-right: 8px; color: var(--primary);"></i>Meta da Equipe - {{ $equipe->nome }}</h3>
-        <form action="{{ route('vendedor.equipe.atualizar-meta') }}" method="POST" style="display: flex; align-items: center; gap: 8px;">
-            @csrf
-            @method('PUT')
-            <input type="number" step="0.01" name="meta_mensal" class="form-control" 
-                   value="{{ $equipe->meta_mensal }}" style="width: 150px; text-align: right;">
-            <button type="submit" class="btn btn-sm btn-outline">Atualizar</button>
-        </form>
+        <h3><i class="fas fa-bullseye" style="margin-right: 8px; color: var(--primary);"></i>Meta - {{ $equipe->nome }}</h3>
     </div>
     
-    <div style="display: flex; align-items: center; gap: 24px;">
+    <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 16px;">
+        <div class="progress-percentage {{ $stats['percentual_meta'] >= 100 ? 'text-success' : ($stats['percentual_meta'] >= 50 ? 'text-warning' : 'text-danger') }}" style="font-size: 2rem; min-width: 80px;">
+            {{ $stats['percentual_meta'] }}%
+        </div>
         <div style="flex: 1;">
-            <div class="progress-bar-bg">
+            <div class="progress-bar-bg" style="height: 16px; border-radius: 8px;">
                 <div class="progress-bar-fill {{ $stats['percentual_meta'] >= 100 ? 'green' : ($stats['percentual_meta'] >= 50 ? 'yellow' : 'red') }}" 
                      style="width: {{ min($stats['percentual_meta'], 100) }}%;"></div>
             </div>
             <div class="progress-info">
                 <span>R$ {{ number_format($stats['valor_recebido'], 2, ',', '.') }} recebido</span>
-                <span>Meta: R$ {{ number_format($stats['meta_mensal'], 2, ',', '.') }}</span>
+                <span>R$ {{ number_format($stats['meta_mensal'], 2, ',', '.') }} meta</span>
             </div>
         </div>
-        <div class="progress-percentage {{ $stats['percentual_meta'] >= 100 ? 'text-success' : ($stats['percentual_meta'] >= 50 ? 'text-warning' : 'text-danger') }}">
-            {{ $stats['percentual_meta'] }}%
-        </div>
     </div>
+
+    <form action="{{ route('vendedor.equipe.atualizar-meta') }}" method="POST" style="display: flex; align-items: center; gap: 8px; justify-content: flex-end;">
+        @csrf
+        @method('PUT')
+        <span style="font-size: 0.82rem; color: var(--text-muted);">Definir meta:</span>
+        <div style="position: relative;">
+            <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem;">R$</span>
+            <input type="number" step="0.01" name="meta_mensal" class="form-control" 
+                   value="{{ $equipe->meta_mensal }}" style="width: 160px; text-align: right; padding-left: 32px;">
+        </div>
+        <button type="submit" class="btn btn-sm btn-outline"><i class="fas fa-check"></i></button>
+    </form>
 </div>
 
 <!-- Lista de Vendedores -->

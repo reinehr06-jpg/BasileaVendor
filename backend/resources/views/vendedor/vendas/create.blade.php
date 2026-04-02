@@ -328,7 +328,7 @@
             </div>
             <div class="form-group" style="flex: 1;">
                 <label>Observação</label>
-                <textarea name="observacao" class="form-control" placeholder="Informações adicionais sobre a venda...">{{ old('observacao') }}</textarea>
+                <textarea name="observacao" class="form-control" rows="2" placeholder="Informações adicionais sobre a venda..." style="resize: vertical; min-height: 42px; max-height: 100px;">{{ old('observacao') }}</textarea>
             </div>
         </div>
 
