@@ -138,11 +138,35 @@
         <div class="form-row">
             <div class="form-group">
                 <label>WhatsApp de Contato <span class="required">*</span></label>
-                <input type="text" name="whatsapp" id="inputWhatsapp" class="form-control" value="{{ old('whatsapp') }}" required placeholder="(00) 00000-0000" maxlength="15">
+                <div style="display:flex; gap:8px;">
+                    <select name="ddi" id="inputDdi" class="form-control" style="flex:0 0 110px;">
+                        <option value="55" data-flag="🇧🇷">🇧🇷 +55</option>
+                        <option value="1" data-flag="🇺🇸">🇺🇸 +1</option>
+                        <option value="54" data-flag="🇦🇷">🇦🇷 +54</option>
+                        <option value="351" data-flag="🇵🇹">🇵🇹 +351</option>
+                        <option value="52" data-flag="🇲🇽">🇲🇽 +52</option>
+                        <option value="56" data-flag="🇨🇱">🇨🇱 +56</option>
+                        <option value="57" data-flag="🇨🇴">🇨🇴 +57</option>
+                        <option value="598" data-flag="🇺🇾">🇺🇾 +598</option>
+                        <option value="595" data-flag="🇵🇾">🇵🇾 +595</option>
+                        <option value="591" data-flag="🇧🇴">🇧🇴 +591</option>
+                        <option value="593" data-flag="🇪🇨">🇪🇨 +593</option>
+                        <option value="51" data-flag="🇵🇪">🇵🇪 +51</option>
+                        <option value="58" data-flag="🇻🇪">🇻🇪 +58</option>
+                        <option value="44" data-flag="🇬🇧">🇬🇧 +44</option>
+                        <option value="49" data-flag="🇩🇪">🇩🇪 +49</option>
+                        <option value="33" data-flag="🇫🇷">🇫🇷 +33</option>
+                        <option value="39" data-flag="🇮🇹">🇮🇹 +39</option>
+                        <option value="34" data-flag="🇪🇸">🇪🇸 +34</option>
+                    </select>
+                    <input type="text" name="whatsapp" id="inputWhatsapp" class="form-control" value="{{ old('whatsapp') }}" required placeholder="(00) 00000-0000" maxlength="20" style="flex:1;">
+                </div>
+                <div id="whatsappWarning" style="display:none; margin-top:5px; color:#ef4444; font-size:0.82rem;"></div>
             </div>
             <div class="form-group">
                 <label>E-mail do Cliente <span class="required">*</span></label>
-                <input type="email" name="email_cliente" autocomplete="off" class="form-control @error('email_cliente') is-invalid @enderror" value="{{ old('email_cliente') }}" required placeholder="email@igreja.com">
+                <input type="email" name="email_cliente" id="inputEmail" autocomplete="off" class="form-control @error('email_cliente') is-invalid @enderror" value="{{ old('email_cliente') }}" required placeholder="email@igreja.com">
+                <div id="emailWarning" style="display:none; margin-top:5px; color:#ef4444; font-size:0.82rem;"></div>
                 @error('email_cliente') <div class="field-error">{{ $message }}</div> @enderror
             </div>
         </div>
@@ -699,6 +723,81 @@ document.addEventListener('DOMContentLoaded', function() {
     if (inputMembros.value) inputMembros.dispatchEvent(new Event('input'));
     updatePriceLabels();
     calcularValor();
+
+    // ===== Validação em tempo real: Email duplicado =====
+    const inputEmail = document.getElementById('inputEmail');
+    const emailWarning = document.getElementById('emailWarning');
+    let emailTimeout = null;
+    if (inputEmail) {
+        inputEmail.addEventListener('input', function() {
+            clearTimeout(emailTimeout);
+            const email = this.value.trim();
+            emailWarning.style.display = 'none';
+            this.classList.remove('is-invalid');
+
+            if (email.length < 5 || !email.includes('@')) return;
+
+            emailTimeout = setTimeout(function() {
+                fetch('/api/verificar-email?email=' + encodeURIComponent(email), {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.exists) {
+                        emailWarning.textContent = '⚠ Este e-mail já está cadastrado no sistema.';
+                        emailWarning.style.display = 'block';
+                        inputEmail.classList.add('is-invalid');
+                    }
+                })
+                .catch(() => {});
+            }, 500);
+        });
+    }
+
+    // ===== Validação em tempo real: WhatsApp duplicado =====
+    const whatsappWarning = document.getElementById('whatsappWarning');
+    let whatsappTimeout = null;
+    if (inputWhatsapp) {
+        inputWhatsapp.addEventListener('input', function() {
+            clearTimeout(whatsappTimeout);
+            const ddi = document.getElementById('inputDdi').value;
+            const numero = this.value.replace(/\D/g, '');
+            whatsappWarning.style.display = 'none';
+
+            if (numero.length < 8) return;
+
+            const numeroCompleto = '+' + ddi + numero;
+
+            whatsappTimeout = setTimeout(function() {
+                fetch('/api/verificar-whatsapp?whatsapp=' + encodeURIComponent(numeroCompleto), {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.exists) {
+                        whatsappWarning.textContent = '⚠ Este WhatsApp já está cadastrado no sistema.';
+                        whatsappWarning.style.display = 'block';
+                    }
+                })
+                .catch(() => {});
+            }, 500);
+        });
+    }
+
+    // ===== Máscara de WhatsApp =====
+    if (inputWhatsapp) {
+        inputWhatsapp.addEventListener('input', function(e) {
+            let v = this.value.replace(/\D/g, '');
+            if (v.length > 11) v = v.substring(0, 11);
+            if (v.length > 6) {
+                this.value = '(' + v.substring(0,2) + ') ' + v.substring(2,7) + '-' + v.substring(7);
+            } else if (v.length > 2) {
+                this.value = '(' + v.substring(0,2) + ') ' + v.substring(2);
+            } else if (v.length > 0) {
+                this.value = '(' + v;
+            }
+        });
+    }
 });
 </script>
 @endsection

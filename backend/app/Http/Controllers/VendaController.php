@@ -186,6 +186,19 @@ class VendaController extends Controller
             return back()->withErrors(['documento' => 'Informe um CPF ou CNPJ válido.'])->withInput();
         }
 
+        // Verificar email duplicado
+        if (Cliente::where('email', $request->email_cliente)->exists()) {
+            return back()->withErrors(['email_cliente' => 'Este e-mail já está cadastrado no sistema.'])->withInput();
+        }
+
+        // Verificar whatsapp duplicado (com DDI)
+        $ddi = $request->input('ddi', '55');
+        $whatsappLimpo = preg_replace('/\D/', '', $request->whatsapp);
+        $whatsappCompleto = '+' . $ddi . $whatsappLimpo;
+        if (Cliente::where('whatsapp', $whatsappCompleto)->exists()) {
+            return back()->withErrors(['whatsapp' => 'Este WhatsApp já está cadastrado no sistema.'])->withInput();
+        }
+
         $user = Auth::user();
         $vendedor = $user->vendedor;
 
@@ -251,8 +264,8 @@ class VendaController extends Controller
                     'localidade' => $request->localidade,
                     'moeda' => $request->moeda,
                     'quantidade_membros' => $request->quantidade_membros,
-                    'whatsapp' => $request->whatsapp,
-                    'contato' => $request->whatsapp,
+                    'whatsapp' => $whatsappCompleto,
+                    'contato' => $whatsappCompleto,
                     'email' => $request->email_cliente,
                     'cep' => $request->cep,
                     'endereco' => $request->endereco,
