@@ -16,38 +16,28 @@ services:
     restart: unless-stopped
     expose:
       - "8000"
-    volumes:
-      - ./backend:/var/www/html
     environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=https://vendor.basileia.global
+      - APP_KEY=${APP_KEY}
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_DATABASE=basileia_vendas
       - DB_USERNAME=postgres
       - DB_PASSWORD=secret
+      - SESSION_DRIVER=database
+      - CACHE_STORE=database
+      - QUEUE_CONNECTION=database
     depends_on:
       - postgres
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    expose:
-      - "3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - NEXT_PUBLIC_API_URL=${BACKEND_URL:-http://backend:8000}
-    depends_on:
-      - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.basileia-frontend.rule=Host(`vendor.basileia.global`)"
-      - "traefik.http.routers.basileia-frontend.entrypoints=websecure"
-      - "traefik.http.routers.basileia-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.basileia-frontend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.basileia.rule=Host(`vendor.basileia.global`)"
+      - "traefik.http.routers.basileia.entrypoints=websecure"
+      - "traefik.http.routers.basileia.tls.certresolver=letsencrypt"
+      - "traefik.http.services.basileia.loadbalancer.server.port=8000"
     networks:
       - default
       - web

@@ -13,6 +13,13 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
+# Copiar arquivos do projeto e instalar dependências no build
+COPY composer.json composer.lock ./
+RUN composer install --no-interaction --no-dev --optimize-autoloader
+
+# Copiar o restante do projeto
+COPY . .
+
 # Expor porta do artisan serve
 EXPOSE 8000
 
