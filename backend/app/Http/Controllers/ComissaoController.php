@@ -8,6 +8,7 @@ use App\Models\Venda;
 use App\Models\Pagamento;
 use App\Models\Vendedor;
 use App\Models\Meta;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -338,6 +339,7 @@ class ComissaoController extends Controller
     {
         $mes = $request->get('mes', Carbon::now()->format('Y-m'));
         $vendedorId = $request->get('vendedor_id');
+        $formato = $request->get('formato', 'csv');
         $user = Auth::user();
 
         $query = Comissao::where('competencia', $mes)
@@ -357,23 +359,52 @@ class ComissaoController extends Controller
 
         $comissoes = $query->orderBy('vendedor_id')->orderBy('created_at')->get();
 
-        $nomeArquivo = "comissoes_{$mes}.csv";
+        if ($formato === 'pdf') {
+            $pdf = Pdf::loadView('master.comissoes.export-pdf', compact('comissoes', 'mes'))
+                ->setPaper('a4', 'landscape');
+            return $pdf->download("comissoes_{$mes}.pdf");
+        }
 
+        if ($formato === 'excel') {
+            $headers = [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => "attachment; filename=\"comissoes_{$mes}.csv\"",
+            ];
+            $callback = function () use ($comissoes) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+                fputcsv($file, ['Vendedor', 'Cliente', 'CPF/CNPJ', 'Valor Venda', '%', 'Valor Comissão', 'Tipo', 'Status', 'Data']);
+                foreach ($comissoes as $c) {
+                    fputcsv($file, [
+                        $c->vendedor->user->name ?? 'N/A',
+                        $c->cliente->nome_igreja ?? 'N/A',
+                        $c->cliente->documento ?? 'N/A',
+                        number_format($c->valor_venda, 2, ',', '.'),
+                        $c->percentual_aplicado . '%',
+                        number_format($c->valor_comissao, 2, ',', '.'),
+                        ucfirst($c->tipo_comissao),
+                        ucfirst($c->status),
+                        $c->data_pagamento ? $c->data_pagamento->format('d/m/Y') : '-',
+                    ]);
+                }
+                fclose($file);
+            };
+            return response()->stream($callback, 200, $headers);
+        }
+
+        // CSV (default)
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$nomeArquivo}\"",
+            'Content-Disposition' => "attachment; filename=\"comissoes_{$mes}.csv\"",
         ];
-
         $callback = function () use ($comissoes) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-
             fputcsv($file, [
                 'Vendedor', 'Cliente (Igreja)', 'Responsável', 'CPF/CNPJ',
                 'ID Venda', 'Valor da Venda (R$)', '% Comissão', 'Valor Comissão (R$)',
                 'Tipo', 'Status', 'Data Pagamento', 'Competência',
             ]);
-
             foreach ($comissoes as $c) {
                 fputcsv($file, [
                     $c->vendedor->user->name ?? 'N/A',
@@ -390,10 +421,8 @@ class ComissaoController extends Controller
                     $c->competencia,
                 ]);
             }
-
             fclose($file);
         };
-
         return response()->stream($callback, 200, $headers);
     }
 

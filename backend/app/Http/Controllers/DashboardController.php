@@ -15,15 +15,31 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
-        $mesAtual = Carbon::now()->month;
-        $anoAtual = Carbon::now()->year;
-        $mesPassado = Carbon::now()->subMonth()->month;
-        $anoPassado = Carbon::now()->subMonth()->year;
+        $periodo = $request->get('periodo', 'month');
+        
+        switch ($periodo) {
+            case 'week':
+                $dataInicio = Carbon::now()->startOfWeek();
+                $dataFim = Carbon::now();
+                $dataInicioComp = Carbon::now()->subWeek()->startOfWeek();
+                $dataFimComp = Carbon::now()->subWeek()->endOfWeek();
+                break;
+            case 'year':
+                $dataInicio = Carbon::now()->startOfYear();
+                $dataFim = Carbon::now();
+                $dataInicioComp = Carbon::now()->subYear()->startOfYear();
+                $dataFimComp = Carbon::now()->subYear()->endOfYear();
+                break;
+            default:
+                $dataInicio = Carbon::now()->startOfMonth();
+                $dataFim = Carbon::now();
+                $dataInicioComp = Carbon::now()->subMonth()->startOfMonth();
+                $dataFimComp = Carbon::now()->subMonth()->endOfMonth();
+        }
 
-        // Definir o escopo de vendedores baseado no perfil
         $vendedorIds = null;
         $isPersonal = false;
         
@@ -32,27 +48,22 @@ class DashboardController extends Controller
             $isPersonal = true;
         } elseif ($user->perfil === 'gestor') {
             $vendedorIds = Vendedor::where('gestor_id', $user->id)
-                ->orWhere('usuario_id', $user->id) // O gestor também vê suas próprias vendas
+                ->orWhere('usuario_id', $user->id)
                 ->pluck('id')
                 ->toArray();
         }
 
-        // --- Queries Escopadas ---
-        
-        // Vendas Ativas (PAGO)
-        $queryVendasAtivas = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS']);
+        $queryVendasAtivas = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS'])
+            ->whereBetween('updated_at', [$dataInicio, $dataFim]);
         if ($vendedorIds) $queryVendasAtivas->whereIn('vendedor_id', $vendedorIds);
         $vendasAtivas = $queryVendasAtivas->count();
 
-        // Tendência de vendas (vs mês passado)
         $queryVendasPassado = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS'])
-            ->whereMonth('updated_at', $mesPassado)
-            ->whereYear('updated_at', $anoPassado);
+            ->whereBetween('updated_at', [$dataInicioComp, $dataFimComp]);
         if ($vendedorIds) $queryVendasPassado->whereIn('vendedor_id', $vendedorIds);
-        $vendasMesPassado = $queryVendasPassado->count();
-        $vendasTrend = $vendasMesPassado > 0 ? (($vendasAtivas - $vendasMesPassado) / $vendasMesPassado) * 100 : 0;
+        $vendasPassado = $queryVendasPassado->count();
+        $vendasTrend = $vendasPassado > 0 ? (($vendasAtivas - $vendasPassado) / $vendasPassado) * 100 : 0;
 
-        // Vendedores Ativos (apenas para Master e Gestor)
         $vendedoresAtivos = 0;
         if ($user->perfil === 'master') {
             $vendedoresAtivos = User::where('perfil', 'vendedor')->whereRaw('UPPER(status) = ?', ['ATIVO'])->count();
@@ -60,72 +71,89 @@ class DashboardController extends Controller
             $vendedoresAtivos = Vendedor::where('gestor_id', $user->id)->count();
         }
 
-        // Comissões Pendentes (Vendas pagas que ainda não tiveram comissão quitada)
-        $queryComisPend = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS']);
+        $queryComisPend = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS'])
+            ->whereBetween('updated_at', [$dataInicio, $dataFim]);
         if ($vendedorIds) $queryComisPend->whereIn('vendedor_id', $vendedorIds);
         $comissoesPendentes = $queryComisPend->sum('comissao_gerada');
-        // Clone the query builder to apply additional conditions for contagemPendentes
         $queryContagemPendentes = clone $queryComisPend;
         $contagemPendentes = $queryContagemPendentes->where('comissao_gerada', '>', 0)->count();
 
-        // Faturamento (MTD) - Soma do valor real de cada parcela paga/recebida
         $queryPagamentos = Pagamento::whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
-            ->whereMonth('pagamentos.updated_at', $mesAtual)
-            ->whereYear('pagamentos.updated_at', $anoAtual)
+            ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim])
             ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
             ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO']);
         if ($vendedorIds) $queryPagamentos->whereIn('vendas.vendedor_id', $vendedorIds);
         $totalRecebido = $queryPagamentos->sum('pagamentos.valor');
 
-        // Tendência de faturamento (vs mês passado)
         $queryPagamentosPassado = Pagamento::whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
-            ->whereMonth('pagamentos.updated_at', $mesPassado)
-            ->whereYear('pagamentos.updated_at', $anoPassado)
+            ->whereBetween('pagamentos.updated_at', [$dataInicioComp, $dataFimComp])
             ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
             ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO']);
         if ($vendedorIds) $queryPagamentosPassado->whereIn('vendas.vendedor_id', $vendedorIds);
-        $recebidoMesPassado = $queryPagamentosPassado->sum('pagamentos.valor');
-        $recebidoTrend = $recebidoMesPassado > 0 ? (($totalRecebido - $recebidoMesPassado) / $recebidoMesPassado) * 100 : 0;
+        $recebidoPassado = $queryPagamentosPassado->sum('pagamentos.valor');
+        $recebidoTrend = $recebidoPassado > 0 ? (($totalRecebido - $recebidoPassado) / $recebidoPassado) * 100 : 0;
 
-        // Clientes Ativos (Apenas quem já teve pelo menos um pagamento confirmado)
-        $queryClientes = Cliente::whereHas('vendas.pagamentos', function($q) use ($vendedorIds) {
-            $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
+        $queryClientes = Cliente::whereHas('vendas.pagamentos', function($q) use ($vendedorIds, $dataInicio, $dataFim) {
+            $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO'])
+              ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
             if ($vendedorIds) $q->whereIn('vendas.vendedor_id', $vendedorIds);
         });
         $clientesAtivos = $queryClientes->count();
 
-        // Churn do mês
         $queryChurn = Venda::whereIn('status', ['Estornado', 'Cancelado', 'Expirado', 'Vencido'])
             ->where('comissao_gerada', '>', 0)
-            ->whereMonth('updated_at', $mesAtual)
-            ->whereYear('updated_at', $anoAtual);
+            ->whereBetween('updated_at', [$dataInicio, $dataFim]);
         if ($vendedorIds) $queryChurn->whereIn('vendedor_id', $vendedorIds);
         $churnMes = $queryChurn->count();
 
-        // Renovações do mês
         $queryRenov = Cobranca::whereIn('cobrancas.status', ['RECEIVED', 'pago', 'PAGO'])
-            ->whereMonth('cobrancas.created_at', $mesAtual)
+            ->whereBetween('cobrancas.created_at', [$dataInicio, $dataFim])
             ->join('vendas', 'cobrancas.venda_id', '=', 'vendas.id');
         if ($vendedorIds) $queryRenov->whereIn('vendas.vendedor_id', $vendedorIds);
         $renovacoesMes = $queryRenov->count();
 
-        // Gráfico Semanal
         $driver = DB::getDriverName();
-        $weekFormat = $driver === 'pgsql' ? "TO_CHAR(pagamentos.updated_at, 'IW')" : "strftime('%W', pagamentos.updated_at)";
+        $graficoData = [];
         
-        $queryGrafico = Pagamento::selectRaw("$weekFormat as semana, sum(pagamentos.valor) as total")
-            ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
-            ->whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
-            ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
-            ->whereYear('pagamentos.updated_at', $anoAtual);
-        if ($vendedorIds) $queryGrafico->whereIn('vendas.vendedor_id', $vendedorIds);
-        $faturamentoSemanal = $queryGrafico->groupBy('semana')->orderBy('semana')->limit(4)->get();
+        if ($periodo === 'week') {
+            $dayFormat = $driver === 'pgsql' ? "TO_CHAR(pagamentos.updated_at, 'YYYY-MM-DD')" : "DATE(pagamentos.updated_at)";
+            $graficoRaw = Pagamento::selectRaw("$dayFormat as dia, sum(pagamentos.valor) as total")
+                ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
+                ->whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
+                ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
+                ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
+            if ($vendedorIds) $graficoRaw->whereIn('vendas.vendedor_id', $vendedorIds);
+            $graficoData = $graficoRaw->groupBy('dia')->orderBy('dia')->get()->map(function($row) {
+                return ['label' => Carbon::parse($row->dia)->format('d/m'), 'total' => $row->total];
+            });
+        } elseif ($periodo === 'year') {
+            $monthFormat = $driver === 'pgsql' ? "TO_CHAR(pagamentos.updated_at, 'YYYY-MM')" : "strftime('%Y-%m', pagamentos.updated_at)";
+            $graficoRaw = Pagamento::selectRaw("$monthFormat as mes, sum(pagamentos.valor) as total")
+                ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
+                ->whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
+                ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
+                ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
+            if ($vendedorIds) $graficoRaw->whereIn('vendas.vendedor_id', $vendedorIds);
+            $graficoData = $graficoRaw->groupBy('mes')->orderBy('mes')->get()->map(function($row) {
+                return ['label' => Carbon::parse($row->mes . '-01')->format('M/Y'), 'total' => $row->total];
+            });
+        } else {
+            $weekFormat = $driver === 'pgsql' ? "TO_CHAR(pagamentos.updated_at, 'IW')" : "strftime('%W', pagamentos.updated_at)";
+            $graficoRaw = Pagamento::selectRaw("$weekFormat as semana, sum(pagamentos.valor) as total")
+                ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
+                ->whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
+                ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
+                ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
+            if ($vendedorIds) $graficoRaw->whereIn('vendas.vendedor_id', $vendedorIds);
+            $graficoData = $graficoRaw->groupBy('semana')->orderBy('semana')->get()->map(function($row) {
+                return ['label' => 'Sem ' . $row->semana, 'total' => $row->total];
+            });
+        }
 
-        // Melhor faixa
         $dayFormat = $driver === 'pgsql' ? "TO_CHAR(cobrancas.updated_at, 'DD')" : "strftime('%d', cobrancas.updated_at)";
-        
         $queryFaixa = Cobranca::selectRaw("$dayFormat as dia, count(*) as total")
             ->join('vendas', 'cobrancas.venda_id', '=', 'vendas.id')
+            ->whereBetween('cobrancas.updated_at', [$dataInicio, $dataFim])
             ->where('cobrancas.status', 'RECEIVED');
         if ($vendedorIds) $queryFaixa->whereIn('vendas.vendedor_id', $vendedorIds);
         $historicoDias = $queryFaixa->groupBy('dia')->orderByDesc('total')->first();
@@ -144,11 +172,18 @@ class DashboardController extends Controller
             default => 'Minha Performance Individual'
         };
 
+        $periodoLabel = match($periodo) {
+            'week' => 'Última Semana',
+            'year' => 'Último Ano',
+            default => 'Último Mês'
+        };
+
         return view('dashboard', compact(
             'vendasAtivas', 'vendedoresAtivos', 'comissoesPendentes', 
             'totalRecebido', 'clientesAtivos', 'churnMes',
             'melhorFaixa', 'renovacoesMes', 'vendasTrend', 'recebidoTrend',
-            'contagemPendentes', 'faturamentoSemanal', 'tituloSessao', 'isPersonal'
+            'contagemPendentes', 'graficoData', 'tituloSessao', 'isPersonal',
+            'periodo', 'periodoLabel'
         ));
     }
 }
