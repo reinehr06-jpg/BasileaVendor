@@ -39,16 +39,19 @@
         align-items: center;
         margin-bottom: 24px;
         box-shadow: 0 20px 40px rgba(88, 28, 135, 0.25);
+        overflow: visible;
+        position: relative;
+        z-index: 1;
     }
     .report-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; color: white; }
     .report-hero p { opacity: 0.85; font-size: 0.9rem; color: rgba(255,255,255,0.9); }
-    .export-dropdown { position: relative; display: inline-block; z-index: 200; }
-    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 300; margin-top: 4px; }
-    .export-dropdown:hover .export-dropdown-content { display: block; }
-    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
-    .export-item:hover { background: var(--bg); color: var(--primary); }
-    .export-item:first-child { border-radius: 8px 8px 0 0; }
-    .export-item:last-child { border-radius: 0 0 8px 8px; }
+    .export-dropdown { position: relative; display: inline-block; z-index: 9999; }
+    .export-dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); z-index: 99999; margin-top: 8px; }
+    .export-dropdown-content.show { display: block; }
+    .export-item { display: block; padding: 12px 16px; color: #374151; text-decoration: none; font-size: 0.85rem; transition: 0.15s; font-weight: 500; }
+    .export-item:hover { background: #faf5ff; color: #7c3aed; }
+    .export-item:first-child { border-radius: 10px 10px 0 0; }
+    .export-item:last-child { border-radius: 0 0 10px 10px; }
     .export-item i { margin-right: 8px; width: 16px; }
 
     /* ===== Filtros ===== */
@@ -190,10 +193,10 @@
         <p>Análise consolidada da operação comercial e financeira</p>
     </div>
     <div class="export-dropdown">
-        <button class="btn" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; backdrop-filter: blur(10px); transition: 0.2s;">
+        <button type="button" onclick="document.getElementById('exportMenu').classList.toggle('show')" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; backdrop-filter: blur(10px); transition: 0.2s;">
             <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.65rem;"></i>
         </button>
-        <div class="export-dropdown-content">
+        <div id="exportMenu" class="export-dropdown-content">
             <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item"><i class="fas fa-file-excel" style="color: #16a34a;"></i> Excel</a>
             <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item"><i class="fas fa-file-pdf" style="color: #dc2626;"></i> PDF</a>
             <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item"><i class="fas fa-file-csv" style="color: #2563eb;"></i> CSV</a>
@@ -589,4 +592,16 @@
 
 @endif
 
+@endsection
+
+@section('scripts')
+<script>
+document.addEventListener('click', function(e) {
+    var menu = document.getElementById('exportMenu');
+    var dropdown = menu ? menu.closest('.export-dropdown') : null;
+    if (dropdown && !dropdown.contains(e.target) && menu) {
+        menu.classList.remove('show');
+    }
+});
+</script>
 @endsection
