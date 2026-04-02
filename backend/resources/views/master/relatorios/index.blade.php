@@ -43,8 +43,8 @@
     }
     .report-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; color: white; }
     .report-hero p { opacity: 0.85; font-size: 0.9rem; color: rgba(255,255,255,0.9); }
-    .export-dropdown { position: relative; display: inline-block; z-index: 9999; }
-    .export-dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 8px); background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); z-index: 99999; }
+    .export-dropdown { position: relative; display: inline-block; }
+    .export-dropdown-content { display: none; position: fixed; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); z-index: 999999; }
     .export-dropdown-content.show { display: block; }
     .export-item { display: block; padding: 12px 16px; color: #374151; text-decoration: none; font-size: 0.85rem; transition: 0.15s; font-weight: 500; }
     .export-item:hover { background: #faf5ff; color: #7c3aed; }
@@ -598,14 +598,27 @@
 <script>
 function toggleExportMenu(btn) {
     var menu = document.getElementById('exportMenu');
-    menu.classList.toggle('show');
+    if (menu.classList.contains('show')) {
+        menu.classList.remove('show');
+        return;
+    }
+    var rect = btn.getBoundingClientRect();
+    menu.style.top = (rect.bottom + 6) + 'px';
+    menu.style.left = rect.left + 'px';
+    menu.style.right = 'auto';
+    menu.classList.add('show');
 }
 document.addEventListener('click', function(e) {
     var menu = document.getElementById('exportMenu');
-    var dropdown = menu ? menu.closest('.export-dropdown') : null;
-    if (dropdown && !dropdown.contains(e.target) && menu) {
-        menu.classList.remove('show');
+    if (menu && !menu.contains(e.target)) {
+        var btn = menu.closest('.export-dropdown') ? menu.closest('.export-dropdown').querySelector('button') : null;
+        if (!btn || !btn.contains(e.target)) {
+            menu.classList.remove('show');
+        }
     }
+});
+window.addEventListener('scroll', function() {
+    document.getElementById('exportMenu').classList.remove('show');
 });
 </script>
 @endsection
