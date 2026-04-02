@@ -91,26 +91,26 @@
                 <span class="rate-tag vendedor">Comissão</span>
             </div>
             @if($vendedor->is_gestor)
-            <div class="rate-card">
+            <div class="rate-card" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-color: #fcd34d;">
                 <div class="rate-label">Gestor - 1ª Venda</div>
-                <div class="rate-value">{{ $vendedor->comissao_gestor_primeira ?? 0 }}%</div>
+                <div class="rate-value" style="color: #d97706;">{{ $vendedor->comissao_gestor_primeira ?? 0 }}%</div>
                 <span class="rate-tag gestor">Comissão Gestão</span>
             </div>
-            <div class="rate-card">
+            <div class="rate-card" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-color: #fcd34d;">
                 <div class="rate-label">Gestor - Recorrência</div>
-                <div class="rate-value">{{ $vendedor->comissao_gestor_recorrencia ?? 0 }}%</div>
+                <div class="rate-value" style="color: #d97706;">{{ $vendedor->comissao_gestor_recorrencia ?? 0 }}%</div>
                 <span class="rate-tag gestor">Comissão Gestão</span>
             </div>
             @endif
-            <div class="rate-card">
+            <div class="rate-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-color: #86efac;">
                 <div class="rate-label">Split - 1ª Venda</div>
-                <div class="rate-value">{{ $vendedor->valor_split_inicial ?? 0 }}{{ $vendedor->tipo_split === 'percentual' ? '%' : ' R$' }}</div>
-                <span class="rate-tag split">Repasse</span>
+                <div class="rate-value" style="color: #16a34a;">{{ $vendedor->valor_split_inicial ?? 0 }}{{ $vendedor->tipo_split === 'percentual' ? '%' : ' R$' }}</div>
+                <span class="rate-tag split">Repasse Automático</span>
             </div>
-            <div class="rate-card">
+            <div class="rate-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-color: #86efac;">
                 <div class="rate-label">Split - Recorrência</div>
-                <div class="rate-value">{{ $vendedor->valor_split_recorrencia ?? 0 }}{{ $vendedor->tipo_split === 'percentual' ? '%' : ' R$' }}</div>
-                <span class="rate-tag split">Repasse</span>
+                <div class="rate-value" style="color: #16a34a;">{{ $vendedor->valor_split_recorrencia ?? 0 }}{{ $vendedor->tipo_split === 'percentual' ? '%' : ' R$' }}</div>
+                <span class="rate-tag split">Repasse Automático</span>
             </div>
         </div>
     </div>
