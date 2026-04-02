@@ -2,10 +2,33 @@
 @section('title', 'Aprovações Comerciais')
 
 @section('content')
+<style>
+    .export-dropdown { position: relative; display: inline-block; }
+    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
+    .export-dropdown:hover .export-dropdown-content { display: block; }
+    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
+    .export-item:hover { background: var(--bg); color: var(--primary); }
+    .export-item:first-child { border-radius: 8px 8px 0 0; }
+    .export-item:last-child { border-radius: 0 0 8px 8px; }
+    .export-item i { margin-right: 8px; width: 16px; }
+    .stat-clickable { cursor: pointer; transition: opacity 0.2s; }
+    .stat-clickable:hover { opacity: 0.8; }
+    .stat-clickable.active { text-decoration: underline; }
+</style>
 <div class="page-header">
     <div>
         <h2><i class="fas fa-circle-check" style="margin-right: 8px;"></i>Aprovações Comerciais</h2>
         <p>Vendas que precisam de aprovação por desconto ou plano especial.</p>
+    </div>
+    <div class="export-dropdown">
+        <button class="btn btn-outline">
+            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
+        </button>
+        <div class="export-dropdown-content">
+            <a href="?formato=excel" class="export-item"><i class="fas fa-file-excel"></i> Excel</a>
+            <a href="?formato=pdf" class="export-item"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a href="?formato=csv" class="export-item"><i class="fas fa-file-csv"></i> CSV</a>
+        </div>
     </div>
 </div>
 
@@ -18,12 +41,12 @@
     </div>
     <div class="stat-card">
         <div class="stat-icon success"><i class="fas fa-check"></i></div>
-        <div class="stat-value" style="color: var(--success);">{{ $aprovadas->count() }}</div>
+        <div class="stat-value stat-clickable" style="color: var(--success);" onclick="filterHistory('APROVADO')" id="stat-aprovadas">{{ $aprovadas->count() }}</div>
         <div class="stat-label">Aprovadas</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon danger"><i class="fas fa-xmark"></i></div>
-        <div class="stat-value" style="color: var(--danger);">{{ $rejeitadas->count() }}</div>
+        <div class="stat-value stat-clickable" style="color: var(--danger);" onclick="filterHistory('REJEITADO')" id="stat-rejeitadas">{{ $rejeitadas->count() }}</div>
         <div class="stat-label">Rejeitadas</div>
     </div>
 </div>
@@ -110,7 +133,7 @@
         </thead>
         <tbody>
             @foreach($aprovadas->merge($rejeitadas) as $a)
-            <tr>
+            <tr class="history-row" data-status="{{ $a->status }}">
                 <td style="font-weight: 700;">#{{ str_pad($a->venda_id, 5, '0', STR_PAD_LEFT) }}</td>
                 <td>{{ $a->venda->vendedor->user->name ?? 'N/A' }}</td>
                 <td>{{ $a->venda->cliente->nome_igreja ?? 'N/A' }}</td>
@@ -180,6 +203,27 @@
         }
 
         BasileiaModal.open('approvalModal');
+    }
+
+    let currentHistoryFilter = null;
+    function filterHistory(status) {
+        const rows = document.querySelectorAll('.history-row');
+        const statAprovadas = document.getElementById('stat-aprovadas');
+        const statRejeitadas = document.getElementById('stat-rejeitadas');
+
+        if (currentHistoryFilter === status) {
+            currentHistoryFilter = null;
+            rows.forEach(row => row.style.display = '');
+            statAprovadas.classList.remove('active');
+            statRejeitadas.classList.remove('active');
+        } else {
+            currentHistoryFilter = status;
+            rows.forEach(row => {
+                row.style.display = row.dataset.status === status ? '' : 'none';
+            });
+            statAprovadas.classList.toggle('active', status === 'APROVADO');
+            statRejeitadas.classList.toggle('active', status === 'REJEITADO');
+        }
     }
 </script>
 @endsection

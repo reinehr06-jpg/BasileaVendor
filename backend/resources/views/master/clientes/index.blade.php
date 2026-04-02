@@ -11,12 +11,30 @@
     .badge-cancelado { background: #f1f5f9; color: #64748b; }
     .action-btn { background: white; border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; color: var(--primary); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; transition: 0.2s; }
     .action-btn:hover { border-color: var(--primary); background: #f8fafc; }
+    .export-dropdown { position: relative; display: inline-block; }
+    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
+    .export-dropdown:hover .export-dropdown-content { display: block; }
+    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
+    .export-item:hover { background: var(--bg); color: var(--primary); }
+    .export-item:first-child { border-radius: 8px 8px 0 0; }
+    .export-item:last-child { border-radius: 0 0 8px 8px; }
+    .export-item i { margin-right: 8px; width: 16px; }
 </style>
 
 <div class="page-header">
     <div>
         <h2><i class="fas fa-building" style="margin-right: 8px;"></i>Clientes da Operação</h2>
         <p>Carteira completa de clientes</p>
+    </div>
+    <div class="export-dropdown">
+        <button class="btn btn-outline">
+            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
+        </button>
+        <div class="export-dropdown-content">
+            <a href="?formato=excel" class="export-item"><i class="fas fa-file-excel"></i> Excel</a>
+            <a href="?formato=pdf" class="export-item"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a href="?formato=csv" class="export-item"><i class="fas fa-file-csv"></i> CSV</a>
+        </div>
     </div>
 </div>
 

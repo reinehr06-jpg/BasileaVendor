@@ -29,33 +29,38 @@
     .action-btn-copy { background: white; color: var(--primary); border-color: var(--border); }
     .action-btn-copy:hover { border-color: var(--primary); }
     
+    .export-dropdown { position: relative; display: inline-block; }
+    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
+    .export-dropdown:hover .export-dropdown-content { display: block; }
+    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
+    .export-item:hover { background: var(--bg); color: var(--primary); }
+    .export-item:first-child { border-radius: 8px 8px 0 0; }
+    .export-item:last-child { border-radius: 0 0 8px 8px; }
+    .export-item i { margin-right: 8px; width: 16px; }
+    
     .tabs-container { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
     .tab-btn { padding: 10px 20px; background: transparent; border: none; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 600; color: var(--text-muted); transition: all 0.2s; }
     .tab-btn:hover { color: var(--primary); }
     .tab-btn.active { background: var(--primary); color: white; }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
-    
-    .repasse-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
-    .repasse-vendedor { background: #dbeafe; color: #1d4ed8; }
-    .repasse-gestor { background: #f3e8ff; color: #7e22ce; }
 </style>
 
 <div class="page-header">
     <div>
         <h2><i class="fas fa-dollar-sign" style="margin-right: 8px;"></i>Controle de Pagamentos</h2>
-        <p>Visão global de todas as cobranças, recebimentos e repasses.</p>
+        <p>Visão global de todas as cobranças e recebimentos.</p>
     </div>
-</div>
-
-<!-- Tabs -->
-<div class="tabs-container">
-    <button class="tab-btn active" onclick="switchTab('tab-cobrancas', this)">
-        <i class="fas fa-credit-card" style="margin-right: 6px;"></i> Cobranças Recebidas
-    </button>
-    <button class="tab-btn" onclick="switchTab('tab-repasses', this)">
-        <i class="fas fa-share" style="margin-right: 6px;"></i> Repasses a Vendedores
-    </button>
+    <div class="export-dropdown">
+        <button class="btn btn-outline">
+            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
+        </button>
+        <div class="export-dropdown-content">
+            <a href="?formato=excel" class="export-item"><i class="fas fa-file-excel"></i> Excel</a>
+            <a href="?formato=pdf" class="export-item"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a href="?formato=csv" class="export-item"><i class="fas fa-file-csv"></i> CSV</a>
+        </div>
+    </div>
 </div>
 
 <!-- Tab: Cobranças Recebidas -->
@@ -191,92 +196,7 @@
     @endif
 </div>
 
-<!-- Tab: Repasses a Vendedores -->
-<div id="tab-repasses" class="tab-content">
-    <!-- Stats -->
-    <div class="stats-bar">
-        <div class="stat-card">
-            <div class="stat-icon primary"><i class="fas fa-users"></i></div>
-            <div class="stat-value">{{ isset($repasses) ? $repasses->count() : 0 }}</div>
-            <div class="stat-label">Total Repasses</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon success"><i class="fas fa-circle-check"></i></div>
-            <div class="stat-value" style="color: var(--success);">R$ {{ number_format(isset($repasses) ? $repasses->where('status', 'pago')->sum('valor') : 0, 2, ',', '.') }}</div>
-            <div class="stat-label">Total Pago</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
-            <div class="stat-value" style="color: var(--warning);">R$ {{ number_format(isset($repasses) ? $repasses->where('status', 'pendente')->sum('valor') : 0, 2, ',', '.') }}</div>
-            <div class="stat-label">Pendente</div>
-        </div>
-    </div>
-
-    @php
-    $repasses = \App\Models\Comissao::whereNotNull('vendedor_id')
-        ->where('competencia', now()->format('Y-m'))
-        ->with(['vendedor.user'])
-        ->orderByDesc('created_at')
-        ->get()
-        ->map(function($c) {
-            return (object)[
-                'nome' => $c->vendedor->user->name ?? 'N/A',
-                'tipo' => $c->vendedor->user->perfil === 'gestor' ? 'gestor' : 'vendedor',
-                'valor' => $c->valor_comissao,
-                'status' => $c->status,
-                'data' => $c->data_pagamento ?? $c->created_at,
-            ];
-        });
-    @endphp
-
-    <div class="table-container">
-        @if($repasses->count() > 0)
-        <table>
-            <thead>
-                <tr>
-                    <th><i class="fas fa-user"></i> Destinatário</th>
-                    <th><i class="fas fa-tag"></i> Tipo</th>
-                    <th><i class="fas fa-dollar-sign"></i> Valor</th>
-                    <th><i class="fas fa-circle-check"></i> Status</th>
-                    <th><i class="fas fa-calendar-check"></i> Data Pagamento</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($repasses as $r)
-                <tr>
-                    <td style="font-weight: 600; color: var(--text-primary);">{{ $r->nome }}</td>
-                    <td>
-                        @if($r->tipo === 'gestor')
-                        <span class="repasse-badge repasse-gestor"><i class="fas fa-user-tie"></i> Gestor</span>
-                        @else
-                        <span class="repasse-badge repasse-vendedor"><i class="fas fa-user"></i> Vendedor</span>
-                        @endif
-                    </td>
-                    <td style="font-weight: 700;">R$ {{ number_format($r->valor, 2, ',', '.') }}</td>
-                    <td><span class="badge status-{{ $r->status }}">{{ ucfirst($r->status) }}</span></td>
-                    <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $r->data ? \Carbon\Carbon::parse($r->data)->format('d/m/Y') : '—' }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-        @else
-        <div class="empty-state">
-            <div class="empty-icon"><i class="fas fa-share"></i></div>
-            <h3>Nenhum repasse registrado</h3>
-            <p>Os repasses aparecerão aqui quando houverem comissões a pagar.</p>
-        </div>
-        @endif
-    </div>
-</div>
-
 <script>
-function switchTab(tabId, btn) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    btn.classList.add('active');
-}
-
 function filterPag() {
     const search = document.getElementById('searchPag') ? document.getElementById('searchPag').value.toLowerCase() : '';
     const status = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';

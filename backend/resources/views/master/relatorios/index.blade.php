@@ -34,18 +34,24 @@
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
     .page-header h2 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
     .page-header .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
-    .btn-export { background: white; border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; color: var(--text-main); text-decoration: none; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; }
-    .btn-export:hover { background: #f8fafc; border-color: var(--primary); color: var(--primary); }
+    .export-dropdown { position: relative; display: inline-block; }
+    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
+    .export-dropdown:hover .export-dropdown-content { display: block; }
+    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
+    .export-item:hover { background: var(--bg); color: var(--primary); }
+    .export-item:first-child { border-radius: 8px 8px 0 0; }
+    .export-item:last-child { border-radius: 0 0 8px 8px; }
+    .export-item i { margin-right: 8px; width: 16px; }
 
     /* ===== Filtros ===== */
-    .filters-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
-    .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px; }
-    .filter-group label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); }
-    .filter-group input, .filter-group select { padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.88rem; outline: none; background: white; transition: border-color 0.2s, box-shadow 0.2s; }
+    .filters-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 24px; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+    .filter-group { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 130px; }
+    .filter-group label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted); }
+    .filter-group input, .filter-group select { padding: 6px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.82rem; outline: none; background: white; transition: border-color 0.2s, box-shadow 0.2s; }
     .filter-group input:focus, .filter-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(88,28,135,0.1); }
-    .btn-filter { background: var(--primary); color: white; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.88rem; transition: 0.2s; white-space: nowrap; }
+    .btn-filter { background: var(--primary); color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.82rem; transition: 0.2s; white-space: nowrap; }
     .btn-filter:hover { background: var(--primary-hover); }
-    .btn-clear { background: white; border: 1px solid var(--border); padding: 9px 18px; border-radius: 8px; font-weight: 500; cursor: pointer; font-size: 0.88rem; color: var(--text-muted); text-decoration: none; white-space: nowrap; }
+    .btn-clear { background: white; border: 1px solid var(--border); padding: 6px 14px; border-radius: 8px; font-weight: 500; cursor: pointer; font-size: 0.82rem; color: var(--text-muted); text-decoration: none; white-space: nowrap; }
     .btn-clear:hover { background: #f8fafc; }
 
     /* ===== Cards ===== */
@@ -67,9 +73,9 @@
 
     /* ===== Tabelas (com scroll horizontal em mobile) ===== */
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .report-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; min-width: 600px; }
-    .report-table th { background: #f8fafc; padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.75rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
-    .report-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; color: var(--text-main); }
+    .report-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 600px; }
+    .report-table th { background: #f8fafc; padding: 8px 12px; text-align: left; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.7rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .report-table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; color: var(--text-main); }
     .report-table tr:last-child td { border-bottom: none; }
     .report-table tr:hover td { background: #f8fafc; }
     .report-table .text-right { text-align: right; }
@@ -108,10 +114,19 @@
 <!-- ===== Cabeçalho ===== -->
 <div class="page-header">
     <div>
-        <h2>📊 Relatórios</h2>
+        <h2><i class="fas fa-chart-bar" style="margin-right: 8px;"></i>Relatórios</h2>
         <p class="subtitle">Análise consolidada da operação comercial e financeira</p>
     </div>
-    <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="btn-export">📥 Exportar Relatório (CSV)</a>
+    <div class="export-dropdown">
+        <button class="btn btn-outline">
+            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
+        </button>
+        <div class="export-dropdown-content">
+            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item"><i class="fas fa-file-excel"></i> Excel</a>
+            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item"><i class="fas fa-file-pdf"></i> PDF</a>
+            <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item"><i class="fas fa-file-csv"></i> CSV</a>
+        </div>
+    </div>
 </div>
 
 <!-- ===== Filtros ===== -->
@@ -181,8 +196,8 @@
         </select>
     </div>
     <div style="display: flex; gap: 8px; align-items: flex-end;">
-        <button type="submit" class="btn-filter">🔍 Filtrar</button>
-        <a href="{{ route('master.relatorios') }}" class="btn-clear">Limpar filtros</a>
+        <button type="submit" class="btn-filter"><i class="fas fa-filter" style="margin-right: 4px;"></i>Filtrar</button>
+        <a href="{{ route('master.relatorios') }}" class="btn-clear">Limpar</a>
     </div>
 </div>
 </form>
@@ -190,7 +205,7 @@
 {{-- ===== Estado vazio global (sem dados no sistema) ===== --}}
 @if(!$temDadosNoSistema)
 <div class="empty-state empty-state-box" style="padding: 80px 20px;">
-    <div class="icon">📊</div>
+    <div class="icon"><i class="fas fa-chart-bar"></i></div>
     <h3>Nenhum dado disponível</h3>
     <p>Os relatórios serão exibidos assim que houver movimentações registradas no sistema.</p>
 </div>
@@ -198,7 +213,7 @@
 {{-- ===== Dados existem, mas filtros não retornaram nada ===== --}}
 @elseif(!$filtrosRetornaramDados)
 <div class="empty-state empty-state-box" style="padding: 60px 20px;">
-    <div class="icon">🔍</div>
+    <div class="icon"><i class="fas fa-search"></i></div>
     <h3>Nenhum relatório encontrado</h3>
     <p>Nenhum relatório encontrado para os filtros aplicados. Tente alterar os critérios de busca.</p>
 </div>
@@ -208,47 +223,47 @@
 <!-- ===== SEÇÃO 1: Resumo Geral ===== -->
 <div class="cards-grid">
     <div class="stat-card highlight animate-in">
-        <div class="icon">💰</div>
+        <div class="icon"><i class="fas fa-coins"></i></div>
         <div class="value">{{ $resumo['totalVendas'] }}</div>
         <div class="label">Total de Vendas</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon">📈</div>
+        <div class="icon"><i class="fas fa-chart-line"></i></div>
         <div class="value">R$ {{ number_format($resumo['valorVendido'], 2, ',', '.') }}</div>
         <div class="label">Valor Vendido</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon">✅</div>
+        <div class="icon"><i class="fas fa-circle-check"></i></div>
         <div class="value">R$ {{ number_format($resumo['valorRecebido'], 2, ',', '.') }}</div>
         <div class="label">Valor Recebido</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon">🏷️</div>
+        <div class="icon"><i class="fas fa-tags"></i></div>
         <div class="value">R$ {{ number_format($resumo['totalComissoes'], 2, ',', '.') }}</div>
         <div class="label">Comissão Gerada</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon">👥</div>
+        <div class="icon"><i class="fas fa-users"></i></div>
         <div class="value">{{ $resumo['clientesAtivos'] }}</div>
         <div class="label">Clientes Ativos</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon">🔄</div>
+        <div class="icon"><i class="fas fa-arrows-rotate"></i></div>
         <div class="value">{{ $resumo['renovacoes'] }}</div>
         <div class="label">Renovações</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon">📉</div>
+        <div class="icon"><i class="fas fa-chart-line-down"></i></div>
         <div class="value">{{ $resumo['churn'] }}</div>
         <div class="label">Churn</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon">🚫</div>
+        <div class="icon"><i class="fas fa-ban"></i></div>
         <div class="value">{{ $resumo['desistencia'] }}</div>
         <div class="label">Desistência</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon">🎯</div>
+        <div class="icon"><i class="fas fa-bullseye"></i></div>
         <div class="value">R$ {{ number_format($resumo['ticketMedio'], 2, ',', '.') }}</div>
         <div class="label">Ticket Médio</div>
     </div>
@@ -257,7 +272,7 @@
 <!-- ===== SEÇÃO 2: Vendas por Vendedor ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3>👤 Vendas por Vendedor</h3>
+        <h3><i class="fas fa-user" style="margin-right: 6px;"></i>Vendas por Vendedor</h3>
     </div>
     <div class="section-body">
         @if(count($vendasPorVendedor) > 0)
@@ -313,7 +328,7 @@
 <!-- ===== SEÇÃO 2B: Metas por Equipe ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3>👥 Metas por Equipe</h3>
+        <h3><i class="fas fa-users" style="margin-right: 6px;"></i>Metas por Equipe</h3>
     </div>
     <div class="section-body">
         @if(count($metasPorEquipe) > 0)
@@ -365,7 +380,7 @@
 <!-- ===== SEÇÃO 3: Recebimentos por Período ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3>💳 Recebimentos no Período</h3>
+        <h3><i class="fas fa-credit-card" style="margin-right: 6px;"></i>Recebimentos no Período</h3>
     </div>
     <div class="section-body">
         <div class="table-responsive">
@@ -378,23 +393,23 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>📋 Total de Cobranças</td>
+                    <td><i class="fas fa-list-check" style="margin-right: 6px; color: var(--text-muted);"></i>Total de Cobranças</td>
                     <td class="text-right font-bold">{{ $pagamentosPeriodo['total_pagamentos'] }}</td>
                 </tr>
                 <tr>
-                    <td>✅ Total Pago</td>
+                    <td><i class="fas fa-circle-check" style="margin-right: 6px; color: #16a34a;"></i>Total Pago</td>
                     <td class="text-right font-bold" style="color: #16a34a;">R$ {{ number_format($pagamentosPeriodo['total_pago'], 2, ',', '.') }}</td>
                 </tr>
                 <tr>
-                    <td>⏳ Total Pendente</td>
+                    <td><i class="fas fa-clock" style="margin-right: 6px; color: #ca8a04;"></i>Total Pendente</td>
                     <td class="text-right font-bold" style="color: #ca8a04;">R$ {{ number_format($pagamentosPeriodo['total_pendente'], 2, ',', '.') }}</td>
                 </tr>
                 <tr>
-                    <td>❌ Total Vencido</td>
+                    <td><i class="fas fa-circle-xmark" style="margin-right: 6px; color: #dc2626;"></i>Total Vencido</td>
                     <td class="text-right font-bold" style="color: #dc2626;">R$ {{ number_format($pagamentosPeriodo['total_vencido'], 2, ',', '.') }}</td>
                 </tr>
                 <tr style="background: #f8fafc;">
-                    <td class="font-bold">💰 Valor Total Recebido</td>
+                    <td class="font-bold"><i class="fas fa-coins" style="margin-right: 6px; color: var(--primary);"></i>Valor Total Recebido</td>
                     <td class="text-right font-bold" style="font-size: 1.1rem; color: var(--primary);">R$ {{ number_format($pagamentosPeriodo['valor_recebido'], 2, ',', '.') }}</td>
                 </tr>
             </tbody>
@@ -406,7 +421,7 @@
 <!-- ===== SEÇÃO 4: Renovações e Churn ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3>🔄 Renovações e Churn</h3>
+        <h3><i class="fas fa-arrows-rotate" style="margin-right: 6px;"></i>Renovações e Churn</h3>
     </div>
     <div class="section-body">
         <div class="table-responsive">
@@ -419,29 +434,29 @@
             </thead>
             <tbody>
                 <tr>
-                    <td>✅ Clientes Renovados / Pagos</td>
+                    <td><i class="fas fa-circle-check" style="margin-right: 6px; color: #16a34a;"></i>Clientes Renovados / Pagos</td>
                     <td class="text-right font-bold" style="color: #16a34a;">{{ $churnRenovacoes['renovados'] }}</td>
                 </tr>
                 <tr>
-                    <td>📉 Churn (Pós-pagamento)</td>
+                    <td><i class="fas fa-chart-line-down" style="margin-right: 6px; color: #dc2626;"></i>Churn (Pós-pagamento)</td>
                     <td class="text-right font-bold" style="color: #dc2626;">{{ $churnRenovacoes['churn'] }}</td>
                 </tr>
                 <tr>
-                    <td>🚫 Desistência (Pré-pagamento)</td>
+                    <td><i class="fas fa-ban" style="margin-right: 6px; color: #64748b;"></i>Desistência (Pré-pagamento)</td>
                     <td class="text-right font-bold" style="color: #64748b;">{{ $churnRenovacoes['desistencias'] }}</td>
                 </tr>
                 <tr>
-                    <td>📊 Taxa de Churn (%)</td>
+                    <td><i class="fas fa-percent" style="margin-right: 6px;"></i>Taxa de Churn (%)</td>
                     <td class="text-right font-bold" style="color: {{ $churnRenovacoes['churn_percentual'] > 20 ? '#dc2626' : ($churnRenovacoes['churn_percentual'] > 10 ? '#ca8a04' : '#16a34a') }};">
                         {{ $churnRenovacoes['churn_percentual'] }}%
                     </td>
                 </tr>
                 <tr>
-                    <td>🟢 Recorrência Ativa</td>
+                    <td><i class="fas fa-circle" style="margin-right: 6px; color: #16a34a;"></i>Recorrência Ativa</td>
                     <td class="text-right font-bold">{{ $churnRenovacoes['ativos'] }}</td>
                 </tr>
                 <tr>
-                    <td>🔴 Recorrência Inativa</td>
+                    <td><i class="fas fa-circle" style="margin-right: 6px; color: #dc2626;"></i>Recorrência Inativa</td>
                     <td class="text-right font-bold">{{ $churnRenovacoes['inativos'] }}</td>
                 </tr>
             </tbody>
@@ -453,7 +468,7 @@
 <!-- ===== SEÇÃO 5: Formas de Pagamento ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3>💳 Formas de Pagamento</h3>
+        <h3><i class="fas fa-credit-card" style="margin-right: 6px;"></i>Formas de Pagamento</h3>
     </div>
     <div class="section-body">
         <div class="table-responsive">
@@ -471,10 +486,10 @@
                 <tr>
                     <td>
                         <span class="badge-forma {{ $fp['forma'] }}">
-                            @if($fp['forma'] == 'pix') ⚡ PIX
-                            @elseif($fp['forma'] == 'boleto') 📄 Boleto
-                            @elseif($fp['forma'] == 'cartao') 💳 Cartão
-                            @else 🔄 Recorrente
+                            @if($fp['forma'] == 'pix') <i class="fas fa-bolt" style="margin-right: 4px;"></i>PIX
+                            @elseif($fp['forma'] == 'boleto') <i class="fas fa-barcode" style="margin-right: 4px;"></i>Boleto
+                            @elseif($fp['forma'] == 'cartao') <i class="fas fa-credit-card" style="margin-right: 4px;"></i>Cartão
+                            @else <i class="fas fa-arrows-rotate" style="margin-right: 4px;"></i>Recorrente
                             @endif
                         </span>
                     </td>

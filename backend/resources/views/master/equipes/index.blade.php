@@ -108,10 +108,10 @@
     .progress-bar-lg .fill.red { background: linear-gradient(90deg, #ef4444, #dc2626); }
 
     .equipe-card-actions {
-        padding: 12px 20px;
+        padding: 10px 16px;
         border-top: 1px solid var(--border);
         display: flex;
-        gap: 8px;
+        gap: 4px;
         justify-content: flex-end;
     }
 
@@ -201,6 +201,15 @@
         margin-top: 4px;
     }
 
+    .export-dropdown { position: relative; display: inline-block; }
+    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
+    .export-dropdown:hover .export-dropdown-content { display: block; }
+    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
+    .export-item:hover { background: var(--bg); color: var(--primary); }
+    .export-item:first-child { border-radius: 8px 8px 0 0; }
+    .export-item:last-child { border-radius: 0 0 8px 8px; }
+    .export-item i { margin-right: 8px; width: 16px; }
+
     @media (max-width: 768px) {
         .equipes-grid { grid-template-columns: 1fr; }
         .equipe-stats { grid-template-columns: repeat(2, 1fr); }
@@ -212,9 +221,21 @@
         <h2><i class="fas fa-people-group" style="margin-right: 8px;"></i>Equipes</h2>
         <p>Gerencie as equipes de vendas e acompanhe as metas por equipe.</p>
     </div>
-    <button class="btn btn-primary" onclick="BasileiaModal.open('createEquipeModal')">
-        <i class="fas fa-plus"></i> Nova Equipe
-    </button>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <div class="export-dropdown">
+            <button class="btn btn-outline">
+                <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
+            </button>
+            <div class="export-dropdown-content">
+                <a href="?formato=excel" class="export-item"><i class="fas fa-file-excel"></i> Excel</a>
+                <a href="?formato=pdf" class="export-item"><i class="fas fa-file-pdf"></i> PDF</a>
+                <a href="?formato=csv" class="export-item"><i class="fas fa-file-csv"></i> CSV</a>
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="BasileiaModal.open('createEquipeModal')">
+            <i class="fas fa-plus"></i> Nova Equipe
+        </button>
+    </div>
 </div>
 
 @if(count($equipes) > 0)
@@ -318,10 +339,11 @@
             <span style="color: var(--text-muted); font-size: 0.85rem; margin-left: 8px;">{{ $v->user->email ?? '' }}</span>
         </div>
         @if($equipes->count() > 0)
-        <form method="POST" action="{{ route('master.equipes.adicionar-membro', $equipes->first()->id) }}" style="display: flex; align-items: center; gap: 8px;">
+        <form method="POST" id="addVendedorSemEquipeForm" style="display: flex; align-items: center; gap: 8px;">
             @csrf
             <input type="hidden" name="vendedor_id" value="{{ $v->id }}">
-            <select name="equipe_target" class="form-control" style="padding: 4px 8px; font-size: 0.82rem; width: auto;" onchange="this.form.action = '/master/equipes/' + this.value + '/adicionar-membro'">
+            <input type="hidden" name="equipe_target" id="equipe_target_{{ $v->id }}" value="{{ $equipes->first()->id }}">
+            <select class="form-control" style="padding: 4px 8px; font-size: 0.82rem; width: auto;" onchange="document.getElementById('equipe_target_{{ $v->id }}').value = this.value">
                 @foreach($equipes as $eq)
                     <option value="{{ $eq->id }}">{{ $eq->nome }}</option>
                 @endforeach
@@ -457,5 +479,14 @@
         document.getElementById('addMembroEquipeNome').textContent = equipeNome;
         BasileiaModal.open('addMembroModal');
     }
+
+    document.querySelectorAll('#addVendedorSemEquipeForm').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var equipeId = form.querySelector('input[name="equipe_target"]').value;
+            form.action = '/master/equipes/' + equipeId + '/adicionar-membro';
+            form.submit();
+        });
+    });
 </script>
 @endsection
