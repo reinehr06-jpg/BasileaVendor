@@ -331,7 +331,7 @@ class RelatorioController extends Controller
         $pagamentos = $query->get();
         $total = $pagamentos->count();
 
-        $formas = ['pix', 'boleto', 'cartao', 'recorrente'];
+        $formas = ['pix', 'boleto', 'cartao'];
         $resultado = [];
 
         foreach ($formas as $forma) {
