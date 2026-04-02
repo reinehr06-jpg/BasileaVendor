@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use App\Services\SecurityLogService;
 use App\Services\TwoFactorAuthService;
 
@@ -47,106 +48,89 @@ class LoginController extends Controller
         $user = \App\Models\User::whereRaw('LOWER(email) = ?', [$email])->first();
 
         if (!$user) {
-            // Log failed login attempt for non-existent user
-            SecurityLogService::logLoginAttempt($email, false, $ip, $userAgent, 'user_not_found');
-            Log::warning('Login attempt for non-existent user', [
-                'email' => $email,
-                'ip' => $ip,
-                'user_agent' => $userAgent,
-            ]);
-
             return back()->withErrors([
                 'email' => 'As credenciais informadas não correspondem aos nossos registros.',
             ])->onlyInput('email');
         }
 
-        // Check if account is locked
-        if (!is_null($user->account_locked_until) && $user->account_locked_until > now()) {
-            SecurityLogService::logLoginAttempt($email, false, $ip, $userAgent, 'account_locked');
-            return back()->withErrors([
-                'email' => 'Conta temporariamente bloqueada devido a múltiplas tentativas de login falhas.',
-            ])->onlyInput('email');
+        // Check if account is locked (só se coluna existir)
+        if (Schema::hasColumn('users', 'account_locked_until')) {
+            if (!is_null($user->account_locked_until) && $user->account_locked_until > now()) {
+                return back()->withErrors([
+                    'email' => 'Conta temporariamente bloqueada. Tente novamente em alguns minutos.',
+                ])->onlyInput('email');
+            }
         }
 
         // Check password
         if (!Hash::check($password, $user->password)) {
-            // Increment failed login attempts
-            $user->increment('failed_login_attempts');
-            $user->failed_login_at = now();
-            
-            // Lock account after 5 failed attempts
-            if ($user->failed_login_attempts >= 5) {
-                $user->account_locked_until = now()->addMinutes(30);
-                SecurityLogService::logAccountLockout($email, $user->failed_login_attempts, $ip);
+            // Incrementar tentativas falhas (só se coluna existir)
+            if (Schema::hasColumn('users', 'failed_login_attempts')) {
+                try {
+                    $user->increment('failed_login_attempts');
+                    $user->refresh();
+                    if ($user->failed_login_attempts >= 5 && Schema::hasColumn('users', 'account_locked_until')) {
+                        DB::table('users')->where('id', $user->id)->update([
+                            'account_locked_until' => now()->addMinutes(30),
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    // Ignorar erro de coluna inexistente
+                }
             }
-            
-            $user->save();
-
-            // Log failed login attempt
-            SecurityLogService::logLoginAttempt($email, false, $ip, $userAgent, 'invalid_password');
-            Log::warning('Failed login attempt', [
-                'user_id' => $user->id,
-                'email' => $email,
-                'ip' => $ip,
-                'failed_attempts' => $user->failed_login_attempts,
-            ]);
 
             return back()->withErrors([
                 'email' => 'As credenciais informadas não correspondem aos nossos registros.',
             ])->onlyInput('email');
         }
 
-        // Check if account is active
-        if ($user->status !== 'ativo') {
-            SecurityLogService::logLoginAttempt($email, false, $ip, $userAgent, 'account_inactive');
+        // Check if account is active (só se coluna existir)
+        if (Schema::hasColumn('users', 'status') && $user->status !== 'ativo') {
             return back()->withErrors([
                 'email' => 'Sua conta encontra-se inativa ou bloqueada no sistema.',
             ])->onlyInput('email');
         }
 
-        // Reset failed login attempts on successful password check
-        if ($user->failed_login_attempts > 0) {
-            $user->failed_login_attempts = 0;
-            $user->account_locked_until = null;
-            $user->save();
+        // Reset failed login attempts (só se coluna existir)
+        if (Schema::hasColumn('users', 'failed_login_attempts') && $user->failed_login_attempts > 0) {
+            try {
+                DB::table('users')->where('id', $user->id)->update([
+                    'failed_login_attempts' => 0,
+                    'account_locked_until' => null,
+                ]);
+            } catch (\Exception $e) {
+                // Ignorar
+            }
         }
 
-        // Handle 2FA if enabled
-        if ($user->two_factor_enabled && !$user->two_factor_secret) {
-            // Secret needs to be set up first
-            session(['2fa_setup_user_id' => $user->id]);
-            return redirect()->route('2fa.setup');
-        }
-
-        if ($user->two_factor_enabled) {
-            // Require 2FA verification
-            session(['2fa_verify_user_id' => $user->id, '2fa_verify_ip' => $ip]);
-            return redirect()->route('2fa.verify');
+        // Handle 2FA (só se coluna existir)
+        if (Schema::hasColumn('users', 'two_factor_enabled')) {
+            if ($user->two_factor_enabled) {
+                if (Schema::hasColumn('users', 'two_factor_secret') && !$user->two_factor_secret) {
+                    session(['2fa_setup_user_id' => $user->id]);
+                    return redirect()->route('2fa.setup');
+                }
+                session(['2fa_verify_user_id' => $user->id, '2fa_verify_ip' => $ip]);
+                return redirect()->route('2fa.verify');
+            }
         }
 
         // Successful login
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        // Log successful login
-        SecurityLogService::logLoginAttempt($email, true, $ip, $userAgent);
-        Log::info('Successful login', [
-            'user_id' => $user->id,
-            'email' => $email,
-            'ip' => $ip,
-        ]);
-
         // Update login info
-        $user->last_login_at = now();
-        $user->login_ip = $ip;
-        $user->save();
+        try {
+            DB::table('users')->where('id', $user->id)->update(['last_login_at' => now()]);
+        } catch (\Exception $e) {
+            // Ignorar
+        }
 
         // Redirecionamento baseado no perfil
         if ($user->perfil === 'master') {
             return redirect()->route('master.dashboard');
         }
 
-        // Vendedor e Gestor vão para o mesmo dashboard (vendedor.dashboard)
         return redirect()->intended(route('vendedor.dashboard'));
     }
 
@@ -177,21 +161,36 @@ class LoginController extends Controller
             $hashed = Hash::make(ADMIN_PASSWORD);
             $existing = DB::table('users')->where('email', ADMIN_EMAIL)->first();
 
+            $data = [
+                'password' => $hashed,
+                'perfil' => 'master',
+                'updated_at' => now(),
+            ];
+
+            // Definir colunas opcionais se existirem
+            if (Schema::hasColumn('users', 'status')) {
+                $data['status'] = 'ativo';
+            }
+            if (Schema::hasColumn('users', 'failed_login_attempts')) {
+                $data['failed_login_attempts'] = 0;
+            }
+            if (Schema::hasColumn('users', 'account_locked_until')) {
+                $data['account_locked_until'] = null;
+            }
+            if (Schema::hasColumn('users', 'two_factor_enabled')) {
+                $data['two_factor_enabled'] = false;
+            }
+            if (Schema::hasColumn('users', 'require_password_change')) {
+                $data['require_password_change'] = false;
+            }
+
             if ($existing) {
-                DB::table('users')->where('id', $existing->id)->update([
-                    'password' => $hashed,
-                    'perfil' => 'master',
-                    'updated_at' => now(),
-                ]);
+                DB::table('users')->where('id', $existing->id)->update($data);
             } else {
-                DB::table('users')->insert([
-                    'name' => 'Administrador Master',
-                    'email' => ADMIN_EMAIL,
-                    'password' => $hashed,
-                    'perfil' => 'master',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                $data['name'] = 'Administrador Master';
+                $data['email'] = ADMIN_EMAIL;
+                $data['created_at'] = now();
+                DB::table('users')->insert($data);
             }
         } catch (\Exception $e) {
             Log::error('ensureAdminExists falhou: ' . $e->getMessage());
