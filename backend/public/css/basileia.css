@@ -311,8 +311,10 @@ select.form-control option {
 /* ===== Custom Select (JS-based, works in all browsers) ===== */
 .custom-select {
     position: relative;
-    display: block;
-    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
     font-family: var(--font);
 }
 .custom-select-trigger {
@@ -358,7 +360,8 @@ select.form-control option {
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    right: 0;
+    min-width: 100%;
+    max-width: 400px;
     background: white;
     border: 1.5px solid #d8b4fe;
     border-radius: 10px;
