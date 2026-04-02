@@ -38,7 +38,7 @@
     .report-header h2 { font-size: 1.3rem; font-weight: 800; color: #1e1b4b; display: flex; align-items: center; gap: 8px; }
     .report-header h2 i { color: #7c3aed; }
     .export-dropdown { position: relative; display: inline-block; z-index: 9999; }
-    .export-dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); z-index: 99999; margin-top: 8px; }
+    .export-dropdown-content { display: none; position: fixed; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); z-index: 999999; margin-top: 8px; }
     .export-dropdown-content.show { display: block; }
     .export-item { display: block; padding: 12px 16px; color: #374151; text-decoration: none; font-size: 0.85rem; transition: 0.15s; font-weight: 500; }
     .export-item:hover { background: #faf5ff; color: #7c3aed; }
@@ -184,7 +184,7 @@
 <div class="report-header animate-in">
     <h2><i class="fas fa-chart-line"></i>Relatórios Gerenciais</h2>
     <div class="export-dropdown">
-        <button type="button" onclick="document.getElementById('exportMenu').classList.toggle('show')" class="btn-export">
+        <button type="button" onclick="toggleExportMenu(this)" class="btn-export">
             <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.6rem;"></i>
         </button>
         <div id="exportMenu" class="export-dropdown-content">
@@ -587,6 +587,17 @@
 
 @section('scripts')
 <script>
+function toggleExportMenu(btn) {
+    var menu = document.getElementById('exportMenu');
+    if (menu.classList.contains('show')) {
+        menu.classList.remove('show');
+    } else {
+        var rect = btn.getBoundingClientRect();
+        menu.style.top = (rect.bottom + 4) + 'px';
+        menu.style.right = (window.innerWidth - rect.right) + 'px';
+        menu.classList.add('show');
+    }
+}
 document.addEventListener('click', function(e) {
     var menu = document.getElementById('exportMenu');
     var dropdown = menu ? menu.closest('.export-dropdown') : null;
