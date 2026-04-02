@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 
 class CreateAdminUserSeeder extends Seeder
 {
@@ -13,21 +13,57 @@ class CreateAdminUserSeeder extends Seeder
     {
         $email = 'basileia.vendas@basileia.com';
         $password = 'B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0';
+        $hashed = Hash::make($password);
 
-        // SEMPRE garantir que o admin existe com a senha correta
-        User::updateOrCreate(
-            ['email' => $email],
-            [
+        // Verificar se o admin já existe
+        $existing = DB::table('users')->where('email', $email)->first();
+
+        if ($existing) {
+            // Atualizar senha e dados básicos
+            $data = [
+                'password' => $hashed,
                 'name' => 'Administrador Master',
-                'password' => Hash::make($password),
                 'perfil' => 'master',
-                'status' => 'ativo',
-                'two_factor_enabled' => false,
-                'require_password_change' => false,
-                'security_notifications' => true,
-            ]
-        );
+                'updated_at' => now(),
+            ];
 
-        $this->command->info('Admin garantido: ' . $email);
+            // Adicionar colunas opcionais apenas se existirem
+            if (Schema::hasColumn('users', 'status')) {
+                $data['status'] = 'ativo';
+            }
+            if (Schema::hasColumn('users', 'two_factor_enabled')) {
+                $data['two_factor_enabled'] = false;
+            }
+            if (Schema::hasColumn('users', 'require_password_change')) {
+                $data['require_password_change'] = false;
+            }
+
+            DB::table('users')->where('id', $existing->id)->update($data);
+            $this->command->info('Admin atualizado: ' . $email);
+        } else {
+            // Criar novo admin
+            $data = [
+                'name' => 'Administrador Master',
+                'email' => $email,
+                'password' => $hashed,
+                'perfil' => 'master',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            // Adicionar colunas opcionais apenas se existirem
+            if (Schema::hasColumn('users', 'status')) {
+                $data['status'] = 'ativo';
+            }
+            if (Schema::hasColumn('users', 'two_factor_enabled')) {
+                $data['two_factor_enabled'] = false;
+            }
+            if (Schema::hasColumn('users', 'require_password_change')) {
+                $data['require_password_change'] = false;
+            }
+
+            DB::table('users')->insert($data);
+            $this->command->info('Admin criado: ' . $email);
+        }
     }
 }
