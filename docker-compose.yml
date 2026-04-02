@@ -1,14 +1,11 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: basileia_postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: basileia_vendas
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret
-    ports:
-      - "5433:5432"
     volumes:
       - basileia_pgdata:/var/lib/postgresql/data
 
@@ -16,10 +13,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: basileia_backend
     restart: unless-stopped
-    ports:
-      - "8000:8000"
     volumes:
       - ./backend:/var/www/html
     environment:
@@ -36,15 +30,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: basileia_frontend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=${BACKEND_URL:-http://backend:8000}
     depends_on:
       - backend
 
