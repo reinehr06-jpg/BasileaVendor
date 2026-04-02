@@ -8,15 +8,14 @@ mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
 # === APP_KEY PERSISTENTE ===
-# Salva no storage (volume persiste entre deploys)
 APP_KEY_FILE="/var/www/html/storage/app/.app_key"
 if [ -f "$APP_KEY_FILE" ]; then
   APP_KEY=$(cat "$APP_KEY_FILE")
-  echo "APP_KEY reutilizada do volume persistente."
+  echo "APP_KEY reutilizada."
 else
   APP_KEY=$(php -r "echo 'base64:' . base64_encode(random_bytes(32));")
   echo "$APP_KEY" > "$APP_KEY_FILE"
-  echo "APP_KEY gerada e salva no volume."
+  echo "APP_KEY gerada e salva."
 fi
 
 # === Gerar .env ===
@@ -46,7 +45,7 @@ EOF
 echo ".env gerado."
 
 # === Aguardar banco ===
-echo "Aguardando banco de dados..."
+echo "Aguardando banco..."
 MAX_RETRIES=30
 RETRY=0
 until php -r "try { new PDO('pgsql:host=${DB_HOST:-postgres};port=${DB_PORT:-5432};dbname=${DB_DATABASE:-basileia_vendas}', '${DB_USERNAME:-postgres}', '${DB_PASSWORD:-secret}'); } catch (Exception \$e) { exit(1); }" 2>/dev/null; do
@@ -72,52 +71,15 @@ php artisan migrate --force --graceful 2>&1 || true
 # === Storage link ===
 php artisan storage:link 2>/dev/null || true
 
-# === ADMIN - GARANTIA ABSOLUTA via SQL direto ===
+# === ADMIN - Script PHP puro (sem shell expansion) ===
 echo "Garantindo admin..."
-php artisan tinker --execute="
-try {
-  \$hashed = Hash::make('B4s1131@V3nd4s!2026#Xk9\$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0');
-  \$user = DB::table('users')->where('email', 'basileia.vendas@basileia.com')->first();
-  if (\$user) {
-    DB::table('users')->where('id', \$user->id)->update(['password' => \$hashed, 'updated_at' => now()]);
-    echo 'Admin senha atualizada.';
-  } else {
-    DB::table('users')->insert([
-      'name' => 'Administrador Master',
-      'email' => 'basileia.vendas@basileia.com',
-      'password' => \$hashed,
-      'perfil' => 'master',
-      'created_at' => now(),
-      'updated_at' => now(),
-    ]);
-    echo 'Admin criado.';
-  }
-} catch (Exception \$e) {
-  echo 'Erro admin: ' . \$e->getMessage();
-}
-" 2>&1 || true
-
-# Fallback: se o tinker falhar, usar SQL puro
-php -r "
-try {
-  \$pdo = new PDO('pgsql:host=${DB_HOST:-postgres};port=${DB_PORT:-5432};dbname=${DB_DATABASE:-basileia_vendas}', '${DB_USERNAME:-postgres}', '${DB_PASSWORD:-secret}');
-  \$stmt = \$pdo->query(\"SELECT id FROM users WHERE email = 'basileia.vendas@basileia.com'\");
-  \$user = \$stmt->fetch();
-  if (!\$user) {
-    echo 'AVISO: Admin pode não existir. Verifique logs.';
-  } else {
-    echo 'Admin existe no banco (ID: ' . \$user['id'] . ').';
-  }
-} catch (Exception \$e) {
-  echo 'Erro verificação: ' . \$e->getMessage();
-}
-" 2>&1
+php /var/www/html/ensure_admin.php 2>&1
 
 # === Caches ===
 php artisan config:cache 2>&1 || true
 php artisan route:cache 2>&1 || true
 php artisan view:cache 2>&1 || true
 
-echo "=== Servidor iniciando na porta 8000 ==="
+echo "=== Servidor na porta 8000 ==="
 echo "=== Login: basileia.vendas@basileia.com ==="
 exec php artisan serve --host=0.0.0.0 --port=8000
