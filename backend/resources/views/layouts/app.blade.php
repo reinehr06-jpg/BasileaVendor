@@ -452,5 +452,6 @@
     }
     </script>
     @yield('scripts')
+    <script src="/js/custom-selects.js"></script>
 </body>
 </html>
