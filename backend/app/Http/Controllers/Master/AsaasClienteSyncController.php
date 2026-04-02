@@ -71,16 +71,16 @@ class AsaasClienteSyncController extends Controller
         $clientes = $base->orderBy('lci.nome')->paginate(50)->withQueryString();
 
         // KPIs
-        $totais = DB::table('legacy_customer_imports')->selectRaw('
+        $totais = DB::table('legacy_customer_imports')->selectRaw("
             COUNT(*)                                                          as total,
-            COUNT(CASE WHEN diagnostico_status = "ATIVO"     THEN 1 END)     as ativos,
-            COUNT(CASE WHEN diagnostico_status = "CHURN"     THEN 1 END)     as churn,
-            COUNT(CASE WHEN diagnostico_status = "CANCELADO" THEN 1 END)     as cancelados,
+            COUNT(CASE WHEN diagnostico_status = 'ATIVO'     THEN 1 END)     as ativos,
+            COUNT(CASE WHEN diagnostico_status = 'CHURN'     THEN 1 END)     as churn,
+            COUNT(CASE WHEN diagnostico_status = 'CANCELADO' THEN 1 END)     as cancelados,
             COUNT(CASE WHEN vendedor_id IS NULL               THEN 1 END)     as sem_vendedor,
-            COUNT(CASE WHEN tipo_cobranca = "installment"    THEN 1 END)     as parcelados,
+            COUNT(CASE WHEN tipo_cobranca = 'installment'    THEN 1 END)     as parcelados,
             SUM(comissao_vendedor_calculada)                                  as total_comissao_vendedor,
             SUM(comissao_gestor_calculada)                                    as total_comissao_gestor
-        ')->first();
+        ")->first();
 
         // Duplicatas por CPF
         $dupCpfs = DB::table('legacy_customer_imports')
