@@ -86,7 +86,10 @@
     }
 
     function initAll() {
-        document.querySelectorAll('select:not([data-custom-select]):not(.no-custom)').forEach(initCustomSelect);
+        document.querySelectorAll('select:not([data-custom-select]):not(.no-custom)').forEach(function(sel) {
+            if (sel.closest('.sidebar') || sel.closest('.sidebar-menu') || sel.closest('.nav') || sel.closest('.navbar')) return;
+            initCustomSelect(sel);
+        });
     }
 
     if (document.readyState === 'loading') {

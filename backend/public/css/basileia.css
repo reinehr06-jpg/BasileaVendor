@@ -311,7 +311,8 @@ select.form-control option {
 /* ===== Custom Select (JS-based, works in all browsers) ===== */
 .custom-select {
     position: relative;
-    width: 100%;
+    display: block;
+    max-width: 100%;
     font-family: var(--font);
 }
 .custom-select-trigger {
