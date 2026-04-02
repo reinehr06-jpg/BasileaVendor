@@ -32,19 +32,6 @@ services:
       - QUEUE_CONNECTION=database
     depends_on:
       - postgres
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.basileia.rule=Host(`vendor.basileia.global`)"
-      - "traefik.http.routers.basileia.entrypoints=websecure"
-      - "traefik.http.routers.basileia.tls.certresolver=letsencrypt"
-      - "traefik.http.services.basileia.loadbalancer.server.port=8000"
-    networks:
-      - default
-      - web
-
-networks:
-  web:
-    external: true
 
 volumes:
   basileia_pgdata:
