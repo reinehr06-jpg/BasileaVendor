@@ -44,8 +44,9 @@
     .report-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; color: white; }
     .report-hero p { opacity: 0.85; font-size: 0.9rem; color: rgba(255,255,255,0.9); }
     .export-dropdown { position: relative; display: inline-block; }
-    .export-dropdown-content { display: none; position: fixed; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); z-index: 2147483647; }
-    .export-dropdown-content.show { display: block; }
+    .export-dropdown summary::-webkit-details-marker { display: none; }
+    .export-dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); z-index: 999999; }
+    .export-dropdown details[open] .export-dropdown-content { display: block; }
     .export-item { display: block; padding: 12px 16px; color: #374151; text-decoration: none; font-size: 0.85rem; transition: 0.15s; font-weight: 500; }
     .export-item:hover { background: #faf5ff; color: #7c3aed; }
     .export-item:first-child { border-radius: 10px 10px 0 0; }
@@ -222,14 +223,16 @@
         <p>Análise consolidada da operação comercial e financeira</p>
     </div>
     <div class="export-dropdown">
-        <button type="button" onclick="toggleExportMenu(this)" class="btn-export-hero">
-            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
-        </button>
-        <div id="exportMenu" class="export-dropdown-content">
-            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item"><i class="fas fa-file-excel" style="color: #16a34a;"></i> Excel</a>
-            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item"><i class="fas fa-file-pdf" style="color: #dc2626;"></i> PDF</a>
-            <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item"><i class="fas fa-file-csv" style="color: #2563eb;"></i> CSV</a>
-        </div>
+        <details style="position:relative;">
+            <summary class="btn-export-hero" style="list-style:none; cursor:pointer;">
+                <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
+            </summary>
+            <div id="exportMenu" class="export-dropdown-content" style="display:block; position:absolute; right:0; top:calc(100% + 6px);">
+                <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item"><i class="fas fa-file-excel" style="color: #16a34a;"></i> Excel</a>
+                <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item"><i class="fas fa-file-pdf" style="color: #dc2626;"></i> PDF</a>
+                <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item"><i class="fas fa-file-csv" style="color: #2563eb;"></i> CSV</a>
+            </div>
+        </details>
     </div>
 </div>
 
@@ -621,29 +624,4 @@
 
 @endif
 
-@endsection
-
-@section('scripts')
-<script>
-function toggleExportMenu(btn) {
-    var menu = document.getElementById('exportMenu');
-    if (menu.classList.contains('show')) {
-        menu.classList.remove('show');
-        return;
-    }
-    var rect = btn.getBoundingClientRect();
-    menu.style.top = (rect.bottom + 4) + 'px';
-    menu.style.left = rect.left + 'px';
-    menu.classList.add('show');
-}
-document.addEventListener('click', function(e) {
-    var menu = document.getElementById('exportMenu');
-    if (menu && menu.classList.contains('show')) {
-        var dropdown = menu.closest('.export-dropdown');
-        if (!dropdown.contains(e.target)) {
-            menu.classList.remove('show');
-        }
-    }
-});
-</script>
 @endsection
