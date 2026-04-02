@@ -126,35 +126,96 @@
         letter-spacing: 0.4px;
         margin-bottom: 10px;
     }
-    .membro-item {
+    .membros-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .membros-header h4 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+    .btn-add-membro {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .btn-add-membro:hover { background: var(--primary-hover); }
+    .membros-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 8px;
+    }
+    .membro-card {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: 8px 12px;
+        gap: 10px;
+        padding: 8px 10px;
         background: var(--bg);
         border-radius: 8px;
-        margin-bottom: 6px;
+        transition: 0.2s;
     }
-    .membro-item .membro-nome {
-        font-size: 0.88rem;
+    .membro-card:hover { background: #f1f5f9; }
+    .membro-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.7rem;
+        flex-shrink: 0;
+    }
+    .membro-info { flex: 1; min-width: 0; }
+    .membro-info .membro-nome {
+        font-size: 0.82rem;
         font-weight: 600;
         color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-    .membro-item .membro-email {
-        font-size: 0.75rem;
+    .membro-info .membro-email {
+        font-size: 0.7rem;
         color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-    .membro-remove {
+    .membro-remove-form { flex-shrink: 0; }
+    .membro-remove-btn {
         background: none;
-        border: none;
-        color: var(--danger);
+        border: 1.5px solid transparent;
+        color: #94a3b8;
         cursor: pointer;
-        font-size: 0.85rem;
-        padding: 4px 8px;
+        font-size: 0.8rem;
+        padding: 4px 6px;
         border-radius: 6px;
         transition: 0.2s;
     }
-    .membro-remove:hover { background: rgba(239,68,68,0.1); }
+    .membro-remove-btn:hover { color: var(--danger); background: rgba(239,68,68,0.08); border-color: var(--danger-light); }
+    .empty-membros {
+        text-align: center;
+        padding: 20px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+    }
+    .empty-membros i { font-size: 1.5rem; margin-bottom: 8px; display: block; color: #cbd5e1; }
 
     .section-title {
         font-size: 1rem;
@@ -167,12 +228,51 @@
     }
 
     .vendedores-sem-equipe {
+        display: grid;
+        gap: 8px;
+    }
+    .vendedor-se-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 20px;
-        margin-bottom: 28px;
+        border-radius: 10px;
     }
+    .vendedor-se-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .vendedor-se-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #94a3b8, #64748b);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.7rem;
+        flex-shrink: 0;
+    }
+    .btn-add-equipe {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: 0.2s;
+        font-size: 0.85rem;
+    }
+    .btn-add-equipe:hover { background: var(--primary-hover); transform: scale(1.05); }
     .vendedor-se-item {
         display: flex;
         align-items: center;
@@ -283,30 +383,42 @@
         </div>
 
         <div class="equipe-membros">
-            <h4>Membros ({{ $equipe->vendedores->count() }})</h4>
-            @foreach($equipe->vendedores as $membro)
-            <div class="membro-item">
-                <div>
-                    <div class="membro-nome">{{ $membro->user->name ?? 'N/A' }}</div>
-                    <div class="membro-email">{{ $membro->user->email ?? '' }}</div>
-                </div>
-                <form method="POST" action="{{ route('master.equipes.remover-membro', [$equipe->id, $membro->id]) }}" style="display:inline;" onsubmit="event.preventDefault(); BasileiaConfirm.show({title: 'Remover Membro', message: 'Remover {{ $membro->user->name ?? 'este vendedor' }} da equipe?', type: 'warning', confirmText: 'Remover', onConfirm: () => this.submit()});">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="membro-remove" title="Remover da equipe">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </form>
+            <div class="membros-header">
+                <h4><i class="fas fa-users" style="margin-right:6px;"></i> Membros ({{ $equipe->vendedores->count() }})</h4>
+                <button class="btn-add-membro" onclick="openAddMembroModal({{ $equipe->id }}, '{{ $equipe->nome }}')">
+                    <i class="fas fa-user-plus"></i> Adicionar
+                </button>
             </div>
-            @endforeach
+            @if($equipe->vendedores->count() > 0)
+            <div class="membros-grid">
+                @foreach($equipe->vendedores as $membro)
+                <div class="membro-card">
+                    <div class="membro-avatar">{{ strtoupper(substr($membro->user->name ?? '?', 0, 2)) }}</div>
+                    <div class="membro-info">
+                        <div class="membro-nome">{{ $membro->user->name ?? 'N/A' }}</div>
+                        <div class="membro-email">{{ $membro->user->email ?? '' }}</div>
+                    </div>
+                    <form method="POST" action="{{ route('master.equipes.remover-membro', [$equipe->id, $membro->id]) }}" class="membro-remove-form" onsubmit="event.preventDefault(); BasileiaConfirm.show({title: 'Remover Membro', message: 'Remover {{ $membro->user->name ?? 'este vendedor' }} da equipe?', type: 'warning', confirmText: 'Remover', onConfirm: () => this.submit()});">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="membro-remove-btn" title="Remover da equipe">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </form>
+                </div>
+                @endforeach
+            </div>
+            @else
+            <div class="empty-membros">
+                <i class="fas fa-user-slash"></i>
+                <p>Nenhum membro nesta equipe ainda.</p>
+            </div>
+            @endif
         </div>
 
         <div class="equipe-card-actions">
             <button class="action-btn" title="Editar Equipe" onclick='openEditEquipeModal({{ json_encode($equipe->only(["id", "nome", "meta_mensal", "cor"])) }})'>
                 <i class="fas fa-pen"></i>
-            </button>
-            <button class="action-btn" title="Adicionar Membro" onclick="openAddMembroModal({{ $equipe->id }}, '{{ $equipe->nome }}')">
-                <i class="fas fa-user-plus"></i>
             </button>
             <form method="POST" action="{{ route('master.equipes.destroy', $equipe->id) }}" style="display:inline;" onsubmit="event.preventDefault(); BasileiaConfirm.show({title: 'Remover Equipe', message: 'Deseja realmente remover esta equipe? Os vendedores não serão excluídos.', type: 'danger', confirmText: 'Remover', onConfirm: () => this.submit()});">
                 @csrf
@@ -334,22 +446,25 @@
 <div class="vendedores-sem-equipe">
     @foreach($vendedoresSemEquipe as $v)
     <div class="vendedor-se-item">
-        <div>
-            <strong>{{ $v->user->name ?? 'N/A' }}</strong>
-            <span style="color: var(--text-muted); font-size: 0.85rem; margin-left: 8px;">{{ $v->user->email ?? '' }}</span>
+        <div class="vendedor-se-info">
+            <div class="vendedor-se-avatar">{{ strtoupper(substr($v->user->name ?? '?', 0, 2)) }}</div>
+            <div>
+                <strong>{{ $v->user->name ?? 'N/A' }}</strong>
+                <span style="color: var(--text-muted); font-size: 0.8rem; margin-left: 6px;">{{ $v->user->email ?? '' }}</span>
+            </div>
         </div>
         @if($equipes->count() > 0)
-        <form method="POST" id="addVendedorSemEquipeForm" style="display: flex; align-items: center; gap: 8px;">
+        <form method="POST" id="addVendedorSemEquipeForm" style="display: flex; align-items: center; gap: 6px;">
             @csrf
             <input type="hidden" name="vendedor_id" value="{{ $v->id }}">
             <input type="hidden" name="equipe_target" id="equipe_target_{{ $v->id }}" value="{{ $equipes->first()->id }}">
-            <select class="form-control" style="padding: 4px 8px; font-size: 0.82rem; width: auto;" onchange="document.getElementById('equipe_target_{{ $v->id }}').value = this.value">
+            <select class="form-control" style="padding: 4px 8px; font-size: 0.78rem; width: auto;" onchange="document.getElementById('equipe_target_{{ $v->id }}').value = this.value">
                 @foreach($equipes as $eq)
                     <option value="{{ $eq->id }}">{{ $eq->nome }}</option>
                 @endforeach
             </select>
-            <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 0.82rem;">
-                <i class="fas fa-plus"></i> Adicionar
+            <button type="submit" class="btn-add-equipe">
+                <i class="fas fa-arrow-right"></i>
             </button>
         </form>
         @endif

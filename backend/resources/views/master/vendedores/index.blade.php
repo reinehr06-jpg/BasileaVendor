@@ -24,9 +24,9 @@
     .action-btn.success { color: var(--success); border-color: var(--success-light); }
     .action-btn.success:hover { background: var(--success-light); }
 
-    .input-group { display: flex; align-items: stretch; }
-    .input-group .form-control { border-radius: 8px 0 0 8px; }
-    .input-group-addon { display: flex; align-items: center; justify-content: center; padding: 0 14px; background: #f1f5f9; border: 1px solid var(--border); border-left: none; border-radius: 0 8px 8px 0; font-weight: 700; color: var(--primary); font-size: 0.95rem; }
+    .input-group { display: flex; align-items: stretch; position: relative; }
+    .input-group .form-control { border-radius: 8px 0 0 8px; padding-right: 35px; }
+    .input-group-addon { position: absolute; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; width: 36px; background: #f1f5f9; border: 1px solid var(--border); border-left: none; border-radius: 0 8px 8px 0; font-weight: 700; color: var(--primary); font-size: 0.95rem; pointer-events: none; }
 
     .form-section {
         background: var(--bg);
