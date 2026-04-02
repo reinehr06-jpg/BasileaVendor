@@ -456,36 +456,34 @@
     {{-- Desabilitar autofill/autocomplete em TODO o sistema --}}
     <script>
     (function() {
-        // Desabilitar em todos os forms
-        document.querySelectorAll('form').forEach(function(form) {
-            form.setAttribute('autocomplete', 'off');
-        });
+        function disableAutofill(root) {
+            // Forms
+            (root.querySelectorAll ? root.querySelectorAll('form') : []).forEach(function(form) {
+                form.setAttribute('autocomplete', 'off');
+            });
 
-        // Desabilitar em todos os inputs, selects e textareas
-        document.querySelectorAll('input, select, textarea').forEach(function(el) {
-            el.setAttribute('autocomplete', 'off');
-            el.setAttribute('autocorrect', 'off');
-            el.setAttribute('autocapitalize', 'off');
-            el.setAttribute('spellcheck', 'false');
-        });
+            // Inputs, selects, textareas (exceto password)
+            (root.querySelectorAll ? root.querySelectorAll('input, select, textarea') : []).forEach(function(el) {
+                if (el.type === 'password') {
+                    // Navegadores exigem valor específico para campos de senha
+                    el.setAttribute('autocomplete', 'new-password');
+                } else {
+                    el.setAttribute('autocomplete', 'off');
+                }
+                el.setAttribute('autocorrect', 'off');
+                el.setAttribute('autocapitalize', 'off');
+                el.setAttribute('spellcheck', 'false');
+            });
+        }
 
-        // Observer para elementos adicionados dinamicamente (modais, AJAX)
+        disableAutofill(document);
+
+        // Observer para modais e conteúdo dinâmico
         var observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 mutation.addedNodes.forEach(function(node) {
                     if (node.nodeType === 1) {
-                        var targets = node.querySelectorAll ? node.querySelectorAll('form, input, select, textarea') : [];
-                        targets.forEach(function(el) {
-                            el.setAttribute('autocomplete', 'off');
-                            if (el.tagName !== 'FORM') {
-                                el.setAttribute('autocorrect', 'off');
-                                el.setAttribute('autocapitalize', 'off');
-                                el.setAttribute('spellcheck', 'false');
-                            }
-                        });
-                        if (node.tagName === 'FORM' || node.tagName === 'INPUT' || node.tagName === 'SELECT' || node.tagName === 'TEXTAREA') {
-                            node.setAttribute('autocomplete', 'off');
-                        }
+                        disableAutofill(node);
                     }
                 });
             });
