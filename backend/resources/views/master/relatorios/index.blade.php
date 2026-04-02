@@ -29,22 +29,14 @@
     }
 
     /* ===== Header ===== */
-    .report-hero {
-        background: linear-gradient(135deg, #3b0764 0%, #581c87 40%, #7c3aed 100%);
-        border-radius: 16px;
-        padding: 28px 32px;
-        color: white;
+    .report-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
-        box-shadow: 0 20px 40px rgba(88, 28, 135, 0.25);
-        overflow: visible;
-        position: relative;
-        z-index: 1;
+        margin-bottom: 20px;
     }
-    .report-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; color: white; }
-    .report-hero p { opacity: 0.85; font-size: 0.9rem; color: rgba(255,255,255,0.9); }
+    .report-header h2 { font-size: 1.3rem; font-weight: 800; color: #1e1b4b; display: flex; align-items: center; gap: 8px; }
+    .report-header h2 i { color: #7c3aed; }
     .export-dropdown { position: relative; display: inline-block; z-index: 9999; }
     .export-dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); z-index: 99999; margin-top: 8px; }
     .export-dropdown-content.show { display: block; }
@@ -53,6 +45,8 @@
     .export-item:first-child { border-radius: 10px 10px 0 0; }
     .export-item:last-child { border-radius: 0 0 10px 10px; }
     .export-item i { margin-right: 8px; width: 16px; }
+    .btn-export { background: white; color: #374151; border: 1.5px solid #e5e7eb; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.82rem; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-export:hover { border-color: #7c3aed; color: #7c3aed; background: #faf5ff; }
 
     /* ===== Filtros ===== */
     .filters-bar {
@@ -182,19 +176,16 @@
         .cards-grid { grid-template-columns: repeat(2, 1fr); }
         .report-table { font-size: 0.8rem; }
         .report-table th, .report-table td { padding: 8px 10px; }
-        .report-hero { flex-direction: column; gap: 16px; text-align: center; }
+        .report-header { flex-direction: column; gap: 12px; align-items: flex-start; }
     }
 </style>
 
-<!-- ===== Hero Header ===== -->
-<div class="report-hero animate-in">
-    <div>
-        <h2><i class="fas fa-chart-line" style="margin-right: 10px;"></i>Relatórios Gerenciais</h2>
-        <p>Análise consolidada da operação comercial e financeira</p>
-    </div>
+<!-- ===== Header simples ===== -->
+<div class="report-header animate-in">
+    <h2><i class="fas fa-chart-line"></i>Relatórios Gerenciais</h2>
     <div class="export-dropdown">
-        <button type="button" onclick="document.getElementById('exportMenu').classList.toggle('show')" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; backdrop-filter: blur(10px); transition: 0.2s;">
-            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.65rem;"></i>
+        <button type="button" onclick="document.getElementById('exportMenu').classList.toggle('show')" class="btn-export">
+            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.6rem;"></i>
         </button>
         <div id="exportMenu" class="export-dropdown-content">
             <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item"><i class="fas fa-file-excel" style="color: #16a34a;"></i> Excel</a>
