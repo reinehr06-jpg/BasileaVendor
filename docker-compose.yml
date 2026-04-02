@@ -42,6 +42,19 @@ services:
       - NEXT_PUBLIC_API_URL=${BACKEND_URL:-http://backend:8000}
     depends_on:
       - backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.basileia-frontend.rule=Host(`vendor.basileia.global`)"
+      - "traefik.http.routers.basileia-frontend.entrypoints=websecure"
+      - "traefik.http.routers.basileia-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.basileia-frontend.loadbalancer.server.port=3000"
+    networks:
+      - default
+      - web
+
+networks:
+  web:
+    external: true
 
 volumes:
   basileia_pgdata:
