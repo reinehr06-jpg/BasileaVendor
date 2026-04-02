@@ -97,6 +97,58 @@ Route::get('/Login', function() { return redirect('/login'); });
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// Diagnóstico Asaas - sem middleware (remover após resolver)
+Route::get('/debug-asaas', function () {
+    try {
+        $result = [];
+        
+        // 1. Verificar settings table
+        try {
+            $hasSettings = \Illuminate\Support\Facades\Schema::hasTable('settings');
+            $result['settings_table'] = $hasSettings ? 'EXISTS' : 'NOT FOUND';
+        } catch (\Exception $e) {
+            $result['settings_table'] = 'ERROR: ' . $e->getMessage();
+        }
+        
+        // 2. Verificar API key
+        try {
+            $apiKey = \App\Models\Setting::get('asaas_api_key', '');
+            $result['api_key_configured'] = !empty($apiKey);
+            $result['api_key_prefix'] = !empty($apiKey) ? substr($apiKey, 0, 10) . '...' : 'EMPTY';
+        } catch (\Exception $e) {
+            $result['api_key_error'] = $e->getMessage();
+        }
+        
+        // 3. Verificar ambiente
+        try {
+            $env = \App\Models\Setting::get('asaas_environment', 'sandbox');
+            $result['environment'] = $env;
+        } catch (\Exception $e) {
+            $result['environment_error'] = $e->getMessage();
+        }
+        
+        // 4. Testar conexão HTTP
+        try {
+            $asaas = new \App\Services\AsaasService();
+            $result['base_url'] = $asaas->baseUrl;
+            $response = \Illuminate\Support\Facades\Http::withHeaders(['access_token' => $asaas->getApiKey()])
+                ->timeout(10)
+                ->get("{$asaas->baseUrl}/payments?limit=1");
+            $result['http_status'] = $response->status();
+            $result['http_ok'] = $response->successful();
+            if (!$response->successful()) {
+                $result['http_body'] = substr($response->body(), 0, 500);
+            }
+        } catch (\Exception $e) {
+            $result['http_error'] = $e->getMessage();
+        }
+        
+        return response()->json($result);
+    } catch (\Exception $e) {
+        return response()->json(['fatal_error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+    }
+});
+
 // Rotas de Troca de Senha Obrigatória
 Route::middleware('auth')->group(function () {
     Route::get('/password/change', [App\Http\Controllers\Auth\PasswordChangeController::class, 'showChangeForm'])->name('password.change');
