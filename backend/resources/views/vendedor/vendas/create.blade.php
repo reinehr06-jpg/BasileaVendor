@@ -249,36 +249,12 @@
             @error('plano') <div class="field-error">{{ $message }}</div> @enderror
         </div>
 
-        <!-- Payment Method (Visual Cards) -->
-        <div class="form-group" style="margin-top: 20px;">
-            <label>Forma de Pagamento <span class="required">*</span></label>
-            <input type="hidden" name="forma_pagamento" id="selectFormaPagamento" value="{{ old('forma_pagamento') }}">
-            <div class="payment-methods" id="paymentMethodsGrid">
-                <div class="payment-card {{ old('forma_pagamento') == 'PIX' ? 'selected' : '' }}" data-value="PIX">
-                    <div class="payment-icon pix"><i class="fas fa-bolt"></i></div>
-                    <div class="payment-label">PIX</div>
-                    <div class="payment-hint">Aprovação instantânea</div>
-                </div>
-                <div class="payment-card {{ old('forma_pagamento') == 'BOLETO' ? 'selected' : '' }}" data-value="BOLETO">
-                    <div class="payment-icon boleto"><i class="fas fa-file-lines"></i></div>
-                    <div class="payment-label">Boleto</div>
-                    <div class="payment-hint">Vencimento em 3 dias</div>
-                </div>
-                <div class="payment-card {{ old('forma_pagamento') == 'CREDIT_CARD' ? 'selected' : '' }}" data-value="CREDIT_CARD">
-                    <div class="payment-icon card"><i class="fas fa-credit-card"></i></div>
-                    <div class="payment-label">Cartão de Crédito</div>
-                    <div class="payment-hint">Cobrança mensal recorrente</div>
-                </div>
-            </div>
-            @error('forma_pagamento') <div class="field-error">{{ $message }}</div> @enderror
-        </div>
-
-        <!-- Negotiation Type (Visual Cards) -->
+        <!-- Negotiation Type (PRIMEIRO - antes do pagamento) -->
         <div class="form-group">
-            <label>Tipo de Negociação <span class="required">*</span></label>
-            <input type="hidden" name="tipo_negociacao" id="selectTipoNegociacao" value="{{ old('tipo_negociacao', 'mensal') }}">
+            <label>Período de Contrato <span class="required">*</span></label>
+            <input type="hidden" name="tipo_negociacao" id="selectTipoNegociacao" value="{{ old('tipo_negociacao') }}">
             <div class="negotiation-types" id="negotiationGrid">
-                <div class="negotiation-card {{ old('tipo_negociacao', 'mensal') == 'mensal' ? 'selected' : '' }}" data-value="mensal">
+                <div class="negotiation-card {{ old('tipo_negociacao') == 'mensal' ? 'selected' : '' }}" data-value="mensal">
                     <div class="negotiation-icon"><i class="fas fa-calendar"></i></div>
                     <div class="negotiation-label">Mensal</div>
                     <div class="negotiation-hint">Cobrança recorrente</div>
@@ -290,6 +266,33 @@
                 </div>
             </div>
             @error('tipo_negociacao') <div class="field-error">{{ $message }}</div> @enderror
+        </div>
+
+        <!-- Payment Method (filtrado pelo período) -->
+        <div class="form-group" style="margin-top: 20px;">
+            <label>Forma de Pagamento <span class="required">*</span></label>
+            <input type="hidden" name="forma_pagamento" id="selectFormaPagamento" value="{{ old('forma_pagamento') }}">
+            <div id="paymentHint" style="margin-bottom:10px; color:var(--muted); font-size:0.85rem; display:none;">
+                Selecione o período de contrato primeiro.
+            </div>
+            <div class="payment-methods" id="paymentMethodsGrid">
+                <div class="payment-card {{ old('forma_pagamento') == 'PIX' ? 'selected' : '' }}" data-value="PIX" data-mensal="1" data-anual="1">
+                    <div class="payment-icon pix"><i class="fas fa-bolt"></i></div>
+                    <div class="payment-label">PIX</div>
+                    <div class="payment-hint">Enviado para aprovação do ADM</div>
+                </div>
+                <div class="payment-card {{ old('forma_pagamento') == 'BOLETO' ? 'selected' : '' }}" data-value="BOLETO" data-mensal="0" data-anual="1">
+                    <div class="payment-icon boleto"><i class="fas fa-file-lines"></i></div>
+                    <div class="payment-label">Boleto</div>
+                    <div class="payment-hint">Vencimento em 3 dias</div>
+                </div>
+                <div class="payment-card {{ old('forma_pagamento') == 'CREDIT_CARD' ? 'selected' : '' }}" data-value="CREDIT_CARD" data-mensal="1" data-anual="1">
+                    <div class="payment-icon card"><i class="fas fa-credit-card"></i></div>
+                    <div class="payment-label">Cartão de Crédito</div>
+                    <div class="payment-hint">Cobrança recorrente</div>
+                </div>
+            </div>
+            @error('forma_pagamento') <div class="field-error">{{ $message }}</div> @enderror
         </div>
 
         <!-- Installment Row -->
@@ -424,11 +427,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // === PAYMENT METHOD CARD SELECT ===
     document.querySelectorAll('.payment-card').forEach(card => {
         card.addEventListener('click', function() {
+            if (!selectTipo.value) {
+                BasileiaToast.warning('Selecione o período de contrato primeiro.');
+                return;
+            }
             document.querySelectorAll('.payment-card').forEach(c => c.classList.remove('selected'));
             this.classList.add('selected');
             selectFormaPagamento.value = this.dataset.value;
             
-            // Installment only available for Annual + Credit Card
+            // Parcelamento só para Anual + Cartão
             const isAnual = selectTipo.value === 'anual';
             const isCartao = this.dataset.value === 'CREDIT_CARD';
             parcelamentoRow.classList.toggle('hidden', !(isAnual && isCartao));
@@ -438,6 +445,29 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // === NEGOTIATION TYPE CARD SELECT ===
+    function filtrarPagamentos(tipo) {
+        const paymentHint = document.getElementById('paymentHint');
+        document.querySelectorAll('.payment-card').forEach(pc => {
+            const disponivel = tipo === 'mensal' ? pc.dataset.mensal === '1' : pc.dataset.anual === '1';
+            pc.style.display = disponivel ? '' : 'none';
+            if (!disponivel && pc.classList.contains('selected')) {
+                pc.classList.remove('selected');
+                selectFormaPagamento.value = '';
+            }
+        });
+        // Atualizar hint do Boleto
+        document.querySelectorAll('.payment-card').forEach(pc => {
+            const hint = pc.querySelector('.payment-hint');
+            if (pc.dataset.value === 'CREDIT_CARD') {
+                hint.textContent = tipo === 'anual' ? 'Até 12x sem juros' : 'Cobrança mensal recorrente';
+            }
+            if (pc.dataset.value === 'PIX') {
+                hint.textContent = 'Enviado para aprovação do ADM';
+            }
+        });
+        paymentHint.style.display = 'none';
+    }
+
     document.querySelectorAll('.negotiation-card').forEach(card => {
         card.addEventListener('click', function() {
             document.querySelectorAll('.negotiation-card').forEach(c => c.classList.remove('selected'));
@@ -445,21 +475,24 @@ document.addEventListener('DOMContentLoaded', function() {
             selectTipo.value = this.dataset.value;
             updatePriceLabels();
             calcularValor();
-            
-            // Installment only available for Annual + Credit Card
+
+            // Filtrar métodos de pagamento disponíveis
+            filtrarPagamentos(this.dataset.value);
+
+            // Parcelamento só para Anual + Cartão
             const isAnual = this.dataset.value === 'anual';
             const isCartao = selectFormaPagamento.value === 'CREDIT_CARD';
             parcelamentoRow.classList.toggle('hidden', !(isAnual && isCartao));
-            
-            // Update payment hint text
-            document.querySelectorAll('.payment-card').forEach(pc => {
-                const hint = pc.querySelector('.payment-hint');
-                if (pc.dataset.value === 'CREDIT_CARD') {
-                    hint.textContent = isAnual ? 'Até 12x sem juros' : 'Cobrança mensal recorrente';
-                }
-            });
         });
     });
+
+    // Mostrar hint de pagamento se nenhum período selecionado
+    if (!selectTipo.value) {
+        document.getElementById('paymentHint').style.display = 'block';
+        document.querySelectorAll('.payment-card').forEach(pc => pc.style.display = 'none');
+    } else {
+        filtrarPagamentos(selectTipo.value);
+    }
 
     // Plan card selection
     cards.forEach(card => {
