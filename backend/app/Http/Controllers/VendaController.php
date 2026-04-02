@@ -151,7 +151,7 @@ class VendaController extends Controller
         $request->validate([
             'nome_igreja' => 'required|string|max:255',
             'nome_pastor' => 'required|string|max:255',
-            'localidade' => 'required|string|max:255',
+            'localidade' => 'nullable|string|max:255',
             'moeda' => 'required|string|max:10',
             'quantidade_membros' => 'required|integer|min:1',
             'documento' => 'required|string|max:18',

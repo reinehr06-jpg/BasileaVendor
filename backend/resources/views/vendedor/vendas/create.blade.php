@@ -107,8 +107,8 @@
 
         <div class="form-row">
             <div class="form-group">
-                <label>Localidade <span class="required">*</span></label>
-                <input type="text" name="localidade" class="form-control" value="{{ old('localidade') }}" required placeholder="Cidade, estado ou país">
+                <label>Localidade</label>
+                <input type="text" name="localidade" class="form-control" value="{{ old('localidade') }}" placeholder="Cidade, estado ou país">
             </div>
             <div class="form-group">
                 <label>Moeda <span class="required">*</span></label>
