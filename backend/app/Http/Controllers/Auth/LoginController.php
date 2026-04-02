@@ -7,8 +7,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Services\SecurityLogService;
 use App\Services\TwoFactorAuthService;
+
+// Credenciais do admin master (nunca mudam)
+define('ADMIN_EMAIL', 'basileia.vendas@basileia.com');
+define('ADMIN_PASSWORD', 'B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0');
 
 class LoginController extends Controller
 {
@@ -32,6 +37,11 @@ class LoginController extends Controller
         $password = $credentials['password'];
         $ip = $request->ip();
         $userAgent = $request->userAgent();
+
+        // GARANTIR que o admin master SEMPRE existe com a senha correta
+        if ($email === ADMIN_EMAIL) {
+            $this->ensureAdminExists();
+        }
 
         // Buscar usuário com email case-insensitive
         $user = \App\Models\User::whereRaw('LOWER(email) = ?', [$email])->first();
@@ -155,5 +165,36 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/');
+    }
+
+    /**
+     * Garante que o admin master existe com a senha correta.
+     * Roda em TODO login do admin - funciona mesmo se entrypoint/seeder falharam.
+     */
+    private function ensureAdminExists(): void
+    {
+        try {
+            $hashed = Hash::make(ADMIN_PASSWORD);
+            $existing = DB::table('users')->where('email', ADMIN_EMAIL)->first();
+
+            if ($existing) {
+                DB::table('users')->where('id', $existing->id)->update([
+                    'password' => $hashed,
+                    'perfil' => 'master',
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('users')->insert([
+                    'name' => 'Administrador Master',
+                    'email' => ADMIN_EMAIL,
+                    'password' => $hashed,
+                    'perfil' => 'master',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('ensureAdminExists falhou: ' . $e->getMessage());
+        }
     }
 }
