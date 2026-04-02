@@ -102,16 +102,18 @@
                 <span class="rate-tag gestor">Comissão Gestão</span>
             </div>
             @endif
-            <div class="rate-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-color: #86efac;">
+            @if(!$vendedor->is_gestor)
+            <div class="rate-card">
                 <div class="rate-label">Split - 1ª Venda</div>
                 <div class="rate-value" style="color: #16a34a;">{{ $vendedor->valor_split_inicial ?? 0 }}{{ $vendedor->tipo_split === 'percentual' ? '%' : ' R$' }}</div>
                 <span class="rate-tag split">Repasse Automático</span>
             </div>
-            <div class="rate-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-color: #86efac;">
+            <div class="rate-card">
                 <div class="rate-label">Split - Recorrência</div>
                 <div class="rate-value" style="color: #16a34a;">{{ $vendedor->valor_split_recorrencia ?? 0 }}{{ $vendedor->tipo_split === 'percentual' ? '%' : ' R$' }}</div>
                 <span class="rate-tag split">Repasse Automático</span>
             </div>
+            @endif
         </div>
     </div>
 </div>

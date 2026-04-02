@@ -24,6 +24,10 @@
     .action-btn.success { color: var(--success); border-color: var(--success-light); }
     .action-btn.success:hover { background: var(--success-light); }
 
+    .input-group { display: flex; align-items: stretch; }
+    .input-group .form-control { border-radius: 8px 0 0 8px; }
+    .input-group-addon { display: flex; align-items: center; justify-content: center; padding: 0 14px; background: #f1f5f9; border: 1px solid var(--border); border-left: none; border-radius: 0 8px 8px 0; font-weight: 700; color: var(--primary); font-size: 0.95rem; }
+
     .form-section {
         background: var(--bg);
         border-radius: var(--radius-md);
@@ -297,7 +301,23 @@
                     </div>
                     <div class="form-group">
                         <label>Telefone</label>
-                        <input type="text" name="telefone" class="form-control" placeholder="(11) 99999-9999">
+                        <div style="display:flex; gap:8px;">
+                            <select name="telefone_ddi" class="form-control" style="flex:0 0 120px; font-size:0.85rem;">
+                                <option value="55">🇧🇷 +55</option>
+                                <option value="1">🇺🇸 +1</option>
+                                <option value="54">🇦🇷 +54</option>
+                                <option value="351">🇵🇹 +351</option>
+                                <option value="52">🇲🇽 +52</option>
+                                <option value="56">🇨🇱 +56</option>
+                                <option value="57">🇨🇴 +57</option>
+                                <option value="44">🇬🇧 +44</option>
+                                <option value="49">🇩🇪 +49</option>
+                                <option value="33">🇫🇷 +33</option>
+                                <option value="39">🇮🇹 +39</option>
+                                <option value="34">🇪🇸 +34</option>
+                            </select>
+                            <input type="text" name="telefone" id="createTelefone" class="form-control" placeholder="+55 (00) 00000-0000" style="flex:1;">
+                        </div>
                     </div>
                 </div>
                 <div class="form-group" style="padding: 10px; background: rgba(76,29,149,0.05); border: 1px dashed var(--primary); border-radius: var(--radius-sm);">
@@ -344,13 +364,19 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Comissão Inicial (%) <span class="required">*</span></label>
-                        <input type="number" step="0.01" name="comissao_inicial" class="form-control" required placeholder="10.00">
-                        <div class="field-hint">% sobre o valor na primeira venda.</div>
+                        <div class="input-group">
+                            <input type="number" step="0.01" name="comissao_inicial" class="form-control commission-input" required min="0" max="100" placeholder="10">
+                            <span class="input-group-addon">%</span>
+                        </div>
+                        <div class="field-hint">% sobre o valor na primeira venda. Máx: 100%.</div>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Comissão Recorrência (%) <span class="required">*</span></label>
-                        <input type="number" step="0.01" name="comissao_recorrencia" class="form-control" required placeholder="5.00">
-                        <div class="field-hint">% sobre o valor em renovações.</div>
+                        <div class="input-group">
+                            <input type="number" step="0.01" name="comissao_recorrencia" class="form-control commission-input" required min="0" max="100" placeholder="5">
+                            <span class="input-group-addon">%</span>
+                        </div>
+                        <div class="field-hint">% sobre o valor em renovações. Máx: 100%.</div>
                     </div>
                 </div>
             </div>
@@ -409,7 +435,23 @@
                         </div>
                         <div class="form-group">
                             <label>Telefone</label>
-                            <input type="text" name="telefone" id="editTelefone" class="form-control">
+                            <div style="display:flex; gap:8px;">
+                                <select id="editTelefoneDdi" class="form-control" style="flex:0 0 120px; font-size:0.85rem;">
+                                    <option value="55">🇧🇷 +55</option>
+                                    <option value="1">🇺🇸 +1</option>
+                                    <option value="54">🇦🇷 +54</option>
+                                    <option value="351">🇵🇹 +351</option>
+                                    <option value="52">🇲🇽 +52</option>
+                                    <option value="56">🇨🇱 +56</option>
+                                    <option value="57">🇨🇴 +57</option>
+                                    <option value="44">🇬🇧 +44</option>
+                                    <option value="49">🇩🇪 +49</option>
+                                    <option value="33">🇫🇷 +33</option>
+                                    <option value="39">🇮🇹 +39</option>
+                                    <option value="34">🇪🇸 +34</option>
+                                </select>
+                                <input type="text" name="telefone" id="editTelefone" class="form-control" style="flex:1;">
+                            </div>
                         </div>
                     </div>
                     <div class="form-row">
@@ -453,12 +495,18 @@
                         <div class="form-section-title"><i class="fas fa-chart-bar"></i> Comissões do Vendedor</div>
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Comissão Inicial (%) <span class="required">*</span></label>
-                                <input type="number" step="0.01" name="comissao_inicial" id="editComissaoInicial" class="form-control" required>
+                                <label>Comissão Inicial (%)</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" name="comissao_inicial" id="editComissaoInicial" class="form-control commission-input" min="0" max="100">
+                                    <span class="input-group-addon">%</span>
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label>Comissão Recorrência (%) <span class="required">*</span></label>
-                                <input type="number" step="0.01" name="comissao_recorrencia" id="editComissaoRecorrencia" class="form-control" required>
+                                <label>Comissão Recorrência (%)</label>
+                                <div class="input-group">
+                                    <input type="number" step="0.01" name="comissao_recorrencia" id="editComissaoRecorrencia" class="form-control commission-input" min="0" max="100">
+                                    <span class="input-group-addon">%</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -692,5 +740,44 @@
         });
         BasileiaModal.open('equipeModal');
     }
+
+    // === Phone mask with DDI ===
+    function applyPhoneMask(input) {
+        input.addEventListener('input', function() {
+            var v = this.value.replace(/\D/g, '').substring(0, 11);
+            if (v.length > 6) this.value = '(' + v.substring(0,2) + ') ' + v.substring(2,7) + '-' + v.substring(7);
+            else if (v.length > 2) this.value = '(' + v.substring(0,2) + ') ' + v.substring(2);
+            else if (v.length > 0) this.value = '(' + v;
+        });
+    }
+    var ct = document.getElementById('createTelefone');
+    if (ct) applyPhoneMask(ct);
+    var et = document.getElementById('editTelefone');
+    if (et) applyPhoneMask(et);
+
+    // === Commission max 100 ===
+    document.querySelectorAll('.commission-input').forEach(function(input) {
+        input.addEventListener('input', function() {
+            if (parseFloat(this.value) > 100) this.value = 100;
+            if (parseFloat(this.value) < 0) this.value = 0;
+        });
+    });
+
+    // === Parse phone with DDI on edit ===
+    var origOpenEdit = openEditModal;
+    openEditModal = function(data) {
+        origOpenEdit(data);
+        var tel = data.telefone || '';
+        var ddi = '55';
+        var num = tel.replace(/\D/g, '');
+        if (tel.startsWith('+')) {
+            var match = tel.match(/^\+(\d{1,3})/);
+            if (match) { ddi = match[1]; num = num.substring(ddi.length); }
+        }
+        var el = document.getElementById('editTelefoneDdi');
+        if (el) el.value = ddi;
+        var et = document.getElementById('editTelefone');
+        if (et) { et.value = num; }
+    };
 </script>
 @endsection
