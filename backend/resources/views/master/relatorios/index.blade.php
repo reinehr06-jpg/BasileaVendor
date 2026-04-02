@@ -604,8 +604,9 @@ function toggleExportMenu(btn) {
         menu.classList.remove('show');
     } else {
         var rect = btn.getBoundingClientRect();
-        menu.style.top = (rect.bottom + 4) + 'px';
-        menu.style.right = (window.innerWidth - rect.right) + 'px';
+        menu.style.top = (rect.bottom + 6) + 'px';
+        menu.style.left = (rect.left) + 'px';
+        menu.style.right = 'auto';
         menu.classList.add('show');
     }
 }
