@@ -662,8 +662,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const doc = v.replace(/\D/g, '');
         const warning = document.getElementById('documentoWarning');
         warning.style.display = 'none';
+        inputDocumento.classList.remove('is-invalid');
 
-        if (doc.length === 11 || doc.length === 14) {
+        // CPF completo (11 dígitos) ou CNPJ completo (14 dígitos)
+        if ((doc.length === 11) || (doc.length === 14)) {
             clearTimeout(documentoInputTimeout);
             documentoInputTimeout = setTimeout(() => {
                 fetch('{{ route("vendedor.vendas.verificar-documento") }}?documento=' + doc, {
@@ -674,66 +676,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.exists && data.has_active_sale) {
                         warning.style.display = 'block';
                         warning.innerHTML = '<div class="warning-box" style="border-color:#dc2626;background:#fef2f2;"><i class="fas fa-triangle-exclamation" style="color:#dc2626;"></i><div><div class="warning-title" style="color:#dc2626;">Cliente já possui venda ativa!</div><div class="warning-text" style="color:#7f1d1d;"><strong>' + (data.cliente.nome_igreja||'') + '</strong> — Venda #' + (data.venda.id||'') + '</div></div></div>';
+                        inputDocumento.classList.add('is-invalid');
                     } else if (data.exists) {
                         warning.style.display = 'block';
                         warning.innerHTML = '<div class="warning-box" style="border-color:#f59e0b;background:#fef3c7;"><i class="fas fa-info-circle" style="color:#f59e0b;"></i><div><div class="warning-title" style="color:#92400e;">Cliente já cadastrado</div><div class="warning-text" style="color:#78350f;"><strong>' + (data.cliente.nome_igreja||'') + '</strong> já existe no sistema.</div></div></div>';
+                        inputDocumento.classList.add('is-invalid');
                     }
                 }).catch(() => { warning.style.display = 'none'; });
-            }, 600);
+            }, 200);
         }
-    });
-
-    // Verificar documento ao perder foco
-    let documentoTimeout;
-    inputDocumento.addEventListener('blur', function() {
-        const doc = this.value.replace(/\D/g, '');
-        if (doc.length < 11) return;
-        
-        clearTimeout(documentoTimeout);
-        documentoTimeout = setTimeout(() => {
-            fetch('{{ route("vendedor.vendas.verificar-documento") }}?documento=' + doc, {
-                headers: { 'Accept': 'application/json' }
-            })
-            .then(r => r.json())
-            .then(data => {
-                const warning = document.getElementById('documentoWarning');
-                if (data.exists && data.has_active_sale) {
-                    warning.style.display = 'block';
-                    warning.innerHTML = `
-                        <div class="warning-box" style="border-color: #dc2626; background: #fef2f2;">
-                            <i class="fas fa-triangle-exclamation" style="color: #dc2626;"></i>
-                            <div>
-                                <div class="warning-title" style="color: #dc2626;">Cliente já possui venda ativa!</div>
-                                <div class="warning-text" style="color: #7f1d1d;">
-                                    <strong>${data.cliente.nome_igreja}</strong><br>
-                                    Venda #${data.venda.id} — Plano ${data.venda.plano} — R$ ${data.venda.valor}<br>
-                                    Status: ${data.venda.status} (${data.venda.data})
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    BasileiaToast.warning('Este cliente já possui uma venda ativa!');
-                } else if (data.exists) {
-                    warning.style.display = 'block';
-                    warning.innerHTML = `
-                        <div class="warning-box" style="border-color: #f59e0b; background: #fef3c7;">
-                            <i class="fas fa-info-circle" style="color: #f59e0b;"></i>
-                            <div>
-                                <div class="warning-title" style="color: #92400e;">Cliente já cadastrado</div>
-                                <div class="warning-text" style="color: #78350f;">
-                                    <strong>${data.cliente.nome_igreja}</strong> já existe no sistema.
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    warning.style.display = 'none';
-                }
-            })
-            .catch(() => {
-                document.getElementById('documentoWarning').style.display = 'none';
-            });
-        }, 500);
     });
 
     // WhatsApp mask
