@@ -452,40 +452,5 @@
     }
     </script>
     @yield('scripts')
-
-    {{-- Desabilitar autofill/autocomplete em TODO o sistema (exceto campos de senha/email) --}}
-    <script>
-    (function() {
-        function disableAutofill(root) {
-            (root.querySelectorAll ? root.querySelectorAll('input, select, textarea') : []).forEach(function(el) {
-                if (el.type === 'password') {
-                    // Navegadores exigem valor válido para campos de senha
-                    el.setAttribute('autocomplete', 'new-password');
-                } else if (el.type === 'email' || el.name === 'email' || el.name === 'email_cliente' || el.name === 'username') {
-                    // Navegadores exigem valor válido para campos de email
-                    el.setAttribute('autocomplete', 'email');
-                } else if (el.type === 'hidden' || el.type === 'submit' || el.type === 'button') {
-                    // Ignorar campos hidden/submit
-                } else {
-                    el.setAttribute('autocomplete', 'off');
-                    el.setAttribute('autocorrect', 'off');
-                    el.setAttribute('autocapitalize', 'off');
-                    el.setAttribute('spellcheck', 'false');
-                }
-            });
-        }
-
-        disableAutofill(document);
-
-        var observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                mutation.addedNodes.forEach(function(node) {
-                    if (node.nodeType === 1) disableAutofill(node);
-                });
-            });
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-    })();
-    </script>
 </body>
 </html>

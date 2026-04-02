@@ -202,7 +202,7 @@
                 
                 <div class="form-group">
                     <label class="form-label" for="email">E-mail de Acesso</label>
-                    <input type="email" id="email" name="email" class="form-input" value="{{ old('email') }}" required autofocus placeholder="Digite seu e-mail de acesso">
+                    <input type="email" id="email" name="email" class="form-input" value="{{ old('email') }}" required autofocus placeholder="Digite seu e-mail de acesso" autocomplete="email">
                     @error('email')
                         <span class="error-message">{{ $message }}</span>
                     @enderror
@@ -210,7 +210,7 @@
 
                 <div class="form-group">
                     <label class="form-label" for="password">Senha Master</label>
-                    <input type="password" id="password" name="password" class="form-input" required placeholder="Digite sua senha">
+                    <input type="password" id="password" name="password" class="form-input" required placeholder="Digite sua senha" autocomplete="current-password">
                     @error('password')
                         <span class="error-message">{{ $message }}</span>
                     @enderror
@@ -222,11 +222,6 @@
             </form>
         </div>
     </div>
-
-    <script>
-    document.querySelectorAll('input[type=password]').forEach(function(i){i.setAttribute('autocomplete','new-password')});
-    document.querySelectorAll('input[type=email],input[name=email]').forEach(function(i){i.setAttribute('autocomplete','email')});
-    </script>
 
 </body>
 </html>
