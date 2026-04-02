@@ -72,14 +72,14 @@
 </div>
 @endif
 
-<!-- Comissão Atual (Somente Leitura) -->
+<!-- Header Compacto -->
 <div class="comissao-atual">
     <div class="comissao-item">
-        <div class="label">Comissão Inicial</div>
+        <div class="label">Comissão Vendedor - Inicial</div>
         <div class="value">{{ $vendedor->comissao_inicial ?? $vendedor->comissao ?? 10 }}%</div>
     </div>
     <div class="comissao-item">
-        <div class="label">Comissão Recorrência</div>
+        <div class="label">Comissão Vendedor - Recorrência</div>
         <div class="value">{{ $vendedor->comissao_recorrencia ?? $vendedor->comissao ?? 10 }}%</div>
     </div>
     <div class="comissao-item">
@@ -94,33 +94,7 @@
     </div>
 </div>
 
-<!-- Card 1: Suas Comissões (Somente Visualização) -->
-<div class="card">
-    <div class="card-header">
-        <h3>📊 Suas Comissões</h3>
-        <p>Valores definidos pelo administrador. Entre em contato para solicitar alterações.</p>
-    </div>
-    <div class="card-body">
-        <div class="alert alert-info">
-            ℹ️ As porcentagens de comissão são definidas pelo administrador do sistema. Se precisar de ajustes, entre em contato com o suporte.
-        </div>
-        
-        <div class="form-row">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label>Comissão Inicial (%)</label>
-                <input type="text" value="{{ $vendedor->comissao_inicial ?? $vendedor->comissao ?? 10 }}%" disabled style="background: #f1f5f9;">
-                <span class="help-text">Percentual de comissão aplicado na primeira venda.</span>
-            </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label>Comissão Recorrência (%)</label>
-                <input type="text" value="{{ $vendedor->comissao_recorrencia ?? $vendedor->comissao ?? 10 }}%" disabled style="background: #f1f5f9;">
-                <span class="help-text">Percentual de comissão aplicado em renovações.</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Card 2: Configurar Split -->
+<!-- Card 1: Configurar Split -->
 <div class="card">
     <div class="card-header">
         <h3>🔗 Split Asaas (Repasse Automático)</h3>
@@ -156,7 +130,6 @@
                     <span class="help-text">Cole aqui seu Wallet ID do Asaas.</span>
                 </div>
 
-                <!-- Valores de Repasse (definidos pelo Admin - somente leitura) -->
                 <div class="form-row">
                     <div class="form-group">
                         <label>Tipo de Repasse</label>
@@ -182,18 +155,32 @@
                     </div>
                 </div>
 
+                <!-- Valores de Repasse (definidos pelo Admin) -->
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Valor Repasse Inicial</label>
+                        <label>Repasse Inicial (1ª Venda)</label>
                         <input type="text" value="{{ $vendedor->valor_split_inicial ?? 0 }}{{ $vendedor->tipo_split === 'percentual' ? '%' : ' R$' }}" disabled style="background: #f1f5f9;">
-                        <span class="help-text">Definido pelo administrador na primeira venda.</span>
                     </div>
                     <div class="form-group">
-                        <label>Valor Repasse Recorrência</label>
+                        <label>Repasse Recorrência</label>
                         <input type="text" value="{{ $vendedor->valor_split_recorrencia ?? 0 }}{{ $vendedor->tipo_split === 'percentual' ? '%' : ' R$' }}" disabled style="background: #f1f5f9;">
-                        <span class="help-text">Definido pelo administrador em renovações.</span>
                     </div>
                 </div>
+
+                @if($vendedor->is_gestor && ($vendedor->comissao_gestor_primeira > 0 || $vendedor->comissao_gestor_recorrencia > 0))
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Repasse Gestor - Inicial</label>
+                        <input type="text" value="{{ $vendedor->comissao_gestor_primeira ?? 0 }}%" disabled style="background: #f1f5f9;">
+                        <span class="help-text">Comissão de gestão aplicada na 1ª venda da equipe.</span>
+                    </div>
+                    <div class="form-group">
+                        <label>Repasse Gestor - Recorrência</label>
+                        <input type="text" value="{{ $vendedor->comissao_gestor_recorrencia ?? 0 }}%" disabled style="background: #f1f5f9;">
+                        <span class="help-text">Comissão de gestão aplicada em renovações da equipe.</span>
+                    </div>
+                </div>
+                @endif
 
                 <div class="form-actions">
                     @if($vendedor->wallet_status !== 'validado')
