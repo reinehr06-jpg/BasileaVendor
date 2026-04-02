@@ -44,7 +44,7 @@
     .report-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; color: white; }
     .report-hero p { opacity: 0.85; font-size: 0.9rem; color: rgba(255,255,255,0.9); }
     .export-dropdown { position: relative; display: inline-block; }
-    .export-dropdown-content { display: none; position: fixed; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); z-index: 999999; }
+    .export-dropdown-content { display: none; position: fixed; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); z-index: 9999999; }
     .export-dropdown-content.show { display: block; }
     .export-item { display: block; padding: 12px 16px; color: #374151; text-decoration: none; font-size: 0.85rem; transition: 0.15s; font-weight: 500; }
     .export-item:hover { background: #faf5ff; color: #7c3aed; }
@@ -68,8 +68,35 @@
     }
     .filter-group { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 130px; }
     .filter-group label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b21a8; }
-    .filter-group input, .filter-group select { padding: 7px 12px; border: 1.5px solid #d8b4fe; border-radius: 8px; font-size: 0.82rem; outline: none; background: white; transition: all 0.2s; }
-    .filter-group input:focus, .filter-group select:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,0.15); }
+    .filter-group input, .filter-group select {
+        padding: 7px 12px;
+        border: 1.5px solid #d8b4fe;
+        border-radius: 8px;
+        font-size: 0.82rem;
+        outline: none;
+        background: white;
+        transition: all 0.2s;
+        color: #374151;
+        font-family: inherit;
+    }
+    .filter-group select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 14px;
+        padding-right: 30px;
+        cursor: pointer;
+    }
+    .filter-group select:hover, .filter-group input:hover {
+        border-color: #a855f7;
+        background-color: #faf5ff;
+    }
+    .filter-group select:focus, .filter-group input:focus {
+        border-color: #7c3aed;
+        box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+        background-color: white;
+    }
     .btn-filter { background: linear-gradient(135deg, #7c3aed, #581c87); color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.82rem; transition: 0.2s; white-space: nowrap; box-shadow: 0 2px 8px rgba(124,58,237,0.3); }
     .btn-filter:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,0.4); }
     .btn-clear { background: white; border: 1.5px solid #d8b4fe; padding: 7px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.82rem; color: #6b21a8; text-decoration: none; white-space: nowrap; transition: 0.2s; }
@@ -602,23 +629,21 @@ function toggleExportMenu(btn) {
         menu.classList.remove('show');
         return;
     }
-    var rect = btn.getBoundingClientRect();
-    menu.style.top = (rect.bottom + 6) + 'px';
-    menu.style.left = rect.left + 'px';
-    menu.style.right = 'auto';
-    menu.classList.add('show');
+    requestAnimationFrame(function() {
+        var rect = btn.getBoundingClientRect();
+        menu.style.top = (rect.bottom + 4) + 'px';
+        menu.style.left = rect.left + 'px';
+        menu.classList.add('show');
+    });
 }
 document.addEventListener('click', function(e) {
     var menu = document.getElementById('exportMenu');
     if (menu && !menu.contains(e.target)) {
-        var btn = menu.closest('.export-dropdown') ? menu.closest('.export-dropdown').querySelector('button') : null;
-        if (!btn || !btn.contains(e.target)) {
+        var btn = menu.closest('.export-dropdown').querySelector('button');
+        if (!btn.contains(e.target)) {
             menu.classList.remove('show');
         }
     }
-});
-window.addEventListener('scroll', function() {
-    document.getElementById('exportMenu').classList.remove('show');
 });
 </script>
 @endsection
