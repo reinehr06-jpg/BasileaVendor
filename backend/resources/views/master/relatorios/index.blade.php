@@ -40,8 +40,6 @@
         margin-bottom: 24px;
         box-shadow: 0 20px 40px rgba(88, 28, 135, 0.25);
         overflow: visible;
-        position: relative;
-        z-index: 1;
     }
     .report-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; color: white; }
     .report-hero p { opacity: 0.85; font-size: 0.9rem; color: rgba(255,255,255,0.9); }
