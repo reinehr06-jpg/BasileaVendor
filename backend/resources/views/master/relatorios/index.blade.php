@@ -44,7 +44,7 @@
     .report-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; color: white; }
     .report-hero p { opacity: 0.85; font-size: 0.9rem; color: rgba(255,255,255,0.9); }
     .export-dropdown { position: relative; display: inline-block; }
-    .export-dropdown-content { display: none; position: fixed; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.25); z-index: 9999999; }
+    .export-dropdown-content { display: none; position: fixed; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); z-index: 2147483647; }
     .export-dropdown-content.show { display: block; }
     .export-item { display: block; padding: 12px 16px; color: #374151; text-decoration: none; font-size: 0.85rem; transition: 0.15s; font-weight: 500; }
     .export-item:hover { background: #faf5ff; color: #7c3aed; }
@@ -80,12 +80,14 @@
         font-family: inherit;
     }
     .filter-group select {
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 8px center;
-        background-size: 14px;
-        padding-right: 30px;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        appearance: none !important;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+        background-repeat: no-repeat !important;
+        background-position: right 8px center !important;
+        background-size: 14px !important;
+        padding-right: 30px !important;
         cursor: pointer;
     }
     .filter-group select:hover, .filter-group input:hover {
@@ -629,18 +631,16 @@ function toggleExportMenu(btn) {
         menu.classList.remove('show');
         return;
     }
-    requestAnimationFrame(function() {
-        var rect = btn.getBoundingClientRect();
-        menu.style.top = (rect.bottom + 4) + 'px';
-        menu.style.left = rect.left + 'px';
-        menu.classList.add('show');
-    });
+    var rect = btn.getBoundingClientRect();
+    menu.style.top = (rect.bottom + 4) + 'px';
+    menu.style.left = rect.left + 'px';
+    menu.classList.add('show');
 }
 document.addEventListener('click', function(e) {
     var menu = document.getElementById('exportMenu');
-    if (menu && !menu.contains(e.target)) {
-        var btn = menu.closest('.export-dropdown').querySelector('button');
-        if (!btn.contains(e.target)) {
+    if (menu && menu.classList.contains('show')) {
+        var dropdown = menu.closest('.export-dropdown');
+        if (!dropdown.contains(e.target)) {
             menu.classList.remove('show');
         }
     }
