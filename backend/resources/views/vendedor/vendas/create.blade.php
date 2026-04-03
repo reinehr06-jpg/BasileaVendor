@@ -741,23 +741,24 @@ document.addEventListener('DOMContentLoaded', function() {
             if (email.length < 5 || !email.includes('@')) return;
 
             emailTimeout = setTimeout(function() {
-                fetch('{{ route("api.verificar-email") }}?email=' + encodeURIComponent(email), {
-                    headers: { 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                    redirect: 'error'
-                })
-                .then(r => {
-                    if (!r.ok) throw new Error('Network error');
-                    return r.json();
-                })
-                .then(data => {
-                    if (data.exists) {
-                        emailWarning.textContent = '⚠ Este e-mail já está cadastrado no sistema.';
-                        emailWarning.style.display = 'block';
-                        inputEmail.classList.add('is-invalid');
+                const xhr = new XMLHttpRequest();
+                xhr.open('GET', '{{ route("api.verificar-email") }}?email=' + encodeURIComponent(email), true);
+                xhr.setRequestHeader('Accept', 'application/json');
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.exists) {
+                                emailWarning.textContent = '⚠ Este e-mail já está cadastrado no sistema.';
+                                emailWarning.style.display = 'block';
+                                inputEmail.classList.add('is-invalid');
+                            }
+                        } catch(e) {}
                     }
-                })
-                .catch(() => {});
+                };
+                xhr.onerror = function() {};
+                xhr.send();
             }, 500);
         });
     }
@@ -777,18 +778,23 @@ document.addEventListener('DOMContentLoaded', function() {
             const numeroCompleto = '+' + ddi + numero;
 
             whatsappTimeout = setTimeout(function() {
-                fetch('/api/verificar-whatsapp?whatsapp=' + encodeURIComponent(numeroCompleto), {
-                    headers: { 'Accept': 'application/json' },
-                    redirect: 'error'
-                })
-                .then(r => r.json())
-                .then(data => {
-                    if (data.exists) {
-                        whatsappWarning.textContent = '⚠ Este WhatsApp já está cadastrado no sistema.';
-                        whatsappWarning.style.display = 'block';
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '/api/verificar-whatsapp?whatsapp=' + encodeURIComponent(numeroCompleto), true);
+                xhr.setRequestHeader('Accept', 'application/json');
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                xhr.onload = function() {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.exists) {
+                                whatsappWarning.textContent = '⚠ Este WhatsApp já está cadastrado no sistema.';
+                                whatsappWarning.style.display = 'block';
+                            }
+                        } catch(e) {}
                     }
-                })
-                .catch(() => {});
+                };
+                xhr.onerror = function() {};
+                xhr.send();
             }, 500);
         });
     }
