@@ -34,41 +34,44 @@ Route::middleware('api.key')->group(function () {
 
 // ==========================================
 // API Pública: Verificação de Duplicidade (usada no formulário de nova venda)
+// Com rate limiting para prevenir enumeration
 // ==========================================
-Route::get('/verificar-email', function (\Illuminate\Http\Request $request) {
-    $email = $request->query('email');
-    if (empty($email)) {
-        return response()->json(['exists' => false]);
-    }
-    $existe = \App\Models\Cliente::where('email', $email)->exists();
-    return response()->json(['exists' => $existe]);
-});
+Route::middleware('throttle:30,1')->group(function () {
+    Route::get('/verificar-email', function (\Illuminate\Http\Request $request) {
+        $email = $request->query('email');
+        if (empty($email)) {
+            return response()->json(['exists' => false]);
+        }
+        $existe = \App\Models\Cliente::where('email', $email)->exists();
+        return response()->json(['exists' => $existe]);
+    });
 
-Route::get('/verificar-whatsapp', function (\Illuminate\Http\Request $request) {
-    $whatsapp = $request->query('whatsapp');
-    if (empty($whatsapp)) {
-        return response()->json(['exists' => false]);
-    }
-    $existe = \App\Models\Cliente::where('whatsapp', $whatsapp)->exists();
-    return response()->json(['exists' => $existe]);
-});
+    Route::get('/verificar-whatsapp', function (\Illuminate\Http\Request $request) {
+        $whatsapp = $request->query('whatsapp');
+        if (empty($whatsapp)) {
+            return response()->json(['exists' => false]);
+        }
+        $existe = \App\Models\Cliente::where('whatsapp', $whatsapp)->exists();
+        return response()->json(['exists' => $existe]);
+    });
 
-Route::get('/verificar-documento', function (\Illuminate\Http\Request $request) {
-    $documento = preg_replace('/\D/', '', $request->query('documento', ''));
-    if (strlen($documento) < 11) {
-        return response()->json(['exists' => false]);
-    }
-    $cliente = \App\Models\Cliente::where('documento', $documento)->first();
-    if (!$cliente) {
-        return response()->json(['exists' => false]);
-    }
-    $vendaAtiva = \App\Models\Venda::where('cliente_id', $cliente->id)
-        ->whereNotIn('status', ['Cancelado', 'Expirado'])
-        ->exists();
-    return response()->json([
-        'exists' => true,
-        'has_active_sale' => $vendaAtiva,
-    ]);
+    Route::get('/verificar-documento', function (\Illuminate\Http\Request $request) {
+        $documento = preg_replace('/\D/', '', $request->query('documento', ''));
+        if (strlen($documento) < 11) {
+            return response()->json(['exists' => false]);
+        }
+        $cliente = \App\Models\Cliente::where('documento', $documento)->first();
+        if (!$cliente) {
+            return response()->json(['exists' => false]);
+        }
+        $vendaAtiva = \App\Models\Venda::where('cliente_id', $cliente->id)
+            ->whereNotIn('status', ['Cancelado', 'Expirado'])
+            ->exists();
+        return response()->json([
+            'exists' => true,
+            'has_active_sale' => $vendaAtiva,
+        ]);
+    });
 });
 
 Route::get('/user', function (Request $request) {

@@ -105,7 +105,7 @@ class WebhookController extends Controller
                 $event->markAsFailed($e->getMessage());
             }
 
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Internal server error'], 500);
         }
     }
 

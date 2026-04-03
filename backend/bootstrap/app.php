@@ -40,5 +40,9 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Hide error details in production
+        if (app()->environment('production')) {
+            $exceptions->dontReport(\Illuminate\Auth\AuthenticationException::class);
+            $exceptions->dontReport(\Illuminate\Validation\ValidationException::class);
+        }
     })->create();

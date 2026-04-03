@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class ApiKey extends Model
 {
     protected $fillable = [
-        'name', 'key', 'service', 'allowed_ips',
+        'name', 'service', 'allowed_ips',
         'rate_limit', 'last_used_at', 'active',
     ];
 
@@ -23,6 +23,19 @@ class ApiKey extends Model
     public static function generate(): string
     {
         return 'bv_' . bin2hex(random_bytes(24));
+    }
+
+    public static function createKey(array $data): self
+    {
+        $key = self::generate();
+        $data['key'] = hash('sha256', $key);
+        return self::create($data);
+    }
+
+    public static function verify(string $key): ?self
+    {
+        $hashed = hash('sha256', $key);
+        return self::where('key', $hashed)->where('active', true)->first();
     }
 
     public function markUsed(): void

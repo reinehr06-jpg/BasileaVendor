@@ -20,16 +20,23 @@ class CheckoutWebhookController extends Controller
         $signature = $request->header('X-Checkout-Signature');
         $secret = config('checkout-integration.webhook_secret', env('CHECKOUT_WEBHOOK_SECRET'));
 
-        if ($secret && $signature) {
-            $payload = $request->getContent();
-            $expected = hash_hmac('sha256', $payload, $secret);
+        // Signature verification is MANDATORY
+        if (!$secret) {
+            Log::error('Checkout webhook: webhook_secret não configurado');
+            return response()->json(['error' => 'Webhook not configured'], 500);
+        }
 
-            if (!hash_equals($expected, $signature)) {
-                Log::warning('Checkout webhook: assinatura inválida', [
-                    'ip' => $request->ip(),
-                ]);
-                return response()->json(['error' => 'Invalid signature'], 401);
-            }
+        if (!$signature) {
+            Log::warning('Checkout webhook: assinatura ausente', ['ip' => $request->ip()]);
+            return response()->json(['error' => 'Missing signature'], 401);
+        }
+
+        $payload = $request->getContent();
+        $expected = hash_hmac('sha256', $payload, $secret);
+
+        if (!hash_equals($expected, $signature)) {
+            Log::warning('Checkout webhook: assinatura inválida', ['ip' => $request->ip()]);
+            return response()->json(['error' => 'Invalid signature'], 401);
         }
 
         $event = $request->input('event');

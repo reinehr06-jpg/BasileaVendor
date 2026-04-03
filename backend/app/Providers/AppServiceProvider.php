@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -20,7 +20,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Force HTTPS scheme when behind reverse proxy (Easypanel, etc.)
         URL::forceScheme('https');
+
+        // SECURITY: Force APP_DEBUG=false in production
+        if (app()->environment('production') && config('app.debug')) {
+            config(['app.debug' => false]);
+        }
     }
 }
