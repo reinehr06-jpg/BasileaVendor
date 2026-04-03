@@ -43,13 +43,16 @@ class MasterPanelController extends Controller
             });
 
         if ($formato === 'csv') {
-            $headers = ['Content-Type' => 'text/csv; charset=UTF-8'];
+            $headers = [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+                'Content-Disposition' => 'attachment; filename="vendedores_' . date('Y-m-d_His') . '.csv"',
+            ];
             $callback = function() use ($vendedores) {
                 $file = fopen('php://output', 'w');
                 fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-                fputcsv($file, ['Nome', 'E-mail', 'Perfil', 'Status', 'Telefone', 'Comissão', 'Data Cadastro']);
+                fputcsv($file, ['Nome', 'E-mail', 'Perfil', 'Status', 'Telefone', 'Comissão', 'Data Cadastro'], ';');
                 foreach ($vendedores as $v) {
-                    fputcsv($file, $v);
+                    fputcsv($file, $v, ';');
                 }
                 fclose($file);
             };
