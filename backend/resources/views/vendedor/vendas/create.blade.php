@@ -741,10 +741,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (email.length < 5 || !email.includes('@')) return;
 
             emailTimeout = setTimeout(function() {
-                fetch('/api/verificar-email?email=' + encodeURIComponent(email), {
-                    headers: { 'Accept': 'application/json' }
+                fetch('{{ route("api.verificar-email") }}?email=' + encodeURIComponent(email), {
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
                 })
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('Network error');
+                    return r.json();
+                })
                 .then(data => {
                     if (data.exists) {
                         emailWarning.textContent = '⚠ Este e-mail já está cadastrado no sistema.';

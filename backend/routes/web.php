@@ -185,6 +185,25 @@ Route::get('/debug-asaas', function () {
     }
 });
 
+// API pública de verificação (usada pelo formulário de nova venda)
+Route::get('/api/verificar-email', function (\Illuminate\Http\Request $request) {
+    $email = $request->query('email');
+    if (empty($email)) {
+        return response()->json(['exists' => false]);
+    }
+    $existe = \App\Models\Cliente::where('email', $email)->exists();
+    return response()->json(['exists' => $existe]);
+})->name('api.verificar-email');
+
+Route::get('/api/verificar-whatsapp', function (\Illuminate\Http\Request $request) {
+    $whatsapp = $request->query('whatsapp');
+    if (empty($whatsapp)) {
+        return response()->json(['exists' => false]);
+    }
+    $existe = \App\Models\Cliente::where('whatsapp', $whatsapp)->exists();
+    return response()->json(['exists' => $existe]);
+})->name('api.verificar-whatsapp');
+
 // Rotas de Troca de Senha Obrigatória
 Route::middleware('auth')->group(function () {
     Route::get('/password/change', [App\Http\Controllers\Auth\PasswordChangeController::class, 'showChangeForm'])->name('password.change');
@@ -205,25 +224,8 @@ Route::middleware('auth')->group(function () {
     // API interna: buscar planos por quantidade de membros
     Route::get('/api/planos', [VendaController::class, 'buscarPlanos'])->name('api.planos');
 
-    // API: verificar se email já existe no sistema
-    Route::get('/api/verificar-email', function (\Illuminate\Http\Request $request) {
-        $email = $request->query('email');
-        if (empty($email)) {
-            return response()->json(['exists' => false]);
-        }
-        $existe = \App\Models\Cliente::where('email', $email)->exists();
-        return response()->json(['exists' => $existe]);
-    })->name('api.verificar-email');
-
-    // API: verificar se whatsapp já existe no sistema
-    Route::get('/api/verificar-whatsapp', function (\Illuminate\Http\Request $request) {
-        $whatsapp = $request->query('whatsapp');
-        if (empty($whatsapp)) {
-            return response()->json(['exists' => false]);
-        }
-        $existe = \App\Models\Cliente::where('whatsapp', $whatsapp)->exists();
-        return response()->json(['exists' => $existe]);
-    })->name('api.verificar-whatsapp');
+    // API: verificar se documento já possui venda ativa
+    Route::get('/vendas/verificar-documento', [VendaController::class, 'verificarDocumento'])->name('vendas.verificar-documento');
 
     // ==========================================
     // Módulo Master
