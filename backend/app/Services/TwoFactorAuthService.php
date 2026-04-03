@@ -53,8 +53,9 @@ class TwoFactorAuthService
 
     /**
      * Verify a 2FA token
+     * Window increased to 2 (1 minute drift tolerance) to handle Docker time synchronization issues.
      */
-    public static function verifyToken(string $secret, string $token, int $window = 1): bool
+    public static function verifyToken(string $secret, string $token, int $window = 2): bool
     {
         $token = trim($token);
 
@@ -66,27 +67,41 @@ class TwoFactorAuthService
             return false;
         }
 
+        // Just in case there is trailing/leading garbage from serialization
+        if (preg_match('/([A-Z2-7]{32})/', strtoupper($secret), $matches)) {
+            $secret = $matches[1];
+        }
+
         $secretBinary = self::base32Decode($secret);
         if ($secretBinary === '') {
             return false;
         }
 
         $time = floor(time() / 30);
+        $calculatedTokens = [];
 
         for ($offset = -$window; $offset <= $window; $offset++) {
             $timeBytes = pack('NN', 0, $time + $offset);
             $hash = hash_hmac('sha1', $timeBytes, $secretBinary, true);
 
-            $offset = ord(substr($hash, -1)) & 0x0F;
-            $hashPart = substr($hash, $offset, 4);
+            $bitOffset = ord(substr($hash, -1)) & 0x0F;
+            $hashPart = substr($hash, $bitOffset, 4);
             $value = unpack('N', $hashPart)[1];
             $value = $value & 0x7FFFFFFF;
             $calculatedToken = sprintf('%06d', $value % 1000000);
+            
+            $calculatedTokens[] = $calculatedToken;
 
             if (hash_equals($token, $calculatedToken)) {
                 return true;
             }
         }
+
+        Log::warning('2FA_TOKEN_MISMATCH', [
+            'input' => $token,
+            'calculated_window' => $calculatedTokens,
+            'server_time' => now()->toDateTimeString(),
+        ]);
 
         return false;
     }
