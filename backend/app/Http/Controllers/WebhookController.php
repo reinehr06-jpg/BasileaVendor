@@ -22,13 +22,9 @@ class WebhookController extends Controller
      */
     public function asaasWebhook(Request $request)
     {
-        // Responder a testes de conexão (GET)
+        // Quando o Asaas redireciona o usuário via GET após pagamento
         if ($request->isMethod('get')) {
-            return response()->json([
-                'status' => 'ok',
-                'message' => 'Webhook Asaas configurado corretamente',
-                'timestamp' => now()->toDateTimeString(),
-            ], 200);
+            return redirect()->route('master.vendas.index');
         }
 
         // Validar token de autenticação
