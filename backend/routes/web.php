@@ -125,6 +125,19 @@ Route::get('/Login', function() { return redirect('/login'); });
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// Health check + cache clear (public, no auth)
+Route::get('/health', function() {
+    return response()->json(['status' => 'ok', 'timestamp' => now()]);
+});
+Route::post('/clear-cache', function() {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+        return response()->json(['status' => 'cleared']);
+    } catch (\Exception $e) {
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
 // Diagnóstico Asaas - sem middleware (remover após resolver)
 Route::get('/debug-asaas', function () {
     try {
