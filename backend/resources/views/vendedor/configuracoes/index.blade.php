@@ -32,15 +32,24 @@
     .twofa-status .info h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 2px; }
     .twofa-status .info p { font-size: 0.8rem; color: #6b7280; }
 
-    .qr-box { background: white; border: 2px solid #e0e0e8; border-radius: 12px; padding: 20px; display: inline-block; }
-    .secret-code { background: #f4f5fa; border: 1px solid #e0e0e8; border-radius: 8px; padding: 10px 14px; font-family: monospace; font-size: 1rem; font-weight: 700; letter-spacing: 2px; text-align: center; color: #4C1D95; margin-top: 12px; }
-    .twofa-input { width: 100%; max-width: 200px; padding: 14px 16px; border: 2px solid #e0e0e8; border-radius: 10px; font-size: 1.5rem; font-weight: 700; text-align: center; letter-spacing: 8px; outline: none; transition: 0.2s; }
+    .twofa-setup { background: #f8f7ff; border: 1px solid #e0e0e8; border-radius: 12px; padding: 24px; margin-top: 16px; }
+    .twofa-setup .step { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
+    .twofa-setup .step-num { width: 24px; height: 24px; border-radius: 50%; background: #4C1D95; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+    .twofa-setup .step-text { font-size: 0.85rem; color: #3b3b5c; }
+    .twofa-setup .step-text strong { color: #4C1D95; }
+    .twofa-setup .secret-box { background: white; border: 2px solid #4C1D95; border-radius: 10px; padding: 14px; font-family: monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 3px; text-align: center; color: #4C1D95; margin: 12px 0; word-break: break-all; }
+    .twofa-input { width: 100%; max-width: 200px; padding: 14px 16px; border: 2px solid #e0e0e8; border-radius: 10px; font-size: 1.5rem; font-weight: 700; text-align: center; letter-spacing: 8px; outline: none; transition: 0.2s; box-sizing: border-box; }
     .twofa-input:focus { border-color: #4C1D95; box-shadow: 0 0 0 3px rgba(76,29,149,0.15); }
 
     .btn-danger { padding: 10px 24px; background: #ef4444; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
     .btn-danger:hover { background: #dc2626; }
     .btn-success { padding: 10px 24px; background: #16a34a; color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 0.85rem; cursor: pointer; transition: 0.2s; }
     .btn-success:hover { background: #15803d; }
+
+    .recovery-codes { background: #f4f5fa; border: 1px solid #e0e0e8; border-radius: 8px; padding: 14px; margin-top: 16px; }
+    .recovery-codes h4 { font-size: 0.85rem; font-weight: 700; color: #3b3b5c; margin-bottom: 8px; }
+    .recovery-codes .codes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .recovery-codes .code { font-family: monospace; font-size: 0.85rem; color: #4C1D95; font-weight: 600; background: white; padding: 6px 10px; border-radius: 6px; text-align: center; }
 </style>
 
 <x-page-hero title="Configurações" subtitle="Gerencie seu perfil, segurança e preferências" icon="fas fa-gear" />
@@ -78,8 +87,12 @@
     </form>
 </div>
 
+{{-- SEGURANCA --}}
+@elseif($tab === 'seguranca')
+
+{{-- Alterar Senha --}}
 <div class="settings-card">
-    <h3><i class="fas fa-lock"></i> Alterar Senha</h3>
+    <h3><i class="fas fa-key"></i> Alterar Senha</h3>
     <p class="desc">Sua senha deve ter no mínimo 8 caracteres, com letras maiúsculas, minúsculas, números e símbolos</p>
 
     <form method="POST" action="{{ route('vendedor.configuracoes.senha.update') }}">
@@ -100,8 +113,7 @@
     </form>
 </div>
 
-{{-- SEGURANCA --}}
-@elseif($tab === 'seguranca')
+{{-- 2FA --}}
 <div class="settings-card">
     <h3><i class="fas fa-shield-halved"></i> Autenticação em Duas Etapas (2FA)</h3>
     <p class="desc">Proteja sua conta com um código adicional gerado pelo app autenticador</p>
@@ -114,6 +126,18 @@
             <p>Sua conta está protegida com autenticação em duas etapas</p>
         </div>
     </div>
+
+    @if($user->recovery_codes)
+    <div class="recovery-codes">
+        <h4><i class="fas fa-list" style="margin-right: 6px; color: #4C1D95;"></i> Códigos de Recuperação</h4>
+        <p style="font-size: 0.78rem; color: #a1a1b5; margin-bottom: 8px;">Guarde estes códigos em local seguro. Cada um pode ser usado uma vez.</p>
+        <div class="codes">
+            @foreach(json_decode($user->recovery_codes, true) as $code)
+            <span class="code">{{ $code }}</span>
+            @endforeach
+        </div>
+    </div>
+    @endif
 
     <form method="POST" action="{{ route('vendedor.configuracoes.2fa.disable') }}" style="margin-top: 16px;">
         @csrf
@@ -135,15 +159,44 @@
         </div>
     </div>
 
-    <a href="{{ route('vendedor.configuracoes.2fa.setup') }}" class="btn-success" style="display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
-        <i class="fas fa-qrcode"></i> Configurar 2FA
-    </a>
+    <div class="twofa-setup">
+        <div class="step">
+            <span class="step-num">1</span>
+            <div class="step-text"><strong>Instale um app autenticador</strong><br>Google Authenticator, Authy, Microsoft Authenticator, etc.</div>
+        </div>
+        <div class="step">
+            <span class="step-num">2</span>
+            <div class="step-text"><strong>Adicione a chave manualmente no app</strong>
+                <div class="secret-box">{{ $user->two_factor_secret ?: 'Clique em "Gerar Chave" abaixo' }}</div>
+            </div>
+        </div>
+        <div class="step">
+            <span class="step-num">3</span>
+            <div class="step-text"><strong>Digite o código de 6 dígitos gerado pelo app</strong></div>
+        </div>
+
+        <form method="POST" action="{{ route('vendedor.configuracoes.2fa.enable') }}">
+            @csrf
+            @if(!$user->two_factor_secret)
+            <button type="submit" name="generate_key" value="1" class="btn-save" style="margin-bottom: 12px;"><i class="fas fa-sync"></i> Gerar Chave Secreta</button>
+            @else
+            <div class="form-group" style="margin-bottom: 12px;">
+                <input type="text" name="code" class="twofa-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="000000" required>
+            </div>
+            @error('code')
+            <div style="color: #ef4444; font-size: 0.8rem; margin-bottom: 12px;">{{ $message }}</div>
+            @enderror
+            <button type="submit" class="btn-success"><i class="fas fa-check"></i> Ativar 2FA</button>
+            @endif
+        </form>
+    </div>
     @endif
 </div>
 
+{{-- Sessão --}}
 <div class="settings-card">
     <h3><i class="fas fa-clock"></i> Sessão do Sistema</h3>
-    <p class="desc">Sua sessão expira automaticamente após 2 horas de inatividade</p>
+    <p class="desc">Sua sessão expira automaticamente após 2 horas de inatividade ou ao fechar o navegador</p>
     <div style="background: #f4f5fa; border-radius: 8px; padding: 14px; font-size: 0.85rem; color: #6b7280;">
         <i class="fas fa-info-circle" style="color: #4C1D95; margin-right: 6px;"></i>
         Último login: {{ $user->last_login_at ? $user->last_login_at->format('d/m/Y H:i') : '—' }}

@@ -16,6 +16,12 @@ class VendedorSettingsController extends Controller
         $user = Auth::user();
         $vendedor = $user->vendedor;
 
+        // Generate 2FA secret if requested from security tab
+        if ($tab === 'seguranca' && !$user->two_factor_enabled && !$user->two_factor_secret) {
+            $user->two_factor_secret = TwoFactorAuthService::generateSecret();
+            $user->save();
+        }
+
         return view('vendedor.configuracoes.index', compact('user', 'vendedor', 'tab'));
     }
 
