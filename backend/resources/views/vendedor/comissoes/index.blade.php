@@ -19,27 +19,27 @@
 <div class="stats-bar">
     <div class="stat-card">
         <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
-        <div class="stat-value" style="color: var(--warning);">R$ {{ number_format($resumo['pendente'], 2, ',', '.') }}</div>
+        <div class="stat-value" style="color: var(--warning);">R$ {{ number_format((float)($resumo['pendente'] ?? 0), 2, ',', '.') }}</div>
         <div class="stat-label">Pendente</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon success"><i class="fas fa-circle-check"></i></div>
-        <div class="stat-value" style="color: var(--success);">R$ {{ number_format($resumo['confirmada'], 2, ',', '.') }}</div>
+        <div class="stat-value" style="color: var(--success);">R$ {{ number_format((float)($resumo['confirmada'] ?? 0), 2, ',', '.') }}</div>
         <div class="stat-label">Confirmada</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon info"><i class="fas fa-building-columns"></i></div>
-        <div class="stat-value" style="color: var(--info);">R$ {{ number_format($resumo['paga'], 2, ',', '.') }}</div>
+        <div class="stat-value" style="color: var(--info);">R$ {{ number_format((float)($resumo['paga'] ?? 0), 2, ',', '.') }}</div>
         <div class="stat-label">Paga</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon primary"><i class="fas fa-rotate"></i></div>
-        <div class="stat-value">{{ $resumo['recorrencias'] }}</div>
+        <div class="stat-value">{{ $resumo['recorrencias'] ?? 0 }}</div>
         <div class="stat-label">Recorrências</div>
     </div>
     <div class="stat-card" style="background: var(--primary); border-color: var(--primary);">
         <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;"><i class="fas fa-dollar-sign"></i></div>
-        <div class="stat-value" style="color: white;">R$ {{ number_format($resumo['total'], 2, ',', '.') }}</div>
+        <div class="stat-value" style="color: white;">R$ {{ number_format((float)($resumo['total'] ?? 0), 2, ',', '.') }}</div>
         <div class="stat-label" style="color: rgba(255,255,255,0.8);">Total do Mês</div>
     </div>
 </div>
