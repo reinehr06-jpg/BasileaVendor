@@ -17,7 +17,10 @@ class ComissaoController extends Controller
 {
     public function index(Request $request)
     {
-        $user = Auth::user();
+        error_reporting(E_ALL);
+        ini_set('display_errors', 1);
+        try {
+            $user = Auth::user();
             if (!$user) {
                 return redirect()->route('login');
             }
@@ -60,6 +63,16 @@ class ComissaoController extends Controller
             ];
 
         return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'vendedor'));
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => true,
+                'message' => 'Erro capturado (Blade/Logic): ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => substr($e->getTraceAsString(), 0, 800)
+            ], 500);
+        }
     }
 
     /**
