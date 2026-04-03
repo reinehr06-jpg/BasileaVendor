@@ -289,21 +289,23 @@
                     <div class="form-group">
                         <label>Telefone</label>
                         <div style="display:flex; gap:8px; align-items:center;">
-                            <select name="telefone_ddi" class="form-control" style="flex:0 0 80px; font-size:0.85rem; padding:4px; min-width:0;">
-                                <option value="55">🇧🇷 +55</option>
-                                <option value="1">🇺🇸 +1</option>
-                                <option value="351">🇵🇹 +351</option>
-                                <option value="54">🇦🇷 +54</option>
-                                <option value="52">🇲🇽 +52</option>
-                                <option value="56">🇨🇱 +56</option>
-                                <option value="57">🇨🇴 +57</option>
-                                <option value="58">🇻🇪 +58</option>
-                                <option value="44">🇬🇧 +44</option>
-                                <option value="49">🇩🇪 +49</option>
-                                <option value="33">🇫🇷 +33</option>
-                                <option value="39">🇮🇹 +39</option>
-                                <option value="34">🇪🇸 +34</option>
-                            </select>
+                            <div style="flex:0 0 105px;">
+                                <select name="telefone_ddi" class="form-control">
+                                    <option value="55">🇧🇷 +55</option>
+                                    <option value="1">🇺🇸 +1</option>
+                                    <option value="351">🇵🇹 +351</option>
+                                    <option value="54">🇦🇷 +54</option>
+                                    <option value="52">🇲🇽 +52</option>
+                                    <option value="56">🇨🇱 +56</option>
+                                    <option value="57">🇨🇴 +57</option>
+                                    <option value="58">🇻🇪 +58</option>
+                                    <option value="44">🇬🇧 +44</option>
+                                    <option value="49">🇩🇪 +49</option>
+                                    <option value="33">🇫🇷 +33</option>
+                                    <option value="39">🇮🇹 +39</option>
+                                    <option value="34">🇪🇸 +34</option>
+                                </select>
+                            </div>
                             <input type="text" name="telefone" id="createTelefone" class="form-control" placeholder="(00) 00000-0000" style="flex:1;">
                         </div>
                     </div>
@@ -421,10 +423,11 @@
                             <label>E-mail <span class="required">*</span></label>
                             <input type="email" name="email" id="editEmail" class="form-control" required>
                         </div>
-                            <div class="form-group">
-                                <label>Telefone</label>
-                                <div style="display:flex; gap:8px;">
-                                    <select id="editTelefoneDdi" class="form-control" style="flex:0 0 80px; font-size:0.85rem; padding:4px; min-width:0;">
+                        <div class="form-group">
+                            <label>Telefone</label>
+                            <div style="display:flex; gap:8px;">
+                                <div style="flex:0 0 105px;">
+                                    <select id="editTelefoneDdi" class="form-control">
                                         <option value="55">🇧🇷 +55</option>
                                         <option value="1">🇺🇸 +1</option>
                                         <option value="7">🇷🇺 +7</option>
@@ -471,6 +474,7 @@
                                         <option value="94">🇱🇰 +94</option>
                                         <option value="95">🇲🇲 +95</option>
                                         <option value="98">🇮🇷 +98</option>
+                                        <option value="211">🇸🇸 +211</option>
                                         <option value="212">🇲🇦 +212</option>
                                         <option value="213">🇩🇿 +213</option>
                                         <option value="216">🇹🇳 +216</option>
@@ -502,7 +506,6 @@
                                         <option value="244">🇦🇴 +244</option>
                                         <option value="245">🇬🇼 +245</option>
                                         <option value="246">🇮🇴 +246</option>
-                                        <option value="247">🇦🇨 +247</option>
                                         <option value="248">🇸🇨 +248</option>
                                         <option value="249">🇸🇩 +249</option>
                                         <option value="250">🇷🇼 +250</option>
@@ -548,10 +551,10 @@
                                         <option value="376">🇦🇩 +376</option>
                                         <option value="377">🇲🇨 +377</option>
                                         <option value="378">🇸🇲 +378</option>
+                                        <option value="379">🇻🇦 +379</option>
                                         <option value="380">🇺🇦 +380</option>
                                         <option value="381">🇷🇸 +381</option>
                                         <option value="382">🇲🇪 +382</option>
-                                        <option value="383">🇽🇰 +383</option>
                                         <option value="385">🇭🇷 +385</option>
                                         <option value="386">🇸🇮 +386</option>
                                         <option value="387">🇧🇦 +387</option>
@@ -580,7 +583,7 @@
                                         <option value="598">🇺🇾 +598</option>
                                         <option value="599">🇨🇼 +599</option>
                                         <option value="670">🇹🇱 +670</option>
-                                        <option value="672">🇳🇫 +672</option>
+                                        <option value="672">🇦🇶 +672</option>
                                         <option value="673">🇧🇳 +673</option>
                                         <option value="674">🇳🇷 +674</option>
                                         <option value="675">🇵🇬 +675</option>
