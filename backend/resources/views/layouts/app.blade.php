@@ -272,6 +272,9 @@
                 <a href="{{ route('master.vendas') }}" class="menu-item {{ request()->routeIs('master.vendas') ? 'active' : '' }}">
                     <i class="fas fa-shopping-bag"></i> Todas as Vendas
                 </a>
+                <a href="{{ route('master.vendas.canceladas') }}" class="menu-item {{ request()->routeIs('master.vendas.canceladas') ? 'active' : '' }}" style="background: rgba(239, 68, 68, 0.1); border-left-color: #ef4444; color: #fca5a5;">
+                    <i class="fas fa-ban" style="color: #fca5a5;"></i> Vendas Canceladas
+                </a>
                 <a href="{{ route('master.clientes') }}" class="menu-item {{ request()->routeIs('master.clientes') ? 'active' : '' }}">
                     <i class="fas fa-building"></i> Clientes
                 </a>
@@ -308,8 +311,14 @@
                 </a>
 
                 <div class="menu-section">Minhas Vendas</div>
-                <a href="{{ route('vendedor.vendas') }}" class="menu-item {{ request()->routeIs('vendedor.vendas*') ? 'active' : '' }}">
+                <a href="{{ route('vendedor.vendas') }}" class="menu-item {{ request()->routeIs('vendedor.vendas') && !request()->routeIs('vendedor.vendas.canceladas') ? 'active' : '' }}">
                     <i class="fas fa-shopping-bag"></i> Vendas Realizadas
+                </a>
+                <a href="{{ route('vendedor.vendas.create') }}" class="menu-item {{ request()->routeIs('vendedor.vendas.create') ? 'active' : '' }}" style="background: rgba(34, 197, 94, 0.15); border-left-color: #22c55e; color: #4ade80;">
+                    <i class="fas fa-plus-circle" style="color: #4ade80;"></i> Nova Venda
+                </a>
+                <a href="{{ route('vendedor.vendas.canceladas') }}" class="menu-item {{ request()->routeIs('vendedor.vendas.canceladas') ? 'active' : '' }}" style="background: rgba(239, 68, 68, 0.1); border-left-color: #ef4444; color: #fca5a5;">
+                    <i class="fas fa-ban" style="color: #fca5a5;"></i> Vendas Canceladas
                 </a>
                 <a href="{{ route('vendedor.clientes') }}" class="menu-item {{ request()->routeIs('vendedor.clientes*') ? 'active' : '' }}">
                     <i class="fas fa-building"></i> Meus Clientes
