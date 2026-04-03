@@ -19,6 +19,12 @@ class TwoFactorController extends Controller
     public function showVerify()
     {
         $user = Auth::user();
+
+        // If 2FA is not enabled, redirect to setup
+        if (!$user->two_factor_enabled) {
+            return redirect()->route('2fa.setup');
+        }
+
         $lockKey = '2fa_lock_' . $user->id;
 
         if (Cache::has($lockKey)) {
@@ -87,33 +93,64 @@ class TwoFactorController extends Controller
 
     public function showSetup()
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        if ($user->two_factor_enabled) {
-            // If already verified this session, go to dashboard
-            if (Session::get('2fa_verified_' . $user->id)) {
-                return redirect()->route('dashboard');
+            if ($user->two_factor_enabled) {
+                if (Session::get('2fa_verified_' . $user->id)) {
+                    return redirect()->route('dashboard');
+                }
+                return redirect()->route('2fa.verify');
             }
-            // If enabled but not verified, go to verify page
-            return redirect()->route('2fa.verify');
+
+            // Try to read existing secret, regenerate if decryption fails
+            $secret = null;
+            try {
+                $secret = $user->two_factor_secret;
+            } catch (\Exception $e) {
+                Log::warning('2FA_SECRET_DECRYPT_FAILED', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+                $secret = null;
+            }
+
+            if (!$secret) {
+                $newSecret = TwoFactorAuthService::generateSecret();
+                // Use query builder to bypass the encrypted cast when the old value is corrupt
+                \Illuminate\Support\Facades\DB::table('users')
+                    ->where('id', $user->id)
+                    ->update(['two_factor_secret' => encrypt($newSecret)]);
+                $user->refresh();
+                $secret = $user->two_factor_secret;
+            }
+
+            // Check if this is a rotation (secret was rotated within last 24h)
+            $isRotation = false;
+            try {
+                $isRotation = $user->two_factor_rotated_at && $user->two_factor_rotated_at->diffInHours(now()) < 24;
+            } catch (\Exception $e) {
+                // Ignore rotation check errors
+            }
+
+            $qrCode = TwoFactorAuthService::generateQrCode($user->email, $secret);
+
+            return view('auth.2fa.setup', [
+                'user' => $user,
+                'enableRoute' => '2fa.enable',
+                'isRotation' => $isRotation,
+                'qrCode' => $qrCode,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('2FA_SETUP_ERROR', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            // Return a simple error page instead of 500
+            return response()->view('auth.2fa.setup-error', [
+                'message' => 'Erro ao configurar 2FA. Tente novamente ou entre em contato com o suporte.',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
-
-        if (!$user->two_factor_secret) {
-            $user->two_factor_secret = TwoFactorAuthService::generateSecret();
-            $user->save();
-        }
-
-        // Check if this is a rotation (secret was rotated within last 24h)
-        $isRotation = $user->two_factor_rotated_at && $user->two_factor_rotated_at->diffInHours(now()) < 24;
-
-        $qrCode = TwoFactorAuthService::generateQrCode($user->email, $user->two_factor_secret);
-
-        return view('auth.2fa.setup', [
-            'user' => $user,
-            'enableRoute' => '2fa.enable',
-            'isRotation' => $isRotation,
-            'qrCode' => $qrCode,
-        ]);
     }
 
     public function enable(Request $request)
