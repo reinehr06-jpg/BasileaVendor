@@ -42,12 +42,14 @@ class LoginController extends Controller
                     return redirect()->route('password.change');
                 }
 
-                // 2FA check
+                // 2FA is MANDATORY - no access without it
                 if ($user->two_factor_enabled) {
+                    // Already configured - must verify code
                     return redirect()->route('2fa.verify');
                 }
 
-                return redirect('/dashboard');
+                // Not configured yet - MUST set up before any access
+                return redirect()->route('2fa.setup');
             }
         } catch (\Exception $e) {
             Log::error('LOGIN_ERRO', ['erro' => $e->getMessage()]);
