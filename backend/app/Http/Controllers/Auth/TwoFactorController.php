@@ -107,6 +107,10 @@ class TwoFactorController extends Controller
             $secret = null;
             try {
                 $secret = $user->two_factor_secret;
+                // If the secret was accidentally serialized (starts with s:32:"), clear it to force regeneration
+                if ($secret && !preg_match('/^[A-Z2-7]{32}$/', $secret)) {
+                    $secret = null;
+                }
             } catch (\Exception $e) {
                 Log::warning('2FA_SECRET_DECRYPT_FAILED', ['user_id' => $user->id, 'error' => $e->getMessage()]);
                 $secret = null;
@@ -114,10 +118,11 @@ class TwoFactorController extends Controller
 
             if (!$secret) {
                 $newSecret = TwoFactorAuthService::generateSecret();
-                // Use query builder to bypass the encrypted cast when the old value is corrupt
+                // Use query builder to bypass the encrypted cast when the old value is corrupt.
+                // Pass false to encrypt() so it matches Eloquent's un-serialized behavior.
                 \Illuminate\Support\Facades\DB::table('users')
                     ->where('id', $user->id)
-                    ->update(['two_factor_secret' => encrypt($newSecret)]);
+                    ->update(['two_factor_secret' => encrypt($newSecret, false)]);
                 $user->refresh();
                 $secret = $newSecret;
             }
