@@ -42,7 +42,7 @@ class MasterPanelController extends Controller
                 ];
             });
 
-        if ($formato === 'csv') {
+        if (in_array($formato, ['csv', 'excel'])) {
             $headers = [
                 'Content-Type' => 'text/csv; charset=UTF-8',
                 'Content-Disposition' => 'attachment; filename="vendedores_' . date('Y-m-d_His') . '.csv"',
@@ -59,7 +59,7 @@ class MasterPanelController extends Controller
             return response()->stream($callback, 200, $headers);
         }
 
-        return back()->with('error', 'Formato de exportação não suportado.');
+        return back()->with('error', 'Formato de exportação não suportado para Vendedores ainda.');
     }
 
     public function storeVendedor(Request $request)
