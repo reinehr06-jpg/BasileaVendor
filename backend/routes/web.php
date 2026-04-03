@@ -36,6 +36,25 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+// Fallback: se o Asaas enviar POST para a raiz, encaminha para o webhook
+Route::post('/', function (\Illuminate\Http\Request $request) {
+    $payload = $request->all();
+    $event = $payload['event'] ?? '';
+
+    // Só processa se parecer um webhook do Asaas
+    if (str_starts_with($event, 'PAYMENT_') || str_starts_with($event, 'ACCESS_TOKEN_') || str_starts_with($event, 'SUBSCRIPTION_') || str_starts_with($event, 'FINANCIAL_') || !empty($payload['payment'])) {
+        \Illuminate\Support\Facades\Log::info('Webhook Asaas recebido na raiz (/), encaminhando...', [
+            'event' => $event,
+            'ip' => $request->ip(),
+        ]);
+
+        $controller = new \App\Http\Controllers\WebhookController();
+        return $controller->asaasWebhook($request);
+    }
+
+    return redirect()->route('login');
+});
+
 // ==========================================
 // Checkout Público (sem autenticação)
 // ==========================================
