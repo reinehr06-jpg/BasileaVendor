@@ -407,6 +407,14 @@ Route::middleware(['auth', '2fa'])->group(function () {
 
 // Webhooks externos (sem CSRF, com validacao propria)
 Route::post('/webhook/asaas', [\App\Http\Controllers\BasileiaChurchWebhookController::class, 'webhookAsaas']);
+
+// Rota para limpar cache (desenvolvimento)
+Route::get('/clear-cache', function() {
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('view:clear');
+    return 'Cache limpo!';
+});
 Route::post('/webhook/basileia-church/sync', [\App\Http\Controllers\BasileiaChurchWebhookController::class, 'syncCliente']);
 
 // Checkout - Webhook que recebe eventos do Checkout (servico externo)
