@@ -24,13 +24,24 @@ class TwoFactorController extends Controller
 
         $user = Auth::user();
 
+        // Try recovery codes first
+        if ($user->recovery_codes) {
+            $codes = json_decode($user->recovery_codes, true) ?: [];
+            $key = array_search($request->code, $codes);
+            if ($key !== false) {
+                unset($codes[$key]);
+                $user->recovery_codes = json_encode(array_values($codes));
+                $user->save();
+                Session::put('2fa_verified_' . $user->id, true);
+                return redirect()->intended(route('dashboard'));
+            }
+        }
+
         if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
             Session::put('2fa_verified_' . $user->id, true);
-            SecurityLogService::logTwoFactorEvent($user->id, 'verified', 'success');
             return redirect()->intended(route('dashboard'));
         }
 
-        SecurityLogService::logTwoFactorEvent($user->id, 'verify_failed', 'failed');
         return back()->withErrors(['code' => 'Código inválido. Tente novamente.']);
     }
 

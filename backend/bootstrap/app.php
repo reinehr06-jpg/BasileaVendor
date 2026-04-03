@@ -14,13 +14,14 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: [
             'api/asaas/webhook',
-            'api/checkout/*',
-            'webhook/saque',
             'webhook/basileia-church/*',
             'webhook/checkout',
             'webhooks/asaas',
             'webhooks/asaas/*',
         ]);
+
+        // Security headers on every response
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         
         // Register security middleware groups
         $middleware->group('admin.security', [

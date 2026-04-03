@@ -405,13 +405,9 @@ Route::middleware(['auth', '2fa'])->group(function () {
 
 });
 
-Route::post('/webhook/saque', function () {
-    return response()->json(['authorized' => true]);
-});
-
-// Webhooks externos (sem autenticação)
+// Webhooks externos (sem CSRF, com validacao propria)
 Route::post('/webhook/asaas', [\App\Http\Controllers\BasileiaChurchWebhookController::class, 'webhookAsaas']);
 Route::post('/webhook/basileia-church/sync', [\App\Http\Controllers\BasileiaChurchWebhookController::class, 'syncCliente']);
 
-// Checkout - Webhook que recebe eventos do Checkout (serviço externo)
+// Checkout - Webhook que recebe eventos do Checkout (servico externo)
 Route::post('/webhook/checkout', [\App\Http\Controllers\Integration\CheckoutWebhookController::class, 'handle'])->name('webhook.checkout');
