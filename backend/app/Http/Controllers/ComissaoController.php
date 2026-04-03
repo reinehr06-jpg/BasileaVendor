@@ -16,43 +16,36 @@ class ComissaoController extends Controller
 {
     public function diagnostico(Request $request)
     {
-        return "DIAGNOSTICO_REACHED - A rota está funcionando e chamando o controller corretamente (Vendas).";
+        return $this->index($request);
     }
 
     public function index(Request $request)
     {
-        return "CONTROLLER_REACHED - 17:00 VENDAS"; // Testando conectividade do controller
         try {
             $user = Auth::user();
-            $vendedor = $user->vendedor;
+            if (!$user) {
+                return response()->json(['error' => 'Usuário não autenticado.'], 401);
+            }
 
+            $vendedor = $user->vendedor;
             if (!$vendedor && !in_array($user->perfil, ['gestor', 'master'])) {
-                return redirect()->route('vendedor.dashboard')
-                    ->withErrors(['error' => 'Perfil de acesso não encontrado.']);
+                return response()->json(['error' => 'Perfil de acesso não encontrado.'], 403);
             }
 
             $mes = $request->get('mes', Carbon::now()->format('Y-m'));
-            $tipo = $request->get('tipo');
-            $status = $request->get('status');
             $vendedorId = $vendedor ? $vendedor->id : 0;
 
-            // Query base para listagem com paginação
-            $query = Comissao::where(function($q) use ($user, $vendedorId) {
-                $q->where('vendedor_id', $vendedorId) // Direta
-                  ->orWhere('gerente_id', $user->id); // Equipe
-            })->where('competencia', $mes)
-              ->with(['cliente', 'venda', 'vendedor.user']);
+            // Teste de Query simples
+            $count = Comissao::where(function($q) use ($user, $vendedorId) {
+                $q->where('vendedor_id', $vendedorId)
+                  ->orWhere('gerente_id', $user->id);
+            })->where('competencia', $mes)->count();
 
-            if ($tipo) $query->where('tipo_comissao', $tipo);
-            if ($status) $query->where('status', $status);
-
-            $comissoes = $query->orderByDesc('created_at')->paginate(20);
-
-            // Resumo usando agregados do banco (mais performático e evita estouro de memória)
+            // Resumo usando agregados do banco
             $resumoBase = Comissao::where(function($q) use ($user, $vendedorId) {
-                    $q->where('vendedor_id', $vendedorId)
-                      ->orWhere('gerente_id', $user->id);
-                })->where('competencia', $mes);
+                $q->where('vendedor_id', $vendedorId)
+                  ->orWhere('gerente_id', $user->id);
+            })->where('competencia', $mes);
 
             $resumo = [
                 'pendente' => (float)clone $resumoBase->where('status', 'pendente')->sum(\DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
@@ -62,16 +55,22 @@ class ComissaoController extends Controller
                 'total' => (float)clone $resumoBase->sum(\DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
             ];
 
-            return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'vendedor'));
+            return response()->json([
+                'status' => 'success',
+                'vendedor_id' => $vendedorId,
+                'mes' => $mes,
+                'count' => $count,
+                'resumo' => $resumo,
+                'debug' => 'Data logic reached successfully'
+            ]);
 
         } catch (\Exception $e) {
-            // Em caso de erro, mostramos a causa real em vez de um erro 500 genérico
             return response()->json([
                 'error' => true,
-                'message' => 'Erro interno no sistema de comissões (Diagnóstico): ' . $e->getMessage(),
+                'message' => 'Erro na lógica de dados: ' . $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => substr($e->getTraceAsString(), 0, 1000)
+                'trace' => substr($e->getTraceAsString(), 0, 500)
             ], 500);
         }
     }
@@ -95,7 +94,6 @@ class ComissaoController extends Controller
                 ->where('competencia', $mes)->get();
 
             // Comissão como Gestor (Equipe - Overriding)
-            // Se o vendedor está vinculado a um usuário, buscamos onde esse usuário é gerente_id
             $comissoesGestao = Comissao::where('gerente_id', $v->usuario_id)
                 ->where('competencia', $mes)->get();
 
@@ -149,12 +147,10 @@ class ComissaoController extends Controller
     {
         $mes = $request->get('mes', Carbon::now()->format('Y-m'));
         
-        // Se for uma requisição AJAX, retorna JSON
         if ($request->expectsJson()) {
             return $this->historicoVendedorJson($request, $vendedorId, $mes);
         }
         
-        // Caso contrário, retorna a view
         return view('master.comissoes.historico', compact('vendedorId', 'mes'));
     }
     
@@ -168,7 +164,6 @@ class ComissaoController extends Controller
 
         $vendedor = Vendedor::with('user')->findOrFail($vendedorId);
 
-        // Vendas do mês
         $vendas = Venda::where('vendedor_id', $vendedorId)
             ->whereBetween('created_at', [$dataInicio, $dataFim])
             ->with(['cliente'])->get();
@@ -176,19 +171,16 @@ class ComissaoController extends Controller
         $vendasEfetivas = $vendas->whereNotIn('status', ['Cancelado', 'Expirado']);
         $vendasCanceladas = $vendas->whereIn('status', ['Cancelado', 'Expirado', 'Vencido']);
 
-        // Comissões do mês (Próprias + Equipe como Gestor)
         $comissoes = Comissao::where(function($q) use ($vendedorId, $vendedor) {
             $q->where('vendedor_id', $vendedorId)
               ->orWhere('gerente_id', $vendedor->usuario_id);
         })->where('competencia', $mes)
           ->with(['cliente', 'venda', 'vendedor.user'])->get();
 
-        // Helper para pegar o valor correto para este vendedor específico nas comissões
         $getComisVal = function($c) use ($vendedorId) {
             return ($c->vendedor_id == $vendedorId) ? $c->valor_comissao : $c->valor_gerente;
         };
 
-        // Breakdown por forma de pagamento
         $porFormaPagamento = $vendasEfetivas->groupBy('forma_pagamento')->map(function ($g, $forma) {
             return [
                 'forma' => $forma ?: 'Não definido',
@@ -197,7 +189,6 @@ class ComissaoController extends Controller
             ];
         })->values();
 
-        // Breakdown por tipo negociação
         $porTipoNegociacao = $vendasEfetivas->groupBy('tipo_negociacao')->map(function ($g, $tipo) {
             return [
                 'tipo' => $tipo ?: 'Não definido',
@@ -206,17 +197,14 @@ class ComissaoController extends Controller
             ];
         })->values();
 
-        // Meta
         $metaObj = Meta::where('vendedor_id', $vendedorId)->where('mes_referencia', $mes)->first();
         $valorMeta = $metaObj ? $metaObj->valor_meta : ($vendedor->meta_mensal ?? 0);
 
-        // Clientes ativos (com pagamento confirmado)
         $clientesAtivos = Pagamento::where('vendedor_id', $vendedorId)
             ->whereBetween('created_at', [$dataInicio, $dataFim])
             ->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago'])
             ->distinct('cliente_id')->count('cliente_id');
 
-        // Notas fiscais (apenas para admin)
         $notasFiscais = [];
         if (Auth::user()->perfil === 'master') {
             $notasFiscais = \App\Models\NotaFiscal::where('vendedor_id', $vendedorId)
@@ -295,7 +283,6 @@ class ComissaoController extends Controller
         $query = Comissao::where('competencia', $mes)
             ->with(['cliente', 'venda', 'vendedor.user']);
 
-        // Non-master users can only see their own commissions
         if ($user->perfil !== 'master') {
             if (!$user->vendedor) {
                 return response()->json([]);
@@ -337,7 +324,6 @@ class ComissaoController extends Controller
 
         $query = Comissao::where('competencia', $mes);
 
-        // Non-master users can only see their own commissions
         if ($user->perfil !== 'master') {
             if (!$user->vendedor) {
                 return response()->json(['mes' => $mes, 'total_comissao' => 0, 'pendente' => 0, 'confirmada' => 0, 'paga' => 0, 'recorrencias' => 0, 'iniciais' => 0, 'total_registros' => 0]);
@@ -394,7 +380,7 @@ class ComissaoController extends Controller
             return $pdf->download("comissoes_{$mes}.pdf");
         }
 
-        if ($formato === 'excel') {
+        if ($formato === 'excel' || $formato === 'csv') {
             $headers = [
                 'Content-Type' => 'text/csv; charset=UTF-8',
                 'Content-Disposition' => "attachment; filename=\"comissoes_{$mes}.csv\"",
@@ -421,38 +407,7 @@ class ComissaoController extends Controller
             return response()->stream($callback, 200, $headers);
         }
 
-        // CSV (default)
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"comissoes_{$mes}.csv\"",
-        ];
-        $callback = function () use ($comissoes) {
-            $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-            fputcsv($file, [
-                'Vendedor', 'Cliente (Igreja)', 'Responsável', 'CPF/CNPJ',
-                'ID Venda', 'Valor da Venda (R$)', '% Comissão', 'Valor Comissão (R$)',
-                'Tipo', 'Status', 'Data Pagamento', 'Competência',
-            ], ';');
-            foreach ($comissoes as $c) {
-                fputcsv($file, [
-                    $c->vendedor?->user?->name ?? 'N/A',
-                    $c->cliente?->nome_igreja ?? $c->cliente?->nome ?? 'N/A',
-                    $c->cliente?->nome_pastor ?? $c->cliente?->nome_responsavel ?? 'N/A',
-                    $c->cliente?->documento ?? 'N/A',
-                    $c->venda_id,
-                    number_format((float)($c->valor_venda ?? 0), 2, ',', '.'),
-                    $c->percentual_aplicado . '%',
-                    number_format((float)($c->valor_comissao ?? 0), 2, ',', '.'),
-                    ucfirst($c->tipo_comissao ?? ''),
-                    ucfirst($c->status ?? ''),
-                    $c->data_pagamento ? $c->data_pagamento->format('d/m/Y') : '-',
-                    $c->competencia,
-                ], ';');
-            }
-            fclose($file);
-        };
-        return response()->stream($callback, 200, $headers);
+        return response()->json(['error' => 'Formato inválido.'], 400);
     }
 
     /**
@@ -462,7 +417,6 @@ class ComissaoController extends Controller
     {
         $user = Auth::user();
 
-        // Only master or the vendedor themselves can export
         if ($user->perfil !== 'master') {
             if (!$user->vendedor || $user->vendedor->id != $vendedorId) {
                 abort(403, 'Acesso não autorizado.');
