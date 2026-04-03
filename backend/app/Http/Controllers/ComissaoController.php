@@ -277,6 +277,7 @@ class ComissaoController extends Controller
      */
     public function apiListar(Request $request)
     {
+        $user = Auth::user();
         $mes = $request->get('mes', Carbon::now()->format('Y-m'));
         $vendedorId = $request->get('vendedor_id');
         $tipo = $request->get('tipo');
@@ -285,7 +286,16 @@ class ComissaoController extends Controller
         $query = Comissao::where('competencia', $mes)
             ->with(['cliente', 'venda', 'vendedor.user']);
 
-        if ($vendedorId) $query->where('vendedor_id', $vendedorId);
+        // Non-master users can only see their own commissions
+        if ($user->perfil !== 'master') {
+            if (!$user->vendedor) {
+                return response()->json([]);
+            }
+            $query->where('vendedor_id', $user->vendedor->id);
+        } elseif ($vendedorId) {
+            $query->where('vendedor_id', $vendedorId);
+        }
+
         if ($tipo) $query->where('tipo_comissao', $tipo);
         if ($status) $query->where('status', $status);
 
@@ -312,11 +322,21 @@ class ComissaoController extends Controller
      */
     public function apiResumo(Request $request)
     {
+        $user = Auth::user();
         $mes = $request->get('mes', Carbon::now()->format('Y-m'));
         $vendedorId = $request->get('vendedor_id');
 
         $query = Comissao::where('competencia', $mes);
-        if ($vendedorId) $query->where('vendedor_id', $vendedorId);
+
+        // Non-master users can only see their own commissions
+        if ($user->perfil !== 'master') {
+            if (!$user->vendedor) {
+                return response()->json(['mes' => $mes, 'total_comissao' => 0, 'pendente' => 0, 'confirmada' => 0, 'paga' => 0, 'recorrencias' => 0, 'iniciais' => 0, 'total_registros' => 0]);
+            }
+            $query->where('vendedor_id', $user->vendedor->id);
+        } elseif ($vendedorId) {
+            $query->where('vendedor_id', $vendedorId);
+        }
 
         $todas = $query->get();
 
@@ -431,6 +451,15 @@ class ComissaoController extends Controller
      */
     public function exportarHistorico(Request $request, $vendedorId)
     {
+        $user = Auth::user();
+
+        // Only master or the vendedor themselves can export
+        if ($user->perfil !== 'master') {
+            if (!$user->vendedor || $user->vendedor->id != $vendedorId) {
+                abort(403, 'Acesso não autorizado.');
+            }
+        }
+
         $mes = $request->get('mes', Carbon::now()->format('Y-m'));
         $dataInicio = Carbon::parse($mes . '-01')->startOfMonth();
         $dataFim = (clone $dataInicio)->endOfMonth();
