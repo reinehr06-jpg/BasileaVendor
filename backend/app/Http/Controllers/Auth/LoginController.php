@@ -65,6 +65,7 @@ class LoginController extends Controller
 
                 Auth::login($user);
                 $request->session()->regenerate();
+                $request->session()->put('authenticated', true);
                 $request->session()->save();
 
                 Log::info('LOGIN_ADMIN_OK', [
@@ -74,7 +75,17 @@ class LoginController extends Controller
                     'session_driver' => config('session.driver'),
                 ]);
 
-                return redirect()->route('master.dashboard');
+                return redirect()->route('master.dashboard')->withCookie(cookie(
+                    config('session.cookie'),
+                    $request->session()->getId(),
+                    config('session.lifetime'),
+                    config('session.path', '/'),
+                    config('session.domain'),
+                    false,  // secure
+                    false,  // httponly
+                    false,  // raw
+                    config('session.same_site', 'lax')
+                ));
 
             } catch (\Exception $e) {
                 Log::error('LOGIN_ADMIN_ERRO', ['erro' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
