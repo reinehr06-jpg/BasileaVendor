@@ -22,7 +22,10 @@
         <div style="margin-bottom: 24px;">
             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
                 <span style="width: 24px; height: 24px; border-radius: 50%; background: #4C1D95; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">2</span>
-                <span style="font-weight: 600; color: #3b3b5c;">Adicione a chave manualmente no app</span>
+                <span style="font-weight: 600; color: #3b3b5c;">Escaneie o QR code ou adicione manualmente</span>
+            </div>
+            <div style="text-align: center; margin: 16px 0;">
+                {!! $qrCode !!}
             </div>
             <div style="background: #f4f5fa; border: 2px solid #4C1D95; border-radius: 10px; padding: 14px; margin: 12px 0 8px 32px; font-family: monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 3px; text-align: center; color: #4C1D95; word-break: break-all;">
                 {{ Auth::user()->two_factor_secret }}

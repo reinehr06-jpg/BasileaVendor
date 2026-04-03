@@ -16,7 +16,7 @@ class TwoFactorAuthService
     }
 
     /**
-     * Generate QR code URL for 2FA setup (uses Google Charts API)
+     * Generate QR code URL for 2FA setup (uses BaconQrCode library)
      */
     public static function generateQrCode(string $email, string $secret, string $appName = 'BasileiaVendas'): string
     {
@@ -24,8 +24,31 @@ class TwoFactorAuthService
         $account = urlencode($email);
         $uri = "otpauth://totp/{$issuer}:{$account}?secret={$secret}&issuer={$issuer}&digits=6&period=30";
 
-        // Use Google Charts API for QR code (no external package needed)
-        return '<img src="https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=' . urlencode($uri) . '" alt="QR Code 2FA" style="width:200px;height:200px;" />';
+        try {
+            $rendererStyle = new \BaconQrCode\Renderer\RendererStyle\RendererStyle(200);
+            $svgBackend = new \BaconQrCode\Renderer\Image\SvgImageBackEnd();
+            $renderer = new \BaconQrCode\Renderer\ImageRenderer($rendererStyle, $svgBackend);
+            
+            $writer = new \BaconQrCode\Writer($renderer);
+            $svgContent = $writer->writeString($uri);
+            
+            return '<img src="data:image/svg+xml;base64,' . base64_encode($svgContent) . '" alt="QR Code 2FA" style="width:200px;height:200px;" />';
+        } catch (\Exception $e) {
+            try {
+                $rendererStyle = new \BaconQrCode\Renderer\RendererStyle\RendererStyle(200);
+                $imagickBackend = new \BaconQrCode\Renderer\Image\ImagickImageBackEnd();
+                $renderer = new \BaconQrCode\Renderer\ImageRenderer($rendererStyle, $imagickBackend);
+                
+                $writer = new \BaconQrCode\Writer($renderer);
+                $pngData = $writer->writeString($uri);
+                
+                return '<img src="data:image/png;base64,' . base64_encode($pngData) . '" alt="QR Code 2FA" style="width:200px;height:200px;" />';
+            } catch (\Exception $e2) {
+                Log::error('QR Code generation failed: ' . $e2->getMessage());
+                
+                return '<img src="https://chart.googleapis.com/chart?chs=200x200&chld=M|0&cht=qr&chl=' . urlencode($uri) . '" alt="QR Code 2FA" style="width:200px;height:200px;" />';
+            }
+        }
     }
 
     /**
@@ -43,7 +66,6 @@ class TwoFactorAuthService
             return false;
         }
 
-        // Decode base32 secret to binary
         $secretBinary = self::base32Decode($secret);
         if ($secretBinary === '') {
             return false;
@@ -81,7 +103,6 @@ class TwoFactorAuthService
             for ($j = 0; $j < $length; $j++) {
                 $code .= $chars[random_int(0, strlen($chars) - 1)];
             }
-            // Format as XXXX-XXXX-XX
             $code = substr($code, 0, 4) . '-' . substr($code, 4, 4) . '-' . substr($code, 8);
             $codes[] = $code;
         }
