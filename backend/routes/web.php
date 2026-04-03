@@ -15,6 +15,7 @@ use App\Http\Controllers\ComissaoController;
 use App\Http\Controllers\AprovacaoController;
 use App\Http\Controllers\NotificacaoController;
 use App\Http\Controllers\VendedorConfiguracaoController;
+use App\Http\Controllers\VendedorSettingsController;
 use App\Http\Controllers\GestorEquipeController;
 use App\Http\Controllers\EquipeController;
 use App\Http\Controllers\Master\IntegracaoController;
@@ -401,8 +402,13 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/comissoes/exportar', [ComissaoController::class, 'exportar'])->name('comissoes.exportar');
         Route::get('/comissao', function() { return redirect()->route('vendedor.comissoes'); })->name('comissao');
         
-        // Configurações do Vendedor (Comissões e Repasse)
-        Route::get('/configuracoes', [VendedorConfiguracaoController::class, 'index'])->name('configuracoes');
+        // Configurações do Vendedor (Perfil, Segurança, Split)
+        Route::get('/configuracoes/{tab?}', [VendedorSettingsController::class, 'index'])->name('configuracoes');
+        Route::post('/configuracoes/perfil', [VendedorSettingsController::class, 'updateProfile'])->name('configuracoes.perfil.update');
+        Route::post('/configuracoes/senha', [VendedorSettingsController::class, 'updatePassword'])->name('configuracoes.senha.update');
+        Route::get('/configuracoes/2fa/setup', [VendedorSettingsController::class, 'setup2fa'])->name('configuracoes.2fa.setup');
+        Route::post('/configuracoes/2fa/enable', [VendedorSettingsController::class, 'enable2fa'])->name('configuracoes.2fa.enable');
+        Route::post('/configuracoes/2fa/disable', [VendedorSettingsController::class, 'disable2fa'])->name('configuracoes.2fa.disable');
         Route::put('/configuracoes/split', [VendedorConfiguracaoController::class, 'updateSplit'])->name('configuracoes.split.update');
         
         // Equipe do Gestor
