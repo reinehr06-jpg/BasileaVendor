@@ -24,16 +24,16 @@ p { color: #6b7280; margin: 0 0 12px 0; font-size: 9px; }
 <tbody>
 @php $total = 0; @endphp
 @foreach($comissoes as $c)
-@php $total += $c->valor_comissao; @endphp
+@php $total += $c->valor_comissao ?? 0; @endphp
 <tr>
-<td>{{ $c->vendedor->user->name ?? 'N/A' }}</td>
-<td>{{ $c->cliente->nome_igreja ?? 'N/A' }}</td>
-<td>{{ $c->cliente->documento ?? '-' }}</td>
-<td>R$ {{ number_format($c->valor_venda, 2, ',', '.') }}</td>
+<td>{{ $c->vendedor?->user?->name ?? 'N/A' }}</td>
+<td>{{ $c->cliente?->nome_igreja ?? 'N/A' }}</td>
+<td>{{ $c->cliente?->documento ?? '-' }}</td>
+<td>R$ {{ number_format((float)($c->valor_venda ?? 0), 2, ',', '.') }}</td>
 <td>{{ $c->percentual_aplicado }}%</td>
-<td>R$ {{ number_format($c->valor_comissao, 2, ',', '.') }}</td>
-<td>{{ ucfirst($c->tipo_comissao) }}</td>
-<td>{{ ucfirst($c->status) }}</td>
+<td>R$ {{ number_format((float)($c->valor_comissao ?? 0), 2, ',', '.') }}</td>
+<td>{{ ucfirst($c->tipo_comissao ?? '') }}</td>
+<td>{{ ucfirst($c->status ?? '') }}</td>
 <td>{{ $c->data_pagamento ? $c->data_pagamento->format('d/m/Y') : '-' }}</td>
 </tr>
 @endforeach
