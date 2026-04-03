@@ -743,7 +743,8 @@ document.addEventListener('DOMContentLoaded', function() {
             emailTimeout = setTimeout(function() {
                 fetch('{{ route("api.verificar-email") }}?email=' + encodeURIComponent(email), {
                     headers: { 'Accept': 'application/json' },
-                    credentials: 'same-origin'
+                    credentials: 'same-origin',
+                    redirect: 'error'
                 })
                 .then(r => {
                     if (!r.ok) throw new Error('Network error');
@@ -777,7 +778,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             whatsappTimeout = setTimeout(function() {
                 fetch('/api/verificar-whatsapp?whatsapp=' + encodeURIComponent(numeroCompleto), {
-                    headers: { 'Accept': 'application/json' }
+                    headers: { 'Accept': 'application/json' },
+                    redirect: 'error'
                 })
                 .then(r => r.json())
                 .then(data => {
