@@ -20,6 +20,7 @@
     .animate-in:nth-child(6) { animation-delay: 0.18s; }
     .animate-in:nth-child(7) { animation-delay: 0.21s; }
     .animate-in:nth-child(8) { animation-delay: 0.24s; }
+    .animate-in:nth-child(9) { animation-delay: 0.27s; }
 
     .skeleton-block {
         background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
@@ -41,10 +42,10 @@
         box-shadow: 0 20px 40px rgba(88, 28, 135, 0.25);
         overflow: visible;
     }
-    .report-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; color: white; }
+    .report-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; }
     .report-hero p { opacity: 0.85; font-size: 0.9rem; color: rgba(255,255,255,0.9); }
     .export-dropdown { position: relative; display: inline-block; }
-    .export-menu { display: none; position: fixed; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); z-index: 2147483647; }
+    .export-menu { display: none; position: absolute; top: 100%; right: 0; margin-top: 6px; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); z-index: 9999; }
     .export-menu.show { display: block; }
     .export-item { display: block; padding: 12px 16px; color: #374151; text-decoration: none; font-size: 0.85rem; transition: 0.15s; font-weight: 500; }
     .export-item:hover { background: #faf5ff; color: #7c3aed; }
@@ -56,38 +57,45 @@
 
     /* ===== Filtros ===== */
     .filters-bar {
-        background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
-        border: 1px solid #e9d5ff;
+        background: white;
+        border: 1px solid #e5e7eb;
         border-radius: 14px;
-        padding: 16px 20px;
+        padding: 20px;
         margin-bottom: 24px;
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 12px;
         align-items: flex-end;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    .filter-group { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 130px; }
-    .filter-group label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b21a8; }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 140px; flex: 1 1 140px; max-width: 200px; }
+    .filter-group label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b21a8; display: flex; align-items: center; gap: 4px; }
+    .filter-group label i { font-size: 0.75rem; }
     .filter-group input, .filter-group select {
-        padding: 7px 12px;
-        border: 1.5px solid #d8b4fe;
+        padding: 8px 12px;
+        border: 1.5px solid #e5e7eb;
         border-radius: 8px;
-        font-size: 0.82rem;
+        font-size: 0.85rem;
         outline: none;
-        background: white;
+        background: #f9fafb;
         transition: all 0.2s;
         color: #374151;
         font-family: inherit;
+        height: 40px;
+        box-sizing: border-box;
     }
     .filter-group select {
         -webkit-appearance: none !important;
         -moz-appearance: none !important;
         appearance: none !important;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
-        background-repeat: no-repeat !important;
-        background-position: right 8px center !important;
-        background-size: 14px !important;
-        padding-right: 30px !important;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        background-size: 14px;
+        padding-right: 32px;
+        cursor: pointer;
+    }
+    .filter-group input[type="date"] {
         cursor: pointer;
     }
     .filter-group select:hover, .filter-group input:hover {
@@ -99,10 +107,11 @@
         box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
         background-color: white;
     }
-    .btn-filter { background: linear-gradient(135deg, #7c3aed, #581c87); color: white; border: none; padding: 8px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.82rem; transition: 0.2s; white-space: nowrap; box-shadow: 0 2px 8px rgba(124,58,237,0.3); }
+    .filter-actions { display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; }
+    .btn-filter { background: linear-gradient(135deg, #7c3aed, #581c87); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; transition: 0.2s; white-space: nowrap; box-shadow: 0 2px 8px rgba(124,58,237,0.3); height: 40px; display: flex; align-items: center; gap: 6px; }
     .btn-filter:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,0.4); }
-    .btn-clear { background: white; border: 1.5px solid #d8b4fe; padding: 7px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.82rem; color: #6b21a8; text-decoration: none; white-space: nowrap; transition: 0.2s; }
-    .btn-clear:hover { background: #faf5ff; border-color: #7c3aed; }
+    .btn-clear { background: white; border: 1.5px solid #e5e7eb; padding: 9px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; color: #6b7280; text-decoration: none; white-space: nowrap; transition: 0.2s; height: 40px; display: flex; align-items: center; gap: 6px; box-sizing: border-box; }
+    .btn-clear:hover { background: #faf5ff; border-color: #7c3aed; color: #7c3aed; }
 
     /* ===== Cards ===== */
     .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
@@ -174,11 +183,11 @@
     /* ===== Tabelas ===== */
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .report-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 600px; }
-    .report-table th { background: #faf5ff; padding: 10px 14px; text-align: left; font-weight: 700; color: #6b21a8; text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.7rem; border-bottom: 2px solid #e9d5ff; white-space: nowrap; }
-    .report-table td { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; color: #374151; }
+    .report-table th { background: #faf5ff; padding: 12px 14px; text-align: left; font-weight: 700; color: #6b21a8; text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.7rem; border-bottom: 2px solid #e9d5ff; white-space: nowrap; }
+    .report-table td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: #374151; vertical-align: middle; }
     .report-table tr:last-child td { border-bottom: none; }
     .report-table tbody tr { transition: background 0.15s; }
-    .report-table tbody tr:hover td { background: #faf5ff; }
+    .report-table tbody tr:hover { background: #faf5ff; }
     .report-table .text-right { text-align: right; }
     .report-table .text-center { text-align: center; }
     .report-table .font-bold { font-weight: 700; color: #1e1b4b; }
@@ -198,16 +207,18 @@
     .badge-forma.pix { background: #dbeafe; color: #1d4ed8; }
     .badge-forma.boleto { background: #fef3c7; color: #92400e; }
     .badge-forma.cartao { background: #f3e8ff; color: #6b21a8; }
+    .badge-forma.recorrente { background: #f3f4f6; color: #4b5563; }
 
     /* ===== Empty states ===== */
-    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state { text-align: center; padding: 60px 20px; color: #6b7280; }
     .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
-    .empty-state h3 { color: var(--text-primary); font-size: 1.1rem; margin-bottom: 6px; }
-    .empty-state-box { background: white; border: 1px solid var(--border); border-radius: 14px; }
+    .empty-state h3 { color: #1e1b4b; font-size: 1.1rem; margin-bottom: 6px; }
+    .empty-state-box { background: white; border: 1px solid #e5e7eb; border-radius: 14px; }
 
     @media (max-width: 768px) {
         .filters-bar { flex-direction: column; }
-        .filter-group { min-width: 100%; }
+        .filter-group { min-width: 100%; max-width: 100%; }
+        .filter-actions { width: 100%; justify-content: flex-end; }
         .cards-grid { grid-template-columns: repeat(2, 1fr); }
         .report-table { font-size: 0.8rem; }
         .report-table th, .report-table td { padding: 8px 10px; }
@@ -237,15 +248,15 @@
 <form method="GET" action="{{ route('master.relatorios') }}">
 <div class="filters-bar animate-in">
     <div class="filter-group">
-        <label><i class="fas fa-calendar-alt" style="margin-right: 3px;"></i>Período Início</label>
+        <label><i class="fas fa-calendar"></i> Período Início</label>
         <input type="date" name="data_inicio" value="{{ $filtros['data_inicio'] }}">
     </div>
     <div class="filter-group">
-        <label><i class="fas fa-calendar-alt" style="margin-right: 3px;"></i>Período Fim</label>
+        <label><i class="fas fa-calendar"></i> Período Fim</label>
         <input type="date" name="data_fim" value="{{ $filtros['data_fim'] }}">
     </div>
     <div class="filter-group">
-        <label><i class="fas fa-user-tie" style="margin-right: 3px;"></i>Vendedor</label>
+        <label><i class="fas fa-user-tie"></i> Vendedor</label>
         <select name="vendedor_id">
             <option value="">Todos</option>
             @foreach($vendedores as $v)
@@ -254,7 +265,7 @@
         </select>
     </div>
     <div class="filter-group">
-        <label><i class="fas fa-circle-check" style="margin-right: 3px;"></i>Status</label>
+        <label><i class="fas fa-circle-check"></i> Status</label>
         <select name="status">
             <option value="">Todos</option>
             <option value="Aguardando pagamento" {{ $filtros['status'] == 'Aguardando pagamento' ? 'selected' : '' }}>Aguardando</option>
@@ -265,7 +276,7 @@
         </select>
     </div>
     <div class="filter-group">
-        <label><i class="fas fa-credit-card" style="margin-right: 3px;"></i>Pagamento</label>
+        <label><i class="fas fa-credit-card"></i> Pagamento</label>
         <select name="forma_pagamento">
             <option value="">Todas</option>
             <option value="pix" {{ $filtros['forma_pagamento'] == 'pix' ? 'selected' : '' }}>PIX</option>
@@ -274,7 +285,7 @@
         </select>
     </div>
     <div class="filter-group">
-        <label><i class="fas fa-repeat" style="margin-right: 3px;"></i>Negociação</label>
+        <label><i class="fas fa-arrows-rotate"></i> Negociação</label>
         <select name="tipo_negociacao">
             <option value="">Todos</option>
             <option value="mensal" {{ $filtros['tipo_negociacao'] == 'mensal' ? 'selected' : '' }}>Mensal</option>
@@ -282,7 +293,7 @@
         </select>
     </div>
     <div class="filter-group">
-        <label><i class="fas fa-building" style="margin-right: 3px;"></i>Cliente</label>
+        <label><i class="fas fa-building"></i> Cliente</label>
         <select name="cliente_id">
             <option value="">Todos</option>
             @foreach($clientes as $c)
@@ -291,16 +302,16 @@
         </select>
     </div>
     <div class="filter-group">
-        <label><i class="fas fa-arrows-rotate" style="margin-right: 3px;"></i>Recorrência</label>
+        <label><i class="fas fa-sync-alt"></i> Recorrência</label>
         <select name="recorrencia">
             <option value="">Todas</option>
             <option value="ativa" {{ $filtros['recorrencia'] == 'ativa' ? 'selected' : '' }}>Ativa</option>
             <option value="inativa" {{ $filtros['recorrencia'] == 'inativa' ? 'selected' : '' }}>Inativa</option>
         </select>
     </div>
-    <div style="display: flex; gap: 8px; align-items: flex-end;">
-        <button type="submit" class="btn-filter"><i class="fas fa-filter" style="margin-right: 4px;"></i>Filtrar</button>
-        <a href="{{ route('master.relatorios') }}" class="btn-clear"><i class="fas fa-rotate-left" style="margin-right: 4px;"></i>Limpar</a>
+    <div class="filter-actions">
+        <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> Filtrar</button>
+        <a href="{{ route('master.relatorios') }}" class="btn-clear"><i class="fas fa-rotate-left"></i> Limpar</a>
     </div>
 </div>
 </form>
@@ -375,7 +386,7 @@
 <!-- ===== SEÇÃO 2: Vendas por Vendedor ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3><i class="fas fa-chart-bar"></i>Vendas por Vendedor</h3>
+        <h3><i class="fas fa-chart-bar"></i> Vendas por Vendedor</h3>
     </div>
     <div class="section-body">
         @if(count($vendasPorVendedor) > 0)
@@ -436,7 +447,7 @@
 <!-- ===== SEÇÃO 2B: Metas por Equipe ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3><i class="fas fa-users-cog"></i>Metas por Equipe</h3>
+        <h3><i class="fas fa-users-cog"></i> Metas por Equipe</h3>
     </div>
     <div class="section-body">
         @if(count($metasPorEquipe) > 0)
@@ -458,7 +469,7 @@
                 @foreach($metasPorEquipe as $eq)
                 <tr>
                     <td class="font-bold"><i class="fas fa-people-group" style="margin-right: 6px; color: #7c3aed;"></i>{{ $eq['equipe_nome'] }}</td>
-                    <td style="color: var(--text-secondary);">{{ $eq['gestor_nome'] }}</td>
+                    <td style="color: #6b7280;">{{ $eq['gestor_nome'] }}</td>
                     <td class="text-center">{{ $eq['total_vendedores'] }}</td>
                     <td class="text-center">{{ $eq['total_vendas'] }}</td>
                     <td class="text-right">R$ {{ number_format($eq['valor_vendido'], 2, ',', '.') }}</td>
@@ -488,7 +499,7 @@
 <!-- ===== SEÇÃO 3: Recebimentos por Período ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3><i class="fas fa-money-bill-wave"></i>Recebimentos no Período</h3>
+        <h3><i class="fas fa-money-bill-wave"></i> Recebimentos no Período</h3>
     </div>
     <div class="section-body">
         <div class="table-responsive">
@@ -529,7 +540,7 @@
 <!-- ===== SEÇÃO 4: Renovações e Churn ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3><i class="fas fa-arrows-rotate"></i>Renovações e Churn</h3>
+        <h3><i class="fas fa-arrows-rotate"></i> Renovações e Churn</h3>
     </div>
     <div class="section-body">
         <div class="table-responsive">
@@ -554,7 +565,7 @@
                     <td class="text-right font-bold" style="color: #64748b;">{{ $churnRenovacoes['desistencias'] }}</td>
                 </tr>
                 <tr>
-                    <td><i class="fas fa-percent" style="margin-right: 8px; color: #7c3aed;"></i>Taxa de Churn (%)</td>
+                    <td><i class="fas fa-percentage" style="margin-right: 8px; color: #7c3aed;"></i>Taxa de Churn (%)</td>
                     <td class="text-right font-bold" style="color: {{ $churnRenovacoes['churn_percentual'] > 20 ? '#dc2626' : ($churnRenovacoes['churn_percentual'] > 10 ? '#ca8a04' : '#16a34a') }};">
                         {{ $churnRenovacoes['churn_percentual'] }}%
                     </td>
@@ -576,7 +587,7 @@
 <!-- ===== SEÇÃO 5: Formas de Pagamento ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3><i class="fas fa-credit-card"></i>Formas de Pagamento</h3>
+        <h3><i class="fas fa-credit-card"></i> Formas de Pagamento</h3>
     </div>
     <div class="section-body">
         <div class="table-responsive">
@@ -630,15 +641,7 @@
 
     btn.addEventListener('click', function(e) {
         e.stopPropagation();
-        if (menu.classList.contains('show')) {
-            menu.classList.remove('show');
-            return;
-        }
-        var rect = btn.getBoundingClientRect();
-        menu.style.top = (rect.bottom + 6) + 'px';
-        menu.style.left = rect.left + 'px';
-        menu.style.right = 'auto';
-        menu.classList.add('show');
+        menu.classList.toggle('show');
     });
 
     document.addEventListener('click', function(e) {
