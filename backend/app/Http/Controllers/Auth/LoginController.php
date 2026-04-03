@@ -5,11 +5,15 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 class LoginController extends Controller
 {
+    const MAX_LOGIN_ATTEMPTS = 5;
+    const LOCKOUT_MINUTES = 15;
+    const MAX_2FA_ATTEMPTS = 5;
+
     public function showLoginForm()
     {
         if (Auth::check()) {
@@ -28,10 +32,24 @@ class LoginController extends Controller
         $email = strtolower($request->input('email'));
         $password = $request->input('password');
 
+        // Check if account is locked
+        $lockKey = 'login_lock_' . md5($email);
+        if (Cache::has($lockKey)) {
+            $remaining = Cache::get($lockKey);
+            Log::warning('LOGIN_BLOQUEADO', ['email' => $email, 'tentativas_restantes' => $remaining]);
+            return back()->withErrors([
+                'email' => "Conta bloqueada por muitas tentativas. Aguarde " . self::LOCKOUT_MINUTES . " minutos.",
+            ])->onlyInput('email');
+        }
+
         Log::info('LOGIN_TENTATIVA', ['email' => $email]);
 
         try {
             if (Auth::attempt(['email' => $email, 'password' => $password], $request->boolean('remember'))) {
+                // Clear login attempts on success
+                Cache::forget('login_attempts_' . md5($email));
+                Cache::forget('login_lock_' . md5($email));
+
                 $request->session()->regenerate();
                 Log::info('LOGIN_OK', ['email' => $email]);
 
@@ -44,7 +62,6 @@ class LoginController extends Controller
 
                 // 2FA is MANDATORY - no access without it
                 if ($user->two_factor_enabled) {
-                    // Already configured - must verify code
                     return redirect()->route('2fa.verify');
                 }
 
@@ -55,8 +72,25 @@ class LoginController extends Controller
             Log::error('LOGIN_ERRO', ['erro' => $e->getMessage()]);
         }
 
+        // Track failed attempts
+        $attemptsKey = 'login_attempts_' . md5($email);
+        $attempts = Cache::get($attemptsKey, 0) + 1;
+        Cache::put($attemptsKey, $attempts, now()->addMinutes(self::LOCKOUT_MINUTES));
+
+        $remaining = self::MAX_LOGIN_ATTEMPTS - $attempts;
+
+        if ($remaining <= 0) {
+            Cache::put($lockKey, 0, now()->addMinutes(self::LOCKOUT_MINUTES));
+            Log::warning('LOGIN_CONTA_BLOQUEADA', ['email' => $email]);
+            return back()->withErrors([
+                'email' => "Conta bloqueada por " . self::MAX_LOGIN_ATTEMPTS . " tentativas falhas. Aguarde " . self::LOCKOUT_MINUTES . " minutos.",
+            ])->onlyInput('email');
+        }
+
+        Log::warning('LOGIN_FALHA', ['email' => $email, 'tentativas_restantes' => $remaining]);
+
         return back()->withErrors([
-            'email' => 'As credenciais informadas não correspondem aos nossos registros.',
+            'email' => "As credenciais informadas não correspondem aos nossos registros. Tentativa {$attempts} de " . self::MAX_LOGIN_ATTEMPTS . ".",
         ])->onlyInput('email');
     }
 
