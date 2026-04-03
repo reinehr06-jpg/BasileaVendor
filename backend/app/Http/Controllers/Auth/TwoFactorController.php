@@ -98,9 +98,13 @@ class TwoFactorController extends Controller
             $user->save();
         }
 
+        // Check if this is a rotation (secret was rotated within last 24h)
+        $isRotation = $user->two_factor_rotated_at && $user->two_factor_rotated_at->diffInHours(now()) < 24;
+
         return view('auth.2fa.setup', [
             'user' => $user,
             'enableRoute' => '2fa.enable',
+            'isRotation' => $isRotation,
         ]);
     }
 

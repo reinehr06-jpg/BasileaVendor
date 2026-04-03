@@ -59,6 +59,15 @@
 {{-- OVERLAY DE BLOQUEIO --}}
 <div class="overlay" id="overlay">
     <div class="modal">
+        @if($isRotation)
+        <div class="shield" style="background: linear-gradient(135deg, #fee2e2, #fecaca);">🔄</div>
+        <h1>Chave 2FA Expirada</h1>
+        <p class="msg">Sua chave de autenticação em duas etapas expirou após 90 dias de uso. Por segurança, é <strong>obrigatório</strong> reconfigurar o 2FA antes de acessar o sistema.</p>
+        <div class="info-box" style="background: #fef2f2; border-color: #fecaca;">
+            <i class="fas fa-exclamation-triangle" style="color: #dc2626;"></i>
+            <span>Remova a conta antiga do seu app autenticador antes de adicionar a nova chave.</span>
+        </div>
+        @else
         <div class="shield">🔒</div>
         <h1>Acesso Bloqueado</h1>
         <p class="msg">Para proteger sua conta e os dados do sistema, é <strong>obrigatório</strong> configurar a autenticação em duas etapas (2FA). Sem isso, você não poderá acessar nenhuma funcionalidade.</p>
@@ -66,8 +75,9 @@
             <i class="fas fa-info-circle"></i>
             <span>Você precisará de um app autenticador no celular, como Google Authenticator, Authy ou Microsoft Authenticator.</span>
         </div>
+        @endif
         <button class="btn-primary" onclick="document.getElementById('overlay').classList.add('hidden'); document.getElementById('setup').classList.add('show');">
-            <i class="fas fa-check"></i> Entendi, vou configurar agora
+            <i class="fas fa-check"></i> {{ $isRotation ? 'Entendi, vou reconfigurar agora' : 'Entendi, vou configurar agora' }}
         </button>
     </div>
 </div>
@@ -77,20 +87,30 @@
     <div class="setup-card">
         <div class="header">
             <div class="shield-sm"><i class="fas fa-shield-halved" style="color: #4C1D95;"></i></div>
-            <h2>Configurar 2FA</h2>
-            <p>Siga os passos abaixo para ativar a autenticação em duas etapas</p>
+            <h2>{{ $isRotation ? 'Reconfigurar 2FA' : 'Configurar 2FA' }}</h2>
+            <p>{{ $isRotation ? 'Sua chave anterior expirou. Configure uma nova chave no app autenticador.' : 'Siga os passos abaixo para ativar a autenticação em duas etapas' }}</p>
         </div>
+
+        @if($isRotation)
+        <div class="step" style="background: #fef2f2; border: 1px solid #fecaca;">
+            <span class="num" style="background: linear-gradient(135deg, #ef4444, #dc2626);"><i class="fas fa-trash" style="font-size: 0.65rem;"></i></span>
+            <div class="content">
+                <strong style="color: #991b1b;">Remova a conta antiga do app autenticador</strong>
+                <span>Antes de adicionar a nova chave, exclua a entrada antiga do Google Authenticator/Authy para evitar confusão.</span>
+            </div>
+        </div>
+        @endif
 
         <div class="step">
             <span class="num">1</span>
             <div class="content">
-                <strong>Instale um app autenticador</strong>
-                <span>Google Authenticator, Authy, Microsoft Authenticator, etc.</span>
+                <strong>{{ $isRotation ? 'Abra o app autenticador' : 'Instale um app autenticador' }}</strong>
+                <span>{{ $isRotation ? 'Adicione uma nova conta com a chave abaixo.' : 'Google Authenticator, Authy, Microsoft Authenticator, etc.' }}</span>
             </div>
         </div>
 
         <div class="step">
-            <span class="num">2</span>
+            <span class="num">{{ $isRotation ? '2' : '2' }}</span>
             <div class="content">
                 <strong>Adicione a chave manualmente no app</strong>
                 <div class="secret-box">{{ $user->two_factor_secret }}</div>
@@ -99,7 +119,7 @@
         </div>
 
         <div class="step">
-            <span class="num">3</span>
+            <span class="num">{{ $isRotation ? '3' : '3' }}</span>
             <div class="content">
                 <strong>Digite o código de 6 dígitos gerado pelo app</strong>
             </div>
