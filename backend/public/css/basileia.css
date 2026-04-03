@@ -285,27 +285,38 @@ select.form-control {
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
     appearance: none !important;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
     background-repeat: no-repeat !important;
-    background-position: right 12px center !important;
-    background-size: 16px !important;
-    padding-right: 40px !important;
+    background-position: right 14px center !important;
+    background-size: 18px !important;
+    padding-right: 44px !important;
     cursor: pointer;
     transition: all 0.25s ease;
-    border: 1.5px solid #d8b4fe;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    background-color: #fafafa;
+    font-size: 0.9375rem;
+    font-family: var(--font);
+    color: var(--text);
+    height: 42px;
+    box-sizing: border-box;
 }
 select.form-control:hover {
     border-color: #a855f7;
     background-color: #faf5ff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a855f7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
 }
 select.form-control:focus {
     border-color: #7c3aed;
     box-shadow: 0 0 0 3px rgba(124,58,237,0.15), 0 2px 8px rgba(124,58,237,0.08);
     background-color: white;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
 }
 select.form-control option {
-    padding: 8px 12px;
+    padding: 10px 14px;
     font-size: 0.9rem;
+    background: white;
+    color: #374151;
 }
 
 /* ===== Custom Select (JS-based, works in all browsers) ===== */
@@ -440,27 +451,109 @@ select.form-control option {
 }
 
 /* ===== Date inputs ===== */
-input[type="date"].form-control {
+input[type="date"].form-control,
+input[type="month"].form-control,
+input[type="datetime-local"].form-control {
     cursor: pointer;
-    border: 1.5px solid #d8b4fe;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 10px;
+    background-color: #fafafa;
+    padding: 9px 14px;
+    font-size: 0.9375rem;
+    font-family: var(--font);
+    color: var(--text);
+    height: 42px;
+    box-sizing: border-box;
+    transition: all 0.25s ease;
+    position: relative;
 }
-input[type="date"].form-control:hover {
+input[type="date"].form-control:hover,
+input[type="month"].form-control:hover,
+input[type="datetime-local"].form-control:hover {
     border-color: #a855f7;
     background-color: #faf5ff;
 }
-input[type="date"].form-control:focus {
+input[type="date"].form-control:focus,
+input[type="month"].form-control:focus,
+input[type="datetime-local"].form-control:focus {
     border-color: #7c3aed;
     box-shadow: 0 0 0 3px rgba(124,58,237,0.15), 0 2px 8px rgba(124,58,237,0.08);
     background-color: white;
 }
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    transition: background 0.15s;
+    padding: 6px;
+    border-radius: 6px;
+    transition: background 0.15s, transform 0.15s;
+    opacity: 0.6;
+    filter: invert(37%) sepia(81%) saturate(2681%) hue-rotate(241deg) brightness(89%) contrast(91%);
 }
-input[type="date"]::-webkit-calendar-picker-indicator:hover {
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="month"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
     background: #f3e8ff;
+    opacity: 1;
+    transform: scale(1.15);
+}
+input[type="date"]::-webkit-calendar-picker-indicator:active,
+input[type="month"]::-webkit-calendar-picker-indicator:active,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:active {
+    transform: scale(0.95);
+}
+input[type="date"]::-webkit-datetime-edit,
+input[type="month"]::-webkit-datetime-edit,
+input[type="datetime-local"]::-webkit-datetime-edit {
+    color: #374151;
+    font-weight: 500;
+}
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="month"]::-webkit-datetime-edit-fields-wrapper,
+input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+    padding: 0 2px;
+}
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="month"]::-webkit-datetime-edit-text,
+input[type="datetime-local"]::-webkit-datetime-edit-text {
+    color: #9ca3af;
+    padding: 0 2px;
+}
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field,
+input[type="month"]::-webkit-datetime-edit-month-field,
+input[type="month"]::-webkit-datetime-edit-year-field,
+input[type="datetime-local"]::-webkit-datetime-edit-month-field,
+input[type="datetime-local"]::-webkit-datetime-edit-day-field,
+input[type="datetime-local"]::-webkit-datetime-edit-year-field,
+input[type="datetime-local"]::-webkit-datetime-edit-hour-field,
+input[type="datetime-local"]::-webkit-datetime-edit-minute-field,
+input[type="datetime-local"]::-webkit-datetime-edit-second-field {
+    color: #374151;
+    font-weight: 600;
+}
+input[type="date"]::-webkit-datetime-edit-month-field:hover,
+input[type="date"]::-webkit-datetime-edit-day-field:hover,
+input[type="date"]::-webkit-datetime-edit-year-field:hover,
+input[type="month"]::-webkit-datetime-edit-month-field:hover,
+input[type="month"]::-webkit-datetime-edit-year-field:hover,
+input[type="datetime-local"]::-webkit-datetime-edit-month-field:hover,
+input[type="datetime-local"]::-webkit-datetime-edit-day-field:hover,
+input[type="datetime-local"]::-webkit-datetime-edit-year-field:hover,
+input[type="datetime-local"]::-webkit-datetime-edit-hour-field:hover,
+input[type="datetime-local"]::-webkit-datetime-edit-minute-field:hover,
+input[type="datetime-local"]::-webkit-datetime-edit-second-field:hover {
+    background: #f3e8ff;
+    border-radius: 4px;
+    color: #7c3aed;
+}
+input[type="date"]:disabled,
+input[type="month"]:disabled,
+input[type="datetime-local"]:disabled {
+    background: #f4f5fa;
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 
 /* ===== Checkboxes ===== */
