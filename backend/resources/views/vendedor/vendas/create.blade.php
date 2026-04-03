@@ -133,7 +133,7 @@
             <div class="form-group">
                 <label>WhatsApp de Contato <span class="required">*</span></label>
                 <div style="display:flex; gap:8px;">
-                    <select name="ddi" id="inputDdi" class="form-control" style="flex:0 0 110px;">
+                    <select name="ddi" id="inputDdi" class="form-control" style="flex:0 0 85px; padding-left: 8px; padding-right: 2px;">
                         <option value="55" data-flag="🇧🇷">🇧🇷 +55</option>
                         <option value="1" data-flag="🇺🇸">🇺🇸 +1</option>
                         <option value="54" data-flag="🇦🇷">🇦🇷 +54</option>
