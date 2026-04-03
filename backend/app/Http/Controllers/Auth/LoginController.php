@@ -66,7 +66,12 @@ class LoginController extends Controller
                 Auth::login($user);
                 $request->session()->regenerate();
 
-                Log::info('LOGIN_ADMIN_OK', ['id' => $userId, 'auth_check' => Auth::check()]);
+                Log::info('LOGIN_ADMIN_OK', [
+                    'id' => $userId,
+                    'auth_check' => Auth::check(),
+                    'session_id' => $request->session()->getId(),
+                    'session_driver' => config('session.driver'),
+                ]);
 
                 return redirect()->route('dashboard');
 
