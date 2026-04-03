@@ -1,16 +1,9 @@
 @extends('layouts.app')
-@section('title', 'Relatórios')
+@section('title', 'Relatórios Gerenciais')
 
 @section('content')
 <style>
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(18px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes shimmer {
-        0%   { background-position: -400px 0; }
-        100% { background-position: 400px 0; }
-    }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
     .animate-in { animation: fadeInUp 0.45s ease-out both; }
     .animate-in:nth-child(1) { animation-delay: 0.03s; }
     .animate-in:nth-child(2) { animation-delay: 0.06s; }
@@ -22,179 +15,43 @@
     .animate-in:nth-child(8) { animation-delay: 0.24s; }
     .animate-in:nth-child(9) { animation-delay: 0.27s; }
 
-    .skeleton-block {
-        background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-        background-size: 400px 100%;
-        animation: shimmer 1.4s infinite;
-        border-radius: 8px;
-    }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .summary-grid .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 24px; box-shadow: var(--shadow-xs); transition: var(--transition); }
+    .summary-grid .stat-card:hover { box-shadow: var(--shadow-sm); transform: translateY(-2px); }
+    .summary-grid .stat-card .stat-icon { width: 42px; height: 42px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 12px; }
+    .summary-grid .stat-card .stat-icon.primary { background: rgba(var(--primary-rgb), 0.1); color: var(--primary); }
+    .summary-grid .stat-card .stat-icon.success { background: var(--success-light); color: var(--success); }
+    .summary-grid .stat-card .stat-icon.warning { background: var(--warning-light); color: var(--warning); }
+    .summary-grid .stat-card .stat-icon.danger { background: var(--danger-light); color: var(--danger); }
+    .summary-grid .stat-card .stat-icon.info { background: var(--info-light); color: var(--info); }
+    .summary-grid .stat-card .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--text-primary); line-height: 1; margin-bottom: 4px; }
+    .summary-grid .stat-card .stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
 
-    /* ===== Header ===== */
-    .report-hero {
-        background: linear-gradient(135deg, #3b0764 0%, #581c87 40%, #7c3aed 100%);
-        border-radius: 16px;
-        padding: 28px 32px;
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        box-shadow: 0 20px 40px rgba(88, 28, 135, 0.25);
-        overflow: visible;
-    }
-    .report-hero h2 { font-size: 1.6rem; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.5px; }
-    .report-hero p { opacity: 0.85; font-size: 0.9rem; color: rgba(255,255,255,0.9); }
-    .export-dropdown { position: relative; display: inline-block; }
-    .export-menu { display: none; position: absolute; top: 100%; right: 0; margin-top: 6px; background: white; min-width: 180px; border: 1px solid #e5e7eb; border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); z-index: 9999; }
-    .export-menu.show { display: block; }
-    .export-item { display: block; padding: 12px 16px; color: #374151; text-decoration: none; font-size: 0.85rem; transition: 0.15s; font-weight: 500; }
-    .export-item:hover { background: #faf5ff; color: #7c3aed; }
-    .export-item:first-child { border-radius: 10px 10px 0 0; }
-    .export-item:last-child { border-radius: 0 0 10px 10px; }
-    .export-item i { margin-right: 8px; width: 16px; }
-    .btn-export-hero { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; backdrop-filter: blur(10px); transition: 0.2s; display: inline-flex; align-items: center; gap: 6px; }
-    .btn-export-hero:hover { background: rgba(255,255,255,0.25); }
+    .stat-card.highlight { background: var(--primary) !important; border-color: var(--primary) !important; }
+    .stat-card.highlight .stat-icon { background: rgba(255,255,255,0.2) !important; color: white !important; }
+    .stat-card.highlight .stat-value { color: white !important; }
+    .stat-card.highlight .stat-label { color: rgba(255,255,255,0.8) !important; }
 
-    /* ===== Filtros ===== */
-    .filters-bar {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        padding: 20px;
-        margin-bottom: 24px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: flex-end;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-    }
-    .filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 140px; flex: 1 1 140px; max-width: 200px; }
-    .filter-group label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #6b21a8; display: flex; align-items: center; gap: 4px; }
-    .filter-group label i { font-size: 0.75rem; }
-    .filter-group input, .filter-group select {
-        padding: 8px 12px;
-        border: 1.5px solid #e5e7eb;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        outline: none;
-        background: #f9fafb;
-        transition: all 0.2s;
-        color: #374151;
-        font-family: inherit;
-        height: 40px;
-        box-sizing: border-box;
-    }
-    .filter-group select {
-        -webkit-appearance: none !important;
-        -moz-appearance: none !important;
-        appearance: none !important;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 10px center;
-        background-size: 14px;
-        padding-right: 32px;
-        cursor: pointer;
-    }
-    .filter-group input[type="date"] {
-        cursor: pointer;
-    }
-    .filter-group select:hover, .filter-group input:hover {
-        border-color: #a855f7;
-        background-color: #faf5ff;
-    }
-    .filter-group select:focus, .filter-group input:focus {
-        border-color: #7c3aed;
-        box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
-        background-color: white;
-    }
-    .filter-actions { display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; }
-    .btn-filter { background: linear-gradient(135deg, #7c3aed, #581c87); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.85rem; transition: 0.2s; white-space: nowrap; box-shadow: 0 2px 8px rgba(124,58,237,0.3); height: 40px; display: flex; align-items: center; gap: 6px; }
-    .btn-filter:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,0.4); }
-    .btn-clear { background: white; border: 1.5px solid #e5e7eb; padding: 9px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; color: #6b7280; text-decoration: none; white-space: nowrap; transition: 0.2s; height: 40px; display: flex; align-items: center; gap: 6px; box-sizing: border-box; }
-    .btn-clear:hover { background: #faf5ff; border-color: #7c3aed; color: #7c3aed; }
-
-    /* ===== Cards ===== */
-    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
-    .stat-card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        padding: 22px;
-        text-align: center;
-        transition: all 0.3s ease;
-        position: relative;
-        overflow: hidden;
-    }
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #7c3aed, #a855f7);
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-    .stat-card:hover { box-shadow: 0 8px 24px rgba(124,58,237,0.12); transform: translateY(-3px); border-color: #d8b4fe; }
-    .stat-card:hover::before { opacity: 1; }
-    .stat-card .icon { font-size: 1.4rem; margin-bottom: 10px; color: #7c3aed; }
-    .stat-card .value { font-size: 1.5rem; font-weight: 800; color: #1e1b4b; margin-bottom: 4px; }
-    .stat-card .label { font-size: 0.72rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
-    .stat-card.highlight {
-        background: linear-gradient(135deg, #581c87, #7c3aed);
-        border: none;
-        color: white;
-    }
-    .stat-card.highlight::before { background: rgba(255,255,255,0.3); }
-    .stat-card.highlight .icon { color: rgba(255,255,255,0.9); }
-    .stat-card.highlight .value { color: white; }
-    .stat-card.highlight .label { color: rgba(255,255,255,0.8); }
-    .stat-card.green { border-left: 4px solid #16a34a; }
-    .stat-card.green .icon { color: #16a34a; }
-    .stat-card.red { border-left: 4px solid #dc2626; }
-    .stat-card.red .icon { color: #dc2626; }
-    .stat-card.yellow { border-left: 4px solid #ca8a04; }
-    .stat-card.yellow .icon { color: #ca8a04; }
-    .stat-card.blue { border-left: 4px solid #2563eb; }
-    .stat-card.blue .icon { color: #2563eb; }
-
-    /* ===== Seções ===== */
-    .section-card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        margin-bottom: 24px;
-        overflow: hidden;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-        transition: box-shadow 0.3s;
-    }
-    .section-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
-    .section-header {
-        padding: 18px 24px;
-        border-bottom: 1px solid #f1f5f9;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: linear-gradient(135deg, #faf5ff 0%, #f8fafc 100%);
-    }
-    .section-header h3 { font-size: 1rem; font-weight: 700; color: #1e1b4b; display: flex; align-items: center; gap: 8px; }
-    .section-header h3 i { color: #7c3aed; }
+    .section-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); margin-bottom: 24px; overflow: hidden; box-shadow: var(--shadow-xs); }
+    .section-header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--bg); }
+    .section-header h3 { font-size: 1rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+    .section-header h3 i { color: var(--primary); }
     .section-body { padding: 0; }
 
-    /* ===== Tabelas ===== */
-    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .report-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 600px; }
-    .report-table th { background: #faf5ff; padding: 12px 14px; text-align: left; font-weight: 700; color: #6b21a8; text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.7rem; border-bottom: 2px solid #e9d5ff; white-space: nowrap; }
-    .report-table td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: #374151; vertical-align: middle; }
+    .report-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .report-table th { background: var(--bg); padding: 12px 16px; text-align: left; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.75rem; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .report-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; color: var(--text); vertical-align: middle; }
     .report-table tr:last-child td { border-bottom: none; }
     .report-table tbody tr { transition: background 0.15s; }
-    .report-table tbody tr:hover { background: #faf5ff; }
+    .report-table tbody tr:hover td { background: var(--surface-hover); }
     .report-table .text-right { text-align: right; }
     .report-table .text-center { text-align: center; }
-    .report-table .font-bold { font-weight: 700; color: #1e1b4b; }
-    .report-table .vendedor-cell { display: flex; align-items: center; gap: 10px; }
-    .vendedor-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed, #a855f7); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7rem; flex-shrink: 0; }
+    .report-table .font-bold { font-weight: 700; color: var(--text-primary); }
+    .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-    /* ===== Barra de progresso ===== */
+    .progress-bar-bg { background: var(--bg); height: 8px; border-radius: 4px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+
     .progress-bar { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; position: relative; }
     .progress-bar .fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
     .progress-bar .fill.green { background: linear-gradient(90deg, #22c55e, #16a34a); }
@@ -202,44 +59,45 @@
     .progress-bar .fill.red { background: linear-gradient(90deg, #ef4444, #dc2626); }
     .progress-bar .fill.purple { background: linear-gradient(90deg, #7c3aed, #a855f7); }
 
-    /* ===== Badge ===== */
     .badge-forma { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; text-transform: capitalize; }
     .badge-forma.pix { background: #dbeafe; color: #1d4ed8; }
     .badge-forma.boleto { background: #fef3c7; color: #92400e; }
     .badge-forma.cartao { background: #f3e8ff; color: #6b21a8; }
-    .badge-forma.recorrente { background: #f3f4f6; color: #4b5563; }
+    .badge-forma.recorrente { background: #d1fae5; color: #065f46; }
 
-    /* ===== Empty states ===== */
-    .empty-state { text-align: center; padding: 60px 20px; color: #6b7280; }
-    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
-    .empty-state h3 { color: #1e1b4b; font-size: 1.1rem; margin-bottom: 6px; }
-    .empty-state-box { background: white; border: 1px solid #e5e7eb; border-radius: 14px; }
+    .vendedor-cell { display: flex; align-items: center; gap: 10px; }
+    .vendedor-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.7rem; flex-shrink: 0; }
+
+    .export-dropdown { position: relative; display: inline-block; }
+    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
+    .export-dropdown-content.show { display: block; }
+    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
+    .export-item:hover { background: var(--bg); color: var(--primary); }
+    .export-item:first-child { border-radius: 8px 8px 0 0; }
+    .export-item:last-child { border-radius: 0 0 8px 8px; }
+    .export-item i { margin-right: 8px; width: 16px; }
 
     @media (max-width: 768px) {
+        .summary-grid { grid-template-columns: repeat(2, 1fr); }
         .filters-bar { flex-direction: column; }
-        .filter-group { min-width: 100%; max-width: 100%; }
-        .filter-actions { width: 100%; justify-content: flex-end; }
-        .cards-grid { grid-template-columns: repeat(2, 1fr); }
-        .report-table { font-size: 0.8rem; }
-        .report-table th, .report-table td { padding: 8px 10px; }
-        .report-hero { flex-direction: column; gap: 16px; text-align: center; }
+        .filters-bar > div, .filters-bar > form { width: 100%; }
     }
 </style>
 
-<!-- ===== Hero Header ===== -->
-<div class="report-hero animate-in">
+<!-- ===== Page Header ===== -->
+<div class="page-header animate-in">
     <div>
-        <h2><i class="fas fa-chart-line" style="margin-right: 10px;"></i>Relatórios Gerenciais</h2>
+        <h2><i class="fas fa-chart-bar" style="margin-right: 8px;"></i>Relatórios Gerenciais</h2>
         <p>Análise consolidada da operação comercial e financeira</p>
     </div>
     <div class="export-dropdown">
-        <button type="button" id="exportBtn" class="btn-export-hero">
-            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
+        <button type="button" id="exportBtn" class="btn btn-outline">
+            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
         </button>
-        <div id="exportMenu" class="export-menu">
-            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item"><i class="fas fa-file-excel" style="color: #16a34a;"></i> Excel</a>
-            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item"><i class="fas fa-file-pdf" style="color: #dc2626;"></i> PDF</a>
-            <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item"><i class="fas fa-file-csv" style="color: #2563eb;"></i> CSV</a>
+        <div id="exportMenu" class="export-dropdown-content">
+            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item"><i class="fas fa-file-excel" style="color: var(--success);"></i> Excel</a>
+            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item"><i class="fas fa-file-pdf" style="color: var(--danger);"></i> PDF</a>
+            <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item"><i class="fas fa-file-csv" style="color: var(--info);"></i> CSV</a>
         </div>
     </div>
 </div>
@@ -247,26 +105,26 @@
 <!-- ===== Filtros ===== -->
 <form method="GET" action="{{ route('master.relatorios') }}">
 <div class="filters-bar animate-in">
-    <div class="filter-group">
-        <label><i class="fas fa-calendar"></i> Período Início</label>
-        <input type="date" name="data_inicio" value="{{ $filtros['data_inicio'] }}">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-calendar" style="margin-right: 4px;"></i> Data Início</label>
+        <input type="date" name="data_inicio" class="form-control" value="{{ $filtros['data_inicio'] }}">
     </div>
-    <div class="filter-group">
-        <label><i class="fas fa-calendar"></i> Período Fim</label>
-        <input type="date" name="data_fim" value="{{ $filtros['data_fim'] }}">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-calendar" style="margin-right: 4px;"></i> Data Fim</label>
+        <input type="date" name="data_fim" class="form-control" value="{{ $filtros['data_fim'] }}">
     </div>
-    <div class="filter-group">
-        <label><i class="fas fa-user-tie"></i> Vendedor</label>
-        <select name="vendedor_id">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-user-tie" style="margin-right: 4px;"></i> Vendedor</label>
+        <select name="vendedor_id" class="form-control">
             <option value="">Todos</option>
             @foreach($vendedores as $v)
-                <option value="{{ $v->id }}" {{ $filtros['vendedor_id'] == $v->id ? 'selected' : '' }}>{{ ($v->user->name ?? 'N/A') }}</option>
+                <option value="{{ $v->id }}" {{ $filtros['vendedor_id'] == $v->id ? 'selected' : '' }}>{{ $v->user->name ?? 'N/A' }}</option>
             @endforeach
         </select>
     </div>
-    <div class="filter-group">
-        <label><i class="fas fa-circle-check"></i> Status</label>
-        <select name="status">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-circle-check" style="margin-right: 4px;"></i> Status</label>
+        <select name="status" class="form-control">
             <option value="">Todos</option>
             <option value="Aguardando pagamento" {{ $filtros['status'] == 'Aguardando pagamento' ? 'selected' : '' }}>Aguardando</option>
             <option value="Pago" {{ $filtros['status'] == 'Pago' ? 'selected' : '' }}>Pago</option>
@@ -275,115 +133,116 @@
             <option value="Vencido" {{ $filtros['status'] == 'Vencido' ? 'selected' : '' }}>Vencido</option>
         </select>
     </div>
-    <div class="filter-group">
-        <label><i class="fas fa-credit-card"></i> Pagamento</label>
-        <select name="forma_pagamento">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-credit-card" style="margin-right: 4px;"></i> Pagamento</label>
+        <select name="forma_pagamento" class="form-control">
             <option value="">Todas</option>
             <option value="pix" {{ $filtros['forma_pagamento'] == 'pix' ? 'selected' : '' }}>PIX</option>
             <option value="boleto" {{ $filtros['forma_pagamento'] == 'boleto' ? 'selected' : '' }}>Boleto</option>
             <option value="cartao" {{ $filtros['forma_pagamento'] == 'cartao' ? 'selected' : '' }}>Cartão</option>
         </select>
     </div>
-    <div class="filter-group">
-        <label><i class="fas fa-arrows-rotate"></i> Negociação</label>
-        <select name="tipo_negociacao">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-arrows-rotate" style="margin-right: 4px;"></i> Negociação</label>
+        <select name="tipo_negociacao" class="form-control">
             <option value="">Todos</option>
             <option value="mensal" {{ $filtros['tipo_negociacao'] == 'mensal' ? 'selected' : '' }}>Mensal</option>
             <option value="anual" {{ $filtros['tipo_negociacao'] == 'anual' ? 'selected' : '' }}>Anual</option>
         </select>
     </div>
-    <div class="filter-group">
-        <label><i class="fas fa-building"></i> Cliente</label>
-        <select name="cliente_id">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-building" style="margin-right: 4px;"></i> Cliente</label>
+        <select name="cliente_id" class="form-control">
             <option value="">Todos</option>
             @foreach($clientes as $c)
-                <option value="{{ $c->id }}" {{ $filtros['cliente_id'] == $c->id ? 'selected' : '' }}>{{ ($c->nome_igreja ?? $c->nome ?? 'Cliente #'.$c->id) }}</option>
+                <option value="{{ $c->id }}" {{ $filtros['cliente_id'] == $c->id ? 'selected' : '' }}>{{ $c->nome_igreja ?? $c->nome ?? 'Cliente #'.$c->id }}</option>
             @endforeach
         </select>
     </div>
-    <div class="filter-group">
-        <label><i class="fas fa-sync-alt"></i> Recorrência</label>
-        <select name="recorrencia">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px;">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-sync-alt" style="margin-right: 4px;"></i> Recorrência</label>
+        <select name="recorrencia" class="form-control">
             <option value="">Todas</option>
             <option value="ativa" {{ $filtros['recorrencia'] == 'ativa' ? 'selected' : '' }}>Ativa</option>
             <option value="inativa" {{ $filtros['recorrencia'] == 'inativa' ? 'selected' : '' }}>Inativa</option>
         </select>
     </div>
-    <div class="filter-actions">
-        <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> Filtrar</button>
-        <a href="{{ route('master.relatorios') }}" class="btn-clear"><i class="fas fa-rotate-left"></i> Limpar</a>
+    <div style="display: flex; gap: 8px; align-items: flex-end;">
+        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtrar</button>
+        <a href="{{ route('master.relatorios') }}" class="btn btn-ghost btn-sm">Limpar</a>
     </div>
 </div>
 </form>
 
-{{-- ===== Estado vazio global ===== --}}
+{{-- ===== Estado vazio ===== --}}
 @if(!$temDadosNoSistema)
-<div class="empty-state empty-state-box" style="padding: 80px 20px;">
-    <div class="icon"><i class="fas fa-chart-pie" style="color: #d8b4fe;"></i></div>
-    <h3 style="color: #1e1b4b;">Nenhum dado disponível</h3>
-    <p>Os relatórios serão exibidos assim que houver movimentações no sistema.</p>
+<div class="table-container">
+    <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-chart-pie"></i></div>
+        <h3>Nenhum dado disponível</h3>
+        <p>Os relatórios serão exibidos assim que houver movimentações no sistema.</p>
+    </div>
 </div>
-
-{{-- ===== Dados existem, mas filtros não retornaram nada ===== --}}
 @elseif(!$filtrosRetornaramDados)
-<div class="empty-state empty-state-box" style="padding: 60px 20px;">
-    <div class="icon"><i class="fas fa-search" style="color: #f59e0b;"></i></div>
-    <h3 style="color: #1e1b4b;">Nenhum resultado encontrado</h3>
-    <p>Tente alterar os filtros para visualizar os dados.</p>
+<div class="table-container">
+    <div class="empty-state">
+        <div class="empty-icon"><i class="fas fa-search"></i></div>
+        <h3>Nenhum resultado encontrado</h3>
+        <p>Tente alterar os filtros para visualizar os dados.</p>
+    </div>
 </div>
-
 @else
 
-<!-- ===== SEÇÃO 1: Resumo Geral ===== -->
-<div class="cards-grid">
+<!-- ===== Resumo Geral ===== -->
+<div class="summary-grid">
     <div class="stat-card highlight animate-in">
-        <div class="icon"><i class="fas fa-coins"></i></div>
-        <div class="value">{{ $resumo['totalVendas'] }}</div>
-        <div class="label">Total de Vendas</div>
-    </div>
-    <div class="stat-card blue animate-in">
-        <div class="icon"><i class="fas fa-chart-line"></i></div>
-        <div class="value">R$ {{ number_format($resumo['valorVendido'], 2, ',', '.') }}</div>
-        <div class="label">Valor Vendido</div>
-    </div>
-    <div class="stat-card green animate-in">
-        <div class="icon"><i class="fas fa-circle-check"></i></div>
-        <div class="value">R$ {{ number_format($resumo['valorRecebido'], 2, ',', '.') }}</div>
-        <div class="label">Valor Recebido</div>
-    </div>
-    <div class="stat-card yellow animate-in">
-        <div class="icon"><i class="fas fa-hand-holding-dollar"></i></div>
-        <div class="value">R$ {{ number_format($resumo['totalComissoes'], 2, ',', '.') }}</div>
-        <div class="label">Comissão Gerada</div>
+        <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;"><i class="fas fa-coins"></i></div>
+        <div class="stat-value" style="color: white;">{{ $resumo['totalVendas'] }}</div>
+        <div class="stat-label" style="color: rgba(255,255,255,0.8);">Total de Vendas</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon"><i class="fas fa-users"></i></div>
-        <div class="value">{{ $resumo['clientesAtivos'] }}</div>
-        <div class="label">Clientes Ativos</div>
+        <div class="stat-icon info"><i class="fas fa-chart-line"></i></div>
+        <div class="stat-value">R$ {{ number_format($resumo['valorVendido'], 2, ',', '.') }}</div>
+        <div class="stat-label">Valor Vendido</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon"><i class="fas fa-arrows-rotate"></i></div>
-        <div class="value">{{ $resumo['renovacoes'] }}</div>
-        <div class="label">Renovações</div>
-    </div>
-    <div class="stat-card red animate-in">
-        <div class="icon"><i class="fas fa-arrow-trend-down"></i></div>
-        <div class="value">{{ $resumo['churn'] }}</div>
-        <div class="label">Churn</div>
+        <div class="stat-icon success"><i class="fas fa-circle-check"></i></div>
+        <div class="stat-value" style="color: var(--success);">R$ {{ number_format($resumo['valorRecebido'], 2, ',', '.') }}</div>
+        <div class="stat-label">Valor Recebido</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon"><i class="fas fa-ban"></i></div>
-        <div class="value">{{ $resumo['desistencia'] }}</div>
-        <div class="label">Desistência</div>
+        <div class="stat-icon warning"><i class="fas fa-hand-holding-dollar"></i></div>
+        <div class="stat-value" style="color: var(--warning);">R$ {{ number_format($resumo['totalComissoes'], 2, ',', '.') }}</div>
+        <div class="stat-label">Comissões</div>
     </div>
     <div class="stat-card animate-in">
-        <div class="icon"><i class="fas fa-bullseye"></i></div>
-        <div class="value">R$ {{ number_format($resumo['ticketMedio'], 2, ',', '.') }}</div>
-        <div class="label">Ticket Médio</div>
+        <div class="stat-icon primary"><i class="fas fa-users"></i></div>
+        <div class="stat-value">{{ $resumo['clientesAtivos'] }}</div>
+        <div class="stat-label">Clientes Ativos</div>
+    </div>
+    <div class="stat-card animate-in">
+        <div class="stat-icon success"><i class="fas fa-arrows-rotate"></i></div>
+        <div class="stat-value">{{ $resumo['renovacoes'] }}</div>
+        <div class="stat-label">Renovações</div>
+    </div>
+    <div class="stat-card animate-in">
+        <div class="stat-icon danger"><i class="fas fa-arrow-trend-down"></i></div>
+        <div class="stat-value" style="color: var(--danger);">{{ $resumo['churn'] }}</div>
+        <div class="stat-label">Churn</div>
+    </div>
+    <div class="stat-card animate-in">
+        <div class="stat-icon" style="background: var(--bg); color: var(--text-muted);"><i class="fas fa-ban"></i></div>
+        <div class="stat-value">{{ $resumo['desistencia'] }}</div>
+        <div class="stat-label">Desistências</div>
+    </div>
+    <div class="stat-card animate-in">
+        <div class="stat-icon primary"><i class="fas fa-bullseye"></i></div>
+        <div class="stat-value">R$ {{ number_format($resumo['ticketMedio'], 2, ',', '.') }}</div>
+        <div class="stat-label">Ticket Médio</div>
     </div>
 </div>
 
-<!-- ===== SEÇÃO 2: Vendas por Vendedor ===== -->
+<!-- ===== Vendas por Vendedor ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
         <h3><i class="fas fa-chart-bar"></i> Vendas por Vendedor</h3>
@@ -418,17 +277,17 @@
                     <td class="text-center">{{ $vv['total_vendas'] }}</td>
                     <td class="text-right">R$ {{ number_format($vv['valor_vendido'], 2, ',', '.') }}</td>
                     <td class="text-right">R$ {{ number_format($vv['valor_recebido'], 2, ',', '.') }}</td>
-                    <td class="text-right" style="color: #ca8a04; font-weight: 600;">R$ {{ number_format($vv['comissao'], 2, ',', '.') }}</td>
+                    <td class="text-right" style="color: var(--warning); font-weight: 600;">R$ {{ number_format($vv['comissao'], 2, ',', '.') }}</td>
                     <td class="text-center">{{ $vv['clientes_ativos'] }}</td>
-                    <td class="text-center" style="color: {{ $vv['churn'] > 0 ? '#dc2626' : '#94a3b8' }};">{{ $vv['churn'] }}</td>
-                    <td class="text-center" style="color: {{ $vv['desistencia'] > 0 ? '#64748b' : '#94a3b8' }};">{{ $vv['desistencia'] }}</td>
+                    <td class="text-center" style="color: {{ $vv['churn'] > 0 ? 'var(--danger)' : 'var(--text-muted)' }};">{{ $vv['churn'] }}</td>
+                    <td class="text-center" style="color: {{ $vv['desistencia'] > 0 ? 'var(--text-secondary)' : 'var(--text-muted)' }};">{{ $vv['desistencia'] }}</td>
                     <td class="text-right">R$ {{ number_format($vv['meta'], 2, ',', '.') }}</td>
                     <td style="min-width: 120px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div class="progress-bar" style="flex: 1;">
                                 <div class="fill {{ $vv['percentual_meta'] >= 100 ? 'green' : ($vv['percentual_meta'] >= 50 ? 'yellow' : 'red') }}" style="width: {{ min($vv['percentual_meta'], 100) }}%;"></div>
                             </div>
-                            <span style="font-size: 0.78rem; font-weight: 700; color: {{ $vv['percentual_meta'] >= 100 ? '#16a34a' : ($vv['percentual_meta'] >= 50 ? '#ca8a04' : '#dc2626') }};">{{ $vv['percentual_meta'] }}%</span>
+                            <span style="font-size: 0.78rem; font-weight: 700; color: {{ $vv['percentual_meta'] >= 100 ? 'var(--success)' : ($vv['percentual_meta'] >= 50 ? 'var(--warning)' : 'var(--danger)') }};">{{ $vv['percentual_meta'] }}%</span>
                         </div>
                     </td>
                 </tr>
@@ -438,13 +297,15 @@
         </div>
         @else
         <div class="empty-state">
-            <p>Nenhum relatório encontrado para os filtros aplicados.</p>
+            <div class="empty-icon"><i class="fas fa-chart-bar"></i></div>
+            <h3>Sem dados de vendas</h3>
+            <p>Nenhum vendedor com vendas no período selecionado.</p>
         </div>
         @endif
     </div>
 </div>
 
-<!-- ===== SEÇÃO 2B: Metas por Equipe ===== -->
+<!-- ===== Metas por Equipe ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
         <h3><i class="fas fa-users-cog"></i> Metas por Equipe</h3>
@@ -468,8 +329,8 @@
             <tbody>
                 @foreach($metasPorEquipe as $eq)
                 <tr>
-                    <td class="font-bold"><i class="fas fa-people-group" style="margin-right: 6px; color: #7c3aed;"></i>{{ $eq['equipe_nome'] }}</td>
-                    <td style="color: #6b7280;">{{ $eq['gestor_nome'] }}</td>
+                    <td class="font-bold"><i class="fas fa-people-group" style="margin-right: 6px; color: var(--primary);"></i>{{ $eq['equipe_nome'] }}</td>
+                    <td style="color: var(--text-secondary);">{{ $eq['gestor_nome'] }}</td>
                     <td class="text-center">{{ $eq['total_vendedores'] }}</td>
                     <td class="text-center">{{ $eq['total_vendas'] }}</td>
                     <td class="text-right">R$ {{ number_format($eq['valor_vendido'], 2, ',', '.') }}</td>
@@ -480,7 +341,7 @@
                             <div class="progress-bar" style="flex: 1;">
                                 <div class="fill {{ $eq['percentual_meta'] >= 100 ? 'green' : ($eq['percentual_meta'] >= 50 ? 'yellow' : 'red') }}" style="width: {{ min($eq['percentual_meta'], 100) }}%;"></div>
                             </div>
-                            <span style="font-size: 0.78rem; font-weight: 700; color: {{ $eq['percentual_meta'] >= 100 ? '#16a34a' : ($eq['percentual_meta'] >= 50 ? '#ca8a04' : '#dc2626') }};">{{ $eq['percentual_meta'] }}%</span>
+                            <span style="font-size: 0.78rem; font-weight: 700; color: {{ $eq['percentual_meta'] >= 100 ? 'var(--success)' : ($eq['percentual_meta'] >= 50 ? 'var(--warning)' : 'var(--danger)') }};">{{ $eq['percentual_meta'] }}%</span>
                         </div>
                     </td>
                 </tr>
@@ -490,13 +351,15 @@
         </div>
         @else
         <div class="empty-state">
-            <p>Nenhuma equipe cadastrada. Crie equipes na aba Equipes para visualizar os dados.</p>
+            <div class="empty-icon"><i class="fas fa-users"></i></div>
+            <h3>Nenhuma equipe cadastrada</h3>
+            <p>Crie equipes na aba Equipes para visualizar os dados.</p>
         </div>
         @endif
     </div>
 </div>
 
-<!-- ===== SEÇÃO 3: Recebimentos por Período ===== -->
+<!-- ===== Recebimentos por Período ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
         <h3><i class="fas fa-money-bill-wave"></i> Recebimentos no Período</h3>
@@ -512,24 +375,24 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><i class="fas fa-list-check" style="margin-right: 8px; color: #7c3aed;"></i>Total de Cobranças</td>
+                    <td><i class="fas fa-list-check" style="margin-right: 8px; color: var(--primary);"></i>Total de Cobranças</td>
                     <td class="text-right font-bold">{{ $pagamentosPeriodo['total_pagamentos'] }}</td>
                 </tr>
                 <tr>
-                    <td><i class="fas fa-circle-check" style="margin-right: 8px; color: #16a34a;"></i>Total Pago</td>
-                    <td class="text-right font-bold" style="color: #16a34a;">R$ {{ number_format($pagamentosPeriodo['total_pago'], 2, ',', '.') }}</td>
+                    <td><i class="fas fa-circle-check" style="margin-right: 8px; color: var(--success);"></i>Total Pago</td>
+                    <td class="text-right font-bold" style="color: var(--success);">R$ {{ number_format($pagamentosPeriodo['total_pago'], 2, ',', '.') }}</td>
                 </tr>
                 <tr>
-                    <td><i class="fas fa-clock" style="margin-right: 8px; color: #ca8a04;"></i>Total Pendente</td>
-                    <td class="text-right font-bold" style="color: #ca8a04;">R$ {{ number_format($pagamentosPeriodo['total_pendente'], 2, ',', '.') }}</td>
+                    <td><i class="fas fa-clock" style="margin-right: 8px; color: var(--warning);"></i>Total Pendente</td>
+                    <td class="text-right font-bold" style="color: var(--warning);">R$ {{ number_format($pagamentosPeriodo['total_pendente'], 2, ',', '.') }}</td>
                 </tr>
                 <tr>
-                    <td><i class="fas fa-circle-xmark" style="margin-right: 8px; color: #dc2626;"></i>Total Vencido</td>
-                    <td class="text-right font-bold" style="color: #dc2626;">R$ {{ number_format($pagamentosPeriodo['total_vencido'], 2, ',', '.') }}</td>
+                    <td><i class="fas fa-circle-xmark" style="margin-right: 8px; color: var(--danger);"></i>Total Vencido</td>
+                    <td class="text-right font-bold" style="color: var(--danger);">R$ {{ number_format($pagamentosPeriodo['total_vencido'], 2, ',', '.') }}</td>
                 </tr>
-                <tr style="background: linear-gradient(135deg, #faf5ff, #f3e8ff);">
-                    <td class="font-bold"><i class="fas fa-coins" style="margin-right: 8px; color: #7c3aed;"></i>Valor Total Recebido</td>
-                    <td class="text-right font-bold" style="font-size: 1.15rem; color: #581c87;">R$ {{ number_format($pagamentosPeriodo['valor_recebido'], 2, ',', '.') }}</td>
+                <tr style="background: var(--bg);">
+                    <td class="font-bold"><i class="fas fa-coins" style="margin-right: 8px; color: var(--primary);"></i>Valor Total Recebido</td>
+                    <td class="text-right font-bold" style="font-size: 1.15rem; color: var(--primary);">R$ {{ number_format($pagamentosPeriodo['valor_recebido'], 2, ',', '.') }}</td>
                 </tr>
             </tbody>
         </table>
@@ -537,7 +400,7 @@
     </div>
 </div>
 
-<!-- ===== SEÇÃO 4: Renovações e Churn ===== -->
+<!-- ===== Renovações e Churn ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
         <h3><i class="fas fa-arrows-rotate"></i> Renovações e Churn</h3>
@@ -553,29 +416,29 @@
             </thead>
             <tbody>
                 <tr>
-                    <td><i class="fas fa-circle-check" style="margin-right: 8px; color: #16a34a;"></i>Clientes Renovados / Pagos</td>
-                    <td class="text-right font-bold" style="color: #16a34a;">{{ $churnRenovacoes['renovados'] }}</td>
+                    <td><i class="fas fa-circle-check" style="margin-right: 8px; color: var(--success);"></i>Clientes Renovados / Pagos</td>
+                    <td class="text-right font-bold" style="color: var(--success);">{{ $churnRenovacoes['renovados'] }}</td>
                 </tr>
                 <tr>
-                    <td><i class="fas fa-arrow-trend-down" style="margin-right: 8px; color: #dc2626;"></i>Churn (Pós-pagamento)</td>
-                    <td class="text-right font-bold" style="color: #dc2626;">{{ $churnRenovacoes['churn'] }}</td>
+                    <td><i class="fas fa-arrow-trend-down" style="margin-right: 8px; color: var(--danger);"></i>Churn (Pós-pagamento)</td>
+                    <td class="text-right font-bold" style="color: var(--danger);">{{ $churnRenovacoes['churn'] }}</td>
                 </tr>
                 <tr>
-                    <td><i class="fas fa-ban" style="margin-right: 8px; color: #64748b;"></i>Desistência (Pré-pagamento)</td>
-                    <td class="text-right font-bold" style="color: #64748b;">{{ $churnRenovacoes['desistencias'] }}</td>
+                    <td><i class="fas fa-ban" style="margin-right: 8px; color: var(--text-secondary);"></i>Desistência (Pré-pagamento)</td>
+                    <td class="text-right font-bold" style="color: var(--text-secondary);">{{ $churnRenovacoes['desistencias'] }}</td>
                 </tr>
                 <tr>
-                    <td><i class="fas fa-percentage" style="margin-right: 8px; color: #7c3aed;"></i>Taxa de Churn (%)</td>
-                    <td class="text-right font-bold" style="color: {{ $churnRenovacoes['churn_percentual'] > 20 ? '#dc2626' : ($churnRenovacoes['churn_percentual'] > 10 ? '#ca8a04' : '#16a34a') }};">
+                    <td><i class="fas fa-percentage" style="margin-right: 8px; color: var(--primary);"></i>Taxa de Churn (%)</td>
+                    <td class="text-right font-bold" style="color: {{ $churnRenovacoes['churn_percentual'] > 20 ? 'var(--danger)' : ($churnRenovacoes['churn_percentual'] > 10 ? 'var(--warning)' : 'var(--success)') }};">
                         {{ $churnRenovacoes['churn_percentual'] }}%
                     </td>
                 </tr>
                 <tr>
-                    <td><i class="fas fa-circle" style="margin-right: 8px; color: #16a34a;"></i>Recorrência Ativa</td>
+                    <td><i class="fas fa-circle" style="margin-right: 8px; color: var(--success);"></i>Recorrência Ativa</td>
                     <td class="text-right font-bold">{{ $churnRenovacoes['ativos'] }}</td>
                 </tr>
                 <tr>
-                    <td><i class="fas fa-circle" style="margin-right: 8px; color: #dc2626;"></i>Recorrência Inativa</td>
+                    <td><i class="fas fa-circle" style="margin-right: 8px; color: var(--danger);"></i>Recorrência Inativa</td>
                     <td class="text-right font-bold">{{ $churnRenovacoes['inativos'] }}</td>
                 </tr>
             </tbody>
@@ -584,7 +447,7 @@
     </div>
 </div>
 
-<!-- ===== SEÇÃO 5: Formas de Pagamento ===== -->
+<!-- ===== Formas de Pagamento ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
         <h3><i class="fas fa-credit-card"></i> Formas de Pagamento</h3>
