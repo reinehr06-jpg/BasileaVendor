@@ -396,14 +396,14 @@ class ComissaoController extends Controller
                 fputcsv($file, ['Vendedor', 'Cliente', 'CPF/CNPJ', 'Valor Venda', '%', 'Valor Comissão', 'Tipo', 'Status', 'Data']);
                 foreach ($comissoes as $c) {
                     fputcsv($file, [
-                        $c->vendedor->user->name ?? 'N/A',
-                        $c->cliente->nome_igreja ?? 'N/A',
-                        $c->cliente->documento ?? 'N/A',
-                        number_format($c->valor_venda, 2, ',', '.'),
+                        $c->vendedor?->user?->name ?? 'N/A',
+                        $c->cliente?->nome_igreja ?? $c->cliente?->nome ?? 'N/A',
+                        $c->cliente?->documento ?? 'N/A',
+                        number_format((float)($c->valor_venda ?? 0), 2, ',', '.'),
                         $c->percentual_aplicado . '%',
-                        number_format($c->valor_comissao, 2, ',', '.'),
-                        ucfirst($c->tipo_comissao),
-                        ucfirst($c->status),
+                        number_format((float)($c->valor_comissao ?? 0), 2, ',', '.'),
+                        ucfirst($c->tipo_comissao ?? ''),
+                        ucfirst($c->status ?? ''),
                         $c->data_pagamento ? $c->data_pagamento->format('d/m/Y') : '-',
                     ]);
                 }
@@ -427,16 +427,16 @@ class ComissaoController extends Controller
             ]);
             foreach ($comissoes as $c) {
                 fputcsv($file, [
-                    $c->vendedor->user->name ?? 'N/A',
-                    $c->cliente->nome_igreja ?? $c->cliente->nome ?? 'N/A',
-                    $c->cliente->nome_pastor ?? $c->cliente->nome_responsavel ?? 'N/A',
-                    $c->cliente->documento ?? 'N/A',
+                    $c->vendedor?->user?->name ?? 'N/A',
+                    $c->cliente?->nome_igreja ?? $c->cliente?->nome ?? 'N/A',
+                    $c->cliente?->nome_pastor ?? $c->cliente?->nome_responsavel ?? 'N/A',
+                    $c->cliente?->documento ?? 'N/A',
                     $c->venda_id,
-                    number_format($c->valor_venda, 2, ',', '.'),
+                    number_format((float)($c->valor_venda ?? 0), 2, ',', '.'),
                     $c->percentual_aplicado . '%',
-                    number_format($c->valor_comissao, 2, ',', '.'),
-                    ucfirst($c->tipo_comissao),
-                    ucfirst($c->status),
+                    number_format((float)($c->valor_comissao ?? 0), 2, ',', '.'),
+                    ucfirst($c->tipo_comissao ?? ''),
+                    ucfirst($c->status ?? ''),
                     $c->data_pagamento ? $c->data_pagamento->format('d/m/Y') : '-',
                     $c->competencia,
                 ]);
@@ -490,14 +490,14 @@ class ComissaoController extends Controller
             foreach ($vendas as $v) {
                 fputcsv($file, [
                     $v->id,
-                    $v->cliente->nome_igreja ?? $v->cliente->nome ?? 'N/A',
-                    $v->cliente->nome_pastor ?? '—',
-                    number_format($v->valor, 2, ',', '.'),
+                    $v->cliente?->nome_igreja ?? $v->cliente?->nome ?? 'N/A',
+                    $v->cliente?->nome_pastor ?? '—',
+                    number_format((float)($v->valor ?? 0), 2, ',', '.'),
                     $v->forma_pagamento ?? '—',
                     $v->tipo_negociacao ?? '—',
                     $v->status,
-                    number_format($v->comissao_gerada ?? 0, 2, ',', '.'),
-                    $v->created_at->format('d/m/Y'),
+                    number_format((float)($v->comissao_gerada ?? 0), 2, ',', '.'),
+                    $v->created_at ? $v->created_at->format('d/m/Y') : '-',
                 ]);
             }
 
