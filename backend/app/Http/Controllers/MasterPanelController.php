@@ -5,17 +5,58 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Response;
 use App\Models\Vendedor;
 use App\Models\User;
 use App\Models\Equipe;
 
 class MasterPanelController extends Controller
 {
-    public function vendedores()
+    public function vendedores(Request $request)
     {
+        $formato = $request->get('formato');
+        
+        if (in_array($formato, ['excel', 'pdf', 'csv'])) {
+            return $this->exportarVendedores($formato);
+        }
+
         $vendedores = User::whereIn('perfil', ['vendedor', 'gestor'])->with('vendedor')->get();
         $gestores = User::whereHas('vendedor', function($q) { $q->where('is_gestor', true); })->with('vendedor')->get();
         return view('master.vendedores.index', compact('vendedores', 'gestores'));
+    }
+
+    private function exportarVendedores($formato)
+    {
+        $vendedores = User::whereIn('perfil', ['vendedor', 'gestor'])
+            ->with('vendedor')
+            ->get()
+            ->map(function($user) {
+                return [
+                    'nome' => $user->name,
+                    'email' => $user->email,
+                    'perfil' => $user->perfil === 'gestor' ? 'Gestor' : 'Vendedor',
+                    'status' => $user->status,
+                    'telefone' => $user->vendedor->telefone ?? '-',
+                    'comissao' => $user->vendedor->comissao ?? 0,
+                    'criado' => $user->created_at->format('d/m/Y'),
+                ];
+            });
+
+        if ($formato === 'csv') {
+            $headers = ['Content-Type' => 'text/csv; charset=UTF-8'];
+            $callback = function() use ($vendedores) {
+                $file = fopen('php://output', 'w');
+                fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+                fputcsv($file, ['Nome', 'E-mail', 'Perfil', 'Status', 'Telefone', 'Comissão', 'Data Cadastro']);
+                foreach ($vendedores as $v) {
+                    fputcsv($file, $v);
+                }
+                fclose($file);
+            };
+            return response()->stream($callback, 200, $headers);
+        }
+
+        return back()->with('error', 'Formato de exportação não suportado.');
     }
 
     public function storeVendedor(Request $request)

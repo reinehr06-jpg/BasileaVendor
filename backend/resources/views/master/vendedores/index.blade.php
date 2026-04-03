@@ -107,9 +107,8 @@
     subtitle="Cadastre e gerencie sua equipe de vendas." 
     icon="fas fa-users"
     :exports="[
-        ['type' => 'excel', 'url' => '?formato=excel', 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
-        ['type' => 'pdf', 'url' => '?formato=pdf', 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
-        ['type' => 'csv', 'url' => '?formato=csv', 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+        ['type' => 'excel', 'url' => route('master.vendedores', ['formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'csv', 'url' => route('master.vendedores', ['formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
     ]"
 />
 
