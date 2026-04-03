@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhook/saque',
             'webhook/basileia-church/*',
             'webhook/checkout',
+            'webhooks/asaas',
+            'webhooks/asaas/*',
         ]);
         $middleware->append(\App\Http\Middleware\ClearStaleCache::class);
         
