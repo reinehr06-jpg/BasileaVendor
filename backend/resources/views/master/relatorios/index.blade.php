@@ -4,23 +4,21 @@
 @section('content')
 <style>
     .report-hero {
-        margin-bottom: 30px;
+        margin-bottom: 16px;
         padding: 30px;
         background: linear-gradient(135deg, var(--primary-dark) 0%, #4C1D95 100%);
         border-radius: var(--radius-xl);
         color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
         box-shadow: 0 20px 25px -5px rgba(59, 7, 100, 0.2);
-        overflow: visible;
     }
     .report-hero h2 { color: white; margin-bottom: 6px; font-size: 1.6rem; letter-spacing: -0.5px; }
     .report-hero p { opacity: 0.85; font-size: 0.95rem; }
+
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .export-dropdown { position: relative; display: inline-block; }
-    .export-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; }
-    .export-btn:hover { background: rgba(255,255,255,0.25); }
-    .export-dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 99999; }
+    .export-btn { background: white; color: var(--text-primary); border: 1.5px solid var(--border); padding: 8px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .export-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .export-dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 4px); background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; }
     .export-dropdown:hover .export-dropdown-content { display: block; }
     .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
     .export-item:hover { background: var(--bg); color: var(--primary); }
@@ -71,15 +69,14 @@
     .badge-forma.cartao { background: #f3e8ff; color: #6b21a8; }
     .badge-forma.recorrente { background: #d1fae5; color: #065f46; }
 
-    .filter-wrap { width: 100%; }
-
     @media (max-width: 1200px) {
         .kpi-grid { grid-template-columns: repeat(3, 1fr); }
         .insight-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 768px) {
         .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-        .report-hero { flex-direction: column; gap: 16px; text-align: center; }
+        .report-hero { padding: 24px; }
+        .toolbar { flex-direction: column; gap: 12px; align-items: flex-start; }
         .filters-bar { flex-direction: column; }
         .filters-bar > div { width: 100%; }
     }
@@ -88,42 +85,45 @@
 <!-- ===== Hero Banner ===== -->
 <div class="animate-up" style="animation-delay: 0.1s;">
     <div class="report-hero">
-        <div>
-            <h2><i class="fas fa-chart-bar" style="margin-right: 10px;"></i>Relatórios Gerenciais</h2>
-            <p>Análise consolidada da operação comercial e financeira</p>
-        </div>
-        <div class="export-dropdown">
-            <button class="export-btn">
-                <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
-            </button>
-            <div class="export-dropdown-content">
-                <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item">
-                    <i class="fas fa-file-excel" style="color: var(--success);"></i> Exportar Excel
-                </a>
-                <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item">
-                    <i class="fas fa-file-pdf" style="color: var(--danger);"></i> Exportar PDF
-                </a>
-                <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item">
-                    <i class="fas fa-file-csv" style="color: var(--info);"></i> Exportar CSV
-                </a>
-            </div>
+        <h2><i class="fas fa-chart-bar" style="margin-right: 10px;"></i>Relatórios Gerenciais</h2>
+        <p>Análise consolidada da operação comercial e financeira</p>
+    </div>
+</div>
+
+<!-- ===== Toolbar ===== -->
+<div class="toolbar animate-up" style="animation-delay: 0.15s;">
+    <div></div>
+    <div class="export-dropdown">
+        <button class="export-btn">
+            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
+        </button>
+        <div class="export-dropdown-content">
+            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item">
+                <i class="fas fa-file-excel" style="color: var(--success);"></i> Exportar Excel
+            </a>
+            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item">
+                <i class="fas fa-file-pdf" style="color: var(--danger);"></i> Exportar PDF
+            </a>
+            <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item">
+                <i class="fas fa-file-csv" style="color: var(--info);"></i> Exportar CSV
+            </a>
         </div>
     </div>
 </div>
 
 {{-- ===== Filtros ===== --}}
 <form method="GET" action="{{ route('master.relatorios') }}">
-<div class="filters-bar animate-up" style="animation-delay: 0.15s;">
-    <div class="filter-wrap">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Data Início</label>
+<div class="filters-bar animate-up" style="animation-delay: 0.2s;">
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 130px;">
+        <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Início</label>
         <input type="date" name="data_inicio" class="form-control" value="{{ $filtros['data_inicio'] }}">
     </div>
-    <div class="filter-wrap">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Data Fim</label>
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 130px;">
+        <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Fim</label>
         <input type="date" name="data_fim" class="form-control" value="{{ $filtros['data_fim'] }}">
     </div>
-    <div class="filter-wrap">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Vendedor</label>
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px;">
+        <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Vendedor</label>
         <select name="vendedor_id" class="form-control">
             <option value="">Todos</option>
             @foreach($vendedores as $v)
@@ -131,49 +131,12 @@
             @endforeach
         </select>
     </div>
-    <div class="filter-wrap">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Status</label>
+    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px;">
+        <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Status</label>
         <select name="status" class="form-control">
             <option value="">Todos</option>
-            <option value="Aguardando pagamento" {{ $filtros['status'] == 'Aguardando pagamento' ? 'selected' : '' }}>Aguardando</option>
             <option value="Pago" {{ $filtros['status'] == 'Pago' ? 'selected' : '' }}>Pago</option>
             <option value="Cancelado" {{ $filtros['status'] == 'Cancelado' ? 'selected' : '' }}>Cancelado</option>
-            <option value="Expirado" {{ $filtros['status'] == 'Expirado' ? 'selected' : '' }}>Expirado</option>
-            <option value="Vencido" {{ $filtros['status'] == 'Vencido' ? 'selected' : '' }}>Vencido</option>
-        </select>
-    </div>
-    <div class="filter-wrap">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Forma Pagamento</label>
-        <select name="forma_pagamento" class="form-control">
-            <option value="">Todas</option>
-            <option value="pix" {{ $filtros['forma_pagamento'] == 'pix' ? 'selected' : '' }}>PIX</option>
-            <option value="boleto" {{ $filtros['forma_pagamento'] == 'boleto' ? 'selected' : '' }}>Boleto</option>
-            <option value="cartao" {{ $filtros['forma_pagamento'] == 'cartao' ? 'selected' : '' }}>Cartão</option>
-        </select>
-    </div>
-    <div class="filter-wrap">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Negociação</label>
-        <select name="tipo_negociacao" class="form-control">
-            <option value="">Todos</option>
-            <option value="mensal" {{ $filtros['tipo_negociacao'] == 'mensal' ? 'selected' : '' }}>Mensal</option>
-            <option value="anual" {{ $filtros['tipo_negociacao'] == 'anual' ? 'selected' : '' }}>Anual</option>
-        </select>
-    </div>
-    <div class="filter-wrap">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Cliente</label>
-        <select name="cliente_id" class="form-control">
-            <option value="">Todos</option>
-            @foreach($clientes as $c)
-                <option value="{{ $c->id }}" {{ $filtros['cliente_id'] == $c->id ? 'selected' : '' }}>{{ $c->nome_igreja ?? $c->nome ?? 'Cliente #'.$c->id }}</option>
-            @endforeach
-        </select>
-    </div>
-    <div class="filter-wrap">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Recorrência</label>
-        <select name="recorrencia" class="form-control">
-            <option value="">Todas</option>
-            <option value="ativa" {{ $filtros['recorrencia'] == 'ativa' ? 'selected' : '' }}>Ativa</option>
-            <option value="inativa" {{ $filtros['recorrencia'] == 'inativa' ? 'selected' : '' }}>Inativa</option>
         </select>
     </div>
     <div style="display: flex; gap: 8px; align-items: flex-end;">
@@ -185,7 +148,7 @@
 
 {{-- ===== Estado vazio ===== --}}
 @if(!$temDadosNoSistema)
-<div class="table-container animate-up" style="animation-delay: 0.2s;">
+<div class="table-container animate-up" style="animation-delay: 0.25s;">
     <div class="empty-state">
         <div class="empty-icon"><i class="fas fa-chart-pie"></i></div>
         <h3>Nenhum dado disponível</h3>
@@ -193,7 +156,7 @@
     </div>
 </div>
 @elseif(!$filtrosRetornaramDados)
-<div class="table-container animate-up" style="animation-delay: 0.2s;">
+<div class="table-container animate-up" style="animation-delay: 0.25s;">
     <div class="empty-state">
         <div class="empty-icon"><i class="fas fa-search"></i></div>
         <h3>Nenhum resultado encontrado</h3>
@@ -204,47 +167,47 @@
 
 {{-- ===== KPIs ===== --}}
 <div class="kpi-grid">
-    <div class="kpi-card highlight animate-up" style="animation-delay: 0.2s;">
+    <div class="kpi-card highlight animate-up" style="animation-delay: 0.3s;">
         <i class="fas fa-coins kpi-icon"></i>
         <span class="label">Total de Vendas</span>
         <div class="value">{{ $resumo['totalVendas'] }}</div>
     </div>
-    <div class="kpi-card animate-up" style="animation-delay: 0.25s;">
+    <div class="kpi-card animate-up" style="animation-delay: 0.35s;">
         <i class="fas fa-chart-line kpi-icon"></i>
         <span class="label">Valor Vendido</span>
         <div class="value">R$ {{ number_format($resumo['valorVendido'], 2, ',', '.') }}</div>
     </div>
-    <div class="kpi-card animate-up" style="animation-delay: 0.3s;">
+    <div class="kpi-card animate-up" style="animation-delay: 0.4s;">
         <i class="fas fa-circle-check kpi-icon" style="color: var(--success);"></i>
         <span class="label">Valor Recebido</span>
         <div class="value" style="color: var(--success);">R$ {{ number_format($resumo['valorRecebido'], 2, ',', '.') }}</div>
     </div>
-    <div class="kpi-card animate-up" style="animation-delay: 0.35s;">
+    <div class="kpi-card animate-up" style="animation-delay: 0.45s;">
         <i class="fas fa-hand-holding-dollar kpi-icon" style="color: var(--warning);"></i>
         <span class="label">Comissões Geradas</span>
         <div class="value" style="color: var(--warning);">R$ {{ number_format($resumo['totalComissoes'], 2, ',', '.') }}</div>
     </div>
-    <div class="kpi-card animate-up" style="animation-delay: 0.4s;">
+    <div class="kpi-card animate-up" style="animation-delay: 0.5s;">
         <i class="fas fa-users kpi-icon"></i>
         <span class="label">Clientes Ativos</span>
         <div class="value">{{ $resumo['clientesAtivos'] }}</div>
     </div>
-    <div class="kpi-card animate-up" style="animation-delay: 0.45s;">
+    <div class="kpi-card animate-up" style="animation-delay: 0.55s;">
         <i class="fas fa-arrows-rotate kpi-icon" style="color: var(--success);"></i>
         <span class="label">Renovações</span>
         <div class="value">{{ $resumo['renovacoes'] }}</div>
     </div>
-    <div class="kpi-card animate-up" style="animation-delay: 0.5s;">
+    <div class="kpi-card animate-up" style="animation-delay: 0.6s;">
         <i class="fas fa-arrow-trend-down kpi-icon" style="color: var(--danger);"></i>
         <span class="label">Churn</span>
         <div class="value" style="color: var(--danger);">{{ $resumo['churn'] }}</div>
     </div>
-    <div class="kpi-card animate-up" style="animation-delay: 0.55s;">
+    <div class="kpi-card animate-up" style="animation-delay: 0.65s;">
         <i class="fas fa-ban kpi-icon" style="color: var(--text-muted);"></i>
         <span class="label">Desistências</span>
         <div class="value">{{ $resumo['desistencia'] }}</div>
     </div>
-    <div class="kpi-card animate-up" style="animation-delay: 0.6s;">
+    <div class="kpi-card animate-up" style="animation-delay: 0.7s;">
         <i class="fas fa-bullseye kpi-icon"></i>
         <span class="label">Ticket Médio</span>
         <div class="value">R$ {{ number_format($resumo['ticketMedio'], 2, ',', '.') }}</div>
@@ -252,7 +215,7 @@
 </div>
 
 {{-- ===== Vendas por Vendedor ===== --}}
-<div class="section-card animate-up" style="animation-delay: 0.65s;">
+<div class="section-card animate-up" style="animation-delay: 0.75s;">
     <div class="section-card-header">
         <i class="fas fa-chart-bar"></i>
         <h3>Vendas por Vendedor</h3>
@@ -310,7 +273,7 @@
 
 {{-- ===== Grid: Metas por Equipe + Recebimentos ===== --}}
 <div class="insight-grid">
-    <div class="section-card animate-up" style="animation-delay: 0.7s;">
+    <div class="section-card animate-up" style="animation-delay: 0.8s;">
         <div class="section-card-header">
             <i class="fas fa-users-cog"></i>
             <h3>Metas por Equipe</h3>
@@ -354,7 +317,7 @@
         </div>
     </div>
 
-    <div class="section-card animate-up" style="animation-delay: 0.75s;">
+    <div class="section-card animate-up" style="animation-delay: 0.85s;">
         <div class="section-card-header">
             <i class="fas fa-money-bill-wave"></i>
             <h3>Recebimentos no Período</h3>
@@ -386,7 +349,7 @@
 
 {{-- ===== Grid: Churn + Formas de Pagamento ===== --}}
 <div class="insight-grid">
-    <div class="section-card animate-up" style="animation-delay: 0.8s;">
+    <div class="section-card animate-up" style="animation-delay: 0.9s;">
         <div class="section-card-header">
             <i class="fas fa-arrows-rotate"></i>
             <h3>Renovações e Churn</h3>
@@ -419,7 +382,7 @@
         </div>
     </div>
 
-    <div class="section-card animate-up" style="animation-delay: 0.85s;">
+    <div class="section-card animate-up" style="animation-delay: 0.95s;">
         <div class="section-card-header">
             <i class="fas fa-credit-card"></i>
             <h3>Formas de Pagamento</h3>
@@ -475,4 +438,3 @@
 @endif
 
 @endsection
-
