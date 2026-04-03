@@ -386,14 +386,14 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/comissao', function() { return redirect()->route('vendedor.comissoes'); })->name('comissao');
         
         // Configurações do Vendedor (Perfil, Segurança, Split)
-        Route::get('/vendedor/configuracoes/{tab?}', [VendedorSettingsController::class, 'index'])->name('vendedor.configuracoes');
-        Route::post('/vendedor/configuracoes/perfil', [VendedorSettingsController::class, 'updateProfile'])->name('vendedor.configuracoes.perfil.update');
-        Route::post('/vendedor/configuracoes/senha', [VendedorSettingsController::class, 'updatePassword'])->name('vendedor.configuracoes.senha.update');
-        Route::get('/vendedor/configuracoes/2fa/setup', [VendedorSettingsController::class, 'setup2fa'])->name('vendedor.configuracoes.2fa.setup');
-        Route::post('/vendedor/configuracoes/2fa/enable', [VendedorSettingsController::class, 'enable2fa'])->name('vendedor.configuracoes.2fa.enable');
-        Route::post('/vendedor/configuracoes/2fa/disable', [VendedorSettingsController::class, 'disable2fa'])->name('vendedor.configuracoes.2fa.disable');
-        Route::post('/vendedor/configuracoes/2fa/rotate', [VendedorSettingsController::class, 'rotate2fa'])->name('vendedor.configuracoes.2fa.rotate');
-        Route::put('/vendedor/configuracoes/split', [VendedorConfiguracaoController::class, 'updateSplit'])->name('vendedor.configuracoes.split.update');
+        Route::get('/configuracoes/{tab?}', [VendedorSettingsController::class, 'index'])->name('configuracoes');
+        Route::post('/configuracoes/perfil', [VendedorSettingsController::class, 'updateProfile'])->name('configuracoes.perfil.update');
+        Route::post('/configuracoes/senha', [VendedorSettingsController::class, 'updatePassword'])->name('configuracoes.senha.update');
+        Route::get('/configuracoes/2fa/setup', [VendedorSettingsController::class, 'setup2fa'])->name('configuracoes.2fa.setup');
+        Route::post('/configuracoes/2fa/enable', [VendedorSettingsController::class, 'enable2fa'])->name('configuracoes.2fa.enable');
+        Route::post('/configuracoes/2fa/disable', [VendedorSettingsController::class, 'disable2fa'])->name('configuracoes.2fa.disable');
+        Route::post('/configuracoes/2fa/rotate', [VendedorSettingsController::class, 'rotate2fa'])->name('configuracoes.2fa.rotate');
+        Route::put('/configuracoes/split', [VendedorConfiguracaoController::class, 'updateSplit'])->name('configuracoes.split.update');
         
         // Equipe do Gestor
         Route::get('/equipe', [GestorEquipeController::class, 'index'])->name('equipe');

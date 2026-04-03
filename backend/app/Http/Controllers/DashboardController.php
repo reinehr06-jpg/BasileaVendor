@@ -17,11 +17,10 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        try {
-            $user = Auth::user();
-            $periodo = $request->get('periodo', 'month');
-            
-            switch ($periodo) {
+        $user = Auth::user();
+        $periodo = $request->get('periodo', 'month');
+        
+        switch ($periodo) {
             case 'week':
                 $dataInicio = Carbon::now()->startOfWeek();
                 $dataFim = Carbon::now();
@@ -179,17 +178,12 @@ class DashboardController extends Controller
             default => 'Último Mês'
         };
 
-            $html = view('dashboard', compact(
-                'vendasAtivas', 'vendedoresAtivos', 'comissoesPendentes', 
-                'totalRecebido', 'clientesAtivos', 'churnMes',
-                'melhorFaixa', 'renovacoesMes', 'vendasTrend', 'recebidoTrend',
-                'contagemPendentes', 'graficoData', 'tituloSessao', 'isPersonal',
-                'periodo', 'periodoLabel'
-            ))->render();
-            
-            return response($html);
-        } catch (\Exception $e) {
-            return response('<h1>Erro Interno no Dashboard</h1><p><b>Mensagem:</b> ' . htmlspecialchars($e->getMessage()) . '</p><hr><pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>', 500);
-        }
+        return view('dashboard', compact(
+            'vendasAtivas', 'vendedoresAtivos', 'comissoesPendentes', 
+            'totalRecebido', 'clientesAtivos', 'churnMes',
+            'melhorFaixa', 'renovacoesMes', 'vendasTrend', 'recebidoTrend',
+            'contagemPendentes', 'graficoData', 'tituloSessao', 'isPersonal',
+            'periodo', 'periodoLabel'
+        ));
     }
 }
