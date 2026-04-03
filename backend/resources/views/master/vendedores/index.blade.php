@@ -289,7 +289,7 @@
                     <div class="form-group">
                         <label>Telefone</label>
                         <div style="display:flex; gap:8px; align-items:center;">
-                            <select name="telefone_ddi" class="form-control" style="flex:0 0 95px; font-size:0.78rem; padding:8px 4px; min-width:0;">
+                            <select name="telefone_ddi" class="form-control" style="flex:0 0 80px; font-size:0.85rem; padding:4px; min-width:0;">
                                 <option value="55">🇧🇷 +55</option>
                                 <option value="1">🇺🇸 +1</option>
                                 <option value="351">🇵🇹 +351</option>
@@ -424,7 +424,7 @@
                             <div class="form-group">
                                 <label>Telefone</label>
                                 <div style="display:flex; gap:8px;">
-                                    <select id="editTelefoneDdi" class="form-control" style="flex:0 0 85px; font-size:0.78rem; padding:8px 6px; min-width:0;">
+                                    <select id="editTelefoneDdi" class="form-control" style="flex:0 0 80px; font-size:0.85rem; padding:4px; min-width:0;">
                                         <option value="55">🇧🇷 +55</option>
                                         <option value="1">🇺🇸 +1</option>
                                         <option value="7">🇷🇺 +7</option>
