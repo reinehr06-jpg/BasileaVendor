@@ -68,6 +68,10 @@ class LoginController extends Controller
 
                 Log::info('LOGIN_ADMIN_OK', ['id' => $userId]);
 
+                if ($user->two_factor_enabled) {
+                    return redirect()->route('2fa.verify');
+                }
+
                 return redirect('/dashboard');
 
             } catch (\Exception $e) {

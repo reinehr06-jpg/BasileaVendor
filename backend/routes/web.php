@@ -125,6 +125,15 @@ Route::get('/Login', function() { return redirect('/login'); });
 Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// 2FA Routes
+Route::middleware('auth')->prefix('2fa')->name('2fa.')->group(function () {
+    Route::get('/verify', [App\Http\Controllers\Auth\TwoFactorController::class, 'showVerify'])->name('verify');
+    Route::post('/verify', [App\Http\Controllers\Auth\TwoFactorController::class, 'verify'])->name('verify.post');
+    Route::get('/setup', [App\Http\Controllers\Auth\TwoFactorController::class, 'showSetup'])->name('setup');
+    Route::post('/enable', [App\Http\Controllers\Auth\TwoFactorController::class, 'enable'])->name('enable');
+    Route::post('/disable', [App\Http\Controllers\Auth\TwoFactorController::class, 'disable'])->name('disable');
+});
+
 // Health check + cache clear (public, no auth)
 Route::get('/health', function() {
     return response()->json(['status' => 'ok', 'timestamp' => now()]);
@@ -223,7 +232,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/password/update', [App\Http\Controllers\Auth\PasswordChangeController::class, 'update'])->name('password.update');
 });
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', '2fa'])->group(function () {
     
     // Fallback inteligente: Quem acessar apenas /dashboard será jogado para seu respectivo painel
     Route::get('/dashboard', function () {

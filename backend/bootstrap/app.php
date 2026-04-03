@@ -35,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role.rate.limit' => \App\Http\Middleware\Security\RateLimitByRole::class,
             'force.password.change' => \App\Http\Middleware\ForcePasswordChange::class,
             'api.key' => \App\Http\Middleware\ApiKeyAuth::class,
+            '2fa' => \App\Http\Middleware\TwoFactorMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

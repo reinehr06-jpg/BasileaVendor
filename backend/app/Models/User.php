@@ -28,6 +28,10 @@ class User extends Authenticatable
         'password',
         'perfil',
         'status',
+        'require_password_change',
+        'two_factor_secret',
+        'two_factor_enabled',
+        'recovery_codes',
     ];
 
     /**

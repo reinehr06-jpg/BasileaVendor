@@ -353,6 +353,18 @@
                 <h1>@yield('title')</h1>
             </div>
             <div class="topbar-actions">
+                @php
+                    $user2fa = Auth::user();
+                @endphp
+                @if(!$user2fa->two_factor_enabled)
+                <a href="{{ route('2fa.setup') }}" style="display:inline-flex; align-items:center; gap:6px; padding:8px 14px; background:linear-gradient(135deg,#fef3c7,#fde68a); color:#92400e; border-radius:8px; font-size:0.78rem; font-weight:700; text-decoration:none; border:1px solid #fbbf24;">
+                    <i class="fas fa-shield-halved"></i> Ativar 2FA
+                </a>
+                @else
+                <span style="display:inline-flex; align-items:center; gap:6px; padding:8px 14px; background:#dcfce7; color:#166534; border-radius:8px; font-size:0.78rem; font-weight:700; border:1px solid #86efac;">
+                    <i class="fas fa-shield-halved"></i> 2FA Ativo
+                </span>
+                @endif
                 @if(Auth::user()->perfil === 'master')
                 @php
                     $notifNaoLidas = \App\Models\Notificacao::where('user_id', Auth::id())->where('lida', false)->count();
