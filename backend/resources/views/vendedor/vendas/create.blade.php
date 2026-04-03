@@ -132,28 +132,28 @@
         <div class="form-row">
             <div class="form-group">
                 <label>WhatsApp de Contato <span class="required">*</span></label>
-                <div style="display:flex; gap:8px;">
-                    <select name="ddi" id="inputDdi" class="form-control" style="flex:0 0 85px; padding-left: 8px; padding-right: 2px;">
-                        <option value="55" data-flag="🇧🇷">🇧🇷 +55</option>
-                        <option value="1" data-flag="🇺🇸">🇺🇸 +1</option>
-                        <option value="54" data-flag="🇦🇷">🇦🇷 +54</option>
-                        <option value="351" data-flag="🇵🇹">🇵🇹 +351</option>
-                        <option value="52" data-flag="🇲🇽">🇲🇽 +52</option>
-                        <option value="56" data-flag="🇨🇱">🇨🇱 +56</option>
-                        <option value="57" data-flag="🇨🇴">🇨🇴 +57</option>
-                        <option value="598" data-flag="🇺🇾">🇺🇾 +598</option>
-                        <option value="595" data-flag="🇵🇾">🇵🇾 +595</option>
-                        <option value="591" data-flag="🇧🇴">🇧🇴 +591</option>
-                        <option value="593" data-flag="🇪🇨">🇪🇨 +593</option>
-                        <option value="51" data-flag="🇵🇪">🇵🇪 +51</option>
-                        <option value="58" data-flag="🇻🇪">🇻🇪 +58</option>
-                        <option value="44" data-flag="🇬🇧">🇬🇧 +44</option>
-                        <option value="49" data-flag="🇩🇪">🇩🇪 +49</option>
-                        <option value="33" data-flag="🇫🇷">🇫🇷 +33</option>
-                        <option value="39" data-flag="🇮🇹">🇮🇹 +39</option>
-                        <option value="34" data-flag="🇪🇸">🇪🇸 +34</option>
+                <div style="display:flex; gap:8px; align-items: center;">
+                    <select name="ddi" id="inputDdi" class="form-control" style="flex:0 0 60px; font-size:0.75rem; padding:6px 2px;">
+                        <option value="55">+55</option>
+                        <option value="1">+1</option>
+                        <option value="54">+54</option>
+                        <option value="351">+351</option>
+                        <option value="52">+52</option>
+                        <option value="56">+56</option>
+                        <option value="57">+57</option>
+                        <option value="598">+598</option>
+                        <option value="595">+595</option>
+                        <option value="591">+591</option>
+                        <option value="593">+593</option>
+                        <option value="51">+51</option>
+                        <option value="58">+58</option>
+                        <option value="44">+44</option>
+                        <option value="49">+49</option>
+                        <option value="33">+33</option>
+                        <option value="39">+39</option>
+                        <option value="34">+34</option>
                     </select>
-                    <input type="text" name="whatsapp" id="inputWhatsapp" class="form-control" value="{{ old('whatsapp') }}" required placeholder="(00) 00000-0000" maxlength="20" style="flex:1;">
+                    <input type="text" name="whatsapp" id="inputWhatsapp" class="form-control" value="{{ old('whatsapp') }}" required placeholder="(00) 00000-0000" maxlength="20" style="flex:1; min-width: 0;">
                 </div>
                 <div id="whatsappWarning" style="display:none; margin-top:5px; color:#ef4444; font-size:0.82rem;"></div>
             </div>
