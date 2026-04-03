@@ -86,30 +86,26 @@
 
 <!-- ===== Hero Banner ===== -->
 <div class="animate-up" style="animation-delay: 0.1s;">
-    <div class="report-hero">
+    <div class="report-hero" style="overflow: visible;">
         <div>
             <h2><i class="fas fa-chart-bar" style="margin-right: 10px;"></i>Relatórios Gerenciais</h2>
             <p>Análise consolidada da operação comercial e financeira</p>
         </div>
-    </div>
-</div>
-
-<!-- ===== Toolbar ===== -->
-<div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
-    <div class="export-dropdown">
-        <button class="export-btn" style="background: white; color: var(--text-primary); border: 1.5px solid var(--border); padding: 8px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;">
-            <i class="fas fa-download" style="color: var(--primary);"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
-        </button>
-        <div class="export-dropdown-content">
-            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item">
-                <i class="fas fa-file-excel" style="color: var(--success);"></i> Exportar Excel
-            </a>
-            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item">
-                <i class="fas fa-file-pdf" style="color: var(--danger);"></i> Exportar PDF
-            </a>
-            <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item">
-                <i class="fas fa-file-csv" style="color: var(--info);"></i> Exportar CSV
-            </a>
+        <div class="export-dropdown">
+            <button class="export-btn">
+                <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
+            </button>
+            <div class="export-dropdown-content">
+                <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item">
+                    <i class="fas fa-file-excel" style="color: var(--success);"></i> Exportar Excel
+                </a>
+                <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item">
+                    <i class="fas fa-file-pdf" style="color: var(--danger);"></i> Exportar PDF
+                </a>
+                <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item">
+                    <i class="fas fa-file-csv" style="color: var(--info);"></i> Exportar CSV
+                </a>
+            </div>
         </div>
     </div>
 </div>
