@@ -40,8 +40,13 @@ class AdminSecurity
             abort(403, 'Acesso negado. Esta área é restrita apenas para administradores.');
         }
 
-        // IP Whitelist Check for ADM (if configured and column exists)
-        if (Schema::hasColumn('users', 'allowed_ips') && !empty($user->allowed_ips)) {
+        // IP Whitelist Check for ADM (cached result)
+        $allowedIpsCheck = cache()->get('admin_allowed_ips_check_' . $user->id, null);
+        if ($allowedIpsCheck === null) {
+            $allowedIpsCheck = Schema::hasColumn('users', 'allowed_ips');
+            cache()->put('admin_allowed_ips_check_' . $user->id, $allowedIpsCheck, now()->addHours(24));
+        }
+        if ($allowedIpsCheck && !empty($user->allowed_ips)) {
             try {
                 $allowedIps = json_decode($user->allowed_ips, true);
                 $clientIp = $request->ip();
@@ -54,8 +59,13 @@ class AdminSecurity
             }
         }
 
-        // Account lockout check (só se coluna existir)
-        if (Schema::hasColumn('users', 'account_locked_until')) {
+        // Account lockout check (cached result)
+        $lockoutCheck = cache()->get('admin_lockout_check', null);
+        if ($lockoutCheck === null) {
+            $lockoutCheck = Schema::hasColumn('users', 'account_locked_until');
+            cache()->put('admin_lockout_check', $lockoutCheck, now()->addHours(24));
+        }
+        if ($lockoutCheck) {
             try {
                 if (!is_null($user->account_locked_until) && $user->account_locked_until > now()) {
                     abort(403, 'Conta temporariamente bloqueada devido a múltiplas tentativas de login falhas.');

@@ -255,9 +255,22 @@ class VendaController extends Controller
             DB::beginTransaction();
 
             // Criar ou atualizar cliente
-            $cliente = Cliente::updateOrCreate(
-                ['documento' => $documento],
-                [
+            $clienteExistente = Cliente::where('documento', $documento)->first();
+
+            if ($clienteExistente) {
+                // Se cliente existe e pertence a outro vendedor, nao permite sobrescrever
+                $clientePertenceAVendedor = $clienteExistente->vendas()
+                    ->whereHas('vendedor', fn($q) => $q->where('usuario_id', $user->id))
+                    ->exists();
+
+                if (!$clientePertenceAVendedor) {
+                    return back()->withErrors([
+                        'documento' => 'Este documento já está vinculado a outro vendedor. Entre em contato com o administrador.'
+                    ])->withInput();
+                }
+
+                // Atualiza apenas se pertence ao vendedor atual
+                $clienteExistente->update([
                     'nome' => $request->nome_igreja,
                     'nome_igreja' => $request->nome_igreja,
                     'nome_pastor' => $request->nome_pastor,
@@ -274,8 +287,28 @@ class VendaController extends Controller
                     'bairro' => $request->bairro,
                     'cidade' => $request->cidade,
                     'estado' => $request->estado,
-                ]
-            );
+                ]);
+                $cliente = $clienteExistente;
+            } else {
+                $cliente = Cliente::create([
+                    'nome' => $request->nome_igreja,
+                    'nome_igreja' => $request->nome_igreja,
+                    'nome_pastor' => $request->nome_pastor,
+                    'localidade' => $request->localidade,
+                    'moeda' => $request->moeda,
+                    'quantidade_membros' => $request->quantidade_membros,
+                    'whatsapp' => $whatsappCompleto,
+                    'contato' => $whatsappCompleto,
+                    'email' => $request->email_cliente,
+                    'cep' => $request->cep,
+                    'endereco' => $request->endereco,
+                    'numero' => $request->numero,
+                    'complemento' => $request->complemento,
+                    'bairro' => $request->bairro,
+                    'cidade' => $request->cidade,
+                    'estado' => $request->estado,
+                ]);
+            }
 
             // Criar venda
             $venda = Venda::create([
@@ -720,10 +753,13 @@ class VendaController extends Controller
             return back()->withErrors(['error' => 'Não é possível cancelar uma venda já paga.']);
         }
 
-        // Cancelar no Asaas apenas se a venda foi aprovada (tem cobrança gerada)
-        if ($venda->status !== 'Aguardando aprovação') {
-            $this->cancelarNoAsaas($venda);
+        // Impedir cancelamento de vendas aguardando aprovação (bypass do workflow)
+        if ($venda->status === 'Aguardando aprovação') {
+            return back()->withErrors(['error' => 'Esta venda está aguardando aprovação. Entre em contato com o administrador para cancelá-la.']);
         }
+
+        // Cancelar no Asaas apenas se a venda foi aprovada (tem cobrança gerada)
+        $this->cancelarNoAsaas($venda);
 
         $venda->update(['status' => 'Cancelado']);
 
@@ -1127,7 +1163,11 @@ class VendaController extends Controller
             }
         }
 
+        $allowedMethods = ['pix', 'boleto', 'credit_card', 'cartao'];
         $method = $request->get('method', $venda->forma_pagamento ?? 'credit_card');
+        if (!in_array(strtolower($method), $allowedMethods)) {
+            return response()->json(['error' => 'Método de pagamento inválido.'], 400);
+        }
         $methodMap = [
             'CREDIT_CARD' => 'credit_card',
             'PIX' => 'pix',

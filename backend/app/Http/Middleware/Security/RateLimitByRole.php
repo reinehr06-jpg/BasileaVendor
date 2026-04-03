@@ -25,34 +25,29 @@ class RateLimitByRole
         }
 
         $user = Auth::user();
-        $ip = $request->ip();
         $route = $request->route()->getName() ?? $request->path();
         
         // Different rate limits based on user role
         if ($user) {
             switch ($user->perfil) {
                 case 'master':
-                    // ADM: Higher limits for legitimate admin work
                     $limitPerMinute = 120;
-                    $key = 'admin:' . $ip . ':' . $route;
+                    $key = 'admin:' . $user->id . ':' . $route;
                     break;
                     
                 case 'gestor':
-                    // Gestor: Medium limits
                     $limitPerMinute = 100;
-                    $key = 'gestor:' . $ip . ':' . $route;
+                    $key = 'gestor:' . $user->id . ':' . $route;
                     break;
                     
                 default:
-                    // Vendedor: Standard limits
                     $limitPerMinute = 80;
-                    $key = 'vendedor:' . $ip . ':' . $route;
+                    $key = 'vendedor:' . $user->id . ':' . $route;
                     break;
             }
         } else {
-            // Guest/unauthenticated: Strict limits
             $limitPerMinute = 30;
-            $key = 'guest:' . $ip . ':' . $route;
+            $key = 'guest:' . $request->ip() . ':' . $route;
         }
 
         // Attempt to do the rate limiting

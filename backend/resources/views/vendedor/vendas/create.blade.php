@@ -338,8 +338,8 @@
                 <div class="field-hint">Este valor será enviado para aprovação do administrador.</div>
             </div>
             <div class="form-group" style="flex: 0.5;">
-                <label>Observação</label>
-                <textarea name="observacao" class="form-control" placeholder="Detalhes da negociação...">{{ old('observacao') }}</textarea>
+                <label>Observação da Negociação</label>
+                <textarea name="observacao_negociacao" class="form-control" placeholder="Detalhes da negociação...">{{ old('observacao_negociacao') }}</textarea>
             </div>
         </div>
 
