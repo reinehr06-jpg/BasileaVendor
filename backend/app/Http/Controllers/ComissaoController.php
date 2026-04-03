@@ -17,10 +17,7 @@ class ComissaoController extends Controller
 {
     public function index(Request $request)
     {
-        error_reporting(E_ALL);
-        ini_set('display_errors', 1);
-        try {
-            $user = Auth::user();
+        $user = Auth::user();
             if (!$user) {
                 return redirect()->route('login');
             }
@@ -62,18 +59,7 @@ class ComissaoController extends Controller
                 'total' => (float)(clone $resumoQuery)->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
             ];
 
-            return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'vendedor'));
-
-        } catch (\Throwable $e) {
-            // Durante a fase de estabilização, retornamos JSON para capturar erros de Blade
-            return response()->json([
-                'error' => true,
-                'message' => 'Erro capturado (Blade/Logic): ' . $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => substr($e->getTraceAsString(), 0, 500)
-            ], 500);
-        }
+        return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'vendedor'));
     }
 
     /**
