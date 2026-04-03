@@ -104,11 +104,6 @@ class MasterPanelController extends Controller
                 'comissao_gestor_recorrencia' => $request->comissao_gestor_recorrencia ?? 0,
                 'meta_mensal' => $request->meta_mensal ?? 0,
             ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::error('Erro ao criar vendedor: ' . $e->getMessage());
-            return back()->withInput()->with('error', 'Erro ao criar vendedor: ' . $e->getMessage());
-        }
 
             // Se for gestor, criar permissões padrão
             if ($request->perfil === 'gestor') {
