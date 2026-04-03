@@ -24,12 +24,14 @@
 
 <x-page-hero title="Minhas Vendas" subtitle="Gerencie suas vendas e cobranças" icon="fas fa-shopping-bag">
     <x-slot:actions>
-        <a href="{{ route('vendedor.vendas.canceladas') }}" class="btn btn-outline">
-            <i class="fas fa-folder"></i> Canceladas ({{ $vendasCanceladas->count() + $vendasExpiradas->count() }})
-        </a>
-        <a href="{{ route('vendedor.vendas.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Nova Venda
-        </a>
+        <div style="display:flex; gap:10px;">
+            <a href="{{ route('vendedor.vendas.canceladas') }}" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4); padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:0.2s;">
+                <i class="fas fa-ban"></i> Canceladas ({{ $vendasCanceladas->count() + $vendasExpiradas->count() }})
+            </a>
+            <a href="{{ route('vendedor.vendas.create') }}" style="background:white; color:#4C1D95; padding:10px 20px; border-radius:10px; font-weight:800; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); transition:0.2s;">
+                <i class="fas fa-plus"></i> Nova Venda
+            </a>
+        </div>
     </x-slot:actions>
 </x-page-hero>
 
