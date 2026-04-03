@@ -16,55 +16,58 @@ class ComissaoController extends Controller
 {
     public function index(Request $request)
     {
-        $user = Auth::user();
-        $vendedor = $user->vendedor;
+        try {
+            $user = Auth::user();
+            $vendedor = $user->vendedor;
 
-        if (!$vendedor && $user->perfil !== 'gestor') {
-            return redirect()->route('vendedor.dashboard')
-                ->withErrors(['error' => 'Perfil de vendedor não encontrado.']);
+            if (!$vendedor && !in_array($user->perfil, ['gestor', 'master'])) {
+                return redirect()->route('vendedor.dashboard')
+                    ->withErrors(['error' => 'Perfil de acesso não encontrado.']);
+            }
+
+            $mes = $request->get('mes', Carbon::now()->format('Y-m'));
+            $tipo = $request->get('tipo');
+            $status = $request->get('status');
+            $vendedorId = $vendedor ? $vendedor->id : 0;
+
+            // Query base para listagem com paginação
+            $query = Comissao::where(function($q) use ($user, $vendedorId) {
+                $q->where('vendedor_id', $vendedorId) // Direta
+                  ->orWhere('gerente_id', $user->id); // Equipe
+            })->where('competencia', $mes)
+              ->with(['cliente', 'venda', 'vendedor.user']);
+
+            if ($tipo) $query->where('tipo_comissao', $tipo);
+            if ($status) $query->where('status', $status);
+
+            $comissoes = $query->orderByDesc('created_at')->paginate(20);
+
+            // Resumo usando agregados do banco (mais performático e evita estouro de memória)
+            $resumoBase = Comissao::where(function($q) use ($user, $vendedorId) {
+                    $q->where('vendedor_id', $vendedorId)
+                      ->orWhere('gerente_id', $user->id);
+                })->where('competencia', $mes);
+
+            $resumo = [
+                'pendente' => (float)clone $resumoBase->where('status', 'pendente')->sum(\DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'confirmada' => (float)clone $resumoBase->where('status', 'confirmada')->sum(\DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'paga' => (float)clone $resumoBase->where('status', 'paga')->sum(\DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'recorrencias' => (int)clone $resumoBase->where('tipo_comissao', 'recorrencia')->count(),
+                'total' => (float)clone $resumoBase->sum(\DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+            ];
+
+            return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'vendedor'));
+
+        } catch (\Exception $e) {
+            // Em caso de erro, mostramos a causa real em vez de um erro 500 genérico
+            return response()->json([
+                'error' => true,
+                'message' => 'Erro interno no sistema de comissões (Diagnóstico): ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => substr($e->getTraceAsString(), 0, 1000)
+            ], 500);
         }
-
-        $mes = $request->get('mes', Carbon::now()->format('Y-m'));
-        $tipo = $request->get('tipo');
-        $status = $request->get('status');
-
-        // Se for gestor, ele vê onde é vendedor OU onde é gerente (comissão de equipe)
-        $vendedorId = $vendedor ? $vendedor->id : 0;
-        
-        $query = Comissao::where(function($q) use ($user, $vendedorId) {
-            $q->where('vendedor_id', $vendedorId) // Direta
-              ->orWhere('gerente_id', $user->id); // Equipe
-        })->where('competencia', $mes)
-          ->with(['cliente', 'venda', 'vendedor.user']);
-
-        if ($tipo) $query->where('tipo_comissao', $tipo);
-        if ($status) $query->where('status', $status);
-
-        $comissoes = $query->orderByDesc('created_at')->paginate(20);
-
-        // Resumo (Cálculo inteligente do valor para o usuário logado)
-        $todas = Comissao::where(function($q) use ($user, $vendedorId) {
-            $q->where('vendedor_id', $vendedorId)
-              ->orWhere('gerente_id', $user->id);
-        })->where('competencia', $mes)->get();
-
-        $resumo = [
-            'pendente' => (float)$todas->where('status', 'pendente')->sum(function($c) use ($vendedorId) {
-                return (float)(($c->vendedor_id == $vendedorId) ? ($c->valor_comissao ?? 0) : ($c->valor_gerente ?? 0));
-            }),
-            'confirmada' => (float)$todas->where('status', 'confirmada')->sum(function($c) use ($vendedorId) {
-                return (float)(($c->vendedor_id == $vendedorId) ? ($c->valor_comissao ?? 0) : ($c->valor_gerente ?? 0));
-            }),
-            'paga' => (float)$todas->where('status', 'paga')->sum(function($c) use ($vendedorId) {
-                return (float)(($c->vendedor_id == $vendedorId) ? ($c->valor_comissao ?? 0) : ($c->valor_gerente ?? 0));
-            }),
-            'recorrencias' => $todas->where('tipo_comissao', 'recorrencia')->count(),
-            'total' => (float)$todas->sum(function($c) use ($vendedorId) {
-                return (float)(($c->vendedor_id == $vendedorId) ? ($c->valor_comissao ?? 0) : ($c->valor_gerente ?? 0));
-            }),
-        ];
-
-        return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'vendedor'));
     }
 
     /**
