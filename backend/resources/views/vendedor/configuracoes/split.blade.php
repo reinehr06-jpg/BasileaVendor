@@ -1,177 +1,160 @@
 @extends('layouts.app')
-@section('title', 'Comissões e Repasse')
+@section('title', 'Split de Pagamento')
 
 @section('content')
 <style>
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
-    .card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); background: #f8fafc; }
-    .card-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
-    .card-body { padding: 24px; }
-
-    .rates-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px; }
-    .rate-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
-    .rate-card .rate-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 6px; }
-    .rate-card .rate-value { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
-    .rate-card .rate-tag { display: inline-block; margin-top: 6px; font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
-    .rate-tag.vendedor { background: #dbeafe; color: #1e40af; }
-    .rate-tag.gestor { background: #fef3c7; color: #92400e; }
-    .rate-tag.split { background: #dcfce7; color: #166534; }
-
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-main); }
-    .form-group input { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; }
-    .form-group input:disabled { background: #f1f5f9; cursor: not-allowed; }
-    .help-text { display: block; margin-top: 6px; font-size: 0.8rem; color: var(--text-muted); }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
-
-    .checkbox-label { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 600; font-size: 0.95rem; }
-    .checkbox-label input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--primary); }
-
-    .btn { padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; font-size: 0.95rem; display: inline-flex; align-items: center; gap: 8px; }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
-
-    .alert { padding: 16px; border-radius: 8px; margin-bottom: 24px; font-weight: 500; }
-    .alert-success { background: #dcfce7; color: #166534; border-left: 4px solid #22c55e; }
-    .alert-error { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
-    .alert-warning { background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; }
-    .alert-info { background: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6; }
-
-    .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
-    .status-badge.pendente { background: #fef3c7; color: #92400e; }
+    .split-card {
+        background: white;
+        border-radius: 16px;
+        padding: 28px;
+        border: 1px solid #ededf2;
+        box-shadow: 0 2px 8px rgba(50,50,71,0.06);
+        margin-bottom: 20px;
+    }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 14px 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-label { color: #6b7280; font-size: 0.9rem; }
+    .info-value { font-weight: 700; color: #1e1b4b; font-size: 0.95rem; }
+    .status-badge {
+        display: inline-block;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
     .status-badge.validado { background: #dcfce7; color: #166534; }
-    .status-badge.erro { background: #fee2e2; color: #991b1b; }
-
-    .info-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
-    .info-box h4 { font-size: 0.9rem; color: #0369a1; margin-bottom: 8px; }
-    .info-box ul { margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 0.85rem; }
-    .info-box li { margin-bottom: 4px; }
-
-    .form-actions { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
-
-    .section-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .status-badge.erro { background: #fef2f2; color: #991b1b; }
+    .status-badge.pendente { background: #fef3c7; color: #92400e; }
+    .alert {
+        padding: 14px 18px;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        margin-bottom: 20px;
+    }
+    .alert-warning { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .alert-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+    .rate-display {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin: 20px 0;
+    }
+    .rate-box {
+        background: #f8f7ff;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+    }
+    .rate-label { font-size: 0.8rem; color: #6b7280; margin-bottom: 8px; }
+    .rate-value { font-size: 1.8rem; font-weight: 800; color: #4C1D95; }
+    .rate-type { font-size: 0.85rem; color: #a1a1b5; margin-top: 4px; }
+    .lock-notice {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 10px;
+        padding: 16px;
+        margin-top: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .lock-notice i { color: #f59e0b; font-size: 1.2rem; }
+    .lock-notice span { color: #92400e; font-size: 0.88rem; }
 </style>
 
-<x-page-hero title="Split de Pagamento" subtitle="Configure seu split de recebimento no Asaas" icon="fas fa-code-branch" />
-
-@if(session('success'))
-<div class="alert alert-success">✅ {{ session('success') }}</div>
-@endif
-
-@if($errors->any())
-<div class="alert alert-error">
-    @foreach($errors->all() as $error)
-        <div>❌ {{ $error }}</div>
-    @endforeach
-</div>
-@endif
-
-<div class="card">
-    <div class="card-header">
-        <h3>📊 Suas Comissões e Repasses</h3>
-    </div>
-    <div class="card-body">
-        <div class="rates-grid">
-            <div class="rate-card">
-                <div class="rate-label">Vendedor - 1ª Venda</div>
-                <div class="rate-value">{{ $vendedor->comissao_inicial ?? $vendedor->comissao ?? 10 }}%</div>
-                <span class="rate-tag vendedor">Comissão</span>
-            </div>
-            <div class="rate-card">
-                <div class="rate-label">Vendedor - Recorrência</div>
-                <div class="rate-value">{{ $vendedor->comissao_recorrencia ?? $vendedor->comissao ?? 10 }}%</div>
-                <span class="rate-tag vendedor">Comissão</span>
-            </div>
-            @if($vendedor->is_gestor)
-            <div class="rate-card" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-color: #fcd34d;">
-                <div class="rate-label">Gestor - 1ª Venda</div>
-                <div class="rate-value" style="color: #d97706;">{{ $vendedor->comissao_gestor_primeira ?? 0 }}%</div>
-                <span class="rate-tag gestor">Comissão Gestão</span>
-            </div>
-            <div class="rate-card" style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); border-color: #fcd34d;">
-                <div class="rate-label">Gestor - Recorrência</div>
-                <div class="rate-value" style="color: #d97706;">{{ $vendedor->comissao_gestor_recorrencia ?? 0 }}%</div>
-                <span class="rate-tag gestor">Comissão Gestão</span>
-            </div>
-            @endif
-            @if(!$vendedor->is_gestor)
-            <div class="rate-card">
-                <div class="rate-label">Split - 1ª Venda</div>
-                <div class="rate-value" style="color: #16a34a;">{{ $vendedor->valor_split_inicial ?? 0 }}{{ $vendedor->tipo_split === 'percentual' ? '%' : ' R$' }}</div>
-                <span class="rate-tag split">Repasse Automático</span>
-            </div>
-            <div class="rate-card">
-                <div class="rate-label">Split - Recorrência</div>
-                <div class="rate-value" style="color: #16a34a;">{{ $vendedor->valor_split_recorrencia ?? 0 }}{{ $vendedor->tipo_split === 'percentual' ? '%' : ' R$' }}</div>
-                <span class="rate-tag split">Repasse Automático</span>
-            </div>
-            @endif
+<div class="split-card">
+    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #7c3aed, #4C1D95); display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-code-branch" style="color: white; font-size: 1.2rem;"></i>
+        </div>
+        <div>
+            <h2 style="font-size: 1.2rem; font-weight: 800; color: #1e1b4b; margin: 0;">Split de Pagamento</h2>
+            <p style="color: #6b7280; font-size: 0.85rem; margin: 0;">Valores definidos pelo administrador</p>
         </div>
     </div>
+
+    @if($splitGlobalAtivo)
+    
+    <div class="rate-display">
+        <div class="rate-box">
+            <div class="rate-label">Primeira Venda</div>
+            <div class="rate-value">
+                {{ $vendedor->valor_split_inicial ?? 0 }}
+                @if($vendedor->tipo_split === 'percentual')% @else R$ @endif
+            </div>
+            <div class="rate-type">Repasse Automático</div>
+        </div>
+        <div class="rate-box">
+            <div class="rate-label">Renovações</div>
+            <div class="rate-value">
+                {{ $vendedor->valor_split_recorrencia ?? 0 }}
+                @if($vendedor->tipo_split === 'percentual')% @else R$ @endif
+            </div>
+            <div class="rate-type">Repasse Automático</div>
+        </div>
+    </div>
+
+    <div class="info-row">
+        <span class="info-label">Tipo de Split</span>
+        <span class="info-value">{{ $vendedor->tipo_split === 'percentual' ? 'Percentual (%)' : 'Valor Fixo (R$)' }}</span>
+    </div>
+
+    <div class="info-row">
+        <span class="info-label">Status da Carteira</span>
+        <span>
+            <span class="status-badge {{ $vendedor->wallet_status ?? 'pendente' }}">
+                @if($vendedor->wallet_status === 'validado') ✅ Validada
+                @elseif($vendedor->wallet_status === 'erro') ❌ Erro
+                @else ⏳ Aguardando Validação
+                @endif
+            </span>
+        </span>
+    </div>
+
+    @if($vendedor->asaas_wallet_id)
+    <div class="info-row">
+        <span class="info-label">Wallet ID Asaas</span>
+        <span class="info-value" style="font-family: monospace; font-size: 0.8rem;">{{ $vendedor->asaas_wallet_id }}</span>
+    </div>
+    @endif
+
+    @if($vendedor->wallet_validado_em)
+    <div class="info-row">
+        <span class="info-label">Última Validação</span>
+        <span class="info-value">{{ $vendedor->wallet_validado_em->format('d/m/Y H:i') }}</span>
+    </div>
+    @endif
+
+    <div class="lock-notice">
+        <i class="fas fa-lock"></i>
+        <span>Estas configurações são definidas pelo administrador. Para alterações, entre em contato com o suporte.</span>
+    </div>
+
+    @else
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+        Split global ainda não foi ativado pelo administrador.
+    </div>
+    @endif
 </div>
 
-<div class="card">
-    <div class="card-header">
-        <h3>🔗 Split Asaas</h3>
-    </div>
-    <div class="card-body">
-        @if($splitGlobalAtivo)
-            <div class="info-box">
-                <h4>ℹ️ Como funciona</h4>
-                <ul>
-                    <li>O split envia automaticamente uma parte do pagamento para sua conta Asaas.</li>
-                    <li>Obtenha seu Wallet ID em: <strong>Asaas → Minha Conta → Integrações</strong></li>
-                    <li>Após configurar, o Master validará sua carteira.</li>
-                </ul>
-            </div>
-
-            <form action="{{ route('vendedor.configuracoes.split.update') }}" method="POST">
-                @csrf
-                @method('PUT')
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" name="split_ativo" value="1" {{ $vendedor->split_ativo ? 'checked' : '' }}>
-                        <span>Ativar Split Automático</span>
-                    </label>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Wallet ID Asaas</label>
-                        <input type="text" name="asaas_wallet_id" value="{{ $vendedor->asaas_wallet_id }}" placeholder="wallet_xxxxxxxxxx" {{ $vendedor->wallet_status === 'validado' ? 'disabled' : '' }}>
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <div style="padding-top: 12px;">
-                            <span class="status-badge {{ $vendedor->wallet_status ?? 'pendente' }}">
-                                @if($vendedor->wallet_status === 'validado') ✅ Validado
-                                @elseif($vendedor->wallet_status === 'erro') ❌ Erro
-                                @else ⏳ Aguardando
-                                @endif
-                            </span>
-                            @if($vendedor->wallet_validado_em)
-                                <span class="help-text">Última validação: {{ $vendedor->wallet_validado_em->format('d/m/Y H:i') }}</span>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    @if($vendedor->wallet_status !== 'validado')
-                        <button type="submit" class="btn btn-primary">💾 Salvar</button>
-                    @else
-                        <span class="alert alert-info" style="margin: 0; padding: 12px 16px;">
-                            ✅ Carteira validada. Contate o Master para alterações.
-                        </span>
-                    @endif
-                </div>
-            </form>
-        @else
-            <div class="alert alert-warning">⚠️ Split global ainda não foi ativado pelo administrador.</div>
-        @endif
-    </div>
+<div class="split-card">
+    <h3 style="font-size: 1rem; font-weight: 700; color: #1e1b4b; margin-bottom: 16px;">
+        <i class="fas fa-info-circle" style="color: #4C1D95; margin-right: 8px;"></i>
+        Como funciona o Split?
+    </h3>
+    <ul style="color: #6b7280; font-size: 0.88rem; line-height: 1.8; padding-left: 20px;">
+        <li>O split divide automaticamente o valor do pagamento entre você e a administradora.</li>
+        <li>Você recebe diretamente na sua conta Asaas configurada.</li>
+        <li>Não precisa emitir notas fiscais para receber suas comissões.</li>
+        <li>Os valores definidos aqui foram configurados pelo administrador.</li>
+    </ul>
 </div>
 
 @endsection
