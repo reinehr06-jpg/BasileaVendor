@@ -13,9 +13,11 @@
         justify-content: space-between;
         align-items: center;
         box-shadow: 0 20px 25px -5px rgba(59, 7, 100, 0.2);
+        overflow: visible;
     }
     .report-hero h2 { color: white; margin-bottom: 6px; font-size: 1.6rem; letter-spacing: -0.5px; }
     .report-hero p { opacity: 0.85; font-size: 0.95rem; }
+    .export-dropdown { position: relative; display: inline-block; z-index: 99999; }
     .export-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; }
     .export-btn:hover { background: rgba(255,255,255,0.25); }
     .export-dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 99999; }
@@ -27,6 +29,7 @@
     .export-item i { margin-right: 8px; width: 16px; }
 
     .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 30px; }
+    .kpi-card { padding: 24px; background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); transition: all 0.3s ease; position: relative; overflow: hidden; }
     .kpi-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
     .kpi-card .label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: block; }
     .kpi-card .value { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); margin-bottom: 8px; }
@@ -84,7 +87,7 @@
 
 <!-- ===== Hero Banner ===== -->
 <div class="animate-up" style="animation-delay: 0.1s;">
-    <div class="report-hero" style="overflow: visible;">
+    <div class="report-hero">
         <div>
             <h2><i class="fas fa-chart-bar" style="margin-right: 10px;"></i>Relatórios Gerenciais</h2>
             <p>Análise consolidada da operação comercial e financeira</p>
@@ -111,16 +114,16 @@
 {{-- ===== Filtros ===== --}}
 <form method="GET" action="{{ route('master.relatorios') }}">
 <div class="filters-bar animate-up" style="animation-delay: 0.15s;">
-    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 130px;">
-        <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Início</label>
+    <div class="filter-wrap">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Data Início</label>
         <input type="date" name="data_inicio" class="form-control" value="{{ $filtros['data_inicio'] }}">
     </div>
-    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 130px;">
-        <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Fim</label>
+    <div class="filter-wrap">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Data Fim</label>
         <input type="date" name="data_fim" class="form-control" value="{{ $filtros['data_fim'] }}">
     </div>
-    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px;">
-        <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Vendedor</label>
+    <div class="filter-wrap">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Vendedor</label>
         <select name="vendedor_id" class="form-control">
             <option value="">Todos</option>
             @foreach($vendedores as $v)
@@ -128,12 +131,49 @@
             @endforeach
         </select>
     </div>
-    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px;">
-        <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Status</label>
+    <div class="filter-wrap">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Status</label>
         <select name="status" class="form-control">
             <option value="">Todos</option>
+            <option value="Aguardando pagamento" {{ $filtros['status'] == 'Aguardando pagamento' ? 'selected' : '' }}>Aguardando</option>
             <option value="Pago" {{ $filtros['status'] == 'Pago' ? 'selected' : '' }}>Pago</option>
             <option value="Cancelado" {{ $filtros['status'] == 'Cancelado' ? 'selected' : '' }}>Cancelado</option>
+            <option value="Expirado" {{ $filtros['status'] == 'Expirado' ? 'selected' : '' }}>Expirado</option>
+            <option value="Vencido" {{ $filtros['status'] == 'Vencido' ? 'selected' : '' }}>Vencido</option>
+        </select>
+    </div>
+    <div class="filter-wrap">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Forma Pagamento</label>
+        <select name="forma_pagamento" class="form-control">
+            <option value="">Todas</option>
+            <option value="pix" {{ $filtros['forma_pagamento'] == 'pix' ? 'selected' : '' }}>PIX</option>
+            <option value="boleto" {{ $filtros['forma_pagamento'] == 'boleto' ? 'selected' : '' }}>Boleto</option>
+            <option value="cartao" {{ $filtros['forma_pagamento'] == 'cartao' ? 'selected' : '' }}>Cartão</option>
+        </select>
+    </div>
+    <div class="filter-wrap">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Negociação</label>
+        <select name="tipo_negociacao" class="form-control">
+            <option value="">Todos</option>
+            <option value="mensal" {{ $filtros['tipo_negociacao'] == 'mensal' ? 'selected' : '' }}>Mensal</option>
+            <option value="anual" {{ $filtros['tipo_negociacao'] == 'anual' ? 'selected' : '' }}>Anual</option>
+        </select>
+    </div>
+    <div class="filter-wrap">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Cliente</label>
+        <select name="cliente_id" class="form-control">
+            <option value="">Todos</option>
+            @foreach($clientes as $c)
+                <option value="{{ $c->id }}" {{ $filtros['cliente_id'] == $c->id ? 'selected' : '' }}>{{ $c->nome_igreja ?? $c->nome ?? 'Cliente #'.$c->id }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div class="filter-wrap">
+        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Recorrência</label>
+        <select name="recorrencia" class="form-control">
+            <option value="">Todas</option>
+            <option value="ativa" {{ $filtros['recorrencia'] == 'ativa' ? 'selected' : '' }}>Ativa</option>
+            <option value="inativa" {{ $filtros['recorrencia'] == 'inativa' ? 'selected' : '' }}>Inativa</option>
         </select>
     </div>
     <div style="display: flex; gap: 8px; align-items: flex-end;">
