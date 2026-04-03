@@ -1121,8 +1121,10 @@ class VendaController extends Controller
     public function gerarLinkCheckout(Request $request, Venda $venda)
     {
         $user = Auth::user();
-        if ($user->perfil !== 'master' && $venda->vendedor_id !== $user->vendedor->id) {
-            return response()->json(['error' => 'Você não tem permissão para gerar link desta venda.'], 403);
+        if ($user->perfil !== 'master') {
+            if (!$user->vendedor || $venda->vendedor_id !== $user->vendedor->id) {
+                return response()->json(['error' => 'Você não tem permissão para gerar link desta venda.'], 403);
+            }
         }
 
         $method = $request->get('method', $venda->forma_pagamento ?? 'credit_card');

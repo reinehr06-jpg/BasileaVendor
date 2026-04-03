@@ -118,7 +118,14 @@ class ClienteController extends Controller
         $user = Auth::user();
         $isMaster = $user->perfil === 'master';
         
-        $cliente = Cliente::with(['vendas.vendedor.user', 'vendas.pagamentos'])->findOrFail($id);
+        $cliente = Cliente::with(['vendas' => function ($q) use ($user, $isMaster) {
+            if (!$isMaster) {
+                $q->whereHas('vendedor', function ($v) use ($user) {
+                    $v->where('usuario_id', $user->id);
+                });
+            }
+            $q->with('vendedor.user', 'pagamentos');
+        }])->findOrFail($id);
         
         // Sincronizar status deste cliente
         ClienteStatusService::atualizarCliente($cliente);
@@ -157,14 +164,27 @@ class ClienteController extends Controller
      */
     public function updateStatus(Request $request, $id)
     {
+        $user = Auth::user();
+
         $request->validate([
             'status' => 'required|in:ativo,pendente,inadimplente,cancelado,churn'
         ]);
-        
+
         $cliente = Cliente::findOrFail($id);
+
+        // Authorization check
+        if ($user->perfil !== 'master') {
+            $temAcesso = $cliente->vendas()->whereHas('vendedor', function ($q) use ($user) {
+                $q->where('usuario_id', $user->id);
+            })->exists();
+            if (!$temAcesso) {
+                return response()->json(['error' => 'Acesso não autorizado.'], 403);
+            }
+        }
+
         $cliente->status = $request->status;
         $cliente->save();
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Status do cliente atualizado com sucesso.',

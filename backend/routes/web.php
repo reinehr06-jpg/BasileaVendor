@@ -375,7 +375,6 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/vendas/{id}/boleto/baixar', [PagamentoBoletoController::class, 'forceDownload'])->name('vendas.boleto.baixar');
         Route::get('/vendas/{id}/cobranca', [VendaController::class, 'cobranca'])->name('vendas.cobranca');
         Route::post('/vendas/{id}/sync', [VendaController::class, 'syncPagamento'])->name('vendas.sync');
-        Route::post('/vendas/{id}/estornar', [VendaController::class, 'estornar'])->name('vendas.estornar');
         Route::delete('/vendas/{id}', [VendaController::class, 'cancelar'])->name('vendas.cancelar');
         Route::get('/vendas/{venda}/checkout-link', [VendaController::class, 'gerarLinkCheckout'])->name('vendas.checkout-link');
 
