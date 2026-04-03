@@ -23,13 +23,18 @@ class TwoFactorMiddleware
             return $next($request);
         }
 
-        // If 2FA is not enabled, force user to set it up with warning
+        // If 2FA is not enabled, force user to set it up
         if (!$user->two_factor_enabled) {
-            return redirect()->route('2fa.setup')
+            // Check if user is vendedor - redirect to settings security tab
+            if ($user->perfil === 'vendedor' || $user->perfil === 'gestor') {
+                return redirect()->route('vendedor.configuracoes', ['tab' => 'seguranca'])
+                    ->with('warning', '⚠️ Acesso bloqueado: Você deve configurar a autenticação em duas etapas (2FA) antes de usar o sistema.');
+            }
+            return redirect()->route('2fa.verify')
                 ->with('warning', '⚠️ Acesso bloqueado: Você deve configurar a autenticação em duas etapas (2FA) antes de usar o sistema.');
         }
 
-        // If 2FA is enabled but not verified this session, require verification with warning
+        // If 2FA is enabled but not verified this session, require verification
         if (!Session::get('2fa_verified_' . $user->id)) {
             return redirect()->route('2fa.verify')
                 ->with('warning', '🔒 Acesso bloqueado: Verifique sua identidade com o código do app autenticador.');

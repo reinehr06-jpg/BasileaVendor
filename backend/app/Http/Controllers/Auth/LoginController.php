@@ -72,7 +72,11 @@ class LoginController extends Controller
                 }
 
                 // Not configured yet - MUST set up before any access
-                return redirect()->route('2fa.setup');
+                // Redirect based on user profile
+                if ($user->perfil === 'vendedor' || $user->perfil === 'gestor') {
+                    return redirect()->route('vendedor.configuracoes', ['tab' => 'seguranca']);
+                }
+                return redirect()->route('2fa.verify');
             }
         } catch (\Exception $e) {
             Log::error('LOGIN_ERRO', ['erro' => $e->getMessage()]);
