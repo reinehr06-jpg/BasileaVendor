@@ -202,7 +202,7 @@
     /* ===== Empty states ===== */
     .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
     .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
-    .empty-state h3 { color: var(--text-main); font-size: 1.1rem; margin-bottom: 6px; }
+    .empty-state h3 { color: var(--text-primary); font-size: 1.1rem; margin-bottom: 6px; }
     .empty-state-box { background: white; border: 1px solid var(--border); border-radius: 14px; }
 
     @media (max-width: 768px) {
@@ -237,11 +237,11 @@
 <form method="GET" action="{{ route('master.relatorios') }}">
 <div class="filters-bar animate-in">
     <div class="filter-group">
-        <label><i class="fas fa-calendar-start" style="margin-right: 3px;"></i>Período Início</label>
+        <label><i class="fas fa-calendar-alt" style="margin-right: 3px;"></i>Período Início</label>
         <input type="date" name="data_inicio" value="{{ $filtros['data_inicio'] }}">
     </div>
     <div class="filter-group">
-        <label><i class="fas fa-calendar-end" style="margin-right: 3px;"></i>Período Fim</label>
+        <label><i class="fas fa-calendar-alt" style="margin-right: 3px;"></i>Período Fim</label>
         <input type="date" name="data_fim" value="{{ $filtros['data_fim'] }}">
     </div>
     <div class="filter-group">
@@ -356,7 +356,7 @@
         <div class="label">Renovações</div>
     </div>
     <div class="stat-card red animate-in">
-        <div class="icon"><i class="fas fa-chart-line-down"></i></div>
+        <div class="icon"><i class="fas fa-arrow-trend-down"></i></div>
         <div class="value">{{ $resumo['churn'] }}</div>
         <div class="label">Churn</div>
     </div>
@@ -375,7 +375,7 @@
 <!-- ===== SEÇÃO 2: Vendas por Vendedor ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3><i class="fas fa-user-chart"></i>Vendas por Vendedor</h3>
+        <h3><i class="fas fa-chart-bar"></i>Vendas por Vendedor</h3>
     </div>
     <div class="section-body">
         @if(count($vendasPorVendedor) > 0)
@@ -436,7 +436,7 @@
 <!-- ===== SEÇÃO 2B: Metas por Equipe ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3><i class="fas fa-users-gear"></i>Metas por Equipe</h3>
+        <h3><i class="fas fa-users-cog"></i>Metas por Equipe</h3>
     </div>
     <div class="section-body">
         @if(count($metasPorEquipe) > 0)
@@ -488,7 +488,7 @@
 <!-- ===== SEÇÃO 3: Recebimentos por Período ===== -->
 <div class="section-card animate-in">
     <div class="section-header">
-        <h3><i class="fas fa-receipt"></i>Recebimentos no Período</h3>
+        <h3><i class="fas fa-money-bill-wave"></i>Recebimentos no Período</h3>
     </div>
     <div class="section-body">
         <div class="table-responsive">
@@ -546,7 +546,7 @@
                     <td class="text-right font-bold" style="color: #16a34a;">{{ $churnRenovacoes['renovados'] }}</td>
                 </tr>
                 <tr>
-                    <td><i class="fas fa-chart-line-down" style="margin-right: 8px; color: #dc2626;"></i>Churn (Pós-pagamento)</td>
+                    <td><i class="fas fa-arrow-trend-down" style="margin-right: 8px; color: #dc2626;"></i>Churn (Pós-pagamento)</td>
                     <td class="text-right font-bold" style="color: #dc2626;">{{ $churnRenovacoes['churn'] }}</td>
                 </tr>
                 <tr>

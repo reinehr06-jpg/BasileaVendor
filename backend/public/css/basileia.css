@@ -425,6 +425,19 @@ select.form-control option {
     margin-top: 4px;
 }
 .field-error {
+    font-size: 0.75rem;
+    color: var(--danger);
+    margin-top: 4px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.field-error::before {
+    content: "\ea55";
+    font-family: 'remixicon';
+    font-size: 0.875rem;
+}
 
 /* ===== Date inputs ===== */
 input[type="date"].form-control {
@@ -508,19 +521,6 @@ input[type="radio"]:checked {
 }
 input[type="radio"]:focus {
     box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
-}
-    font-size: 0.75rem;
-    color: var(--danger);
-    margin-top: 4px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-.field-error::before {
-    content: "\ea55";
-    font-family: 'remixicon';
-    font-size: 0.875rem;
 }
 
 .form-row {
