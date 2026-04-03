@@ -18,19 +18,21 @@ class TwoFactorMiddleware
 
         $user = Auth::user();
 
-        // Allow access to 2FA setup, verify, enable, disable and logout routes
+        // Allow access to 2FA setup, verify, enable, disable, logout and password routes
         if ($request->is('2fa/*') || $request->is('logout') || $request->is('password/*')) {
             return $next($request);
         }
 
-        // If 2FA is not enabled, force user to set it up
+        // If 2FA is not enabled, force user to set it up with warning
         if (!$user->two_factor_enabled) {
-            return redirect()->route('2fa.setup');
+            return redirect()->route('2fa.setup')
+                ->with('warning', '⚠️ Acesso bloqueado: Você deve configurar a autenticação em duas etapas (2FA) antes de usar o sistema.');
         }
 
-        // If 2FA is enabled but not verified this session, require verification
+        // If 2FA is enabled but not verified this session, require verification with warning
         if (!Session::get('2fa_verified_' . $user->id)) {
-            return redirect()->route('2fa.verify');
+            return redirect()->route('2fa.verify')
+                ->with('warning', '🔒 Acesso bloqueado: Verifique sua identidade com o código do app autenticador.');
         }
 
         return $next($request);

@@ -404,6 +404,12 @@
             </div>
         </header>
         <section class="content-area">
+            @if(session('warning'))
+            <div class="alert" style="background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 14px 18px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-weight: 600;">
+                <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 1.1rem;"></i>
+                <span>{{ session('warning') }}</span>
+            </div>
+            @endif
             @if(session('success'))
             <div class="alert alert-success">
                 <i class="fas fa-check-circle"></i>
