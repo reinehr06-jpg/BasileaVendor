@@ -43,7 +43,14 @@ class PasswordChangeController extends Controller
         $user->require_password_change = false;
         $user->save();
 
-        return redirect()->route('dashboard')
-            ->with('success', 'Sua senha foi atualizada com sucesso!');
+        // After password change, check 2FA status
+        if ($user->two_factor_enabled) {
+            return redirect()->route('2fa.verify')
+                ->with('success', 'Sua senha foi atualizada com sucesso! Agora verifique sua identidade.');
+        }
+
+        // 2FA not configured - must set up before accessing system
+        return redirect()->route('2fa.setup')
+            ->with('success', 'Sua senha foi atualizada com sucesso! Agora configure a autenticação em duas etapas.');
     }
 }

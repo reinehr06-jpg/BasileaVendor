@@ -90,7 +90,12 @@ class TwoFactorController extends Controller
         $user = Auth::user();
 
         if ($user->two_factor_enabled) {
-            return redirect()->route('dashboard');
+            // If already verified this session, go to dashboard
+            if (Session::get('2fa_verified_' . $user->id)) {
+                return redirect()->route('dashboard');
+            }
+            // If enabled but not verified, go to verify page
+            return redirect()->route('2fa.verify');
         }
 
         if (!$user->two_factor_secret) {
@@ -133,6 +138,8 @@ class TwoFactorController extends Controller
             $user->recovery_codes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
             $user->save();
 
+            // Mark as verified since user just proved they have the authenticator
+            Session::put('2fa_verified_' . $user->id, true);
             SecurityLogService::logTwoFactorEvent($user->id, 'enabled', 'success');
 
             return redirect()->route('dashboard')->with('success', 'Autenticação de dois fatores ativada com sucesso!');

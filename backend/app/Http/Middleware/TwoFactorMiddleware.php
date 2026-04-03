@@ -24,13 +24,9 @@ class TwoFactorMiddleware
         }
 
         // If 2FA is not enabled, force user to set it up
+        // Redirect to 2fa.setup which is OUTSIDE the 2fa middleware group
         if (!$user->two_factor_enabled) {
-            // Check if user is vendedor - redirect to settings security tab
-            if ($user->perfil === 'vendedor' || $user->perfil === 'gestor') {
-                return redirect()->route('vendedor.configuracoes', ['tab' => 'seguranca'])
-                    ->with('warning', '⚠️ Acesso bloqueado: Você deve configurar a autenticação em duas etapas (2FA) antes de usar o sistema.');
-            }
-            return redirect()->route('2fa.verify')
+            return redirect()->route('2fa.setup')
                 ->with('warning', '⚠️ Acesso bloqueado: Você deve configurar a autenticação em duas etapas (2FA) antes de usar o sistema.');
         }
 

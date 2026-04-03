@@ -131,7 +131,7 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ $enableRoute }}">
+        <form method="POST" action="{{ route($enableRoute) }}">
             @csrf
             <input type="text" name="code" class="code-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autofocus placeholder="000000" required>
             @error('code')
