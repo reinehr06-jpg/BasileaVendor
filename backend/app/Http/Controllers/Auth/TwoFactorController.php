@@ -161,46 +161,59 @@ class TwoFactorController extends Controller
 
     public function enable(Request $request)
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        $lockKey = '2fa_lock_' . $user->id;
-        if (Cache::has($lockKey)) {
-            return view('auth.2fa.locked', ['minutes' => self::LOCKOUT_MINUTES]);
+            $lockKey = '2fa_lock_' . $user->id;
+            if (Cache::has($lockKey)) {
+                return view('auth.2fa.locked', ['minutes' => self::LOCKOUT_MINUTES]);
+            }
+
+            $request->validate([
+                'code' => ['required', 'digits:6'],
+            ]);
+
+            if (!$user->two_factor_secret) {
+                return back()->withErrors(['code' => 'Configure o 2FA primeiro.']);
+            }
+
+            if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
+                $user->two_factor_enabled = true;
+                $user->recovery_codes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
+                $user->save();
+
+                // Mark as verified since user just proved they have the authenticator
+                Session::put('2fa_verified_' . $user->id, true);
+                SecurityLogService::logTwoFactorEvent($user->id, 'enabled', 'success');
+
+                return redirect()->route('dashboard')->with('success', 'Autenticação de dois fatores ativada com sucesso!');
+            }
+
+            $attemptsKey = '2fa_attempts_' . $user->id;
+            $attempts = Cache::get($attemptsKey, 0) + 1;
+            Cache::put($attemptsKey, $attempts, now()->addMinutes(self::LOCKOUT_MINUTES));
+
+            if ($attempts >= self::MAX_2FA_ATTEMPTS) {
+                Cache::put($lockKey, true, now()->addMinutes(self::LOCKOUT_MINUTES));
+                SecurityLogService::logTwoFactorEvent($user->id, 'locked', 'failed');
+                return view('auth.2fa.locked', ['minutes' => self::LOCKOUT_MINUTES]);
+            }
+
+            return back()->withErrors([
+                'code' => "Código inválido. Tentativa {$attempts} de " . self::MAX_2FA_ATTEMPTS . ".",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('2FA_ENABLE_ERROR', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->view('auth.2fa.setup-error', [
+                'message' => 'Erro ao ativar o 2FA. Tente novamente ou entre em contato.',
+                'debug' => $e->getMessage() . " \n " . $e->getTraceAsString(),
+            ], 500);
         }
-
-        $request->validate([
-            'code' => ['required', 'digits:6'],
-        ]);
-
-        if (!$user->two_factor_secret) {
-            return back()->withErrors(['code' => 'Configure o 2FA primeiro.']);
-        }
-
-        if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
-            $user->two_factor_enabled = true;
-            $user->recovery_codes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
-            $user->save();
-
-            // Mark as verified since user just proved they have the authenticator
-            Session::put('2fa_verified_' . $user->id, true);
-            SecurityLogService::logTwoFactorEvent($user->id, 'enabled', 'success');
-
-            return redirect()->route('dashboard')->with('success', 'Autenticação de dois fatores ativada com sucesso!');
-        }
-
-        $attemptsKey = '2fa_attempts_' . $user->id;
-        $attempts = Cache::get($attemptsKey, 0) + 1;
-        Cache::put($attemptsKey, $attempts, now()->addMinutes(self::LOCKOUT_MINUTES));
-
-        if ($attempts >= self::MAX_2FA_ATTEMPTS) {
-            Cache::put($lockKey, true, now()->addMinutes(self::LOCKOUT_MINUTES));
-            SecurityLogService::logTwoFactorEvent($user->id, 'locked', 'failed');
-            return view('auth.2fa.locked', ['minutes' => self::LOCKOUT_MINUTES]);
-        }
-
-        return back()->withErrors([
-            'code' => "Código inválido. Tentativa {$attempts} de " . self::MAX_2FA_ATTEMPTS . ".",
-        ]);
     }
 
     public function disable(Request $request)
