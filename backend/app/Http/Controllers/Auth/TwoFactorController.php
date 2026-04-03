@@ -155,7 +155,7 @@ class TwoFactorController extends Controller
             return response()->view('auth.2fa.setup-error', [
                 'message' => 'Erro ao configurar 2FA. Tente novamente ou entre em contato com o suporte.',
                 'debug' => $e->getMessage() . " \n " . $e->getTraceAsString(),
-            ], 500);
+            ], 200);
         }
     }
 
@@ -209,10 +209,12 @@ class TwoFactorController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
+            // We must return 200 instead of 500, otherwise Nginx intercept the 500 on a POST request
+            // and does an internal redirect that causes a 405 Method Not Allowed.
             return response()->view('auth.2fa.setup-error', [
                 'message' => 'Erro ao ativar o 2FA. Tente novamente ou entre em contato.',
                 'debug' => $e->getMessage() . " \n " . $e->getTraceAsString(),
-            ], 500);
+            ], 200);
         }
     }
 
