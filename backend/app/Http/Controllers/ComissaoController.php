@@ -14,6 +14,11 @@ use Carbon\Carbon;
 
 class ComissaoController extends Controller
 {
+    public function diagnostico(Request $request)
+    {
+        return "DIAGNOSTICO_REACHED - A rota está funcionando e chamando o controller corretamente (Vendas).";
+    }
+
     public function index(Request $request)
     {
         return "CONTROLLER_REACHED - 17:00 VENDAS"; // Testando conectividade do controller
