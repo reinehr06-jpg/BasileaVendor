@@ -169,7 +169,7 @@ return [
     |
     */
 
-    'secure' => null,
+    'secure' => false,
     'same_site' => 'lax',
 
     /*

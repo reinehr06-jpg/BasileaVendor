@@ -7,9 +7,15 @@ echo "=== Basileia Vendas - Iniciando ==="
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
-# Garantir que diretórios de sessão existem
+# Garantir que diretórios de sessão existem com permissões corretas
 mkdir -p storage/framework/sessions
+mkdir -p storage/framework/cache
+mkdir -p storage/framework/views
+mkdir -p storage/logs
+mkdir -p bootstrap/cache
 chmod -R 777 storage/framework/sessions
+chmod -R 777 storage/logs
+chmod -R 777 bootstrap/cache
 
 # === APP_KEY PERSISTENTE ===
 APP_KEY_FILE="/var/www/html/storage/app/.app_key"

@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 
 define('LARAVEL_START', microtime(true));
 
@@ -23,4 +24,14 @@ require __DIR__.'/../vendor/autoload.php';
 /** @var Application $app */
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
-$app->handleRequest(Request::capture());
+// Force HTTPS AFTER bootstrapping (before handling request)
+URL::forceScheme('https');
+
+// Override request server params to ensure HTTPS is detected
+$request = Request::capture();
+$request->server->set('HTTPS', 'on');
+$request->server->set('SERVER_PORT', 443);
+$request->headers->set('X-Forwarded-Proto', 'https');
+$request->headers->set('X-Forwarded-Port', '443');
+
+$app->handleRequest($request);
