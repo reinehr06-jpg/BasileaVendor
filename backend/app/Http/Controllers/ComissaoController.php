@@ -29,8 +29,9 @@ class ComissaoController extends Controller
         $status = $request->get('status');
 
         // Se for gestor, ele vê onde é vendedor OU onde é gerente (comissão de equipe)
-        $query = Comissao::where(function($q) use ($user, $vendedor) {
-            $vendedorId = $vendedor->id ?? 0;
+        $vendedorId = $vendedor ? $vendedor->id : 0;
+        
+        $query = Comissao::where(function($q) use ($user, $vendedorId) {
             $q->where('vendedor_id', $vendedorId) // Direta
               ->orWhere('gerente_id', $user->id); // Equipe
         })->where('competencia', $mes)
@@ -42,25 +43,24 @@ class ComissaoController extends Controller
         $comissoes = $query->orderByDesc('created_at')->paginate(20);
 
         // Resumo (Cálculo inteligente do valor para o usuário logado)
-        $todas = Comissao::where(function($q) use ($user, $vendedor) {
-            $vendedorId = $vendedor->id ?? 0;
+        $todas = Comissao::where(function($q) use ($user, $vendedorId) {
             $q->where('vendedor_id', $vendedorId)
               ->orWhere('gerente_id', $user->id);
         })->where('competencia', $mes)->get();
 
         $resumo = [
-            'pendente' => $todas->where('status', 'pendente')->sum(function($c) use ($user, $vendedor) {
-                return ($c->vendedor_id == ($vendedor->id ?? 0)) ? $c->valor_comissao : $c->valor_gerente;
+            'pendente' => $todas->where('status', 'pendente')->sum(function($c) use ($vendedorId) {
+                return ($c->vendedor_id == $vendedorId) ? $c->valor_comissao : $c->valor_gerente;
             }),
-            'confirmada' => $todas->where('status', 'confirmada')->sum(function($c) use ($user, $vendedor) {
-                return ($c->vendedor_id == ($vendedor->id ?? 0)) ? $c->valor_comissao : $c->valor_gerente;
+            'confirmada' => $todas->where('status', 'confirmada')->sum(function($c) use ($vendedorId) {
+                return ($c->vendedor_id == $vendedorId) ? $c->valor_comissao : $c->valor_gerente;
             }),
-            'paga' => $todas->where('status', 'paga')->sum(function($c) use ($user, $vendedor) {
-                return ($c->vendedor_id == ($vendedor->id ?? 0)) ? $c->valor_comissao : $c->valor_gerente;
+            'paga' => $todas->where('status', 'paga')->sum(function($c) use ($vendedorId) {
+                return ($c->vendedor_id == $vendedorId) ? $c->valor_comissao : $c->valor_gerente;
             }),
             'recorrencias' => $todas->where('tipo_comissao', 'recorrencia')->count(),
-            'total' => $todas->sum(function($c) use ($user, $vendedor) {
-                return ($c->vendedor_id == ($vendedor->id ?? 0)) ? $c->valor_comissao : $c->valor_gerente;
+            'total' => $todas->sum(function($c) use ($vendedorId) {
+                return ($c->vendedor_id == $vendedorId) ? $c->valor_comissao : $c->valor_gerente;
             }),
         ];
 
@@ -368,9 +368,9 @@ class ComissaoController extends Controller
         if ($user->perfil === 'vendedor' && $user->vendedor) {
             $query->where('vendedor_id', $user->vendedor->id);
         } elseif ($user->perfil === 'gestor') {
-            $query->where(function($q) use ($user) {
-                $vendedorId = $user->vendedor->id ?? 0;
-                $q->where('vendedor_id', $vendedorId)
+            $vendedorIdExport = $user->vendedor ? $user->vendedor->id : 0;
+            $query->where(function($q) use ($user, $vendedorIdExport) {
+                $q->where('vendedor_id', $vendedorIdExport)
                   ->orWhere('gerente_id', $user->id);
             });
         } elseif ($vendedorId) {
