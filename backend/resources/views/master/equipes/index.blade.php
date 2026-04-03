@@ -282,60 +282,27 @@
     }
     .vendedor-se-item:last-child { border-bottom: none; }
 
-    .page-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 24px;
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-    .page-header h2 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-    }
-    .page-header p {
-        color: var(--text-muted);
-        font-size: 0.9rem;
-        margin-top: 4px;
-    }
-
-    .export-dropdown { position: relative; display: inline-block; }
-    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
-    .export-dropdown:hover .export-dropdown-content { display: block; }
-    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
-    .export-item:hover { background: var(--bg); color: var(--primary); }
-    .export-item:first-child { border-radius: 8px 8px 0 0; }
-    .export-item:last-child { border-radius: 0 0 8px 8px; }
-    .export-item i { margin-right: 8px; width: 16px; }
-
     @media (max-width: 768px) {
         .equipes-grid { grid-template-columns: 1fr; }
         .equipe-stats { grid-template-columns: repeat(2, 1fr); }
     }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-people-group" style="margin-right: 8px;"></i>Equipes</h2>
-        <p>Gerencie as equipes de vendas e acompanhe as metas por equipe.</p>
-    </div>
-    <div style="display: flex; gap: 10px; align-items: center;">
-        <div class="export-dropdown">
-            <button class="btn btn-outline">
-                <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
-            </button>
-            <div class="export-dropdown-content">
-                <a href="?formato=excel" class="export-item"><i class="fas fa-file-excel"></i> Excel</a>
-                <a href="?formato=pdf" class="export-item"><i class="fas fa-file-pdf"></i> PDF</a>
-                <a href="?formato=csv" class="export-item"><i class="fas fa-file-csv"></i> CSV</a>
-            </div>
-        </div>
-        <button class="btn btn-primary" onclick="BasileiaModal.open('createEquipeModal')">
-            <i class="fas fa-plus"></i> Nova Equipe
-        </button>
-    </div>
+<x-page-hero 
+    title="Equipes" 
+    subtitle="Gerencie as equipes de vendas e acompanhe as metas por equipe." 
+    icon="fas fa-people-group"
+    :exports="[
+        ['type' => 'excel', 'url' => '?formato=excel', 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => '?formato=pdf', 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => '?formato=csv', 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+/>
+
+<div style="display: flex; gap: 10px; align-items: center; margin-top: 12px;">
+    <button class="btn btn-primary" onclick="BasileiaModal.open('createEquipeModal')">
+        <i class="fas fa-plus"></i> Nova Equipe
+    </button>
 </div>
 
 @if(count($equipes) > 0)

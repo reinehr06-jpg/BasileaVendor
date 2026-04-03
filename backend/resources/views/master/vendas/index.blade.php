@@ -21,12 +21,11 @@
     .forma-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; background: rgba(76,29,149,0.08); color: var(--primary); }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-shopping-bag" style="margin-right: 8px;"></i>Vendas Globais</h2>
-        <p>Todas as vendas da operação.</p>
-    </div>
-</div>
+<x-page-hero 
+    title="Vendas Globais" 
+    subtitle="Todas as vendas da operação." 
+    icon="fas fa-shopping-bag"
+/>
 
 <!-- Stats -->
 <div class="stats-bar">

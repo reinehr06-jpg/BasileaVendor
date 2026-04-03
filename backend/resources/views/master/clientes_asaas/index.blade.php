@@ -3,32 +3,13 @@
 @section('title', 'Clientes Asaas — Painel de Importação')
 
 @section('content')
-<div style="padding: 0 0 48px;">
+<x-page-hero 
+    title="Clientes Asaas" 
+    subtitle="Sincronize, classifique e atribua comissões aos clientes pré-existentes no Asaas." 
+    icon="fas fa-cloud-arrow-down"
+/>
 
-    {{-- HEADER --}}
-    <div style="display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px;">
-        <div>
-            <h1 style="font-size:1.5rem; font-weight:900; color:var(--materio-text-main); margin:0;">
-                <i class="fas fa-cloud-arrow-down" style="color:#f97316;"></i>
-                Clientes Asaas
-                <span style="font-size:0.72rem; background:#f97316; color:white; padding:3px 10px; border-radius:20px; vertical-align:middle; margin-left:8px; font-weight:700;">MARÇO/2026</span>
-            </h1>
-            <p style="color:var(--materio-text-muted); font-size:0.83rem; margin:4px 0 0;">
-                Sincronize, classifique e atribua comissões aos clientes pré-existentes no Asaas.
-                @if($ultimaSincronizacao)
-                    <span style="color:#f97316; font-weight:700;">⏱ Última sync: {{ \Carbon\Carbon::parse($ultimaSincronizacao)->format('d/m/Y H:i') }}</span>
-                @else
-                    <strong style="color:#ef4444;">⚠️ Nunca sincronizado</strong>
-                @endif
-            </p>
-        </div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button id="btn-sincronizar" onclick="sincronizarAsaas()"
-                style="background:linear-gradient(135deg,#f97316,#ea580c); color:white; border:none; padding:10px 20px; border-radius:10px; font-weight:700; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; gap:8px;">
-                <i class="fas fa-rotate"></i> Sincronizar com Asaas
-            </button>
-        </div>
-    </div>
+<div style="padding: 0 0 48px;">
 
     {{-- PROGRESSO DE SINCRONIZAÇÃO --}}
     <div id="sync-progress" style="display:none; margin-bottom:20px;">

@@ -97,40 +97,26 @@
         flex-shrink: 0;
     }
 
-    .export-dropdown { position: relative; display: inline-block; }
-    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
-    .export-dropdown:hover .export-dropdown-content { display: block; }
-    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
-    .export-item:hover { background: var(--bg); color: var(--primary); }
-    .export-item:first-child { border-radius: 8px 8px 0 0; }
-    .export-item:last-child { border-radius: 0 0 8px 8px; }
-    .export-item i { margin-right: 8px; width: 16px; }
-
     @media (max-width: 768px) {
         .info-grid { grid-template-columns: 1fr; }
     }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-users" style="margin-right: 8px;"></i>Gestão de Vendedores</h2>
-        <p>Cadastre e gerencie sua equipe de vendas.</p>
-    </div>
-    <div style="display: flex; gap: 10px; align-items: center;">
-        <div class="export-dropdown">
-            <button class="btn btn-outline">
-                <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
-            </button>
-            <div class="export-dropdown-content">
-                <a href="?formato=excel" class="export-item"><i class="fas fa-file-excel"></i> Excel</a>
-                <a href="?formato=pdf" class="export-item"><i class="fas fa-file-pdf"></i> PDF</a>
-                <a href="?formato=csv" class="export-item"><i class="fas fa-file-csv"></i> CSV</a>
-            </div>
-        </div>
-        <button class="btn btn-primary" onclick="BasileiaModal.open('createModal')">
-            <i class="fas fa-plus"></i> Novo Vendedor
-        </button>
-    </div>
+<x-page-hero 
+    title="Gestão de Vendedores" 
+    subtitle="Cadastre e gerencie sua equipe de vendas." 
+    icon="fas fa-users"
+    :exports="[
+        ['type' => 'excel', 'url' => '?formato=excel', 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => '?formato=pdf', 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => '?formato=csv', 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+/>
+
+<div style="display: flex; gap: 10px; align-items: center; margin-top: 12px;">
+    <button class="btn btn-primary" onclick="BasileiaModal.open('createModal')">
+        <i class="fas fa-plus"></i> Novo Vendedor
+    </button>
 </div>
 
 <div class="filters-bar">

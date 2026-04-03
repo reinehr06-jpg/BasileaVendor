@@ -15,22 +15,16 @@
     .stat-clickable:hover { opacity: 0.8; }
     .stat-clickable.active { text-decoration: underline; }
 </style>
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-circle-check" style="margin-right: 8px;"></i>Aprovações Comerciais</h2>
-        <p>Vendas que precisam de aprovação por desconto ou plano especial.</p>
-    </div>
-    <div class="export-dropdown">
-        <button class="btn btn-outline">
-            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
-        </button>
-        <div class="export-dropdown-content">
-            <a href="?formato=excel" class="export-item"><i class="fas fa-file-excel"></i> Excel</a>
-            <a href="?formato=pdf" class="export-item"><i class="fas fa-file-pdf"></i> PDF</a>
-            <a href="?formato=csv" class="export-item"><i class="fas fa-file-csv"></i> CSV</a>
-        </div>
-    </div>
-</div>
+<x-page-hero 
+    title="Aprovações Comerciais" 
+    subtitle="Vendas que precisam de aprovação por desconto ou plano especial." 
+    icon="fas fa-circle-check"
+    :exports="[
+        ['type' => 'excel', 'url' => '?formato=excel', 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => '?formato=pdf', 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => '?formato=csv', 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+/>
 
 <!-- Stats -->
 <div class="stats-bar">

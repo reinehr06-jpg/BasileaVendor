@@ -3,10 +3,13 @@
 @section('title', 'Assinaturas')
 
 @section('content')
+<x-page-hero 
+    title="Assinaturas e Cartões Salvos" 
+    subtitle="Gerencie assinaturas recorrentes e cartões salvos no Asaas." 
+    icon="fas fa-sync-alt"
+/>
+
 <div class="container-fluid px-4">
-    <h1 class="mt-4 mb-4">
-        <i class="fas fa-sync-alt me-2"></i>Assinaturas e Cartões Salvos
-    </h1>
 
     @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show" role="alert">

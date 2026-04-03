@@ -30,17 +30,11 @@
 </style>
 
 <!-- Header padrão do sistema -->
-<div class="page-header animate-up">
-    <div>
-        <h2><i class="fas fa-link text-primary" style="margin-right: 8px;"></i>Links de Pagamento</h2>
-        <p>Gestão comercial e monitoramento de vagas em tempo real.</p>
-    </div>
-    @if(!$config_faltante)
-    <button class="btn btn-primary" onclick="openBasileiaModal(true)">
-        <i class="fas fa-plus-circle"></i> Novo Link Master
-    </button>
-    @endif
-</div>
+<x-page-hero 
+    title="Links de Pagamento" 
+    subtitle="Gestão comercial e monitoramento de vagas em tempo real." 
+    icon="fas fa-link"
+/>
 
 @if($config_faltante)
 <div class="alert alert-danger animate-up">

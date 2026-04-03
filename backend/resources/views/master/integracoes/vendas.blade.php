@@ -2,6 +2,12 @@
 @section('title', 'Integrações — Basileia Vendas')
 
 @section('content')
+<x-page-hero 
+    title="Integrações — Basileia Vendas" 
+    subtitle="Status da integração com Asaas, cobranças e webhooks." 
+    icon="fas fa-plug"
+/>
+
 <div class="integracoes-page">
     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:24px;">
         <div class="card" style="flex:1; min-width:220px; padding:20px;">

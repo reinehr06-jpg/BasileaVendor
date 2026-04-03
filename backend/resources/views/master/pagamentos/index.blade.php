@@ -29,15 +29,6 @@
     .action-btn-copy { background: white; color: var(--primary); border-color: var(--border); }
     .action-btn-copy:hover { border-color: var(--primary); }
     
-    .export-dropdown { position: relative; display: inline-block; }
-    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
-    .export-dropdown:hover .export-dropdown-content { display: block; }
-    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
-    .export-item:hover { background: var(--bg); color: var(--primary); }
-    .export-item:first-child { border-radius: 8px 8px 0 0; }
-    .export-item:last-child { border-radius: 0 0 8px 8px; }
-    .export-item i { margin-right: 8px; width: 16px; }
-    
     .tabs-container { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
     .tab-btn { padding: 10px 20px; background: transparent; border: none; border-radius: 8px 8px 0 0; cursor: pointer; font-weight: 600; color: var(--text-muted); transition: all 0.2s; }
     .tab-btn:hover { color: var(--primary); }
@@ -46,22 +37,16 @@
     .tab-content.active { display: block; }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-dollar-sign" style="margin-right: 8px;"></i>Controle de Pagamentos</h2>
-        <p>Visão global de todas as cobranças e recebimentos.</p>
-    </div>
-    <div class="export-dropdown">
-        <button class="btn btn-outline">
-            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
-        </button>
-        <div class="export-dropdown-content">
-            <a href="?formato=excel" class="export-item"><i class="fas fa-file-excel"></i> Excel</a>
-            <a href="?formato=pdf" class="export-item"><i class="fas fa-file-pdf"></i> PDF</a>
-            <a href="?formato=csv" class="export-item"><i class="fas fa-file-csv"></i> CSV</a>
-        </div>
-    </div>
-</div>
+<x-page-hero 
+    title="Controle de Pagamentos" 
+    subtitle="Visão global de todas as cobranças e recebimentos." 
+    icon="fas fa-dollar-sign"
+    :exports="[
+        ['type' => 'excel', 'url' => '?formato=excel', 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => '?formato=pdf', 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => '?formato=csv', 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+/>
 
 <!-- Tab: Cobranças Recebidas -->
 <div id="tab-cobrancas" class="tab-content active">

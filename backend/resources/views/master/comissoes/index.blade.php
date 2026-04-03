@@ -10,38 +10,18 @@
     .action-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; transition: all 0.2s; font-size: 0.95rem; color: var(--text-secondary); margin-left: 4px; }
     .action-btn:hover { background: var(--bg); color: var(--primary); border-color: var(--primary); }
     .vendedor-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
-    .export-dropdown { position: relative; display: inline-block; }
-    .export-dropdown-content { display: none; position: absolute; right: 0; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
-    .export-dropdown:hover .export-dropdown-content { display: block; }
-    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
-    .export-item:hover { background: var(--bg); color: var(--primary); }
-    .export-item:first-child { border-radius: 8px 8px 0 0; }
-    .export-item:last-child { border-radius: 0 0 8px 8px; }
-    .export-item i { margin-right: 8px; width: 16px; }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-hand-holding-dollar" style="margin-right: 8px;"></i>Comissões</h2>
-        <p>Resumo de comissões por vendedor com histórico detalhado</p>
-    </div>
-    <div class="export-dropdown">
-        <button class="btn btn-outline">
-            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
-        </button>
-        <div class="export-dropdown-content">
-            <a href="{{ route('master.comissoes.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item">
-                <i class="fas fa-file-excel"></i> Exportar Excel
-            </a>
-            <a href="{{ route('master.comissoes.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item">
-                <i class="fas fa-file-pdf"></i> Exportar PDF
-            </a>
-            <a href="{{ route('master.comissoes.exportar', array_merge(request()->query(), ['formato' => 'csv'])) }}" class="export-item">
-                <i class="fas fa-file-csv"></i> Exportar CSV
-            </a>
-        </div>
-    </div>
-</div>
+<x-page-hero 
+    title="Comissões" 
+    subtitle="Resumo de comissões por vendedor com histórico detalhado" 
+    icon="fas fa-hand-holding-dollar"
+    :exports="[
+        ['type' => 'excel', 'url' => route('master.comissoes.exportar', array_merge(request()->query(), ['formato' => 'excel'])), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => route('master.comissoes.exportar', array_merge(request()->query(), ['formato' => 'pdf'])), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => route('master.comissoes.exportar', array_merge(request()->query(), ['formato' => 'csv'])), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+/>
 
 <!-- Summary Cards -->
 <div class="stats-bar">

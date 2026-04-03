@@ -43,11 +43,13 @@
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 </style>
 
-<div class="page-header animate-in">
-    <div>
-        <h2><i class="fas fa-flag" style="margin-right: 8px;"></i>Metas da Operação</h2>
-        <p>Acompanhamento de objetivos e performance por vendedor</p>
-    </div>
+<x-page-hero 
+    title="Metas da Operação" 
+    subtitle="Acompanhamento de objetivos e performance por vendedor" 
+    icon="fas fa-flag"
+/>
+
+<div style="display: flex; gap: 10px; align-items: center; margin-top: 12px;">
     <button class="btn btn-primary" onclick="openMetaModal('create')">
         <i class="fas fa-plus"></i> Nova Meta
     </button>

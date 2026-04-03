@@ -3,91 +3,27 @@
 
 @section('content')
 <style>
-    .report-hero {
-        margin-bottom: 24px;
-        padding: 28px 32px;
-        background: linear-gradient(135deg, var(--primary-dark) 0%, #4C1D95 100%);
-        border-radius: var(--radius-xl);
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        box-shadow: 0 20px 25px -5px rgba(59, 7, 100, 0.2);
-    }
-    .report-hero h2 { color: white; margin-bottom: 6px; font-size: 1.6rem; letter-spacing: -0.5px; }
-    .report-hero p { opacity: 0.85; font-size: 0.95rem; }
-    .export-actions { display: flex; gap: 8px; }
-    .export-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; text-decoration: none; transition: 0.2s; border: none; cursor: pointer; }
-    .export-btn.excel { background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid rgba(22, 163, 74, 0.3); }
-    .export-btn.excel:hover { background: rgba(22, 163, 74, 0.35); }
-    .export-btn.pdf { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-    .export-btn.pdf:hover { background: rgba(239, 68, 68, 0.35); }
-    .export-btn.csv { background: rgba(37, 99, 235, 0.2); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.3); }
-    .export-btn.csv:hover { background: rgba(37, 99, 235, 0.35); }
-
-    .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 30px; }
-    .kpi-card { padding: 24px; background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); transition: all 0.3s ease; position: relative; overflow: hidden; }
-    .kpi-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
-    .kpi-card .label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: block; }
-    .kpi-card .value { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); margin-bottom: 8px; }
-    .kpi-icon { position: absolute; top: 15px; right: 15px; font-size: 1.2rem; opacity: 0.15; color: var(--primary); }
-    .kpi-card.highlight { background: linear-gradient(135deg, var(--primary-dark), var(--primary)); border: none; }
-    .kpi-card.highlight .label { color: rgba(255,255,255,0.75); }
-    .kpi-card.highlight .value { color: white; }
-    .kpi-card.highlight .kpi-icon { color: white; opacity: 0.3; }
-    .kpi-card.highlight:hover { box-shadow: 0 12px 28px rgba(76, 29, 149, 0.3); }
-
-    .section-card { background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); margin-bottom: 25px; overflow: hidden; }
-    .section-card-header { padding: 20px 24px; border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 10px; }
-    .section-card-header i { color: var(--primary); font-size: 1.15rem; }
-    .section-card-header h3 { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
-    .section-card-body { padding: 0; }
-
-    .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
-    .insight-card { padding: 24px; background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); }
-    .insight-card:hover { box-shadow: var(--shadow-md); }
-    .insight-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-weight: 700; font-size: 0.95rem; color: var(--text-primary); }
-    .insight-header i { color: var(--primary); }
-    .insight-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border-light); }
-    .insight-row:last-child { border-bottom: none; }
-    .insight-row .ilabel { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--text); }
-    .insight-row .ilabel i { width: 16px; text-align: center; font-size: 0.9rem; }
-    .insight-row .ivalue { font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
-
-    .rpt-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-    .rpt-table th { background: var(--bg); padding: 12px 18px; text-align: left; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.72rem; border-bottom: 1px solid var(--border-light); white-space: nowrap; }
-    .rpt-table td { padding: 14px 18px; border-bottom: 1px solid var(--border-light); color: var(--text); vertical-align: middle; }
-    .rpt-table tr:last-child td { border-bottom: none; }
-    .rpt-table tbody tr:hover { background: var(--surface-hover); }
-    .rpt-table .text-right { text-align: right; }
-    .rpt-table .text-center { text-align: center; }
-
-    .badge-forma { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; text-transform: capitalize; }
-    .badge-forma.pix { background: #dbeafe; color: #1d4ed8; }
-    .badge-forma.boleto { background: #fef3c7; color: #92400e; }
-    .badge-forma.cartao { background: #f3e8ff; color: #6b21a8; }
-    .badge-forma.recorrente { background: #d1fae5; color: #065f46; }
-
     @media (max-width: 1200px) {
         .kpi-grid { grid-template-columns: repeat(3, 1fr); }
         .insight-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 768px) {
         .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-        .report-hero { flex-direction: column; gap: 16px; text-align: center; }
-        .export-actions { justify-content: center; }
         .filters-bar { flex-direction: column; }
         .filters-bar > div { width: 100%; }
     }
 </style>
 
-<!-- ===== Hero Banner ===== -->
-<div class="animate-up" style="animation-delay: 0.1s;">
-    <div class="report-hero">
-        <div>
-            <h2><i class="fas fa-chart-bar" style="margin-right: 10px;"></i>Relatórios Gerenciais</h2>
-            <p>Análise consolidada da operação comercial e financeira</p>
-        </div>
+<x-page-hero 
+    title="Relatórios Gerenciais" 
+    subtitle="Análise consolidada da operação comercial e financeira" 
+    icon="fas fa-chart-bar"
+    :exports="[
+        ['type' => 'excel', 'url' => route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => route('master.relatorios.exportar', request()->query()), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+/>
         <div class="export-actions">
             <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; display: block; margin-bottom: 6px;">Exportar</span>
             <div style="display: flex; gap: 8px;">
