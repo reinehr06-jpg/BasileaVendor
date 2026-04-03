@@ -381,7 +381,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/pagamentos', [PagamentoController::class, 'indexVendedor'])->name('pagamentos');
         Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes');
         Route::get('/clientes/{id}', [ClienteController::class, 'show'])->name('clientes.show');
-        Route::get('/comissoes', [ComissaoController::class, 'index'])->name('comissoes');
+        Route::get('/comissoes', [ComissaoController::class, 'diagnostico'])->name('comissoes');
         Route::get('/comissoes/exportar', [ComissaoController::class, 'exportar'])->name('vendedor.comissoes.exportar');
         Route::get('/comissao', function() { return redirect()->route('vendedor.comissoes'); })->name('comissao');
         
