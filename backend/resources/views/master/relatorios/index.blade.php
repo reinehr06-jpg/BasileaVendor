@@ -4,27 +4,26 @@
 @section('content')
 <style>
     .report-hero {
-        margin-bottom: 16px;
-        padding: 30px;
+        margin-bottom: 24px;
+        padding: 28px 32px;
         background: linear-gradient(135deg, var(--primary-dark) 0%, #4C1D95 100%);
         border-radius: var(--radius-xl);
         color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         box-shadow: 0 20px 25px -5px rgba(59, 7, 100, 0.2);
     }
     .report-hero h2 { color: white; margin-bottom: 6px; font-size: 1.6rem; letter-spacing: -0.5px; }
     .report-hero p { opacity: 0.85; font-size: 0.95rem; }
-
-    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-    .export-dropdown { position: relative; display: inline-block; }
-    .export-btn { background: white; color: var(--text-primary); border: 1.5px solid var(--border); padding: 8px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
-    .export-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .export-dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 4px); background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; }
-    .export-dropdown:hover .export-dropdown-content { display: block; }
-    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
-    .export-item:hover { background: var(--bg); color: var(--primary); }
-    .export-item:first-child { border-radius: 8px 8px 0 0; }
-    .export-item:last-child { border-radius: 0 0 8px 8px; }
-    .export-item i { margin-right: 8px; width: 16px; }
+    .export-actions { display: flex; gap: 8px; }
+    .export-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.8rem; text-decoration: none; transition: 0.2s; border: none; cursor: pointer; }
+    .export-btn.excel { background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid rgba(22, 163, 74, 0.3); }
+    .export-btn.excel:hover { background: rgba(22, 163, 74, 0.35); }
+    .export-btn.pdf { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .export-btn.pdf:hover { background: rgba(239, 68, 68, 0.35); }
+    .export-btn.csv { background: rgba(37, 99, 235, 0.2); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.3); }
+    .export-btn.csv:hover { background: rgba(37, 99, 235, 0.35); }
 
     .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 30px; }
     .kpi-card { padding: 24px; background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); transition: all 0.3s ease; position: relative; overflow: hidden; }
@@ -75,8 +74,8 @@
     }
     @media (max-width: 768px) {
         .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-        .report-hero { padding: 24px; }
-        .toolbar { flex-direction: column; gap: 12px; align-items: flex-start; }
+        .report-hero { flex-direction: column; gap: 16px; text-align: center; }
+        .export-actions { justify-content: center; }
         .filters-bar { flex-direction: column; }
         .filters-bar > div { width: 100%; }
     }
@@ -85,27 +84,19 @@
 <!-- ===== Hero Banner ===== -->
 <div class="animate-up" style="animation-delay: 0.1s;">
     <div class="report-hero">
-        <h2><i class="fas fa-chart-bar" style="margin-right: 10px;"></i>Relatórios Gerenciais</h2>
-        <p>Análise consolidada da operação comercial e financeira</p>
-    </div>
-</div>
-
-<!-- ===== Toolbar ===== -->
-<div class="toolbar animate-up" style="animation-delay: 0.15s;">
-    <div></div>
-    <div class="export-dropdown">
-        <button class="export-btn">
-            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
-        </button>
-        <div class="export-dropdown-content">
-            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item">
-                <i class="fas fa-file-excel" style="color: var(--success);"></i> Exportar Excel
+        <div>
+            <h2><i class="fas fa-chart-bar" style="margin-right: 10px;"></i>Relatórios Gerenciais</h2>
+            <p>Análise consolidada da operação comercial e financeira</p>
+        </div>
+        <div class="export-actions">
+            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-btn excel">
+                <i class="fas fa-file-excel"></i> Excel
             </a>
-            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item">
-                <i class="fas fa-file-pdf" style="color: var(--danger);"></i> Exportar PDF
+            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-btn pdf">
+                <i class="fas fa-file-pdf"></i> PDF
             </a>
-            <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item">
-                <i class="fas fa-file-csv" style="color: var(--info);"></i> Exportar CSV
+            <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-btn csv">
+                <i class="fas fa-file-csv"></i> CSV
             </a>
         </div>
     </div>
@@ -113,7 +104,7 @@
 
 {{-- ===== Filtros ===== --}}
 <form method="GET" action="{{ route('master.relatorios') }}">
-<div class="filters-bar animate-up" style="animation-delay: 0.2s;">
+<div class="filters-bar animate-up" style="animation-delay: 0.15s;">
     <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 130px;">
         <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Início</label>
         <input type="date" name="data_inicio" class="form-control" value="{{ $filtros['data_inicio'] }}">
@@ -148,7 +139,7 @@
 
 {{-- ===== Estado vazio ===== --}}
 @if(!$temDadosNoSistema)
-<div class="table-container animate-up" style="animation-delay: 0.25s;">
+<div class="table-container animate-up" style="animation-delay: 0.2s;">
     <div class="empty-state">
         <div class="empty-icon"><i class="fas fa-chart-pie"></i></div>
         <h3>Nenhum dado disponível</h3>
@@ -156,7 +147,7 @@
     </div>
 </div>
 @elseif(!$filtrosRetornaramDados)
-<div class="table-container animate-up" style="animation-delay: 0.25s;">
+<div class="table-container animate-up" style="animation-delay: 0.2s;">
     <div class="empty-state">
         <div class="empty-icon"><i class="fas fa-search"></i></div>
         <h3>Nenhum resultado encontrado</h3>
