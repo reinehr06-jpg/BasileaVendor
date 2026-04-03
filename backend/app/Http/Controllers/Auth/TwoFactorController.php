@@ -119,7 +119,7 @@ class TwoFactorController extends Controller
                     ->where('id', $user->id)
                     ->update(['two_factor_secret' => encrypt($newSecret)]);
                 $user->refresh();
-                $secret = $user->two_factor_secret;
+                $secret = $newSecret;
             }
 
             // Check if this is a rotation (secret was rotated within last 24h)
@@ -134,6 +134,7 @@ class TwoFactorController extends Controller
 
             return view('auth.2fa.setup', [
                 'user' => $user,
+                'secret' => $secret,
                 'enableRoute' => '2fa.enable',
                 'isRotation' => $isRotation,
                 'qrCode' => $qrCode,

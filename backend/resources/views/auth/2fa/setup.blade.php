@@ -119,7 +119,7 @@
                     </div>
                 </div>
                 <p style="text-align: center; color: #a1a1b5; font-size: 0.78rem; margin: 8px 0;">Ou use a chave manual abaixo:</p>
-                <div class="secret-box">{{ $user->two_factor_secret }}</div>
+                <div class="secret-box">{{ $secret }}</div>
                 <span style="color: #a1a1b5; font-size: 0.78rem;">Copie esta chave e cole no app como "entrada manual"</span>
             </div>
         </div>
