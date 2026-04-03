@@ -16,6 +16,7 @@ class ComissaoController extends Controller
 {
     public function index(Request $request)
     {
+        return "CONTROLLER_REACHED - 17:00 VENDAS"; // Testando conectividade do controller
         try {
             $user = Auth::user();
             $vendedor = $user->vendedor;
