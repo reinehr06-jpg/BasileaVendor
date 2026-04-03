@@ -17,6 +17,8 @@ class ComissaoController extends Controller
 {
     public function index(Request $request)
     {
+        error_reporting(E_ALL);
+        ini_set('display_errors', 1);
         try {
             $user = Auth::user();
             if (!$user) {
