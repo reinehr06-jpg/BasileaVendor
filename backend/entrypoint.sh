@@ -55,17 +55,19 @@ until php -r "try { new PDO('pgsql:host=${DB_HOST:-postgres};port=${DB_PORT:-543
 done
 echo "Banco OK"
 
-# === Limpar caches ===
+# === Limpar caches SEMPRE (auto-healing, sem necessidade de restart) ===
 php artisan config:clear 2>/dev/null || true
 php artisan route:clear 2>/dev/null || true
+php artisan view:clear 2>/dev/null || true
+php artisan optimize:clear 2>/dev/null || true
 
 # === Migrations ===
 echo "Migrations..."
 php artisan migrate --force --graceful 2>&1 || true
 
-# === Caches ===
-php artisan config:cache 2>&1 || true
-php artisan route:cache 2>&1 || true
+# === SEM route:cache - resolve routes dinamicamente para auto-healing ===
+# route:cache congela as rotas e exige restart para atualizar
+# Para app deste porte, o overhead é insignificante
 
 echo "=== Servidor na porta 8000 ==="
 exec php -d max_execution_time=600 -d memory_limit=512M artisan serve --host=0.0.0.0 --port=8000
