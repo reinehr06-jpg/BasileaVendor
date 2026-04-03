@@ -76,6 +76,15 @@ Route::get('/', function () {
 // Webhooks e Manutenção (Deploy AWS)
 // ==========================================
 Route::post('/webhooks/asaas', [WebhookController::class, 'asaasWebhook'])->name('webhooks.asaas');
+Route::get('/webhooks/asaas/test', function() {
+    return response()->json([
+        'status' => 'ok',
+        'message' => 'Webhook Asaas está funcionando!',
+        'route' => '/webhooks/asaas',
+        'method' => 'POST',
+        'timestamp' => now()->toDateTimeString(),
+    ]);
+})->name('webhooks.asaas.test');
 Route::get('/webhooks/asaas/status', [WebhookController::class, 'webhookStatus'])->name('webhooks.status');
 
 // Git Auto-Deploy (Garante atualizações em tempo real no servidor AWS)
