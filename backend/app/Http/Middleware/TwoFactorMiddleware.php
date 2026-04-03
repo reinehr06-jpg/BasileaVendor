@@ -18,22 +18,21 @@ class TwoFactorMiddleware
 
         $user = Auth::user();
 
-        // Skip if 2FA not enabled
+        // Allow access to 2FA setup, verify, enable, disable and logout routes
+        if ($request->is('2fa/*') || $request->is('logout') || $request->is('password/*')) {
+            return $next($request);
+        }
+
+        // If 2FA is not enabled, force user to set it up
         if (!$user->two_factor_enabled) {
-            return $next($request);
+            return redirect()->route('2fa.setup');
         }
 
-        // Skip if already verified this session
-        if (Session::get('2fa_verified_' . $user->id)) {
-            return $next($request);
+        // If 2FA is enabled but not verified this session, require verification
+        if (!Session::get('2fa_verified_' . $user->id)) {
+            return redirect()->route('2fa.verify');
         }
 
-        // Skip 2FA routes to prevent infinite redirect
-        if ($request->is('2fa/*') || $request->is('logout')) {
-            return $next($request);
-        }
-
-        // Redirect to 2FA verification
-        return redirect()->route('2fa.verify');
+        return $next($request);
     }
 }
