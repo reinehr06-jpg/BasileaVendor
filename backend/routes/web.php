@@ -107,23 +107,20 @@ Route::get('/webhooks/asaas/test', function() {
 })->name('webhooks.asaas.test');
 Route::get('/webhooks/asaas/status', [WebhookController::class, 'webhookStatus'])->name('webhooks.status');
 
-// Git Auto-Deploy (Garante atualizações em tempo real no servidor AWS)
+// Git Auto-Deploy (protegido por HMAC signature no controller)
 Route::post('/webhooks/git-deploy', [\App\Http\Controllers\GitWebhookController::class, 'deploy'])->name('webhooks.git-deploy');
 
-// Master Recovery (Recuperação de acesso no servidor AWS - Use apenas uma vez)
-Route::get('/master-recovery-fix', [\App\Http\Controllers\MasterFixController::class, 'fix'])->name('master.recovery-fix');
+// Health check (public)
+Route::get('/health', function() {
+    return response()->json(['status' => 'ok', 'timestamp' => now()]);
+});
 
-// Database Emergency Reset (Limpeza total + Novo Admin)
-Route::get('/emergency-database-reset-2026', [\App\Http\Controllers\DatabaseResetController::class, 'reset'])->name('database.emergency-reset');
-
-// Teste: gerar link de checkout rápido
-// Route::get('/test-checkout', function() {
-// ... (comentado)
-// });
-
-Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-Route::get('/Login', function() { return redirect('/login'); });
-Route::post('/login', [LoginController::class, 'login'])->name('login.post');
+// Login routes (com rate limiting)
+Route::middleware('throttle:10,1')->group(function () {
+    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+    Route::get('/Login', function() { return redirect('/login'); });
+    Route::post('/login', [LoginController::class, 'login'])->name('login.post');
+});
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // 2FA Routes
@@ -135,21 +132,8 @@ Route::middleware('auth')->prefix('2fa')->name('2fa.')->group(function () {
     Route::post('/disable', [App\Http\Controllers\Auth\TwoFactorController::class, 'disable'])->name('disable');
 });
 
-// Health check + cache clear (public, no auth)
-Route::get('/health', function() {
-    return response()->json(['status' => 'ok', 'timestamp' => now()]);
-});
-Route::post('/clear-cache', function() {
-    try {
-        \Illuminate\Support\Facades\Artisan::call('optimize:clear');
-        return response()->json(['status' => 'cleared']);
-    } catch (\Exception $e) {
-        return response()->json(['error' => $e->getMessage()], 500);
-    }
-});
-
-// Diagnóstico Asaas - sem middleware (remover após resolver)
-Route::get('/debug-asaas', function () {
+// Diagnóstico Asaas (protegido por auth + master)
+Route::middleware(['auth', 'admin.security'])->get('/debug-asaas', function () {
     try {
         $result = [];
         

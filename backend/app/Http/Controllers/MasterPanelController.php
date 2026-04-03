@@ -40,7 +40,7 @@ class MasterPanelController extends Controller
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => 'Basileia123',
+                'password' => Hash::make('Basileia123'),
                 'perfil' => $request->perfil,
                 'status' => $request->status,
                 'require_password_change' => true,
@@ -133,7 +133,9 @@ class MasterPanelController extends Controller
             ]);
 
             if ($request->filled('password')) {
-                $user->update(['password' => $request->password]);
+                $user->update(['password' => Hash::make($request->password)]);
+                $user->require_password_change = true;
+                $user->save();
             }
 
             $user->vendedor()->updateOrCreate(

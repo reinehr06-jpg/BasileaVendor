@@ -30,61 +30,23 @@ class LoginController extends Controller
 
         Log::info('LOGIN_TENTATIVA', ['email' => $email]);
 
-        // === ADMIN: criar/atualizar e logar ===
-        if ($email === 'basileia.vendas@basileia.com') {
-            try {
-                $hashed = password_hash($password, PASSWORD_BCRYPT);
-                $existing = DB::table('users')->where('email', $email)->first();
-
-                if ($existing) {
-                    DB::table('users')->where('id', $existing->id)->update([
-                        'password' => $hashed,
-                        'perfil' => 'master',
-                        'updated_at' => now(),
-                    ]);
-                    $userId = $existing->id;
-                    Log::info('LOGIN_ADMIN_UPDATE', ['id' => $userId]);
-                } else {
-                    $userId = DB::table('users')->insertGetId([
-                        'name' => 'Administrador Master',
-                        'email' => $email,
-                        'password' => $hashed,
-                        'perfil' => 'master',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                    Log::info('LOGIN_ADMIN_CREATE', ['id' => $userId]);
-                }
-
-                // Login manual via PDO + session
-                $user = \App\Models\User::find($userId);
-                if (!$user) {
-                    Log::error('LOGIN_ADMIN_USER_NULL', ['id' => $userId]);
-                    return back()->withErrors(['email' => 'Erro interno.']);
-                }
-
-                Auth::login($user);
-                $request->session()->regenerate();
-
-                Log::info('LOGIN_ADMIN_OK', ['id' => $userId]);
-
-                if ($user->two_factor_enabled) {
-                    return redirect()->route('2fa.verify');
-                }
-
-                return redirect('/dashboard');
-
-            } catch (\Exception $e) {
-                Log::error('LOGIN_ADMIN_ERRO', ['erro' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
-                return back()->withErrors(['email' => 'Erro: ' . $e->getMessage()]);
-            }
-        }
-
-        // === OUTROS USUÁRIOS ===
         try {
             if (Auth::attempt(['email' => $email, 'password' => $password], $request->boolean('remember'))) {
                 $request->session()->regenerate();
                 Log::info('LOGIN_OK', ['email' => $email]);
+
+                $user = Auth::user();
+
+                // Force password change if required
+                if ($user->require_password_change) {
+                    return redirect()->route('password.change');
+                }
+
+                // 2FA check
+                if ($user->two_factor_enabled) {
+                    return redirect()->route('2fa.verify');
+                }
+
                 return redirect('/dashboard');
             }
         } catch (\Exception $e) {

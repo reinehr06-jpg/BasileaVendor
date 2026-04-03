@@ -29,9 +29,6 @@ class User extends Authenticatable
         'perfil',
         'status',
         'require_password_change',
-        'two_factor_secret',
-        'two_factor_enabled',
-        'recovery_codes',
     ];
 
     /**
@@ -44,6 +41,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'two_factor_secret' => 'encrypted',
+            'recovery_codes' => 'encrypted',
         ];
     }
 

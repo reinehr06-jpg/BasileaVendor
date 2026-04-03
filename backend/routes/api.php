@@ -16,15 +16,21 @@ use App\Http\Middleware\ApiKeyAuth;
 // Asaas Webhook — Receber eventos de pagamento
 Route::post('/asaas/webhook', [AsaasWebhookController::class, 'handle']);
 
-// Endpoint de Criação de Cobrança (Wizard)
-Route::post('/vendas/criar-cobranca', [VendaCobrancaController::class, 'createBilling']);
+// Rotas protegidas por API Key
+Route::middleware('api.key')->group(function () {
+    // Endpoint de Criação de Cobrança (Wizard)
+    Route::post('/vendas/criar-cobranca', [VendaCobrancaController::class, 'createBilling']);
 
-// Excluir Cobrança/Pagamento (ambas as rotas)
-Route::delete('/cobrancas/{id}', [CobrancaController::class, 'destroy']);
-Route::delete('/pagamentos/{id}', [CobrancaController::class, 'destroyPagamento']);
+    // Excluir Cobrança/Pagamento (ambas as rotas)
+    Route::delete('/cobrancas/{id}', [CobrancaController::class, 'destroy']);
+    Route::delete('/pagamentos/{id}', [CobrancaController::class, 'destroyPagamento']);
 
-// Basiléia Church — Verificar status do cliente (ativado via Bearer token)
-Route::get('/client-status/{venda_id}', [ClienteStatusController::class, 'show']);
+    // Basiléia Church — Verificar status do cliente (ativado via Bearer token)
+    Route::get('/client-status/{venda_id}', [ClienteStatusController::class, 'show']);
+
+    // Checkout Session
+    Route::post('/checkout/session', [\App\Http\Controllers\Api\CheckoutSessionController::class, 'create']);
+});
 
 // ==========================================
 // API Pública: Verificação de Duplicidade (usada no formulário de nova venda)
@@ -62,11 +68,6 @@ Route::get('/verificar-documento', function (\Illuminate\Http\Request $request) 
     return response()->json([
         'exists' => true,
         'has_active_sale' => $vendaAtiva,
-        'cliente' => [
-            'nome_igreja' => $cliente->nome_igreja,
-            'nome_pastor' => $cliente->nome_pastor,
-            'email' => $cliente->email,
-        ],
     ]);
 });
 
