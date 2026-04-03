@@ -134,7 +134,7 @@
                             @endif
 
                             <button onclick="copiarLinkCheckout({{ $venda->id }})" class="btn btn-success btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Copiar Link de Checkout">
-                                <i class="fas fa-copy</i> Copiar
+                                <i class="fas fa-copy"></i> Copiar
                             </button>
                         </div>
                     @else
