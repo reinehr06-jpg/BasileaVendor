@@ -20,6 +20,14 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
+        // Clear config and route cache on every login attempt to prevent 419/loop
+        try {
+            \Illuminate\Support\Facades\Artisan::call('config:clear');
+            \Illuminate\Support\Facades\Artisan::call('route:clear');
+        } catch (\Exception $e) {
+            // ignore
+        }
+
         $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],

@@ -16,6 +16,16 @@ class ClearStaleCache
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Forcar limpeza de config cache em requests de login para evitar loop/419
+        if ($request->is('login') && $request->isMethod('POST')) {
+            try {
+                \Illuminate\Support\Facades\Artisan::call('config:clear');
+                \Illuminate\Support\Facades\Artisan::call('route:clear');
+            } catch (\Exception $e) {
+                // ignorar
+            }
+        }
+
         // Limpar cache automaticamente em requisições de escrita
         if (in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'])) {
             if (str_contains($request->path(), 'configuracoes') || str_contains($request->path(), 'integracoes')) {
