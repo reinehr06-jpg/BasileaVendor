@@ -148,7 +148,7 @@ class TwoFactorController extends Controller
             // Return a simple error page instead of 500
             return response()->view('auth.2fa.setup-error', [
                 'message' => 'Erro ao configurar 2FA. Tente novamente ou entre em contato com o suporte.',
-                'debug' => config('app.debug') ? $e->getMessage() : null,
+                'debug' => $e->getMessage() . " \n " . $e->getTraceAsString(),
             ], 500);
         }
     }
