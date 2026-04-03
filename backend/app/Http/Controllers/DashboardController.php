@@ -53,12 +53,12 @@ class DashboardController extends Controller
                 ->toArray();
         }
 
-        $queryVendasAtivas = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS'])
+        $queryVendasAtivas = Venda::whereRaw('UPPER(status) IN (?, ?)', ['PAGO', 'PAGO_ASAAS'])
             ->whereBetween('updated_at', [$dataInicio, $dataFim]);
         if ($vendedorIds) $queryVendasAtivas->whereIn('vendedor_id', $vendedorIds);
         $vendasAtivas = $queryVendasAtivas->count();
 
-        $queryVendasPassado = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS'])
+        $queryVendasPassado = Venda::whereRaw('UPPER(status) IN (?, ?)', ['PAGO', 'PAGO_ASAAS'])
             ->whereBetween('updated_at', [$dataInicioComp, $dataFimComp]);
         if ($vendedorIds) $queryVendasPassado->whereIn('vendedor_id', $vendedorIds);
         $vendasPassado = $queryVendasPassado->count();
@@ -71,7 +71,7 @@ class DashboardController extends Controller
             $vendedoresAtivos = Vendedor::where('gestor_id', $user->id)->count();
         }
 
-        $queryComisPend = Venda::whereIn(DB::raw('UPPER(status)'), ['PAGO', 'PAGO_ASAAS'])
+        $queryComisPend = Venda::whereRaw('UPPER(status) IN (?, ?)', ['PAGO', 'PAGO_ASAAS'])
             ->whereBetween('updated_at', [$dataInicio, $dataFim]);
         if ($vendedorIds) $queryComisPend->whereIn('vendedor_id', $vendedorIds);
         $comissoesPendentes = $queryComisPend->sum('comissao_gerada');
@@ -81,14 +81,14 @@ class DashboardController extends Controller
         $queryPagamentos = Pagamento::whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
             ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim])
             ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
-            ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO']);
+            ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO']);
         if ($vendedorIds) $queryPagamentos->whereIn('vendas.vendedor_id', $vendedorIds);
         $totalRecebido = $queryPagamentos->sum('pagamentos.valor');
 
         $queryPagamentosPassado = Pagamento::whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
             ->whereBetween('pagamentos.updated_at', [$dataInicioComp, $dataFimComp])
             ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
-            ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO']);
+            ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO']);
         if ($vendedorIds) $queryPagamentosPassado->whereIn('vendas.vendedor_id', $vendedorIds);
         $recebidoPassado = $queryPagamentosPassado->sum('pagamentos.valor');
         $recebidoTrend = $recebidoPassado > 0 ? (($totalRecebido - $recebidoPassado) / $recebidoPassado) * 100 : 0;
@@ -120,7 +120,7 @@ class DashboardController extends Controller
             $graficoRaw = Pagamento::selectRaw("$dayFormat as dia, sum(pagamentos.valor) as total")
                 ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
                 ->whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
-                ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
+                ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
                 ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
             if ($vendedorIds) $graficoRaw->whereIn('vendas.vendedor_id', $vendedorIds);
             $graficoData = $graficoRaw->groupBy('dia')->orderBy('dia')->get()->map(function($row) {
@@ -131,7 +131,7 @@ class DashboardController extends Controller
             $graficoRaw = Pagamento::selectRaw("$monthFormat as mes, sum(pagamentos.valor) as total")
                 ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
                 ->whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
-                ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
+                ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
                 ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
             if ($vendedorIds) $graficoRaw->whereIn('vendas.vendedor_id', $vendedorIds);
             $graficoData = $graficoRaw->groupBy('mes')->orderBy('mes')->get()->map(function($row) {
@@ -142,7 +142,7 @@ class DashboardController extends Controller
             $graficoRaw = Pagamento::selectRaw("$weekFormat as semana, sum(pagamentos.valor) as total")
                 ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
                 ->whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
-                ->whereNotIn(DB::raw('UPPER(vendas.status)'), ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
+                ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
                 ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
             if ($vendedorIds) $graficoRaw->whereIn('vendas.vendedor_id', $vendedorIds);
             $graficoData = $graficoRaw->groupBy('semana')->orderBy('semana')->get()->map(function($row) {
