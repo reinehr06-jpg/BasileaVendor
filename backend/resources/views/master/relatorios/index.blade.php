@@ -48,11 +48,11 @@
     .insight-card:hover { box-shadow: var(--shadow-md); }
     .insight-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; font-weight: 700; font-size: 0.95rem; color: var(--text-primary); }
     .insight-header i { color: var(--primary); }
-    .insight-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
+    .insight-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border-light); }
     .insight-row:last-child { border-bottom: none; }
     .insight-row .ilabel { display: flex; align-items: center; gap: 8px; font-size: 0.875rem; color: var(--text); }
     .insight-row .ilabel i { width: 16px; text-align: center; font-size: 0.9rem; }
-    .insight-row .ivalue { font-weight: 700; font-size: 0.95rem; }
+    .insight-row .ivalue { font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
 
     .rpt-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
     .rpt-table th { background: var(--bg); padding: 12px 18px; text-align: left; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px; font-size: 0.72rem; border-bottom: 1px solid var(--border-light); white-space: nowrap; }
