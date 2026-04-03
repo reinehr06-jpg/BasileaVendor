@@ -65,27 +65,10 @@ class LoginController extends Controller
 
                 Auth::login($user);
                 $request->session()->regenerate();
-                $request->session()->put('authenticated', true);
-                $request->session()->save();
 
-                Log::info('LOGIN_ADMIN_OK', [
-                    'id' => $userId,
-                    'auth_check' => Auth::check(),
-                    'session_id' => $request->session()->getId(),
-                    'session_driver' => config('session.driver'),
-                ]);
+                Log::info('LOGIN_ADMIN_OK', ['id' => $userId]);
 
-                return redirect()->route('master.dashboard')->withCookie(cookie(
-                    config('session.cookie'),
-                    $request->session()->getId(),
-                    config('session.lifetime'),
-                    config('session.path', '/'),
-                    config('session.domain'),
-                    false,  // secure
-                    false,  // httponly
-                    false,  // raw
-                    config('session.same_site', 'lax')
-                ));
+                return redirect('/dashboard');
 
             } catch (\Exception $e) {
                 Log::error('LOGIN_ADMIN_ERRO', ['erro' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
@@ -98,7 +81,7 @@ class LoginController extends Controller
             if (Auth::attempt(['email' => $email, 'password' => $password], $request->boolean('remember'))) {
                 $request->session()->regenerate();
                 Log::info('LOGIN_OK', ['email' => $email]);
-                return redirect()->route('vendedor.dashboard');
+                return redirect('/dashboard');
             }
         } catch (\Exception $e) {
             Log::error('LOGIN_ERRO', ['erro' => $e->getMessage()]);
