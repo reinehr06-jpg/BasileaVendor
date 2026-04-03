@@ -19,7 +19,7 @@
     .export-dropdown { position: relative; display: inline-block; }
     .export-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; }
     .export-btn:hover { background: rgba(255,255,255,0.25); }
-    .export-dropdown-content { display: none; position: absolute; right: 0; bottom: calc(100% + 6px); background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; }
+    .export-dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; }
     .export-dropdown:hover .export-dropdown-content { display: block; }
     .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
     .export-item:hover { background: var(--bg); color: var(--primary); }
@@ -91,21 +91,25 @@
             <h2><i class="fas fa-chart-bar" style="margin-right: 10px;"></i>Relatórios Gerenciais</h2>
             <p>Análise consolidada da operação comercial e financeira</p>
         </div>
-        <div class="export-dropdown">
-            <button class="export-btn">
-                <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
-            </button>
-            <div class="export-dropdown-content">
-                <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item">
-                    <i class="fas fa-file-excel" style="color: var(--success);"></i> Exportar Excel
-                </a>
-                <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item">
-                    <i class="fas fa-file-pdf" style="color: var(--danger);"></i> Exportar PDF
-                </a>
-                <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item">
-                    <i class="fas fa-file-csv" style="color: var(--info);"></i> Exportar CSV
-                </a>
-            </div>
+    </div>
+</div>
+
+<!-- ===== Toolbar ===== -->
+<div style="display: flex; justify-content: flex-end; margin-bottom: 16px;">
+    <div class="export-dropdown">
+        <button class="export-btn" style="background: white; color: var(--text-primary); border: 1.5px solid var(--border); padding: 8px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;">
+            <i class="fas fa-download" style="color: var(--primary);"></i> Exportar <i class="fas fa-chevron-down" style="font-size: 0.65rem;"></i>
+        </button>
+        <div class="export-dropdown-content">
+            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-item">
+                <i class="fas fa-file-excel" style="color: var(--success);"></i> Exportar Excel
+            </a>
+            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-item">
+                <i class="fas fa-file-pdf" style="color: var(--danger);"></i> Exportar PDF
+            </a>
+            <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-item">
+                <i class="fas fa-file-csv" style="color: var(--info);"></i> Exportar CSV
+            </a>
         </div>
     </div>
 </div>
