@@ -47,6 +47,29 @@ Route::get('/verificar-whatsapp', function (\Illuminate\Http\Request $request) {
     return response()->json(['exists' => $existe]);
 });
 
+Route::get('/verificar-documento', function (\Illuminate\Http\Request $request) {
+    $documento = preg_replace('/\D/', '', $request->query('documento', ''));
+    if (strlen($documento) < 11) {
+        return response()->json(['exists' => false]);
+    }
+    $cliente = \App\Models\Cliente::where('documento', $documento)->first();
+    if (!$cliente) {
+        return response()->json(['exists' => false]);
+    }
+    $vendaAtiva = \App\Models\Venda::where('cliente_id', $cliente->id)
+        ->whereNotIn('status', ['Cancelado', 'Expirado'])
+        ->exists();
+    return response()->json([
+        'exists' => true,
+        'has_active_sale' => $vendaAtiva,
+        'cliente' => [
+            'nome_igreja' => $cliente->nome_igreja,
+            'nome_pastor' => $cliente->nome_pastor,
+            'email' => $cliente->email,
+        ],
+    ]);
+});
+
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
