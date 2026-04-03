@@ -87,11 +87,13 @@ class MasterPanelController extends Controller
                 'require_password_change' => true,
             ]);
 
+            $telefoneCompleto = ($request->telefone_ddi ?? '55') . ($request->telefone ?? '');
+
             $vendedor = Vendedor::create([
                 'usuario_id' => $user->id,
                 'is_gestor' => $request->perfil === 'gestor',
                 'gestor_id' => $request->gestor_id,
-                'telefone' => $request->telefone,
+                'telefone' => $telefoneCompleto,
                 'comissao' => $request->comissao_inicial ?? 0,
                 'comissao_inicial' => $request->comissao_inicial,
                 'comissao_recorrencia' => $request->comissao_recorrencia,
@@ -99,6 +101,11 @@ class MasterPanelController extends Controller
                 'comissao_gestor_recorrencia' => $request->comissao_gestor_recorrencia ?? 0,
                 'meta_mensal' => $request->meta_mensal ?? 0,
             ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Erro ao criar vendedor: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Erro ao criar vendedor: ' . $e->getMessage());
+        }
 
             // Se for gestor, criar permissões padrão
             if ($request->perfil === 'gestor') {
