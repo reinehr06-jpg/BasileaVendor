@@ -132,8 +132,8 @@
         <div class="form-row">
             <div class="form-group">
                 <label>WhatsApp de Contato <span class="required">*</span></label>
-                <div style="display:flex; gap:8px; align-items: center;">
-                    <select name="ddi" id="inputDdi" class="form-control" style="flex:0 0 60px; font-size:0.75rem; padding:6px 2px;">
+                <div style="display:flex; gap:4px; align-items: center;">
+                    <select name="ddi" id="inputDdi" class="form-control" style="width:55px; min-width:55px; font-size:0.7rem; padding:4px 2px;">
                         <option value="55">+55</option>
                         <option value="1">+1</option>
                         <option value="54">+54</option>
@@ -153,7 +153,7 @@
                         <option value="39">+39</option>
                         <option value="34">+34</option>
                     </select>
-                    <input type="text" name="whatsapp" id="inputWhatsapp" class="form-control" value="{{ old('whatsapp') }}" required placeholder="(00) 00000-0000" maxlength="20" style="flex:1; min-width: 0;">
+                    <input type="text" name="whatsapp" id="inputWhatsapp" class="form-control" value="{{ old('whatsapp') }}" required placeholder="(00) 00000-0000" maxlength="20" style="flex:1; min-width:0;">
                 </div>
                 <div id="whatsappWarning" style="display:none; margin-top:5px; color:#ef4444; font-size:0.82rem;"></div>
             </div>

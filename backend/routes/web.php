@@ -382,7 +382,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes');
         Route::get('/clientes/{id}', [ClienteController::class, 'show'])->name('clientes.show');
         Route::get('/comissoes', [ComissaoController::class, 'index'])->name('comissoes');
-        Route::get('/comissoes/exportar', [ComissaoController::class, 'exportar'])->name('comissoes.exportar');
+        Route::get('/comissoes/exportar', [ComissaoController::class, 'exportar'])->name('vendedor.comissoes.exportar');
         Route::get('/comissao', function() { return redirect()->route('vendedor.comissoes'); })->name('comissao');
         
         // Configurações do Vendedor (Perfil, Segurança, Split)
