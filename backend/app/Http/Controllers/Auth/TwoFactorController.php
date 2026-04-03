@@ -58,9 +58,10 @@ class TwoFactorController extends Controller
             $user->save();
         }
 
-        $qrCode = TwoFactorAuthService::generateQrCode($user->email, $user->two_factor_secret);
-
-        return view('auth.2fa.setup', compact('qrCode'));
+        return view('auth.2fa.setup', [
+            'user' => $user,
+            'enableRoute' => '2fa.enable',
+        ]);
     }
 
     public function enable(Request $request)
