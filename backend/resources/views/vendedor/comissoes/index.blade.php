@@ -104,13 +104,9 @@
         </tbody>
     </table>
     
-    @if(isset($comissoes) && $comissoes->hasPages())
-    <div style="padding: 16px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-        <span style="font-size: 0.8rem; color: var(--text-muted);">Mostrando {{ $comissoes->firstItem() }} a {{ $comissoes->lastItem() }} de {{ $comissoes->total() }} registros</span>
-        <div class="pagination-safelist">
-            {{ $comissoes->onEachSide(1)->links() }}
-        </div>
-    </div>
-    @endif
+    {{-- Temporariamente desativado para evitar Erro 500 --}}
+    {{-- $comissoes->onEachSide(1)->links() --}}
+</div>
+@endif
 </div>
 @endsection
