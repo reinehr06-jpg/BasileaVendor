@@ -73,7 +73,10 @@ class VendedorSettingsController extends Controller
 
         $qrCode = TwoFactorAuthService::generateQrCode($user->email, $user->two_factor_secret);
 
-        return view('vendedor.configuracoes.2fa', compact('qrCode'));
+        return view('vendedor.configuracoes.2fa', [
+            'qrCode' => $qrCode,
+            'secret' => $user->two_factor_secret,
+        ]);
     }
 
     public function enable2fa(Request $request)
