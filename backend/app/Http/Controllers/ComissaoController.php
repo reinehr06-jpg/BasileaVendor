@@ -393,7 +393,7 @@ class ComissaoController extends Controller
             $callback = function () use ($comissoes) {
                 $file = fopen('php://output', 'w');
                 fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
-                fputcsv($file, ['Vendedor', 'Cliente', 'CPF/CNPJ', 'Valor Venda', '%', 'Valor Comissão', 'Tipo', 'Status', 'Data']);
+                fputcsv($file, ['Vendedor', 'Cliente', 'CPF/CNPJ', 'Valor Venda', '%', 'Valor Comissão', 'Tipo', 'Status', 'Data'], ';');
                 foreach ($comissoes as $c) {
                     fputcsv($file, [
                         $c->vendedor?->user?->name ?? 'N/A',
@@ -405,7 +405,7 @@ class ComissaoController extends Controller
                         ucfirst($c->tipo_comissao ?? ''),
                         ucfirst($c->status ?? ''),
                         $c->data_pagamento ? $c->data_pagamento->format('d/m/Y') : '-',
-                    ]);
+                    ], ';');
                 }
                 fclose($file);
             };
@@ -424,7 +424,7 @@ class ComissaoController extends Controller
                 'Vendedor', 'Cliente (Igreja)', 'Responsável', 'CPF/CNPJ',
                 'ID Venda', 'Valor da Venda (R$)', '% Comissão', 'Valor Comissão (R$)',
                 'Tipo', 'Status', 'Data Pagamento', 'Competência',
-            ]);
+            ], ';');
             foreach ($comissoes as $c) {
                 fputcsv($file, [
                     $c->vendedor?->user?->name ?? 'N/A',
@@ -439,7 +439,7 @@ class ComissaoController extends Controller
                     ucfirst($c->status ?? ''),
                     $c->data_pagamento ? $c->data_pagamento->format('d/m/Y') : '-',
                     $c->competencia,
-                ]);
+                ], ';');
             }
             fclose($file);
         };
@@ -485,7 +485,7 @@ class ComissaoController extends Controller
             fputcsv($file, [
                 'Venda #', 'Cliente', 'Pastor', 'Valor (R$)', 'Forma Pagamento',
                 'Tipo Negociação', 'Status', 'Comissão Gerada (R$)', 'Data',
-            ]);
+            ], ';');
 
             foreach ($vendas as $v) {
                 fputcsv($file, [
@@ -498,7 +498,7 @@ class ComissaoController extends Controller
                     $v->status,
                     number_format((float)($v->comissao_gerada ?? 0), 2, ',', '.'),
                     $v->created_at ? $v->created_at->format('d/m/Y') : '-',
-                ]);
+                ], ';');
             }
 
             fclose($file);
