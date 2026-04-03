@@ -15,69 +15,64 @@ use Carbon\Carbon;
 
 class ComissaoController extends Controller
 {
-    public function diagnostico(Request $request)
-    {
-        return $this->index($request);
-    }
-
     public function index(Request $request)
     {
         try {
-            // Teste 1: Autenticação
             $user = Auth::user();
             if (!$user) {
-                return response()->json(['error' => 'Usuário não autenticado.'], 401);
+                return redirect()->route('login');
             }
 
-            // Teste 2: Model User e Perfil
-            $perfil = $user->perfil;
             $vendedor = $user->vendedor;
-            $vendedorId = $vendedor ? $vendedor->id : 0;
-            
-            if (!$vendedor && !in_array($perfil, ['gestor', 'master'])) {
-                return response()->json(['error' => 'Perfil de acesso não encontrado.'], 403);
+            if (!$vendedor && !in_array($user->perfil, ['gestor', 'master'])) {
+                return redirect()->route('vendedor.dashboard')
+                    ->with('error', 'Perfil de acesso não encontrado.');
             }
 
             $mes = $request->get('mes', Carbon::now()->format('Y-m'));
+            $tipo = $request->get('tipo');
+            $status = $request->get('status');
+            $vendedorId = $vendedor ? $vendedor->id : 0;
 
-            // Teste 3: Query Simples de Comissao
-            $countTotal = Comissao::count();
-            $countMes = Comissao::where('competencia', $mes)->count();
+            // Query base para listagem com paginação
+            $queryList = Comissao::where(function($q) use ($user, $vendedorId) {
+                $q->where('vendedor_id', $vendedorId)
+                  ->orWhere('gerente_id', $user->id);
+            })->where('competencia', $mes)
+              ->with(['cliente', 'venda', 'vendedor.user']);
 
-            // Teste 4: Sumarização (Query Raw)
-            $resumoBase = Comissao::where(function($q) use ($user, $vendedorId) {
+            if ($tipo) $queryList->where('tipo_comissao', $tipo);
+            if ($status) $queryList->where('status', $status);
+
+            $comissoes = $queryList->orderByDesc('created_at')->paginate(20);
+
+            // Resumo usando agregados do banco (Query apartada para evitar conflitos de clones)
+            $resumoQuery = Comissao::where(function($q) use ($user, $vendedorId) {
                 $q->where('vendedor_id', $vendedorId)
                   ->orWhere('gerente_id', $user->id);
             })->where('competencia', $mes);
 
             $resumo = [
-                'pendente' => (float)clone $resumoBase->where('status', 'pendente')->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
-                'confirmada' => (float)clone $resumoBase->where('status', 'confirmada')->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
-                'paga' => (float)clone $resumoBase->where('status', 'paga')->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
-                'recorrencias' => (int)clone $resumoBase->where('tipo_comissao', 'recorrencia')->count(),
-                'total' => (float)clone $resumoBase->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'pendente' => (float)(clone $resumoQuery)->where('status', 'pendente')->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'confirmada' => (float)(clone $resumoQuery)->where('status', 'confirmada')->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'paga' => (float)(clone $resumoQuery)->where('status', 'paga')->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'recorrencias' => (int)(clone $resumoQuery)->where('tipo_comissao', 'recorrencia')->count(),
+                'total' => (float)(clone $resumoQuery)->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
             ];
 
-            return response()->json([
-                'status' => 'success',
-                'vendedor_id' => $vendedorId,
-                'mes' => $mes,
-                'total_geral_no_banco' => $countTotal,
-                'total_no_mes' => $countMes,
-                'resumo' => $resumo,
-                'debug' => 'Data logic reached successfully with Throwable capture'
-            ]);
+            return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'vendedor'));
 
         } catch (\Throwable $e) {
-            // Captura Erros Fatais (PHP 7/8 Errors) e Exceções
-            return response()->json([
-                'error' => true,
-                'type' => get_class($e),
-                'message' => 'Erro capturado por Throwable: ' . $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => substr($e->getTraceAsString(), 0, 1000)
-            ], 500);
+            // Em produção, capturamos e reportamos, mas aqui vamos deixar fácil de depurar se algo sobrar
+            if (config('app.debug')) {
+                return response()->json([
+                    'error' => true,
+                    'message' => 'Erro na página de comissões: ' . $e->getMessage(),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine()
+                ], 500);
+            }
+            abort(500, 'Erro ao processar comissões. Verifique os logs do sistema.');
         }
     }
 
