@@ -14,6 +14,8 @@ class ForceHttps
         URL::forceScheme('https');
         $request->server->set('HTTPS', 'on');
         $request->headers->set('X-Forwarded-Proto', 'https');
+        $request->headers->set('X-Forwarded-Port', '443');
+        
         return $next($request);
     }
 }
