@@ -63,16 +63,14 @@ class ComissaoController extends Controller
             return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'vendedor'));
 
         } catch (\Throwable $e) {
-            // Em produção, capturamos e reportamos, mas aqui vamos deixar fácil de depurar se algo sobrar
-            if (config('app.debug')) {
-                return response()->json([
-                    'error' => true,
-                    'message' => 'Erro na página de comissões: ' . $e->getMessage(),
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine()
-                ], 500);
-            }
-            abort(500, 'Erro ao processar comissões. Verifique os logs do sistema.');
+            // Durante a fase de estabilização, retornamos JSON para capturar erros de Blade
+            return response()->json([
+                'error' => true,
+                'message' => 'Erro capturado (Blade/Logic): ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => substr($e->getTraceAsString(), 0, 500)
+            ], 500);
         }
     }
 

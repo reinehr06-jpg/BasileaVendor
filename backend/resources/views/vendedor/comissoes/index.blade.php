@@ -9,11 +9,33 @@
     .badge-paga { background: #dbeafe; color: #1d4ed8; }
     .badge-inicial { background: #e0f2fe; color: #0369a1; }
     .badge-recorrencia { background: #faf5ff; color: #7e22ce; }
+    
+    .page-header {
+        background: white;
+        padding: 20px 24px;
+        border-radius: 12px;
+        margin-bottom: 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid var(--border);
+    }
+    .page-header h1 { font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text-primary); }
+    .page-header p { font-size: 0.85rem; margin: 4px 0 0; color: var(--text-muted); }
 </style>
 
-<x-page-hero title="Minhas Comissões" subtitle="Acompanhe suas comissões e pagamentos" icon="fas fa-hand-holding-dollar" :exports="[
-    ['type' => 'excel', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes]), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
-]" />
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-hand-holding-dollar" style="color: var(--primary); margin-right: 8px;"></i> Minhas Comissões</h1>
+        <p>Acompanhe suas comissões e pagamentos em tempo real</p>
+    </div>
+    <div>
+        <a href="{{ route('vendedor.comissoes.exportar', ['mes' => $mes]) }}" class="btn btn-outline-success btn-sm">
+            <i class="fas fa-file-excel"></i> Exportar Excel
+        </a>
+    </div>
+</div>
 
 <!-- Summary Cards -->
 <div class="stats-bar">
@@ -34,7 +56,7 @@
     </div>
     <div class="stat-card">
         <div class="stat-icon primary"><i class="fas fa-rotate"></i></div>
-        <div class="stat-value">{{ $resumo['recorrencias'] ?? 0 }}</div>
+        <div class="stat-value">{{ (int)($resumo['recorrencias'] ?? 0) }}</div>
         <div class="stat-label">Recorrências</div>
     </div>
     <div class="stat-card" style="background: var(--primary); border-color: var(--primary);">
@@ -55,20 +77,20 @@
         <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-tag"></i> Tipo</label>
         <select name="tipo" class="form-control" onchange="this.form.submit()">
             <option value="">Todos</option>
-            <option value="inicial" {{ $tipo == 'inicial' ? 'selected' : '' }}>Inicial</option>
-            <option value="recorrencia" {{ $tipo == 'recorrencia' ? 'selected' : '' }}>Recorrência</option>
+            <option value="inicial" {{ isset($tipo) && $tipo == 'inicial' ? 'selected' : '' }}>Inicial</option>
+            <option value="recorrencia" {{ isset($tipo) && $tipo == 'recorrencia' ? 'selected' : '' }}>Recorrência</option>
         </select>
     </div>
     <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px;">
         <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-circle-check"></i> Status</label>
         <select name="status" class="form-control" onchange="this.form.submit()">
             <option value="">Todos</option>
-            <option value="pendente" {{ $status == 'pendente' ? 'selected' : '' }}>Pendente</option>
-            <option value="confirmada" {{ $status == 'confirmada' ? 'selected' : '' }}>Confirmada</option>
-            <option value="paga" {{ $status == 'paga' ? 'selected' : '' }}>Paga</option>
+            <option value="pendente" {{ isset($status) && $status == 'pendente' ? 'selected' : '' }}>Pendente</option>
+            <option value="confirmada" {{ isset($status) && $status == 'confirmada' ? 'selected' : '' }}>Confirmada</option>
+            <option value="paga" {{ isset($status) && $status == 'paga' ? 'selected' : '' }}>Paga</option>
         </select>
     </div>
-    <div style="display: flex; gap: 8px; align-items: flex-end;">
+    <div style="display: gap: 8px; align-items: flex-end; display: flex;">
         <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtrar</button>
         <a href="{{ route('vendedor.comissoes') }}" class="btn btn-ghost btn-sm">Limpar</a>
     </div>
@@ -77,7 +99,7 @@
 
 <!-- Table -->
 <div class="table-container">
-    @if($comissoes->count() > 0)
+    @if(isset($comissoes) && $comissoes->count() > 0)
     <table>
         <thead>
             <tr>
@@ -94,9 +116,9 @@
         <tbody>
             @foreach($comissoes as $c)
             @php
-                $isDirect = ($vendedor && $c->vendedor_id == $vendedor->id);
-                $valorExibido = $isDirect ? $c->valor_comissao : $c->valor_gerente;
-                $percentualExibido = $isDirect ? $c->percentual_aplicado : $c->percentual_gerente;
+                $isDirect = (isset($vendedor) && $vendedor && $c->vendedor_id == $vendedor->id);
+                $valorExibido = (float)($isDirect ? $c->valor_comissao : $c->valor_gerente);
+                $percentualExibido = (float)($isDirect ? $c->percentual_aplicado : $c->percentual_gerente);
             @endphp
             <tr>
                 <td>
@@ -110,8 +132,8 @@
                 </td>
                 <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">{{ $c->cliente?->documento ?? '-' }}</td>
                 <td style="font-weight: 600; text-align: center;">#{{ $c->venda_id }}</td>
-                <td style="text-align: center; font-weight: 700;">{{ number_format((float)($percentualExibido ?? 0), 1) }}%</td>
-                <td style="font-weight: 700; color: var(--primary);">R$ {{ number_format((float)($valorExibido ?? 0), 2, ',', '.') }}</td>
+                <td style="text-align: center; font-weight: 700;">{{ number_format($percentualExibido, 1) }}%</td>
+                <td style="font-weight: 700; color: var(--primary);">R$ {{ number_format($valorExibido, 2, ',', '.') }}</td>
                 <td>
                     @if($isDirect)
                         <span class="badge" style="background: #e0f2fe; color: #0369a1;"><i class="fas fa-user"></i> Direta</span>
@@ -119,13 +141,13 @@
                         <span class="badge" style="background: #fdf2f8; color: #9d174d;"><i class="fas fa-users"></i> Equipe</span>
                     @endif
                     <br>
-                    <span class="badge badge-{{ $c->tipo_comissao }}" style="margin-top: 4px; font-size: 0.65rem;">
-                        <i class="fas fa-{{ $c->tipo_comissao === "recorrencia" ? "rotate" : "star" }}"></i> 
-                        {{ ucfirst($c->tipo_comissao) }}
+                    <span class="badge badge-{{ $c->tipo_comissao ?? 'pendente' }}" style="margin-top: 4px; font-size: 0.65rem;">
+                        <i class="fas fa-{{ isset($c->tipo_comissao) && $c->tipo_comissao === "recorrencia" ? "rotate" : "star" }}"></i> 
+                        {{ ucfirst($c->tipo_comissao ?? 'Inicial') }}
                     </span>
                 </td>
-                <td>{{ $c->data_pagamento ? $c->data_pagamento->format('d/m/Y') : '-' }}</td>
-                <td><span class="badge badge-{{ $c->status }}">{{ ucfirst($c->status) }}</span></td>
+                <td>{{ isset($c->data_pagamento) ? (is_string($c->data_pagamento) ? $c->data_pagamento : $c->data_pagamento->format('d/m/Y')) : '-' }}</td>
+                <td><span class="badge badge-{{ $c->status ?? 'pendente' }}">{{ ucfirst($c->status ?? 'pendente') }}</span></td>
             </tr>
             @endforeach
         </tbody>
@@ -135,8 +157,8 @@
         <div>{{ $comissoes->appends(request()->query())->links() }}</div>
     </div>
     @else
-    <div class="empty-state">
-        <div class="empty-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+    <div class="empty-state" style="padding: 40px; text-align: center; color: var(--text-muted);">
+        <div class="empty-icon" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.2;"><i class="fas fa-hand-holding-dollar"></i></div>
         <h3>Nenhuma comissão encontrada</h3>
         <p>As comissões aparecerão aqui quando seus pagamentos forem confirmados.</p>
     </div>
