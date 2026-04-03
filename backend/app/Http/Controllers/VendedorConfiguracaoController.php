@@ -51,19 +51,11 @@ class VendedorConfiguracaoController extends Controller
         }
 
         $request->validate([
-            'split_ativo' => 'nullable|in:on,1,true',
-            'asaas_wallet_id' => 'nullable|string|max:255',
-            'tipo_split' => 'required|in:percentual,fixo',
-            'valor_split_inicial' => 'required|numeric|min:0',
-            'valor_split_recorrencia' => 'required|numeric|min:0',
+            'asaas_wallet_id' => 'required|string|max:255',
         ]);
 
         $vendedor->update([
-            'split_ativo' => in_array($request->split_ativo, ['on', '1', 'true', 1, true]),
             'asaas_wallet_id' => $request->asaas_wallet_id,
-            'tipo_split' => $request->tipo_split,
-            'valor_split_inicial' => $request->valor_split_inicial,
-            'valor_split_recorrencia' => $request->valor_split_recorrencia,
             'wallet_status' => 'pendente',
         ]);
 
