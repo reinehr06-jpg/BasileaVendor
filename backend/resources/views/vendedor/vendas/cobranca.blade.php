@@ -13,13 +13,7 @@
     .actions-grid { display: flex; gap: 12px; flex-wrap: wrap; }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-file-lines" style="margin-right: 8px;"></i>Detalhes da Cobrança</h2>
-        <p>Venda #{{ $venda->id }} — {{ $venda->cliente->nome_igreja ?? $venda->cliente->nome ?? 'Cliente' }}</p>
-    </div>
-    <a href="{{ route('vendedor.vendas') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Voltar</a>
-</div>
+<x-page-hero title="Gerar Cobrança" subtitle="Venda #{{ $venda->id }} — {{ $venda->cliente->nome_igreja ?? $venda->cliente->nome ?? 'Cliente' }}" icon="fas fa-file-invoice-dollar" />
 
 @php
     $pagamento = $venda->pagamentos->first();

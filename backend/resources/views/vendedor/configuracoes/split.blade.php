@@ -3,10 +3,6 @@
 
 @section('content')
 <style>
-    .page-header { margin-bottom: 24px; }
-    .page-header h2 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); }
-    .page-header .subtitle { color: var(--text-muted); font-size: 0.9rem; margin-top: 4px; }
-
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
     .card-header { padding: 20px 24px; border-bottom: 1px solid var(--border); background: #f8fafc; }
     .card-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
@@ -57,10 +53,7 @@
     .section-divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
 </style>
 
-<div class="page-header">
-    <h2>💰 Comissões e Repasse</h2>
-    <p class="subtitle">Configure sua carteira Asaas para receber repasses automáticos.</p>
-</div>
+<x-page-hero title="Split de Pagamento" subtitle="Configure seu split de recebimento no Asaas" icon="fas fa-code-branch" />
 
 @if(session('success'))
 <div class="alert alert-success">✅ {{ session('success') }}</div>

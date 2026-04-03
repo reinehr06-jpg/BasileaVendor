@@ -32,46 +32,15 @@
     .progress-bar .fill.red { background: linear-gradient(90deg, #ef4444, #dc2626); }
     .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .vendedor-avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.5rem; flex-shrink: 0; }
-    .export-dropdown { position: relative; display: inline-block; }
-    .export-dropdown-content { display: none; position: absolute; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; right: 0; }
-    .export-dropdown:hover .export-dropdown-content { display: block; }
-    .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
-    .export-item:hover { background: var(--bg); color: var(--primary); }
-    .export-item:first-child { border-radius: 8px 8px 0 0; }
-    .export-item:last-child { border-radius: 0 0 8px 8px; }
-    .export-item i { margin-right: 8px; width: 16px; }
     .nf-link { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; background: #dbeafe; color: #1d4ed8; font-size: 0.8rem; font-weight: 600; text-decoration: none; }
     .nf-link:hover { background: #bfdbfe; }
 </style>
 
-<div class="page-header">
-    <div style="display: flex; align-items: center; gap: 16px;">
-        <a href="{{ route('master.comissoes') }}" class="btn btn-ghost" style="padding: 8px 12px;">
-            <i class="fas fa-arrow-left"></i> Voltar
-        </a>
-        <div class="vendedor-avatar" id="vendedorAvatar">?</div>
-        <div>
-            <h2 id="vendedorNome" style="margin-bottom: 4px;">Carregando...</h2>
-            <p id="vendedorEmail" style="color: var(--text-muted); margin: 0;">...</p>
-        </div>
-    </div>
-    <div class="export-dropdown">
-        <button class="btn btn-outline">
-            <i class="fas fa-download"></i> Exportar <i class="fas fa-chevron-down" style="margin-left: 6px; font-size: 0.7rem;"></i>
-        </button>
-        <div class="export-dropdown-content">
-            <a href="#" onclick="exportarHistorico('excel')" class="export-item">
-                <i class="fas fa-file-excel"></i> Exportar Excel
-            </a>
-            <a href="#" onclick="exportarHistorico('pdf')" class="export-item">
-                <i class="fas fa-file-pdf"></i> Exportar PDF
-            </a>
-            <a href="#" onclick="exportarHistorico('csv')" class="export-item">
-                <i class="fas fa-file-csv"></i> Exportar CSV
-            </a>
-        </div>
-    </div>
-</div>
+<x-page-hero title="Histórico de Comissões" subtitle="Carregando informações do vendedor..." icon="fas fa-history" :exports="[
+    ['type' => 'excel', 'url' => route('master.comissoes.exportar-historico', ['vendedor' => $vendedorId, 'mes' => $mes, 'formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+    ['type' => 'pdf', 'url' => route('master.comissoes.exportar-historico', ['vendedor' => $vendedorId, 'mes' => $mes, 'formato' => 'pdf']), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+    ['type' => 'csv', 'url' => route('master.comissoes.exportar-historico', ['vendedor' => $vendedorId, 'mes' => $mes, 'formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+]" />
 
 <!-- Filtros -->
 <form method="GET" action="{{ route('master.comissoes.historico', $vendedorId) }}">

@@ -13,13 +13,11 @@
     .action-btn:hover { border-color: var(--primary); background: #f8fafc; }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-users" style="margin-right: 8px;"></i>Meus Clientes</h2>
-        <p>Sua carteira comercial ativa</p>
-    </div>
-    <a href="{{ route('vendedor.vendas.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nova Venda</a>
-</div>
+<x-page-hero title="Meus Clientes" subtitle="Gerencie sua carteira de clientes" icon="fas fa-building">
+    <x-slot:actions>
+        <a href="{{ route('vendedor.vendas.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Nova Venda</a>
+    </x-slot:actions>
+</x-page-hero>
 
 <!-- Summary Cards -->
 <div class="stats-bar">

@@ -73,14 +73,7 @@
 
 @section('content')
 <div class="materio-container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h1 style="font-size: 1.5rem; font-weight: 800; margin: 0; display:flex; gap:12px; align-items:center;">
-            <a href="{{ route('master.clientes-asaas.index') }}" style="color: var(--materio-text-muted); text-decoration: none;">
-                <i class="fas fa-arrow-left"></i>
-            </a>
-            Detalhes do Cliente Asaas
-        </h1>
-    </div>
+    <x-page-hero title="Detalhes do Cliente Asaas" subtitle="{{ $cliente->nome }} — {{ $cliente->email ?? 'Sem e-mail' }}" icon="fas fa-cloud-arrow-down" />
 
     @php
         $tipoLabel = match($cliente->tipo_cobranca ?? '') {

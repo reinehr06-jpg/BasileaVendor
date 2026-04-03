@@ -11,15 +11,9 @@
     .badge-recorrencia { background: #faf5ff; color: #7e22ce; }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-hand-holding-dollar" style="margin-right: 8px;"></i>Extrato de Comissões</h2>
-        <p>{{ Auth::user()->perfil === 'gestor' ? 'Acompanhe suas vendas diretas e repasses de toda sua equipe' : 'Acompanhe seus ganhos por vendas realizadas' }}</p>
-    </div>
-    <a href="{{ route('vendedor.comissoes.exportar', ['mes' => $mes]) }}" class="btn btn-outline">
-        <i class="fas fa-download"></i> Exportar Excel
-    </a>
-</div>
+<x-page-hero title="Minhas Comissões" subtitle="Acompanhe suas comissões e pagamentos" icon="fas fa-hand-holding-dollar" :exports="[
+    ['type' => 'excel', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes]), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+]" />
 
 <!-- Summary Cards -->
 <div class="stats-bar">

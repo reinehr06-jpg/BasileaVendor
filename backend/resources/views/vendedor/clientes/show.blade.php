@@ -56,15 +56,7 @@
     .badge-neutral { background: #f1f5f9; color: #475569; }
 </style>
 
-<div class="page-header animate-in">
-    <div>
-        <a href="{{ route('vendedor.clientes') }}" style="text-decoration: none; color: var(--primary); font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px;">
-            ⬅ Voltar para a base
-        </a>
-        <h2 style="margin: 0;">{{ $cliente->nome_igreja ?? $cliente->nome }}</h2>
-        <div class="subtitle">Visão 360º — Histórico Comercial da Igreja/Entidade</div>
-    </div>
-</div>
+<x-page-hero title="{{ $cliente->nome_igreja ?? $cliente->nome }}" subtitle="Visão 360º — Histórico Comercial da Igreja/Entidade" icon="fas fa-building" />
 
 <div class="profile-grid">
     <!-- ===== Sidebar (Dados Cadastrais) ===== -->

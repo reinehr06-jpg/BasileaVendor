@@ -61,15 +61,7 @@
     #toastMessage.show { transform: translateY(0); opacity: 1; }
 </style>
 
-<div class="page-header animate-in">
-    <div>
-        <a href="{{ route('master.clientes') }}" style="text-decoration: none; color: var(--primary); font-weight: 600; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 8px;">
-            ⬅ Voltar para a lista
-        </a>
-        <h2 style="margin: 0;">{{ $cliente->nome_igreja ?? $cliente->nome }}</h2>
-        <div class="subtitle">Visão 360º — Dados cadastrais, vendas e pagamentos</div>
-    </div>
-</div>
+<x-page-hero title="{{ $cliente->nome_igreja ?? $cliente->nome }}" subtitle="Visão 360º — Dados cadastrais, vendas e pagamentos" icon="fas fa-building" />
 
 <div class="profile-grid">
     <!-- ===== Sidebar (Dados Cadastrais) ===== -->

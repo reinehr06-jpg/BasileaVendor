@@ -38,12 +38,7 @@
     .split-icon { color: var(--success); margin-right: 4px; }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-dollar-sign" style="margin-right: 8px;"></i>Pagamentos</h2>
-        <p>Acompanhe as cobranças, pagamentos e repasses da Basileia.</p>
-    </div>
-</div>
+<x-page-hero title="Meus Pagamentos" subtitle="Acompanhe o status dos seus pagamentos" icon="fas fa-dollar-sign" />
 
 <!-- Tabs -->
 <div class="tabs-container">

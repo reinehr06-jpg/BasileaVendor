@@ -53,13 +53,7 @@
         .negotiation-types { grid-template-columns: 1fr; }
     }
 </style>
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-plus-circle" style="margin-right: 8px;"></i>Nova Venda</h2>
-        <p>Preencha todos os campos para registrar uma nova venda e gerar a cobrança.</p>
-    </div>
-    <a href="{{ route('vendedor.vendas') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Voltar</a>
-</div>
+<x-page-hero title="Nova Venda" subtitle="Cadastre uma nova venda para seu cliente" icon="fas fa-plus-circle" />
 
 <!-- Auto Data Bar -->
 <div class="card" style="margin-bottom: 24px;">

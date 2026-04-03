@@ -22,20 +22,16 @@
     .expired-table tr:hover { opacity: 0.85; }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-shopping-bag" style="margin-right: 8px;"></i>Minhas Vendas</h2>
-        <p>Acompanhe suas vendas e cobranças.</p>
-    </div>
-    <div class="d-flex gap-2">
+<x-page-hero title="Minhas Vendas" subtitle="Gerencie suas vendas e cobranças" icon="fas fa-shopping-bag">
+    <x-slot:actions>
         <a href="{{ route('vendedor.vendas.canceladas') }}" class="btn btn-outline">
             <i class="fas fa-folder"></i> Canceladas ({{ $vendasCanceladas->count() + $vendasExpiradas->count() }})
         </a>
         <a href="{{ route('vendedor.vendas.create') }}" class="btn btn-primary">
             <i class="fas fa-plus"></i> Nova Venda
         </a>
-    </div>
-</div>
+    </x-slot:actions>
+</x-page-hero>
 
 <!-- Stats -->
 <div class="stats-bar">

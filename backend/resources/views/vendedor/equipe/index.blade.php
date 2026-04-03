@@ -198,16 +198,14 @@
     }
 </style>
 
-<div class="page-header">
-    <div>
-        <h2><i class="fas fa-users" style="margin-right: 8px;"></i>Minha Equipe</h2>
-        <p>Gerencie sua equipe de vendas</p>
-    </div>
-    <div class="equipe-badge">
-        <i class="fas fa-crown"></i>
-        Gestor
-    </div>
-</div>
+<x-page-hero title="Minha Equipe" subtitle="Gerencie sua equipe de vendas" icon="fas fa-people-group">
+    <x-slot:actions>
+        <div class="equipe-badge">
+            <i class="fas fa-crown"></i>
+            Gestor
+        </div>
+    </x-slot:actions>
+</x-page-hero>
 
 @if(session('success'))
     <div class="alert alert-success" style="margin-bottom: 20px; padding: 12px 16px; background: #dcfce7; border: 1px solid #86efac; border-radius: 8px; color: #166534;">

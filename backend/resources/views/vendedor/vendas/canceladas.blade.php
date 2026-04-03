@@ -8,13 +8,7 @@
     .status-estornado { background: #fce7f3; color: #9d174d; }
 </style>
 
-<div class="page-header">
-    <div>
-        <a href="{{ route('vendedor.vendas') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Voltar</a>
-        <h2 style="margin-top: 12px;"><i class="fas fa-trash" style="margin-right: 8px;"></i>Vendas Canceladas / Expiradas</h2>
-        <p>Histórico de propostas que não foram concluídas.</p>
-    </div>
-</div>
+<x-page-hero title="Vendas Canceladas" subtitle="Histórico de vendas canceladas ou estornadas" icon="fas fa-ban" />
 
 <!-- Stats -->
 <div class="stats-bar">
