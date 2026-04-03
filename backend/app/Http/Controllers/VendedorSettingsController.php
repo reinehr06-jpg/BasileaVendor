@@ -66,23 +66,28 @@ class VendedorSettingsController extends Controller
 
     public function setup2fa()
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        if ($user->two_factor_enabled) {
-            return back()->with('error', '2FA já está ativado.');
+            if ($user->two_factor_enabled) {
+                return back()->with('error', '2FA já está ativado.');
+            }
+
+            if (!$user->two_factor_secret) {
+                $user->two_factor_secret = TwoFactorAuthService::generateSecret();
+                $user->save();
+            }
+
+            $qrCode = TwoFactorAuthService::generateQrCode($user->email, $user->two_factor_secret);
+
+            return view('vendedor.configuracoes.2fa', [
+                'qrCode' => $qrCode,
+                'secret' => $user->two_factor_secret,
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('2FA_SETUP_ERROR: ' . $e->getMessage() . ' | ' . $e->getTraceAsString());
+            return back()->with('error', 'Erro ao gerar QR code: ' . $e->getMessage());
         }
-
-        if (!$user->two_factor_secret) {
-            $user->two_factor_secret = TwoFactorAuthService::generateSecret();
-            $user->save();
-        }
-
-        $qrCode = TwoFactorAuthService::generateQrCode($user->email, $user->two_factor_secret);
-
-        return view('vendedor.configuracoes.2fa', [
-            'qrCode' => $qrCode,
-            'secret' => $user->two_factor_secret,
-        ]);
     }
 
     public function enable2fa(Request $request)
