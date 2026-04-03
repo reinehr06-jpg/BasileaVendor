@@ -21,18 +21,51 @@
     .page-hero h2 { color: white; margin-bottom: 6px; font-size: 1.6rem; letter-spacing: -0.5px; }
     .page-hero p { opacity: 0.85; font-size: 0.95rem; }
     .page-hero-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-    .page-hero-actions .export-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; }
-    .page-hero-actions .export-buttons { display: flex; gap: 6px; }
-    .hero-export-btn { display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px; border-radius: 7px; font-weight: 600; font-size: 0.75rem; text-decoration: none; transition: 0.2s; border: none; cursor: pointer; }
-    .hero-export-btn.excel { background: rgba(22, 163, 74, 0.2); color: #4ade80; border: 1px solid rgba(22, 163, 74, 0.3); }
-    .hero-export-btn.excel:hover { background: rgba(22, 163, 74, 0.35); }
-    .hero-export-btn.pdf { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
-    .hero-export-btn.pdf:hover { background: rgba(239, 68, 68, 0.35); }
-    .hero-export-btn.csv { background: rgba(37, 99, 235, 0.2); color: #60a5fa; border: 1px solid rgba(37, 99, 235, 0.3); }
-    .hero-export-btn.csv:hover { background: rgba(37, 99, 235, 0.35); }
+    .page-hero-actions .export-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; display: none; }
+    
+    .export-dropdown { position: relative; display: inline-block; }
+    .hero-export-toggle { 
+        display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; 
+        border-radius: 7px; font-weight: 600; font-size: 0.8rem; text-decoration: none; 
+        transition: 0.2s; cursor: pointer; 
+        background: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.2); 
+    }
+    .hero-export-toggle:hover { background: rgba(255, 255, 255, 0.25); }
+    
+    .export-dropdown-menu { 
+        display: none; position: absolute; right: 0; top: 100%; margin-top: 8px;
+        background: #ffffff; border-radius: var(--radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        padding: 6px; min-width: 160px; z-index: 100; border: 1px solid #e2e8f0;
+    }
+    .export-dropdown-menu::before {
+        content: ''; position: absolute; top: -5px; right: 18px;
+        width: 10px; height: 10px; background: #fff; transform: rotate(45deg);
+        border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0;
+    }
+    .export-dropdown:hover .export-dropdown-menu { display: block; animation: fadeUp 0.2s ease forwards; }
+    
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .export-dropdown-item { 
+        display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+        color: #334155; text-decoration: none; font-size: 0.85rem;
+        font-weight: 600; border-radius: 6px; transition: 0.2s; position: relative;
+    }
+    .export-dropdown-item:hover { background: #f8fafc; color: var(--primary); }
+    
+    .export-dropdown-item.excel i { color: #16a34a; }
+    .export-dropdown-item.pdf i { color: #dc2626; }
+    .export-dropdown-item.csv i { color: #2563eb; }
+
     @media (max-width: 768px) {
         .page-hero { flex-direction: column; gap: 16px; text-align: center; padding: 24px; }
         .page-hero-actions { align-items: center; }
+        .export-dropdown-menu { right: auto; left: 50%; transform: translateX(-50%); margin-top: 5px; }
+        .export-dropdown-menu::before { right: auto; left: 50%; transform: translateX(-50%) rotate(45deg); }
+        .export-dropdown:hover .export-dropdown-menu { transform: translateX(-50%); }
     }
 </style>
 
@@ -47,13 +80,17 @@
         @if(count($exports) > 0 || $actions)
         <div class="page-hero-actions">
             @if(count($exports) > 0)
-            <span class="export-label">Exportar</span>
-            <div class="export-buttons">
-                @foreach($exports as $exp)
-                <a href="{{ $exp['url'] }}" class="hero-export-btn {{ $exp['type'] ?? 'csv' }}">
-                    <i class="{{ $exp['icon'] ?? 'fas fa-file' }}"></i> {{ $exp['label'] ?? strtoupper($exp['type'] ?? 'CSV') }}
-                </a>
-                @endforeach
+            <div class="export-dropdown">
+                <button class="hero-export-toggle">
+                    <i class="fas fa-file-export"></i> Exportar Dados <i class="fas fa-chevron-down" style="font-size: 0.6rem; opacity: 0.8; margin-left: 2px;"></i>
+                </button>
+                <div class="export-dropdown-menu">
+                    @foreach($exports as $exp)
+                    <a href="{{ $exp['url'] }}" class="export-dropdown-item {{ $exp['type'] ?? 'csv' }}">
+                        <i class="{{ $exp['icon'] ?? 'fas fa-file' }}"></i> {{ $exp['label'] ?? strtoupper($exp['type'] ?? 'CSV') }}
+                    </a>
+                    @endforeach
+                </div>
             </div>
             @endif
             @if($actions)
