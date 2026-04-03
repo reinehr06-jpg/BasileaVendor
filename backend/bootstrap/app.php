@@ -12,9 +12,6 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Force HTTPS BEFORE session middleware
-        $middleware->prepend(\App\Http\Middleware\ForceHttps::class);
-        
         $middleware->validateCsrfTokens(except: [
             'api/asaas/webhook',
             'api/checkout/*',
@@ -24,10 +21,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'webhooks/asaas',
             'webhooks/asaas/*',
         ]);
-        $middleware->append(\App\Http\Middleware\ClearStaleCache::class);
-        
-        // Trust all proxies behind load balancer / reverse proxy (HTTPS)
-        $middleware->trustProxies(at: '*');
         
         // Register security middleware groups
         $middleware->group('admin.security', [

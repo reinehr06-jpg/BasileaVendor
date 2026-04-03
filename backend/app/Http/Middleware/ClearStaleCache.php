@@ -16,53 +16,14 @@ class ClearStaleCache
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Forcar limpeza de config cache em requests de login para evitar loop/419
-        if ($request->is('login') && $request->isMethod('POST')) {
-            try {
-                \Illuminate\Support\Facades\Artisan::call('config:clear');
-                \Illuminate\Support\Facades\Artisan::call('route:clear');
-            } catch (\Exception $e) {
-                // ignorar
-            }
-        }
-
         // Limpar cache automaticamente em requisições de escrita
         if (in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'])) {
             if (str_contains($request->path(), 'configuracoes') || str_contains($request->path(), 'integracoes')) {
                 $this->clearSettingsCache();
             }
-
-            // Limpar views compiladas em ambiente local
-            if (app()->environment('local')) {
-                $counter = Cache::get('request_counter', 0);
-                Cache::put('request_counter', $counter + 1, now()->addHour());
-
-                if ($counter % 50 === 0) {
-                    \Illuminate\Support\Facades\Artisan::call('view:clear');
-                }
-            }
-        }
-
-        // Auto-clear de cache obsoleto a cada 24h (evita acúmulo)
-        if (!Cache::has('last_cache_cleanup')) {
-            $this->clearExpiredCache();
-            Cache::put('last_cache_cleanup', true, now()->addHours(24));
         }
 
         $response = $next($request);
-
-        // Headers anti-cache para rotas sensíveis
-        if (str_contains($request->path(), 'vendas') || str_contains($request->path(), 'configuracoes') || str_contains($request->path(), 'integracoes')) {
-            $response->headers->set('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
-            $response->headers->set('Pragma', 'no-cache');
-            $response->headers->set('Expires', '0');
-        }
-
-        // Headers de segurança para todos os responses
-        $response->headers->set('X-Content-Type-Options', 'nosniff');
-        $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
-        $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
         return $response;
     }
