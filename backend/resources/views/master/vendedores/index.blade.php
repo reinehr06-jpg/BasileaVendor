@@ -734,28 +734,24 @@
                 <div id="edit-tab-split" class="tab-content">
                     <div class="form-section" style="margin-top: 12px;">
                         <div class="form-section-title"><i class="fas fa-link"></i> Configuração de Split</div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Wallet ID (Asaas)</label>
-                                <input type="text" name="asaas_wallet_id" id="editWalletId" class="form-control" placeholder="ID da wallet no Asaas">
+                        
+                        <div class="rate-display" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                            <div class="rate-box" style="background: #f8f7ff; border: 1px solid #e0e0e8; border-radius: 12px; padding: 16px; text-align: center;">
+                                <div class="rate-label" style="font-size: 0.72rem; color: #6b7280; text-transform: uppercase;">1ª Venda</div>
+                                <div class="rate-value" id="dispSplitInicial" style="font-size: 1.4rem; font-weight: 800; color: #4C1D95; margin: 4px 0;">0%</div>
+                                <div class="rate-type" id="dispTipoSplitInicial" style="font-size: 0.75rem; color: #a1a1b5;">Percentual</div>
                             </div>
-                            <div class="form-group">
-                                <label>Tipo de Split</label>
-                                <select name="tipo_split" id="editTipoSplit" class="form-control">
-                                    <option value="percentual">Percentual (%)</option>
-                                    <option value="fixo">Valor Fixo (R$)</option>
-                                </select>
+                            <div class="rate-box" style="background: #f8f7ff; border: 1px solid #e0e0e8; border-radius: 12px; padding: 16px; text-align: center;">
+                                <div class="rate-label" style="font-size: 0.72rem; color: #6b7280; text-transform: uppercase;">Recorrência</div>
+                                <div class="rate-value" id="dispSplitRecorrencia" style="font-size: 1.4rem; font-weight: 800; color: #4C1D95; margin: 4px 0;">0%</div>
+                                <div class="rate-type" id="dispTipoSplitRecorrencia" style="font-size: 0.75rem; color: #a1a1b5;">Percentual</div>
                             </div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Valor Split - Inicial</label>
-                                <input type="number" step="0.01" name="valor_split_inicial" id="editSplitInicial" class="form-control" placeholder="0.00">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label>Valor Split - Recorrência</label>
-                                <input type="number" step="0.01" name="valor_split_recorrencia" id="editSplitRecorrencia" class="form-control" placeholder="0.00">
-                            </div>
+
+                        <div class="form-group">
+                            <label>Wallet ID (Asaas)</label>
+                            <input type="text" name="asaas_wallet_id" id="editWalletId" class="form-control" placeholder="ID da wallet no Asaas">
+                            <div class="field-hint">O ID da carteira do vendedor no Asaas para processamento do split.</div>
                         </div>
                     </div>
                 </div>
@@ -908,9 +904,23 @@
         document.getElementById('editComissaoGestorPrimeira').value = data.comissao_gestor_primeira || 0;
         document.getElementById('editComissaoGestorRecorrencia').value = data.comissao_gestor_recorrencia || 0;
         document.getElementById('editWalletId').value = data.asaas_wallet_id || '';
-        document.getElementById('editTipoSplit').value = data.tipo_split || 'percentual';
-        document.getElementById('editSplitInicial').value = data.valor_split_inicial || 0;
-        document.getElementById('editSplitRecorrencia').value = data.valor_split_recorrencia || 0;
+        
+        // Atualizar mostradores de Split (leitura apenas)
+        const tipoSplit = data.tipo_split || 'percentual';
+        const valorInicial = data.valor_split_inicial || 0;
+        const valorRecorrencia = data.valor_split_recorrencia || 0;
+
+        if (tipoSplit === 'percentual') {
+            document.getElementById('dispSplitInicial').textContent = valorInicial + '%';
+            document.getElementById('dispSplitRecorrencia').textContent = valorRecorrencia + '%';
+            document.getElementById('dispTipoSplitInicial').textContent = 'Percentual';
+            document.getElementById('dispTipoSplitRecorrencia').textContent = 'Percentual';
+        } else {
+            document.getElementById('dispSplitInicial').textContent = 'R$ ' + parseFloat(valorInicial).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('dispSplitRecorrencia').textContent = 'R$ ' + parseFloat(valorRecorrencia).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('dispTipoSplitInicial').textContent = 'Valor Fixo';
+            document.getElementById('dispTipoSplitRecorrencia').textContent = 'Valor Fixo';
+        }
         document.getElementById('editMetaMensal').value = data.meta_mensal || 0;
         document.getElementById('editMetaPessoal').value = data.meta_pessoal || 0;
 

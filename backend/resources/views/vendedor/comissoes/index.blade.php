@@ -100,18 +100,18 @@
             @endphp
             <tr>
                 <td>
-                    <div style="font-weight: 600; color: var(--text-primary);">{{ $c->cliente->nome_igreja ?? $c->cliente->nome ?? 'N/A' }}</div>
+                    <div style="font-weight: 600; color: var(--text-primary);">{{ $c->cliente?->nome_igreja ?? $c->cliente?->nome ?? 'N/A' }}</div>
                     <div style="font-size: 0.8rem; color: var(--text-muted);">
                         @if(!$isDirect)
-                            <span style="color: var(--primary); font-weight: 600;">[Equipe: {{ $c->vendedor->user->name ?? 'Vendedor' }}]</span>
+                            <span style="color: var(--primary); font-weight: 600;">[Equipe: {{ $c->vendedor?->user?->name ?? 'Vendedor' }}]</span>
                         @endif
-                        {{ $c->cliente->nome_pastor ?? $c->cliente->nome_responsavel ?? '' }}
+                        {{ $c->cliente?->nome_pastor ?? $c->cliente?->nome_responsavel ?? '' }}
                     </div>
                 </td>
-                <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">{{ $c->cliente->documento ?? '-' }}</td>
+                <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">{{ $c->cliente?->documento ?? '-' }}</td>
                 <td style="font-weight: 600; text-align: center;">#{{ $c->venda_id }}</td>
-                <td style="text-align: center; font-weight: 700;">{{ number_format($percentualExibido, 1) }}%</td>
-                <td style="font-weight: 700; color: var(--primary);">R$ {{ number_format($valorExibido, 2, ',', '.') }}</td>
+                <td style="text-align: center; font-weight: 700;">{{ number_format((float)($percentualExibido ?? 0), 1) }}%</td>
+                <td style="font-weight: 700; color: var(--primary);">R$ {{ number_format((float)($valorExibido ?? 0), 2, ',', '.') }}</td>
                 <td>
                     @if($isDirect)
                         <span class="badge" style="background: #e0f2fe; color: #0369a1;"><i class="fas fa-user"></i> Direta</span>
