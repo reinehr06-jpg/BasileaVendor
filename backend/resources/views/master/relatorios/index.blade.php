@@ -13,12 +13,9 @@
         justify-content: space-between;
         align-items: center;
         box-shadow: 0 20px 25px -5px rgba(59, 7, 100, 0.2);
-        position: relative;
-        z-index: 100;
     }
     .report-hero h2 { color: white; margin-bottom: 6px; font-size: 1.6rem; letter-spacing: -0.5px; }
     .report-hero p { opacity: 0.85; font-size: 0.95rem; }
-    .export-dropdown { position: relative; display: inline-block; z-index: 9999; }
     .export-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; }
     .export-btn:hover { background: rgba(255,255,255,0.25); }
     .export-dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 99999; }
@@ -30,7 +27,6 @@
     .export-item i { margin-right: 8px; width: 16px; }
 
     .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 30px; }
-    .kpi-card { padding: 24px; background: white; border-radius: var(--radius-lg); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); transition: all 0.3s ease; position: relative; overflow: hidden; }
     .kpi-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); }
     .kpi-card .label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; display: block; }
     .kpi-card .value { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); margin-bottom: 8px; }
