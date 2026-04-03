@@ -19,7 +19,7 @@
     .export-dropdown { position: relative; display: inline-block; }
     .export-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; }
     .export-btn:hover { background: rgba(255,255,255,0.25); }
-    .export-dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; margin-top: 4px; }
+    .export-dropdown-content { display: none; position: absolute; right: 0; bottom: calc(100% + 6px); background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 9999; }
     .export-dropdown:hover .export-dropdown-content { display: block; }
     .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
     .export-item:hover { background: var(--bg); color: var(--primary); }
