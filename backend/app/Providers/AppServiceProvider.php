@@ -20,9 +20,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Comentado temporariamente para permitir acesso direto pelo IP sem SSL
-        // if (request()->header('x-forwarded-proto') === 'https' || str_contains(config('app.url'), 'https://') || env('APP_ENV') == 'local') {
-        //     URL::forceScheme('https');
-        // }
+        // Force HTTPS scheme when behind reverse proxy (Easypanel, etc.)
+        URL::forceScheme('https');
     }
 }
