@@ -3,10 +3,6 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Support\Facades\URL;
-
-// Force HTTPS unconditionally - the app is always accessed via HTTPS
-URL::forceScheme('https');
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
