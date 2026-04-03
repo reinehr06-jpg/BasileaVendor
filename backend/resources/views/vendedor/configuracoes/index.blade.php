@@ -124,6 +124,9 @@
         <div class="info">
             <h4>2FA Ativado</h4>
             <p>Sua conta está protegida com autenticação em duas etapas</p>
+            @if($user->two_factor_rotated_at)
+            <p style="font-size: 0.72rem; color: #a1a1b5; margin-top: 4px;">Última rotação: {{ $user->two_factor_rotated_at->format('d/m/Y H:i') }} (renova a cada 90 dias)</p>
+            @endif
         </div>
     </div>
 
@@ -148,7 +151,13 @@
         @error('code')
         <div style="color: #ef4444; font-size: 0.8rem; margin-bottom: 12px;">{{ $message }}</div>
         @enderror
-        <button type="submit" class="btn-danger"><i class="fas fa-times"></i> Desativar 2FA</button>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button type="submit" class="btn-danger"><i class="fas fa-times"></i> Desativar 2FA</button>
+            <form method="POST" action="{{ route('vendedor.configuracoes.2fa.rotate') }}" style="display: inline;" onsubmit="return confirm('Tem certeza? Você precisará reconfigurar o app autenticador.');">
+                @csrf
+                <button type="submit" class="btn-save" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-sync"></i> Rotacionar Chave</button>
+            </form>
+        </div>
     </form>
     @else
     <div class="twofa-status inactive">

@@ -60,6 +60,12 @@ class LoginController extends Controller
                     return redirect()->route('password.change');
                 }
 
+                // Check if 2FA needs rotation (90 days)
+                if ($user->needsTwoFactorRotation()) {
+                    $user->rotateTwoFactorSecret();
+                    \App\Services\SecurityLogService::logTwoFactorEvent($user->id, 'secret_rotated', 'success');
+                }
+
                 // 2FA is MANDATORY - no access without it
                 if ($user->two_factor_enabled) {
                     return redirect()->route('2fa.verify');

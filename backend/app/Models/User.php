@@ -29,6 +29,10 @@ class User extends Authenticatable
         'perfil',
         'status',
         'require_password_change',
+        'two_factor_secret',
+        'two_factor_enabled',
+        'recovery_codes',
+        'two_factor_rotated_at',
     ];
 
     /**
@@ -43,7 +47,36 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_secret' => 'encrypted',
             'recovery_codes' => 'encrypted',
+            'two_factor_rotated_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Check if 2FA secret needs rotation (every 90 days)
+     */
+    public function needsTwoFactorRotation(): bool
+    {
+        if (!$this->two_factor_enabled) {
+            return false;
+        }
+        if (!$this->two_factor_rotated_at) {
+            return true;
+        }
+        return $this->two_factor_rotated_at->diffInDays(now()) >= 90;
+    }
+
+    /**
+     * Rotate 2FA secret and disable until re-setup
+     */
+    public function rotateTwoFactorSecret(): string
+    {
+        $newSecret = \App\Services\TwoFactorAuthService::generateSecret();
+        $this->two_factor_secret = $newSecret;
+        $this->two_factor_enabled = false;
+        $this->two_factor_rotated_at = now();
+        $this->recovery_codes = null;
+        $this->save();
+        return $newSecret;
     }
 
     public function vendedor()

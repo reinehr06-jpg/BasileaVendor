@@ -113,9 +113,26 @@ class VendedorSettingsController extends Controller
 
             Session::forget('2fa_verified_' . $user->id);
 
-            return back()->with('success', 'Autenticação de dois fatores desativada.');
+            return redirect()->route('vendedor.configuracoes', ['tab' => 'seguranca'])->with('success', 'Autenticação de dois fatores desativada.');
         }
 
         return back()->withErrors(['code' => 'Código inválido.']);
+    }
+
+    public function rotate2fa(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user->two_factor_enabled) {
+            return back()->withErrors(['error' => '2FA não está ativado.']);
+        }
+
+        $newSecret = $user->rotateTwoFactorSecret();
+
+        \App\Services\SecurityLogService::logTwoFactorEvent($user->id, 'manual_rotation', 'success');
+
+        return redirect()->route('vendedor.configuracoes', ['tab' => 'seguranca'])
+            ->with('success', 'Chave 2FA rotacionada! Você precisará reconfigurar seu app autenticador.')
+            ->with('new_secret', $newSecret);
     }
 }

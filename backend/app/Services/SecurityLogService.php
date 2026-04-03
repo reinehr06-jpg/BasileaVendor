@@ -2,15 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\SecurityLog;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request;
 
 class SecurityLogService
 {
-    /**
-     * Log security events
-     */
     public static function logLoginAttempt(string $email, bool $success, string $ip, string $userAgent = '', $failureReason = null): void
     {
         $context = [
@@ -28,13 +25,10 @@ class SecurityLogService
         }
     }
 
-    /**
-     * Log admin access
-     */
     public static function logAdminAccess(string $action, array $details = []): void
     {
         $user = Auth::user();
-        
+
         $context = [
             'admin_id' => $user->id ?? null,
             'admin_email' => $user->email ?? null,
@@ -48,9 +42,6 @@ class SecurityLogService
         Log::info('Admin action performed', $context);
     }
 
-    /**
-     * Log security violations
-     */
     public static function logSecurityViolation(string $violationType, string $description, array $context = []): void
     {
         $logContext = array_merge([
@@ -63,30 +54,28 @@ class SecurityLogService
         Log::critical('Security violation: ' . $description, $logContext);
     }
 
-    /**
-     * Log account lockout
-     */
     public static function logAccountLockout(string $email, int $attempts, string $ip): void
     {
         Log::warning('Account locked due to failed attempts', [
             'email' => $email,
             'ip' => $ip,
             'failed_attempts' => $attempts,
-            'locked_until' => now()->addMinutes(30)->toDateTimeString(),
+            'locked_until' => now()->addMinutes(15)->toDateTimeString(),
             'timestamp' => now()->toDateTimeString(),
         ]);
     }
 
-    /**
-     * Log 2FA events
-     */
-    public static function logTwoFactorEvent(string $email, string $eventType, bool $success = true): void
+    public static function logTwoFactorEvent($userId, string $eventType, string $result = 'success'): void
     {
+        $user = Auth::user();
+
         Log::info('2FA event: ' . $eventType, [
-            'email' => $email,
+            'user_id' => $userId,
+            'email' => $user?->email ?? 'unknown',
             'event_type' => $eventType,
-            'success' => $success,
+            'result' => $result,
             'ip' => request()->ip(),
+            'user_agent' => request()->userAgent(),
             'timestamp' => now()->toDateTimeString(),
         ]);
     }
