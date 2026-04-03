@@ -978,19 +978,30 @@ class VendaController extends Controller
             if ($venda->asaas_subscription_id) {
                 try {
                     $asaas->requestAsaas('DELETE', "/subscriptions/{$venda->asaas_subscription_id}");
+                    Log::info('Assinatura cancelada no Asaas', ['subscription_id' => $venda->asaas_subscription_id]);
                 } catch (\Exception $e) {
                     Log::warning('Falha ao cancelar assinatura no Asaas', ['error' => $e->getMessage()]);
                 }
             }
 
-            // 3. Cancelar cobranças individuais (fallback)
-            if (! $installmentId && ! $venda->asaas_subscription_id) {
-                foreach ($venda->pagamentos as $pagamento) {
-                    if ($pagamento->asaas_payment_id && ! in_array(strtoupper($pagamento->status), ['RECEIVED', 'CONFIRMED'])) {
+            // 3. Cancelar cobranças individuais (PAYMENT mode - PIX/Boleto avulso)
+            foreach ($venda->pagamentos as $pagamento) {
+                if ($pagamento->asaas_payment_id && ! in_array(strtoupper($pagamento->status), ['RECEIVED', 'CONFIRMED', 'PAGO'])) {
+                    try {
+                        // Asaas aceita DELETE para cancelar pagamento pendente
+                        $asaas->requestAsaas('DELETE', "/payments/{$pagamento->asaas_payment_id}");
+                        Log::info('Pagamento cancelado no Asaas', ['payment_id' => $pagamento->asaas_payment_id]);
+                    } catch (\Exception $e) {
+                        // Se DELETE falhar, tenta POST /cancel como fallback
                         try {
                             $asaas->requestAsaas('POST', "/payments/{$pagamento->asaas_payment_id}/cancel");
-                        } catch (\Exception $e) {
-                            Log::warning('Falha ao cancelar pagamento avulso no Asaas', ['error' => $e->getMessage()]);
+                            Log::info('Pagamento cancelado via POST /cancel no Asaas', ['payment_id' => $pagamento->asaas_payment_id]);
+                        } catch (\Exception $e2) {
+                            Log::warning('Falha ao cancelar pagamento no Asaas', [
+                                'payment_id' => $pagamento->asaas_payment_id,
+                                'delete_error' => $e->getMessage(),
+                                'cancel_error' => $e2->getMessage(),
+                            ]);
                         }
                     }
                 }
