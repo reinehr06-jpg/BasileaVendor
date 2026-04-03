@@ -179,13 +179,15 @@ class DashboardController extends Controller
             default => 'Último Mês'
         };
 
-            return view('dashboard', compact(
+            $html = view('dashboard', compact(
                 'vendasAtivas', 'vendedoresAtivos', 'comissoesPendentes', 
                 'totalRecebido', 'clientesAtivos', 'churnMes',
                 'melhorFaixa', 'renovacoesMes', 'vendasTrend', 'recebidoTrend',
                 'contagemPendentes', 'graficoData', 'tituloSessao', 'isPersonal',
                 'periodo', 'periodoLabel'
-            ));
+            ))->render();
+            
+            return response($html);
         } catch (\Exception $e) {
             return response('<h1>Erro Interno no Dashboard</h1><p><b>Mensagem:</b> ' . htmlspecialchars($e->getMessage()) . '</p><hr><pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>', 500);
         }
