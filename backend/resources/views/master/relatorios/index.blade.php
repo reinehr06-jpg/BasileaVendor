@@ -89,15 +89,18 @@
             <p>Análise consolidada da operação comercial e financeira</p>
         </div>
         <div class="export-actions">
-            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-btn excel">
-                <i class="fas fa-file-excel"></i> Excel
-            </a>
-            <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-btn pdf">
-                <i class="fas fa-file-pdf"></i> PDF
-            </a>
-            <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-btn csv">
-                <i class="fas fa-file-csv"></i> CSV
-            </a>
+            <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; display: block; margin-bottom: 6px;">Exportar</span>
+            <div style="display: flex; gap: 8px;">
+                <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])) }}" class="export-btn excel">
+                    <i class="fas fa-file-excel"></i> Excel
+                </a>
+                <a href="{{ route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])) }}" class="export-btn pdf">
+                    <i class="fas fa-file-pdf"></i> PDF
+                </a>
+                <a href="{{ route('master.relatorios.exportar', request()->query()) }}" class="export-btn csv">
+                    <i class="fas fa-file-csv"></i> CSV
+                </a>
+            </div>
         </div>
     </div>
 </div>
