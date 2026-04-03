@@ -10,6 +10,7 @@ use App\Models\Vendedor;
 use App\Models\Meta;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class ComissaoController extends Controller
@@ -22,55 +23,60 @@ class ComissaoController extends Controller
     public function index(Request $request)
     {
         try {
+            // Teste 1: Autenticação
             $user = Auth::user();
             if (!$user) {
                 return response()->json(['error' => 'Usuário não autenticado.'], 401);
             }
 
+            // Teste 2: Model User e Perfil
+            $perfil = $user->perfil;
             $vendedor = $user->vendedor;
-            if (!$vendedor && !in_array($user->perfil, ['gestor', 'master'])) {
+            $vendedorId = $vendedor ? $vendedor->id : 0;
+            
+            if (!$vendedor && !in_array($perfil, ['gestor', 'master'])) {
                 return response()->json(['error' => 'Perfil de acesso não encontrado.'], 403);
             }
 
             $mes = $request->get('mes', Carbon::now()->format('Y-m'));
-            $vendedorId = $vendedor ? $vendedor->id : 0;
 
-            // Teste de Query simples
-            $count = Comissao::where(function($q) use ($user, $vendedorId) {
-                $q->where('vendedor_id', $vendedorId)
-                  ->orWhere('gerente_id', $user->id);
-            })->where('competencia', $mes)->count();
+            // Teste 3: Query Simples de Comissao
+            $countTotal = Comissao::count();
+            $countMes = Comissao::where('competencia', $mes)->count();
 
-            // Resumo usando agregados do banco
+            // Teste 4: Sumarização (Query Raw)
             $resumoBase = Comissao::where(function($q) use ($user, $vendedorId) {
                 $q->where('vendedor_id', $vendedorId)
                   ->orWhere('gerente_id', $user->id);
             })->where('competencia', $mes);
 
             $resumo = [
-                'pendente' => (float)clone $resumoBase->where('status', 'pendente')->sum(\DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
-                'confirmada' => (float)clone $resumoBase->where('status', 'confirmada')->sum(\DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
-                'paga' => (float)clone $resumoBase->where('status', 'paga')->sum(\DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'pendente' => (float)clone $resumoBase->where('status', 'pendente')->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'confirmada' => (float)clone $resumoBase->where('status', 'confirmada')->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'paga' => (float)clone $resumoBase->where('status', 'paga')->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
                 'recorrencias' => (int)clone $resumoBase->where('tipo_comissao', 'recorrencia')->count(),
-                'total' => (float)clone $resumoBase->sum(\DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                'total' => (float)clone $resumoBase->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
             ];
 
             return response()->json([
                 'status' => 'success',
                 'vendedor_id' => $vendedorId,
                 'mes' => $mes,
-                'count' => $count,
+                'total_geral_no_banco' => $countTotal,
+                'total_no_mes' => $countMes,
                 'resumo' => $resumo,
-                'debug' => 'Data logic reached successfully'
+                'debug' => 'Data logic reached successfully with Throwable capture'
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Captura Erros Fatais (PHP 7/8 Errors) e Exceções
             return response()->json([
                 'error' => true,
-                'message' => 'Erro na lógica de dados: ' . $e->getMessage(),
+                'type' => get_class($e),
+                'message' => 'Erro capturado por Throwable: ' . $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'trace' => substr($e->getTraceAsString(), 0, 500)
+                'trace' => substr($e->getTraceAsString(), 0, 1000)
             ], 500);
         }
     }
