@@ -175,7 +175,15 @@
         </div>
         <div class="step">
             <span class="step-num">2</span>
-            <div class="step-text"><strong>Adicione a chave manualmente no app</strong>
+            <div class="step-text">
+                <strong>Escaneie o QR code ou adicione a chave manualmente</strong>
+                <div style="text-align: center; margin: 12px 0;">
+                    @if($qrCode)
+                    <div style="display: inline-block; background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 12px;">
+                        {!! $qrCode !!}
+                    </div>
+                    @endif
+                </div>
                 <div class="secret-box">{{ $user->two_factor_secret ?: 'Clique em "Gerar Chave" abaixo' }}</div>
             </div>
         </div>

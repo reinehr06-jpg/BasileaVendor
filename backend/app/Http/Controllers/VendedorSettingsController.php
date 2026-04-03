@@ -22,7 +22,13 @@ class VendedorSettingsController extends Controller
             $user->save();
         }
 
-        return view('vendedor.configuracoes.index', compact('user', 'vendedor', 'tab'));
+        // Generate QR code for security tab
+        $qrCode = null;
+        if ($tab === 'seguranca' && $user->two_factor_secret) {
+            $qrCode = TwoFactorAuthService::generateQrCode($user->email, $user->two_factor_secret);
+        }
+
+        return view('vendedor.configuracoes.index', compact('user', 'vendedor', 'tab', 'qrCode'));
     }
 
     public function updateProfile(Request $request)
@@ -81,9 +87,15 @@ class VendedorSettingsController extends Controller
 
     public function enable2fa(Request $request)
     {
-        $request->validate(['code' => ['required', 'digits:6']]);
-
         $user = Auth::user();
+
+        if ($request->has('generate_key')) {
+            $user->two_factor_secret = TwoFactorAuthService::generateSecret();
+            $user->save();
+            return back()->with('success', 'Chave gerada! Escaneie o QR code ou use a chave manual.');
+        }
+
+        $request->validate(['code' => ['required', 'digits:6']]);
 
         if (!$user->two_factor_secret) {
             return back()->withErrors(['code' => 'Configure o 2FA primeiro.']);
