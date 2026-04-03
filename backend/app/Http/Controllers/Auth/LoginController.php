@@ -73,7 +73,7 @@ class LoginController extends Controller
                     'session_driver' => config('session.driver'),
                 ]);
 
-                return redirect()->route('dashboard');
+                return redirect()->route('master.dashboard');
 
             } catch (\Exception $e) {
                 Log::error('LOGIN_ADMIN_ERRO', ['erro' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
@@ -86,7 +86,7 @@ class LoginController extends Controller
             if (Auth::attempt(['email' => $email, 'password' => $password], $request->boolean('remember'))) {
                 $request->session()->regenerate();
                 Log::info('LOGIN_OK', ['email' => $email]);
-                return redirect()->route('dashboard');
+                return redirect()->route('vendedor.dashboard');
             }
         } catch (\Exception $e) {
             Log::error('LOGIN_ERRO', ['erro' => $e->getMessage()]);
