@@ -5,10 +5,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\URL;
 
-// Force HTTPS scheme BEFORE any middleware runs (fixes session cookie + CSRF)
-if (isset($_SERVER['HTTPS']) || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') || (isset($_ENV['APP_URL']) && str_starts_with($_ENV['APP_URL'], 'https://'))) {
-    URL::forceScheme('https');
-}
+// Force HTTPS unconditionally - the app is always accessed via HTTPS
+URL::forceScheme('https');
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
