@@ -101,10 +101,13 @@ class TwoFactorController extends Controller
         // Check if this is a rotation (secret was rotated within last 24h)
         $isRotation = $user->two_factor_rotated_at && $user->two_factor_rotated_at->diffInHours(now()) < 24;
 
+        $qrCode = TwoFactorAuthService::generateQrCode($user->email, $user->two_factor_secret);
+
         return view('auth.2fa.setup', [
             'user' => $user,
             'enableRoute' => '2fa.enable',
             'isRotation' => $isRotation,
+            'qrCode' => $qrCode,
         ]);
     }
 

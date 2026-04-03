@@ -113,6 +113,12 @@
             <span class="num">{{ $isRotation ? '2' : '2' }}</span>
             <div class="content">
                 <strong>Adicione a chave manualmente no app</strong>
+                <div style="text-align: center; margin: 12px 0;">
+                    <div style="display: inline-block; background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 12px;">
+                        {!! $qrCode !!}
+                    </div>
+                </div>
+                <p style="text-align: center; color: #a1a1b5; font-size: 0.78rem; margin: 8px 0;">Ou use a chave manual abaixo:</p>
                 <div class="secret-box">{{ $user->two_factor_secret }}</div>
                 <span style="color: #a1a1b5; font-size: 0.78rem;">Copie esta chave e cole no app como "entrada manual"</span>
             </div>
