@@ -18,10 +18,19 @@ class WebhookController extends Controller
 
     /**
      * Webhook do Asaas
-     * POST /webhooks/asaas
+     * GET/POST /webhooks/asaas
      */
     public function asaasWebhook(Request $request)
     {
+        // Responder a testes de conexão (GET)
+        if ($request->isMethod('get')) {
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Webhook Asaas configurado corretamente',
+                'timestamp' => now()->toDateTimeString(),
+            ], 200);
+        }
+
         // Validar token de autenticação
         $authToken = $request->header('asaas-access-token');
         $expectedToken = config('services.asaas.webhook_token');
@@ -36,6 +45,15 @@ class WebhookController extends Controller
         }
 
         $payload = $request->all();
+
+        // Responder a testes de conexão do Asaas (payload vazio ou sem event)
+        if (empty($payload) || !isset($payload['event'])) {
+            return response()->json([
+                'status' => 'ok',
+                'message' => 'Webhook Asaas configurado corretamente',
+                'timestamp' => now()->toDateTimeString(),
+            ], 200);
+        }
 
         Log::info('Webhook Asaas: Recebido', [
             'event' => $payload['event'] ?? null,

@@ -75,7 +75,7 @@ Route::get('/', function () {
 // ==========================================
 // Webhooks e Manutenção (Deploy AWS)
 // ==========================================
-Route::post('/webhooks/asaas', [WebhookController::class, 'asaasWebhook'])->name('webhooks.asaas');
+Route::match(['get', 'post'], '/webhooks/asaas', [WebhookController::class, 'asaasWebhook'])->name('webhooks.asaas');
 Route::get('/webhooks/asaas/test', function() {
     return response()->json([
         'status' => 'ok',
