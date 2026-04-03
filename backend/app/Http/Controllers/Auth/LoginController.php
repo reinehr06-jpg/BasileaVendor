@@ -65,6 +65,7 @@ class LoginController extends Controller
 
                 Auth::login($user);
                 $request->session()->regenerate();
+                $request->session()->save();
 
                 Log::info('LOGIN_ADMIN_OK', [
                     'id' => $userId,
