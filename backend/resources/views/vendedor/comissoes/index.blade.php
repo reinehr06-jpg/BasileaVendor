@@ -132,7 +132,7 @@
     </table>
     <div style="padding: 16px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
         <span style="font-size: 0.85rem; color: var(--text-muted);">Mostrando {{ $comissoes->firstItem() ?? 0 }} a {{ $comissoes->lastItem() ?? 0 }} de {{ $comissoes->total() }} registros</span>
-        <div>{{ $comissoes->appends(request()->query())->links('pagination::bootstrap-4') }}</div>
+        <div>{{ $comissoes->appends(request()->query())->links() }}</div>
     </div>
     @else
     <div class="empty-state">

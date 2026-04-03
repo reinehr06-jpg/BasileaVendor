@@ -49,18 +49,18 @@ class ComissaoController extends Controller
         })->where('competencia', $mes)->get();
 
         $resumo = [
-            'pendente' => $todas->where('status', 'pendente')->sum(function($c) use ($vendedorId) {
-                return ($c->vendedor_id == $vendedorId) ? $c->valor_comissao : $c->valor_gerente;
+            'pendente' => (float)$todas->where('status', 'pendente')->sum(function($c) use ($vendedorId) {
+                return (float)(($c->vendedor_id == $vendedorId) ? ($c->valor_comissao ?? 0) : ($c->valor_gerente ?? 0));
             }),
-            'confirmada' => $todas->where('status', 'confirmada')->sum(function($c) use ($vendedorId) {
-                return ($c->vendedor_id == $vendedorId) ? $c->valor_comissao : $c->valor_gerente;
+            'confirmada' => (float)$todas->where('status', 'confirmada')->sum(function($c) use ($vendedorId) {
+                return (float)(($c->vendedor_id == $vendedorId) ? ($c->valor_comissao ?? 0) : ($c->valor_gerente ?? 0));
             }),
-            'paga' => $todas->where('status', 'paga')->sum(function($c) use ($vendedorId) {
-                return ($c->vendedor_id == $vendedorId) ? $c->valor_comissao : $c->valor_gerente;
+            'paga' => (float)$todas->where('status', 'paga')->sum(function($c) use ($vendedorId) {
+                return (float)(($c->vendedor_id == $vendedorId) ? ($c->valor_comissao ?? 0) : ($c->valor_gerente ?? 0));
             }),
             'recorrencias' => $todas->where('tipo_comissao', 'recorrencia')->count(),
-            'total' => $todas->sum(function($c) use ($vendedorId) {
-                return ($c->vendedor_id == $vendedorId) ? $c->valor_comissao : $c->valor_gerente;
+            'total' => (float)$todas->sum(function($c) use ($vendedorId) {
+                return (float)(($c->vendedor_id == $vendedorId) ? ($c->valor_comissao ?? 0) : ($c->valor_gerente ?? 0));
             }),
         ];
 
