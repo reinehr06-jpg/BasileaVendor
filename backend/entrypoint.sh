@@ -9,10 +9,6 @@ chmod -R 775 storage bootstrap/cache
 
 # Garantir que diretórios de sessão existem com permissões corretas
 mkdir -p storage/framework/sessions
-mkdir -p storage/framework/cache
-mkdir -p storage/framework/views
-mkdir -p storage/logs
-mkdir -p bootstrap/cache
 chmod -R 777 storage/framework/sessions
 chmod -R 777 storage/logs
 chmod -R 777 bootstrap/cache
@@ -61,19 +57,14 @@ until php -r "try { new PDO('pgsql:host=${DB_HOST:-postgres};port=${DB_PORT:-543
 done
 echo "Banco OK"
 
-# === Limpar caches SEMPRE (auto-healing, sem necessidade de restart) ===
+# === Limpar caches ===
 php artisan config:clear 2>/dev/null || true
 php artisan route:clear 2>/dev/null || true
 php artisan view:clear 2>/dev/null || true
-php artisan optimize:clear 2>/dev/null || true
 
 # === Migrations ===
 echo "Migrations..."
 php artisan migrate --force --graceful 2>&1 || true
-
-# === SEM route:cache - resolve routes dinamicamente para auto-healing ===
-# route:cache congela as rotas e exige restart para atualizar
-# Para app deste porte, o overhead é insignificante
 
 echo "=== Servidor na porta 8000 ==="
 exec php -d max_execution_time=600 -d memory_limit=512M artisan serve --host=0.0.0.0 --port=8000
