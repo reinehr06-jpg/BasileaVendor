@@ -17,10 +17,10 @@
     }
     .report-hero h2 { color: white; margin-bottom: 6px; font-size: 1.6rem; letter-spacing: -0.5px; }
     .report-hero p { opacity: 0.85; font-size: 0.95rem; }
-    .export-dropdown { position: relative; display: inline-block; z-index: 99999; }
+    .export-dropdown { position: relative; display: inline-block; }
     .export-btn { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px); transition: 0.2s; }
     .export-btn:hover { background: rgba(255,255,255,0.25); }
-    .export-dropdown-content { display: none; position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 99999; }
+    .export-dropdown-content { display: none; position: fixed; background: var(--surface); min-width: 180px; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 99999; }
     .export-dropdown:hover .export-dropdown-content { display: block; }
     .export-item { display: block; padding: 10px 16px; color: var(--text-primary); text-decoration: none; font-size: 0.875rem; transition: 0.15s; }
     .export-item:hover { background: var(--bg); color: var(--primary); }
@@ -474,4 +474,36 @@
 
 @endif
 
+@section('scripts')
+<script>
+(function() {
+    var btn = document.querySelector('.export-btn');
+    var menu = document.querySelector('.export-dropdown-content');
+    if (!btn || !menu) return;
+
+    function positionMenu() {
+        var rect = btn.getBoundingClientRect();
+        menu.style.top = (rect.bottom + 6) + 'px';
+        menu.style.right = (window.innerWidth - rect.right) + 'px';
+    }
+
+    btn.addEventListener('mouseenter', function() {
+        positionMenu();
+        menu.style.display = 'block';
+    });
+    btn.addEventListener('mouseleave', function() {
+        menu.style.display = 'none';
+    });
+    menu.addEventListener('mouseenter', function() {
+        menu.style.display = 'block';
+    });
+    menu.addEventListener('mouseleave', function() {
+        menu.style.display = 'none';
+    });
+    window.addEventListener('scroll', function() {
+        if (menu.style.display === 'block') positionMenu();
+    });
+})();
+</script>
 @endsection
+
