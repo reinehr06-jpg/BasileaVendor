@@ -26,6 +26,27 @@ Route::delete('/pagamentos/{id}', [CobrancaController::class, 'destroyPagamento'
 // Basiléia Church — Verificar status do cliente (ativado via Bearer token)
 Route::get('/client-status/{venda_id}', [ClienteStatusController::class, 'show']);
 
+// ==========================================
+// API Pública: Verificação de Duplicidade (usada no formulário de nova venda)
+// ==========================================
+Route::get('/verificar-email', function (\Illuminate\Http\Request $request) {
+    $email = $request->query('email');
+    if (empty($email)) {
+        return response()->json(['exists' => false]);
+    }
+    $existe = \App\Models\Cliente::where('email', $email)->exists();
+    return response()->json(['exists' => $existe]);
+});
+
+Route::get('/verificar-whatsapp', function (\Illuminate\Http\Request $request) {
+    $whatsapp = $request->query('whatsapp');
+    if (empty($whatsapp)) {
+        return response()->json(['exists' => false]);
+    }
+    $existe = \App\Models\Cliente::where('whatsapp', $whatsapp)->exists();
+    return response()->json(['exists' => $existe]);
+});
+
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');

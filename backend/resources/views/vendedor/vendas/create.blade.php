@@ -742,7 +742,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             emailTimeout = setTimeout(function() {
                 const xhr = new XMLHttpRequest();
-                xhr.open('GET', '{{ route("api.verificar-email") }}?email=' + encodeURIComponent(email), true);
+                xhr.open('GET', '/api/verificar-email?email=' + encodeURIComponent(email), true);
                 xhr.setRequestHeader('Accept', 'application/json');
                 xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
                 xhr.onload = function() {
