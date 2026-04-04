@@ -586,10 +586,13 @@ class VendaController extends Controller
                 // Prepara os parâmetros para encodar
                 $cleanCpf = preg_replace('/[^0-9]/', '', $cliente->documento ?? '');
                 $cleanCep = preg_replace('/[^0-9]/', '', $cliente->cep ?? '');
+                $cleanWhatsapp = preg_replace('/[^0-9]/', '', $cliente->whatsapp ?? '');
 
-                $params = http_build_query([
-                    'asaas_payment_id' => $paymentIdSalvar,
-                    'cpf_cnpj' => $cleanCpf,
+                $queryParams = http_build_query([
+                    'documento' => $cleanCpf,
+                    'nome' => $cliente->nome_igreja ?? '',
+                    'email' => $cliente->email ?? '',
+                    'telefone' => $cleanWhatsapp,
                     'cep' => $cleanCep,
                     'endereco' => $cliente->endereco ?? '',
                     'numero' => $cliente->numero ?? '',
@@ -597,10 +600,13 @@ class VendaController extends Controller
                     'bairro' => $cliente->bairro ?? '',
                     'cidade' => $cliente->cidade ?? '',
                     'estado' => $cliente->estado ?? '',
+                    'venda_id' => $venda->id,
+                    'valor' => $venda->valor,
+                    'source' => 'basileia_vendas',
                 ]);
 
-                $separator = str_contains($checkoutBaseUrl, '?') ? '&' : '?';
-                $linkCheckoutNativo = rtrim($checkoutBaseUrl, '/') . $separator . $params;
+                // A rota correta no CheckoutProject é /pay/asaas/{asaasPaymentId}
+                $linkCheckoutNativo = rtrim($checkoutBaseUrl, '/') . "/pay/asaas/" . $paymentIdSalvar . "?" . $queryParams;
 
                 $venda->update(['checkout_payment_link' => $linkCheckoutNativo]);
                 Log::info('Link de Checkout NATIVO gerado e salvo', ['venda_id' => $venda->id, 'link' => $linkCheckoutNativo]);
