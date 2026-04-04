@@ -704,29 +704,72 @@ document.addEventListener('DOMContentLoaded', function() {
         this.value = v;
     });
 
-    // CEP mask e ViaCEP
+    // CEP mask e ViaCEP (Otimizado e Automático)
     const inputCep = document.getElementById('inputCep');
+    const fieldsToFill = {
+        'inputEndereco': 'logradouro',
+        'inputBairro': 'bairro',
+        'inputCidade': 'localidade',
+        'inputEstado': 'uf'
+    };
+
+    function buscarCep(cep) {
+        if (cep.length !== 8) return;
+
+        // Feedback visual de carregamento
+        inputCep.classList.add('loading');
+        inputCep.style.background = '#f8fafc url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%234C1D95\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'M21 12a9 9 0 1 1-6.219-8.56\'/%3E%3C/svg%3E") no-repeat 95% center';
+        inputCep.style.animation = 'spin 1s linear infinite';
+
+        fetch(`https://viacep.com.br/ws/${cep}/json/`)
+            .then(r => r.json())
+            .then(data => {
+                inputCep.classList.remove('loading');
+                inputCep.style.background = '';
+                inputCep.style.animation = '';
+
+                if (!data.erro) {
+                    for (const [id, key] of Object.entries(fieldsToFill)) {
+                        const el = document.getElementById(id);
+                        if (el) {
+                            el.value = data[key];
+                            el.classList.add('animate-pulse');
+                            setTimeout(() => el.classList.remove('animate-pulse'), 1000);
+                        }
+                    }
+                    if (document.getElementById('inputNumero')) {
+                        document.getElementById('inputNumero').focus();
+                    }
+                    BasileiaToast.success('Endereço localizado!');
+                } else {
+                    BasileiaToast.error('CEP não encontrado.');
+                }
+            })
+            .catch(() => {
+                inputCep.style.background = '';
+                inputCep.style.animation = '';
+                BasileiaToast.error('Erro ao buscar CEP.');
+            });
+    }
+
     if (inputCep) {
         inputCep.addEventListener('input', function(e) {
             let v = this.value.replace(/\D/g, '');
             if (v.length > 5) v = v.substring(0,5) + '-' + v.substring(5,8);
             this.value = v;
+
+            // Gatilho automático ao completar 8 dígitos
+            const rawCep = v.replace(/\D/g, '');
+            if (rawCep.length === 8) {
+                buscarCep(rawCep);
+            }
         });
 
+        // Fallback para quando o usuário cola o CEP ou sai do campo
         inputCep.addEventListener('blur', function() {
-            let cep = this.value.replace(/\D/g, '');
-            if (cep.length === 8) {
-                fetch(`https://viacep.com.br/ws/${cep}/json/`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!data.erro) {
-                            document.getElementById('inputEndereco').value = data.logradouro;
-                            document.getElementById('inputBairro').value = data.bairro;
-                            document.getElementById('inputCidade').value = data.localidade;
-                            document.getElementById('inputEstado').value = data.uf;
-                            document.getElementById('inputNumero').focus();
-                        }
-                    });
+            const rawCep = this.value.replace(/\D/g, '');
+            if (rawCep.length === 8 && !this.classList.contains('loading')) {
+                buscarCep(rawCep);
             }
         });
     }
