@@ -47,14 +47,23 @@ class GestorEquipeController extends Controller
             ->with(['user'])
             ->get()
             ->map(function($v) use ($mesIncio, $mesFim) {
+                // Todas as vendas não canceladas (Venda Realizada/Pendente)
                 $vendas = Venda::where('vendedor_id', $v->id)
                     ->whereBetween('created_at', [$mesIncio, $mesFim])
                     ->whereNotIn(DB::raw('UPPER(status)'), ['CANCELADO', 'EXPIRADO', 'ESTORNADO'])
                     ->get();
                 
+                $vendasPagas = $vendas->filter(fn($ven) => in_array(strtoupper($ven->status), ['PAGO', 'RECEIVED', 'CONFIRMED']));
+                $vendasPendentes = $vendas->filter(fn($ven) => !in_array(strtoupper($ven->status), ['PAGO', 'RECEIVED', 'CONFIRMED']));
+
                 $v->stats_vendas_count = $vendas->count();
+                $v->stats_vendas_count_pagas = $vendasPagas->count();
+                $v->stats_vendas_count_pendentes = $vendasPendentes->count();
+                
                 $v->stats_valor_vendido = $vendas->sum('valor');
-                $v->stats_valor_recebido = $vendas->filter(fn($ven) => in_array(strtoupper($ven->status), ['PAGO', 'RECEIVED', 'CONFIRMED']))->sum('valor');
+                $v->stats_valor_recebido = $vendasPagas->sum('valor');
+                $v->stats_valor_pendente = $vendasPendentes->sum('valor');
+                
                 return $v;
             });
         

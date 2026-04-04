@@ -299,8 +299,8 @@
     ]"
 >
     <x-slot:actions>
-        <button class="btn btn-primary" onclick="BasileiaModal.open('createEquipeModal')">
-            <i class="fas fa-plus"></i> Nova Equipe
+        <button class="btn btn-primary" onclick="BasileiaModal.open('createEquipeModal')" style="padding: 12px 24px; font-weight: 800; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.4); border: none;">
+            <i class="fas fa-plus-circle"></i> Nova Equipe
         </button>
     </x-slot:actions>
 </x-page-hero>

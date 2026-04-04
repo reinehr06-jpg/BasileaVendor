@@ -110,13 +110,13 @@
         ['type' => 'excel', 'url' => route('master.vendedores', ['formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
         ['type' => 'csv', 'url' => route('master.vendedores', ['formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
     ]"
-/>
-
-<div style="display: flex; gap: 10px; align-items: center; margin-top: 12px;">
-    <button class="btn btn-primary" onclick="BasileiaModal.open('createModal')">
-        <i class="fas fa-plus"></i> Novo Vendedor
-    </button>
-</div>
+>
+    <x-slot:actions>
+        <button class="btn btn-primary" onclick="BasileiaModal.open('createModal')" style="padding: 10px 24px; font-weight: 800; box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);">
+            <i class="fas fa-plus-circle" style="margin-right: 6px;"></i> Novo Vendedor
+        </button>
+    </x-slot:actions>
+</x-page-hero>
 
 <div class="filters-bar">
     <div style="position: relative; flex-grow: 1;">

@@ -37,8 +37,8 @@
             <a href="{{ route('vendedor.vendas.canceladas') }}" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4); padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:0.2s;">
                 <i class="fas fa-ban"></i> Canceladas ({{ ($vendasCanceladas->count() ?? 0) + ($vendasExpiradas->count() ?? 0) }})
             </a>
-            <a href="{{ route('vendedor.vendas.create') }}" style="background:white; color:#4C1D95; padding:10px 20px; border-radius:10px; font-weight:800; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); transition:0.2s;">
-                <i class="fas fa-plus"></i> Nova Venda
+            <a href="{{ route('vendedor.vendas.create') }}" class="btn btn-primary" style="padding: 12px 24px; font-weight: 800; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.4); border: none;">
+                <i class="fas fa-plus-circle"></i> Nova Venda
             </a>
         </div>
     </x-slot:actions>
