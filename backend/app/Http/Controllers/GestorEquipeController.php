@@ -39,29 +39,34 @@ class GestorEquipeController extends Controller
             $equipe = \App\Http\Controllers\EquipeController::autoCriarEquipe($user->id);
         }
         
-        // Busca vendedores da equipe
+        // Busca vendedores da equipe com estatísticas pré-calculadas
+        $mesIncio = Carbon::now()->startOfMonth();
+        $mesFim = Carbon::now();
+
         $vendedores = Vendedor::where('equipe_id', $equipe->id)
-            ->with('user')
-            ->get();
+            ->with(['user'])
+            ->get()
+            ->map(function($v) use ($mesIncio, $mesFim) {
+                $vendas = Venda::where('vendedor_id', $v->id)
+                    ->whereBetween('created_at', [$mesIncio, $mesFim])
+                    ->whereNotIn(DB::raw('UPPER(status)'), ['CANCELADO', 'EXPIRADO', 'ESTORNADO'])
+                    ->get();
+                
+                $v->stats_vendas_count = $vendas->count();
+                $v->stats_valor_vendido = $vendas->sum('valor');
+                $v->stats_valor_recebido = $vendas->filter(fn($ven) => in_array(strtoupper($ven->status), ['PAGO', 'RECEIVED', 'CONFIRMED']))->sum('valor');
+                return $v;
+            });
         
-        // Estatísticas da equipe
-        $mesAtual = Carbon::now()->format('Y-m');
-        $dataInicio = Carbon::now()->startOfMonth();
-        $dataFim = Carbon::now();
-        
-        $vendasEfetivas = Venda::whereIn('vendedor_id', $vendedores->pluck('id'))
-            ->whereBetween('created_at', [$dataInicio, $dataFim])
-            ->whereNotIn(DB::raw('UPPER(status)'), ['CANCELADO', 'EXPIRADO', 'ESTORNADO'])
-            ->get();
-        
+        // Estatísticas globais da equipe (baseadas nos vendedores processados)
         $stats = [
             'total_vendedores' => $vendedores->count(),
-            'valor_vendido' => $vendasEfetivas->sum('valor'),
-            'valor_recebido' => $vendasEfetivas->where('status', 'PAGO')->sum('valor'),
-            'total_vendas' => $vendasEfetivas->count(),
+            'valor_vendido' => $vendedores->sum('stats_valor_vendido'),
+            'valor_recebido' => $vendedores->sum('stats_valor_recebido'),
+            'total_vendas' => $vendedores->sum('stats_vendas_count'),
             'meta_mensal' => $equipe->meta_mensal,
             'percentual_meta' => $equipe->meta_mensal > 0 
-                ? round(($vendasEfetivas->where('status', 'PAGO')->sum('valor') / $equipe->meta_mensal) * 100, 1) 
+                ? round(($vendedores->sum('stats_valor_recebido') / $equipe->meta_mensal) * 100, 1) 
                 : 0,
         ];
         

@@ -294,14 +294,6 @@
     @if($vendedores->count() > 0)
         <div style="display: grid; gap: 12px;">
             @foreach($vendedores as $vendedor)
-            @php
-                $vendasMes = $vendedor->vendas()
-                    ->whereBetween('created_at', [\Carbon\Carbon::now()->startOfMonth(), \Carbon\Carbon::now()])
-                    ->whereNotIn('status', ['Cancelado', 'Expirado'])
-                    ->get();
-                $valorVendido = $vendasMes->sum('valor');
-                $valorRecebido = $vendasMes->where('status', 'PAGO')->sum('valor');
-            @endphp
             <div class="member-card">
                 <div class="member-info">
                     <div class="member-avatar">{{ strtoupper(substr($vendedor->user->name, 0, 1)) }}</div>
@@ -312,15 +304,15 @@
                 </div>
                 <div class="member-stats">
                     <div>
-                        <div class="member-stat-value">{{ $vendasMes->count() }}</div>
+                        <div class="member-stat-value">{{ $vendedor->stats_vendas_count }}</div>
                         <div class="member-stat-label">Vendas</div>
                     </div>
                     <div>
-                        <div class="member-stat-value">R$ {{ number_format($valorVendido, 0, ',', '.') }}</div>
+                        <div class="member-stat-value">R$ {{ number_format($vendedor->stats_valor_vendido, 0, ',', '.') }}</div>
                         <div class="member-stat-label">Vendido</div>
                     </div>
                     <div>
-                        <div class="member-stat-value" style="color: var(--success);">R$ {{ number_format($valorRecebido, 0, ',', '.') }}</div>
+                        <div class="member-stat-value" style="color: var(--success);">R$ {{ number_format($vendedor->stats_valor_recebido, 0, ',', '.') }}</div>
                         <div class="member-stat-label">Recebido</div>
                     </div>
                     <div>

@@ -297,13 +297,13 @@
         ['type' => 'pdf', 'url' => '?formato=pdf', 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
         ['type' => 'csv', 'url' => '?formato=csv', 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
     ]"
-/>
-
-<div style="display: flex; gap: 10px; align-items: center; margin-top: 12px;">
-    <button class="btn btn-primary" onclick="BasileiaModal.open('createEquipeModal')">
-        <i class="fas fa-plus"></i> Nova Equipe
-    </button>
-</div>
+>
+    <x-slot:actions>
+        <button class="btn btn-primary" onclick="BasileiaModal.open('createEquipeModal')">
+            <i class="fas fa-plus"></i> Nova Equipe
+        </button>
+    </x-slot:actions>
+</x-page-hero>
 
 @if(count($equipes) > 0)
 <div class="equipes-grid">
