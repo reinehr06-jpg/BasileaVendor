@@ -367,6 +367,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         
         Route::get('/vendas', [VendaController::class, 'index'])->name('vendas');
+        Route::get('/vendas/exportar', [VendaController::class, 'exportar'])->name('vendas.exportar');
         Route::get('/vendas/canceladas', [VendaController::class, 'canceladas'])->name('vendas.canceladas');
         Route::get('/vendas/nova', [VendaController::class, 'create'])->name('vendas.create');
         Route::get('/vendas/verificar-documento', [VendaController::class, 'verificarDocumento'])->name('vendas.verificar-documento');

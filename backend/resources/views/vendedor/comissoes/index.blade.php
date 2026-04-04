@@ -11,17 +11,15 @@
     .badge-recorrencia { background: #faf5ff; color: #7e22ce; }
 </style>
 
-<div style="background: white; padding: 20px 24px; border-radius: 12px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border);">
-    <div>
-        <h1 style="font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text-primary);"><i class="fas fa-hand-holding-dollar" style="color: var(--primary); margin-right: 8px;"></i> Minhas Comissões</h1>
-        <p style="font-size: 0.85rem; margin: 4px 0 0; color: var(--text-muted);">Acompanhe suas comissões e pagamentos</p>
-    </div>
-    <div>
-        <a href="{{ route('vendedor.comissoes.exportar', ['mes' => $mes]) }}" class="btn btn-outline-success btn-sm">
-            <i class="fas fa-file-excel"></i> Exportar Excel
-        </a>
-    </div>
-</div>
+<x-page-hero 
+    title="Minhas Comissões" 
+    subtitle="Acompanhe seus ganhos e comissões do período." 
+    icon="fas fa-hand-holding-dollar"
+    :exports="[
+        ['type' => 'excel', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes, 'formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'csv', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes, 'formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+/>
 
 <!-- Summary Cards -->
 <div class="stats-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">

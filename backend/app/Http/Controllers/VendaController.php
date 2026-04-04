@@ -1268,4 +1268,67 @@ class VendaController extends Controller
             'message' => 'Link de pagamento gerado!',
         ]);
     }
+
+    // ==========================================
+    // VENDEDOR/MASTER: Exportar Vendas
+    // ==========================================
+    public function exportar(Request $request)
+    {
+        $user = Auth::user();
+        $vendedor = $user->vendedor;
+        $formato = $request->get('formato', 'csv');
+        
+        $query = Venda::with(['cliente', 'vendedor.user']);
+
+        // Se for vendedor, filtrar apenas as dele
+        if ($vendedor) {
+            $query->where('vendedor_id', $vendedor->id);
+        }
+
+        // Filtros opcionais
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $vendas = $query->orderByDesc('created_at')->get();
+
+        $filename = "vendas_" . now()->format('Y-m-d_His') . '.' . ($formato === 'excel' ? 'csv' : $formato);
+
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename={$filename}",
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ];
+
+        $callback = function () use ($vendas) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            fputcsv($file, [
+                'ID', 'Cliente', 'WhatsApp', 'Vendedor', 'Plano', 'Valor', 
+                'Status', 'Forma Pagamento', 'Tipo Negociação', 'Data Venda'
+            ], ';');
+
+            foreach ($vendas as $v) {
+                fputcsv($file, [
+                    $v->id,
+                    $v->cliente?->nome_igreja ?? $v->cliente?->nome ?? 'N/A',
+                    $v->cliente?->whatsapp ?? 'N/A',
+                    $v->vendedor->user->name ?? 'N/A',
+                    $v->plano,
+                    number_format((float)($v->valor ?? 0), 2, ',', '.'),
+                    $v->status,
+                    $v->forma_pagamento,
+                    $v->tipo_negociacao,
+                    $v->created_at->format('d/m/Y'),
+                ], ';');
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

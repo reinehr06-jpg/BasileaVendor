@@ -22,11 +22,19 @@
     .expired-table tr:hover { opacity: 0.85; }
 </style>
 
-<x-page-hero title="Minhas Vendas" subtitle="Gerencie suas vendas e cobranças" icon="fas fa-shopping-bag">
+<x-page-hero 
+    title="Minhas Vendas" 
+    subtitle="Gerencie suas vendas e cobranças do período." 
+    icon="fas fa-shopping-bag"
+    :exports="[
+        ['type' => 'excel', 'url' => route('vendedor.vendas.exportar', ['formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'csv', 'url' => route('vendedor.vendas.exportar', ['formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+>
     <x-slot:actions>
         <div style="display:flex; gap:10px;">
             <a href="{{ route('vendedor.vendas.canceladas') }}" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4); padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:0.2s;">
-                <i class="fas fa-ban"></i> Canceladas ({{ $vendasCanceladas->count() + $vendasExpiradas->count() }})
+                <i class="fas fa-ban"></i> Canceladas ({{ ($vendasCanceladas->count() ?? 0) + ($vendasExpiradas->count() ?? 0) }})
             </a>
             <a href="{{ route('vendedor.vendas.create') }}" style="background:white; color:#4C1D95; padding:10px 20px; border-radius:10px; font-weight:800; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); transition:0.2s;">
                 <i class="fas fa-plus"></i> Nova Venda
