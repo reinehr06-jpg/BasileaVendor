@@ -28,6 +28,7 @@
     icon="fas fa-shopping-bag"
     :exports="[
         ['type' => 'excel', 'url' => route('vendedor.vendas.exportar', ['formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => route('vendedor.vendas.exportar', ['formato' => 'pdf']), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
         ['type' => 'csv', 'url' => route('vendedor.vendas.exportar', ['formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
     ]"
 >

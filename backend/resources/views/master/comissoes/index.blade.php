@@ -43,7 +43,7 @@
     <div class="stat-card" style="background: var(--primary); border-color: var(--primary);">
         <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;"><i class="fas fa-chart-line"></i></div>
         <div class="stat-value" style="color: white;">R$ {{ number_format($resumo['ticket_medio'], 2, ',', '.') }}</div>
-        <div class="stat-label" style="color: rgba(255,255,255,0.8);">Ticket Médio</div>
+        <div class="stat-label" style="color: rgba(255,255,255,0.8);">Comissão Média</div>
     </div>
 </div>
 

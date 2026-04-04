@@ -66,6 +66,7 @@
     icon="fas fa-chart-bar"
     :exports="[
         ['type' => 'excel', 'url' => route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'excel'])), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'pdf'])), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
         ['type' => 'csv', 'url' => route('master.relatorios.exportar', array_merge(request()->query(), ['formato' => 'csv'])), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
     ]"
 />

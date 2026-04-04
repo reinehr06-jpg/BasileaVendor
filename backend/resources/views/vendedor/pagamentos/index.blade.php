@@ -38,7 +38,16 @@
     .split-icon { color: var(--success); margin-right: 4px; }
 </style>
 
-<x-page-hero title="Meus Pagamentos" subtitle="Acompanhe o status dos seus pagamentos" icon="fas fa-dollar-sign" />
+<x-page-hero 
+    title="Meus Pagamentos" 
+    subtitle="Acompanhe o status dos seus pagamentos" 
+    icon="fas fa-dollar-sign"
+    :exports="[
+        ['type' => 'excel', 'url' => route('vendedor.pagamentos.exportar', ['formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => route('vendedor.pagamentos.exportar', ['formato' => 'pdf']), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => route('vendedor.pagamentos.exportar', ['formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+/>
 
 <!-- Tabs -->
 <div class="tabs-container">

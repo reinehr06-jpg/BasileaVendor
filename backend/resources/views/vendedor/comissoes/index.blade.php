@@ -17,6 +17,7 @@
     icon="fas fa-hand-holding-dollar"
     :exports="[
         ['type' => 'excel', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes, 'formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes, 'formato' => 'pdf']), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
         ['type' => 'csv', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes, 'formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
     ]"
 />

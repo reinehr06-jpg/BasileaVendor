@@ -17,6 +17,8 @@
         justify-content: space-between;
         align-items: center;
         box-shadow: 0 20px 25px -5px rgba(59, 7, 100, 0.2);
+        position: relative;
+        z-index: 10;
     }
     .page-hero h2 { color: white; margin-bottom: 6px; font-size: 1.6rem; letter-spacing: -0.5px; }
     .page-hero p { opacity: 0.85; font-size: 0.95rem; }
@@ -37,7 +39,7 @@
         opacity: 0; visibility: hidden; transform: translateY(8px);
         transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         background: #ffffff; border-radius: var(--radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        padding: 6px; min-width: 160px; z-index: 100; border: 1px solid #e2e8f0;
+        padding: 6px; min-width: 160px; z-index: 999; border: 1px solid #e2e8f0;
         pointer-events: none;
     }
     

@@ -1277,11 +1277,12 @@ class VendaController extends Controller
         $user = Auth::user();
         $vendedor = $user->vendedor;
         $formato = $request->get('formato', 'csv');
-        
+        $filename = "vendas_" . now()->format('Y-m-d_His');
+
         $query = Venda::with(['cliente', 'vendedor.user']);
 
         // Se for vendedor, filtrar apenas as dele
-        if ($vendedor) {
+        if ($user->perfil === 'vendedor') {
             $query->where('vendedor_id', $vendedor->id);
         }
 
@@ -1292,11 +1293,25 @@ class VendaController extends Controller
 
         $vendas = $query->orderByDesc('created_at')->get();
 
-        $filename = "vendas_" . now()->format('Y-m-d_His') . '.' . ($formato === 'excel' ? 'csv' : $formato);
+        // ==========================================
+        // PDF LOGIC
+        // ==========================================
+        if ($formato === 'pdf') {
+            $resumo = [
+                'total' => $vendas->sum('valor'),
+                'count' => $vendas->count(),
+                'pagas' => $vendas->filter(fn($v) => in_array(strtoupper($v->getStatusEfetivo()), ['PAGO', 'RECEIVED', 'CONFIRMED']))->count(),
+            ];
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('vendedor.vendas.pdf', compact('vendas', 'resumo'));
+            return $pdf->download($filename . '.pdf');
+        }
 
+        // ==========================================
+        // CSV LOGIC (Excel compatible)
+        // ==========================================
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename={$filename}",
+            'Content-Disposition' => "attachment; filename={$filename}.csv",
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',
             'Expires' => '0',

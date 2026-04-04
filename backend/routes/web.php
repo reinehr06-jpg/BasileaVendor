@@ -258,6 +258,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/vendas/{id}/estornar', [VendaController::class, 'estornarMaster'])->name('vendas.estornar');
         Route::get('/vendas/{venda}/checkout-link', [VendaController::class, 'gerarLinkCheckout'])->name('vendas.checkout-link');
         Route::get('/pagamentos', [PagamentoController::class, 'indexMaster'])->name('pagamentos');
+        Route::get('/pagamentos/exportar', [PagamentoController::class, 'exportar'])->name('pagamentos.exportar');
         Route::get('/relatorios', [RelatorioController::class, 'index'])->name('relatorios');
         Route::get('/relatorios/exportar', [RelatorioController::class, 'exportar'])->name('relatorios.exportar');
 
@@ -380,6 +381,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/vendas/{venda}/checkout-link', [VendaController::class, 'gerarLinkCheckout'])->name('vendas.checkout-link');
 
         Route::get('/pagamentos', [PagamentoController::class, 'indexVendedor'])->name('pagamentos');
+        Route::get('/pagamentos/exportar', [PagamentoController::class, 'exportar'])->name('pagamentos.exportar');
         Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes');
         Route::get('/clientes/{id}', [ClienteController::class, 'show'])->name('clientes.show');
         Route::get('/comissoes', [ComissaoController::class, 'index'])->name('comissoes');

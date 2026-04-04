@@ -129,7 +129,7 @@ class ComissaoController extends Controller
             'total_vendas'     => $vendedoresComissao->sum('total_vendas'),
             'total_faturamento'=> $vendedoresComissao->sum('vendido'),
         ];
-        $resumo['ticket_medio'] = $resumo['total_vendas'] > 0 ? $resumo['total_faturamento'] / $resumo['total_vendas'] : 0;
+        $resumo['ticket_medio'] = $resumo['total_vendas'] > 0 ? $resumo['total_comissao'] / $resumo['total_vendas'] : 0;
 
         return view('master.comissoes.index', compact('vendedoresComissao', 'mes', 'resumo'));
     }

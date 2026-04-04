@@ -156,4 +156,102 @@ class PagamentoController extends Controller
 
         return view('master.pagamentos.index', compact('pagamentos', 'vendasComCobrancas', 'todosPagamentos'));
     }
+
+    public function exportar(Request $request)
+    {
+        $user = Auth::user();
+        $vendedor = $user->vendedor;
+        $formato = $request->get('formato', 'csv');
+
+        // Lógica de Identificação (Master vs Vendedor)
+        if ($user->perfil === 'master') {
+            $vendedorIds = null; // Todos
+        } else {
+            if ($user->perfil === 'vendedor') {
+                $vendedorIds = [$vendedor->id ?? 0];
+            } elseif ($user->perfil === 'gestor') {
+                $vendedorIds = \App\Models\Vendedor::where('gestor_id', $user->id)
+                    ->orWhere('usuario_id', $user->id)
+                    ->pluck('id')
+                    ->toArray();
+            }
+        }
+
+        // Recuperar Dados (Unificado)
+        $queryPagamentos = Pagamento::query()->whereNotIn('status', ['cancelado']);
+        if ($vendedorIds) $queryPagamentos->whereIn('vendedor_id', $vendedorIds);
+        $pagamentosData = $queryPagamentos->with(['venda', 'cliente', 'vendedor.user'])->orderByDesc('created_at')->get();
+
+        $queryVendas = Venda::query()->whereNotIn('status', ['Cancelado', 'Expirado'])->whereHas('cobrancas');
+        if ($vendedorIds) $queryVendas->whereIn('vendedor_id', $vendedorIds);
+        $vendasData = $queryVendas->with(['cliente', 'vendedor.user', 'cobrancas'])->orderByDesc('created_at')->get();
+
+        $todosPagamentos = collect();
+        foreach ($pagamentosData as $p) {
+            $todosPagamentos->push((object)[
+                'igreja' => $p->cliente->nome_igreja ?? $p->cliente->nome ?? '—',
+                'vendedor' => $p->vendedor?->user?->name ?? '',
+                'valor' => $p->valor,
+                'forma' => strtoupper($p->forma_pagamento_real ?? $p->forma_pagamento),
+                'status' => strtolower($p->status) === 'received' ? 'pago' : strtolower($p->status),
+                'data' => $p->data_pagamento ? \Carbon\Carbon::parse($p->data_pagamento)->format('d/m/Y') : '—',
+                'created_at' => $p->created_at,
+            ]);
+        }
+        foreach ($vendasData as $v) {
+            foreach ($v->cobrancas as $c) {
+                if (strtolower($c->status) !== 'received') {
+                    $todosPagamentos->push((object)[
+                        'igreja' => $v->cliente->nome_igreja ?? $v->cliente->nome ?? '—',
+                        'vendedor' => $v->vendedor?->user?->name ?? '',
+                        'valor' => $v->valor,
+                        'forma' => strtoupper($v->forma_pagamento ?? 'pix'),
+                        'status' => strtolower($c->status) === 'pending' ? 'pendente' : strtolower($c->status),
+                        'data' => $c->vencimento ? \Carbon\Carbon::parse($c->vencimento)->format('d/m/Y') : '—',
+                        'created_at' => $c->created_at,
+                    ]);
+                }
+            }
+        }
+        $data = $todosPagamentos->sortByDesc('created_at')->unique(fn($p) => ($p->igreja ?? '') . ($p->valor ?? 0) . ($p->status ?? ''));
+
+        // ==========================================
+        // DOWNLOAD LOGIC
+        // ==========================================
+        $filename = "Pagamentos_" . now()->format('Y-m-d_His');
+
+        if ($formato === 'pdf') {
+            $resumo = [
+                'total' => $data->sum('valor'),
+                'count' => $data->count(),
+                'pagos' => $data->where('status', 'pago')->count(),
+                'pendentes' => $data->filter(fn($i) => in_array($i->status, ['pendente', 'vencido']))->count(),
+            ];
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('vendedor.pagamentos.pdf', compact('data', 'resumo'));
+            return $pdf->download($filename . '.pdf');
+        }
+
+        if ($formato === 'excel' || $formato === 'csv') {
+            header('Content-Type: text/csv; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
+            $output = fopen('php://output', 'w');
+            fputs($output, $bom = (chr(0xEF) . chr(0xBB) . chr(0xBF))); 
+            
+            fputcsv($output, ['Igreja/Cliente', 'Vendedor', 'Valor', 'Forma', 'Status', 'Data']);
+            foreach ($data as $item) {
+                fputcsv($output, [
+                    $item->igreja,
+                    $item->vendedor,
+                    'R$ ' . number_format($item->valor, 2, ',', '.'),
+                    $item->forma,
+                    ucfirst($item->status),
+                    $item->data
+                ]);
+            }
+            fclose($output);
+            return;
+        }
+
+        return back()->withErrors(['formato' => 'Formato inválido']);
+    }
 }

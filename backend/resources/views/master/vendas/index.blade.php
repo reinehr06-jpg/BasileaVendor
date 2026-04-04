@@ -25,6 +25,11 @@
     title="Vendas Globais" 
     subtitle="Todas as vendas da operação." 
     icon="fas fa-shopping-bag"
+    :exports="[
+        ['type' => 'excel', 'url' => route('master.vendas.exportar', array_merge(request()->query(), ['formato' => 'excel'])), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => route('master.vendas.exportar', array_merge(request()->query(), ['formato' => 'pdf'])), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => route('master.vendas.exportar', array_merge(request()->query(), ['formato' => 'csv'])), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
 />
 
 <!-- Stats -->
