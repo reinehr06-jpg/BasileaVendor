@@ -50,17 +50,20 @@ class ComissaoController extends Controller
             'pendente' => (float) Comissao::where(function($q) use ($user, $vendedorId) {
                     $q->where('vendedor_id', $vendedorId)->orWhere('gerente_id', $user->id);
                 })->where('competencia', $mes)->where('status', 'pendente')
-                ->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                ->selectRaw("SUM(CASE WHEN vendedor_id = {$vendedorId} THEN valor_comissao ELSE valor_gerente END) as total")
+                ->value('total') ?? 0,
             
             'confirmada' => (float) Comissao::where(function($q) use ($user, $vendedorId) {
                     $q->where('vendedor_id', $vendedorId)->orWhere('gerente_id', $user->id);
                 })->where('competencia', $mes)->where('status', 'confirmada')
-                ->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                ->selectRaw("SUM(CASE WHEN vendedor_id = {$vendedorId} THEN valor_comissao ELSE valor_gerente END) as total")
+                ->value('total') ?? 0,
             
             'paga' => (float) Comissao::where(function($q) use ($user, $vendedorId) {
                     $q->where('vendedor_id', $vendedorId)->orWhere('gerente_id', $user->id);
                 })->where('competencia', $mes)->where('status', 'paga')
-                ->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                ->selectRaw("SUM(CASE WHEN vendedor_id = {$vendedorId} THEN valor_comissao ELSE valor_gerente END) as total")
+                ->value('total') ?? 0,
             
             'recorrencias' => (int) Comissao::where(function($q) use ($user, $vendedorId) {
                     $q->where('vendedor_id', $vendedorId)->orWhere('gerente_id', $user->id);
@@ -69,7 +72,8 @@ class ComissaoController extends Controller
             'total' => (float) Comissao::where(function($q) use ($user, $vendedorId) {
                     $q->where('vendedor_id', $vendedorId)->orWhere('gerente_id', $user->id);
                 })->where('competencia', $mes)
-                ->sum(DB::raw("CASE WHEN vendedor_id = $vendedorId THEN valor_comissao ELSE valor_gerente END")),
+                ->selectRaw("SUM(CASE WHEN vendedor_id = {$vendedorId} THEN valor_comissao ELSE valor_gerente END) as total")
+                ->value('total') ?? 0,
         ];
 
         return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'vendedor'));
