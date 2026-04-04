@@ -35,9 +35,9 @@
         <div class="stat-label" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Paga</div>
         <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: var(--info); margin-top: 8px;">R$ {{ number_format((float)($resumo['paga'] ?? 0), 2, ',', '.') }}</div>
     </div>
-    <div class="stat-card" style="background: var(--primary); padding: 20px; border-radius: 12px; color: white; display: flex; flex-direction: column; justify-content: center;">
-        <div class="stat-label" style="font-size: 0.75rem; opacity: 0.8; font-weight: 600; text-transform: uppercase;">Total do Mês</div>
-        <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; margin-top: 8px;">R$ {{ number_format((float)($resumo['total'] ?? 0), 2, ',', '.') }}</div>
+    <div class="stat-card" style="background: var(--primary); padding: 20px; border-radius: 12px; color: white; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);">
+        <div class="stat-label" style="font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total do Mês</div>
+        <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #ffffff; margin-top: 8px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">R$ {{ number_format((float)($resumo['total'] ?? 0), 2, ',', '.') }}</div>
     </div>
 </div>
 

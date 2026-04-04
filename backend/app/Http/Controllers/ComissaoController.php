@@ -104,17 +104,34 @@ class ComissaoController extends Controller
             $totalDireta = $comissoesDiretas->sum('valor_comissao');
             $totalGestao = $comissoesGestao->sum('valor_gerente');
 
+            // --- Campos extras para a View Master ---
+            $totalVendido = $v->vendas->sum('valor');
+            $meta = 0; // Se houver modelo de meta, buscar aqui.
+
             return [
                 'id' => $v->id,
                 'nome' => $v->user->name ?? 'N/A',
-                'vendas_count' => $v->vendas->count(),
-                'total_comissao' => $totalDireta + $totalGestao,
+                'email' => $v->user->email ?? 'N/A',
+                'total_vendas' => $v->vendas->count(),
+                'comissao_total' => $totalDireta + $totalGestao,
                 'detalhe_direta' => $totalDireta,
                 'detalhe_gestao' => $totalGestao,
+                'vendido' => $totalVendido,
+                'meta' => $meta,
+                'notas_fiscais_count' => 0, // Placeholder
             ];
         });
 
-        return view('master.comissoes.index', compact('vendedoresComissao', 'mes'));
+        // Agregados globais para os cards do topo
+        $resumo = [
+            'total_vendedores' => $vendedores->count(),
+            'total_comissao'   => $vendedoresComissao->sum('comissao_total'),
+            'total_vendas'     => $vendedoresComissao->sum('total_vendas'),
+            'total_faturamento'=> $vendedoresComissao->sum('vendido'),
+        ];
+        $resumo['ticket_medio'] = $resumo['total_vendas'] > 0 ? $resumo['total_faturamento'] / $resumo['total_vendas'] : 0;
+
+        return view('master.comissoes.index', compact('vendedoresComissao', 'mes', 'resumo'));
     }
 
     public function exportar(Request $request)
@@ -123,48 +140,66 @@ class ComissaoController extends Controller
         $vendedor = $user->vendedor;
         $vendedorId = $vendedor ? $vendedor->id : 0;
         $mes = $request->get('mes', Carbon::now()->format('Y-m'));
-        $formato = $request->get('formato', 'csv'); // Padrão CSV
+        $formato = $request->get('formato', 'csv');
 
-        $filename = "comissoes_{$mes}_" . now()->format('Y-m-d_His') . '.' . ($formato === 'excel' ? 'csv' : $formato);
-
-        $headers = [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename={$filename}",
-            'Cache-Control' => 'no-cache, no-store, must-revalidate',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ];
-
-        $comissoes = Comissao::where(function($q) use ($user, $vendedorId) {
+        $query = Comissao::where(function($q) use ($user, $vendedorId) {
                 $q->where('vendedor_id', $vendedorId)
                   ->orWhere('gerente_id', $user->id);
             })
             ->where('competencia', $mes)
-            ->with(['cliente', 'venda'])
-            ->get();
+            ->with(['cliente', 'venda', 'vendedor.user'])
+            ->orderByDesc('created_at');
 
-        $callback = function () use ($comissoes) {
+        $comissoes = $query->get();
+
+        if ($formato === 'pdf') {
+            $resumo = [
+                'total' => $comissoes->sum(function($c) use ($vendedorId) {
+                    return $c->vendedor_id == $vendedorId ? $c->valor_comissao : $c->valor_gerente;
+                }),
+                'mes' => $mes,
+                'vendedor' => $vendedor ? $vendedor->nome : $user->name
+            ];
+
+            $pdf = Pdf::loadView('vendedor.comissoes.pdf', compact('comissoes', 'resumo', 'mes'));
+            return $pdf->download("comissoes_{$mes}_" . now()->format('Y-m-d_Hism') . ".pdf");
+        }
+
+        $filename = "comissoes_{$mes}_" . now()->format('Y-m-d_His') . '.' . ($formato === 'excel' ? 'csv' : $formato);
+
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename={$filename}",
+            'Cache-Control'       => 'no-cache, no-store, must-revalidate',
+            'Pragma'              => 'no-cache',
+            'Expires'             => '0',
+        ];
+
+        $callback = function () use ($comissoes, $vendedorId) {
             $file = fopen('php://output', 'w');
-            // BOM para Excel reconhecer UTF-8 imediatamente
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
             fputcsv($file, [
-                'ID', 'Cliente', 'ID Venda', 'Plano', 'Valor Venda', 
+                'ID', 'Cliente', 'Igreja', 'ID Venda', 'Plano', 'Valor Venda', 
                 'Percentual (%)', 'Valor Comissão', 'Status', 'Tipo', 'Data'
             ], ';');
 
             foreach ($comissoes as $c) {
+                $valorComissao = $c->vendedor_id == $vendedorId ? $c->valor_comissao : $c->valor_gerente;
+                $percentual = $c->vendedor_id == $vendedorId ? $c->percentual_aplicado : $c->percentual_gerente;
+
                 fputcsv($file, [
                     $c->id,
-                    $c->cliente?->nome_igreja ?? $c->cliente?->nome ?? 'N/A',
+                    $c->cliente?->nome ?? 'N/A',
+                    $c->cliente?->nome_igreja ?? 'N/A',
                     $c->venda_id,
                     $c->venda?->plano ?? 'N/A',
                     number_format((float)($c->valor_venda ?? 0), 2, ',', '.'),
-                    number_format((float)($c->percentual_aplicado ?? 0), 1, ',', '.'),
-                    number_format((float)($c->valor_comissao ?? 0), 2, ',', '.'),
-                    ucfirst($c->status),
-                    ucfirst($c->tipo_comissao),
-                    $c->created_at->format('d/m/Y'),
+                    number_format((float)($percentual ?? 0), 1, ',', '.'),
+                    number_format((float)($valorComissao ?? 0), 2, ',', '.'),
+                    ucfirst($c->status ?? 'pendente'),
+                    ucfirst($c->tipo_comissao ?? 'inicial'),
+                    $c->created_at ? $c->created_at->format('d/m/Y') : now()->format('d/m/Y'),
                 ], ';');
             }
 
@@ -188,6 +223,9 @@ class ComissaoController extends Controller
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename={$filename}",
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
         ];
 
         $comissoes = Comissao::where(function($q) use ($user, $vendedorId) {
@@ -198,20 +236,24 @@ class ComissaoController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $callback = function () use ($comissoes) {
+        $callback = function () use ($comissoes, $vendedorId) {
             $file = fopen('php://output', 'w');
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            fputcsv($file, ['Competência', 'Cliente', 'ID Venda', 'Valor Comissão', 'Status', 'Tipo'], ';');
+            fputcsv($file, ['Competência', 'Cliente', 'Igreja', 'ID Venda', 'Valor Comissão', 'Status', 'Tipo', 'Data'], ';');
 
             foreach ($comissoes as $c) {
+                $valorComissao = $c->vendedor_id == $vendedorId ? $c->valor_comissao : $c->valor_gerente;
+
                 fputcsv($file, [
                     $c->competencia,
-                    $c->cliente->nome_igreja ?? $c->cliente->nome ?? 'N/A',
+                    $c->cliente?->nome_igreja ?? $c->cliente?->nome ?? 'N/A',
+                    $c->cliente?->nome_igreja ?? 'N/A',
                     $c->venda_id,
-                    number_format($c->valor_comissao, 2, ',', '.'),
-                    $c->status,
-                    $c->tipo_comissao,
+                    number_format((float)($valorComissao ?? 0), 2, ',', '.'),
+                    ucfirst($c->status ?? 'pendente'),
+                    ucfirst($c->tipo_comissao ?? 'inicial'),
+                    $c->created_at ? $c->created_at->format('d/m/Y') : '-',
                 ], ';');
             }
 
