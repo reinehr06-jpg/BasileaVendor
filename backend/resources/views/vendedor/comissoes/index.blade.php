@@ -102,9 +102,6 @@
         </tbody>
     </table>
     
-    {{-- Temporariamente desativado para evitar Erro 500 --}}
-    {{-- $comissoes->onEachSide(1)->links() --}}
-</div>
-@endif
+    {{ $comissoes->onEachSide(1)->links() }}
 </div>
 @endsection
