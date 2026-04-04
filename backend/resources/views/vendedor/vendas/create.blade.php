@@ -52,6 +52,12 @@
         .payment-methods { grid-template-columns: 1fr; }
         .negotiation-types { grid-template-columns: 1fr; }
     }
+
+    /* Animations */
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .animate-pulse { animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    .loading-cep { pointer-events: none; opacity: 0.7; }
 </style>
 <x-page-hero title="Nova Venda" subtitle="Cadastre uma nova venda para seu cliente" icon="fas fa-plus-circle" />
 
@@ -722,33 +728,44 @@ document.addEventListener('DOMContentLoaded', function() {
         inputCep.style.animation = 'spin 1s linear infinite';
 
         fetch(`https://viacep.com.br/ws/${cep}/json/`)
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) throw new Error('Network response was not ok');
+                return r.json();
+            })
             .then(data => {
-                inputCep.classList.remove('loading');
+                inputCep.classList.remove('loading-cep');
                 inputCep.style.background = '';
                 inputCep.style.animation = '';
 
-                if (!data.erro) {
+                if (data && !data.erro) {
                     for (const [id, key] of Object.entries(fieldsToFill)) {
                         const el = document.getElementById(id);
                         if (el) {
                             el.value = data[key];
                             el.classList.add('animate-pulse');
-                            setTimeout(() => el.classList.remove('animate-pulse'), 1000);
+                            setTimeout(() => el.classList.remove('animate-pulse'), 1500);
                         }
                     }
                     if (document.getElementById('inputNumero')) {
                         document.getElementById('inputNumero').focus();
                     }
-                    BasileiaToast.success('Endereço localizado!');
+                    if (typeof BasileiaToast !== 'undefined') {
+                        BasileiaToast.success('Endereço localizado!');
+                    }
                 } else {
-                    BasileiaToast.error('CEP não encontrado.');
+                    if (typeof BasileiaToast !== 'undefined') {
+                        BasileiaToast.error('CEP não encontrado ou inválido.');
+                    }
                 }
             })
-            .catch(() => {
+            .catch(error => {
+                console.error('Erro ViaCEP:', error);
+                inputCep.classList.remove('loading-cep');
                 inputCep.style.background = '';
                 inputCep.style.animation = '';
-                BasileiaToast.error('Erro ao buscar CEP.');
+                if (typeof BasileiaToast !== 'undefined') {
+                    BasileiaToast.error('Erro de conexão ao buscar CEP. Verifique sua internet.');
+                }
             });
     }
 
@@ -768,7 +785,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Fallback para quando o usuário cola o CEP ou sai do campo
         inputCep.addEventListener('blur', function() {
             const rawCep = this.value.replace(/\D/g, '');
-            if (rawCep.length === 8 && !this.classList.contains('loading')) {
+            if (rawCep.length === 8 && !this.classList.contains('loading-cep')) {
                 buscarCep(rawCep);
             }
         });
