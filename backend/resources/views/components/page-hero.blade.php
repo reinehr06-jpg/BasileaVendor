@@ -33,20 +33,27 @@
     .hero-export-toggle:hover { background: rgba(255, 255, 255, 0.25); }
     
     .export-dropdown-menu { 
-        display: none; position: absolute; right: 0; top: 100%; margin-top: 8px;
+        position: absolute; right: 0; top: 100%; margin-top: 10px;
+        opacity: 0; visibility: hidden; transform: translateY(8px);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         background: #ffffff; border-radius: var(--radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         padding: 6px; min-width: 160px; z-index: 100; border: 1px solid #e2e8f0;
+        pointer-events: none;
     }
+    
+    /* Ponte invisível que permite mover o mouse do botão para o menu sem perder o hover */
+    .export-dropdown-menu::after {
+        content: ''; position: absolute; top: -15px; left: 0; right: 0; height: 15px; background: transparent;
+    }
+
     .export-dropdown-menu::before {
         content: ''; position: absolute; top: -5px; right: 18px;
         width: 10px; height: 10px; background: #fff; transform: rotate(45deg);
         border-top: 1px solid #e2e8f0; border-left: 1px solid #e2e8f0;
     }
-    .export-dropdown:hover .export-dropdown-menu { display: block; animation: fadeUp 0.2s ease forwards; }
-    
-    @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(4px); }
-        to { opacity: 1; transform: translateY(0); }
+
+    .export-dropdown:hover .export-dropdown-menu { 
+        opacity: 1; visibility: visible; transform: translateY(0); pointer-events: all;
     }
 
     .export-dropdown-item { 
