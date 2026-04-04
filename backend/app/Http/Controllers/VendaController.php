@@ -271,6 +271,7 @@ class VendaController extends Controller
 
                 // Atualiza apenas se pertence ao vendedor atual
                 $clienteExistente->update([
+                    'documento' => $documento,
                     'nome' => $request->nome_igreja,
                     'nome_igreja' => $request->nome_igreja,
                     'nome_pastor' => $request->nome_pastor,
@@ -291,6 +292,7 @@ class VendaController extends Controller
                 $cliente = $clienteExistente;
             } else {
                 $cliente = Cliente::create([
+                    'documento' => $documento,
                     'nome' => $request->nome_igreja,
                     'nome_igreja' => $request->nome_igreja,
                     'nome_pastor' => $request->nome_pastor,
