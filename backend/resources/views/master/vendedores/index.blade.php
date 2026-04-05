@@ -188,7 +188,7 @@
                     <span class="badge badge-{{ $vendedor->status === 'ativo' ? 'success' : ($vendedor->status === 'bloqueado' ? 'danger' : 'warning') }}">{{ ucfirst($vendedor->status) }}</span>
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
-                    <button class="action-btn" title="Selecionar Equipe" onclick='openEquipeModal({{ $vendedor->id }}, "{{ addslashes($vendedor->name) }}", {{ json_encode($equipes ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
+                    <button class="action-btn" title="Selecionar Equipe" onclick='openEquipeModal({{ $vendedor->id }}, {!! json_encode($vendedor->name, JSON_HEX_APOS | JSON_HEX_QUOT) !!}, {{ json_encode($equipes ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                         <i class="fas fa-people-group"></i>
                     </button>
                     <button class="action-btn" title="Visualizar" onclick='openViewModal({{ json_encode([
@@ -637,6 +637,7 @@
                                     <input type="text" name="telefone" id="editTelefone" class="form-control" style="flex:1;">
                                 </div>
                             </div>
+                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">

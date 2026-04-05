@@ -22,7 +22,8 @@ class MasterPanelController extends Controller
 
         $vendedores = User::whereIn('perfil', ['vendedor', 'gestor'])->with('vendedor')->get();
         $gestores = User::whereHas('vendedor', function($q) { $q->where('is_gestor', true); })->with('vendedor')->get();
-        return view('master.vendedores.index', compact('vendedores', 'gestores'));
+        $equipes = Equipe::with(['gestor', 'vendedores'])->get();
+        return view('master.vendedores.index', compact('vendedores', 'gestores', 'equipes'));
     }
 
     private function exportarVendedores($formato)
