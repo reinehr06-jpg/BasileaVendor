@@ -1136,26 +1136,31 @@ class VendaController extends Controller
     }
 
     // ==========================================
-    // Auto-expirar vendas com mais de 72h
+    // Auto-expirar vendas com mais de 71h (última hora)
     // ==========================================
     private static function expirarVendasAntigas()
     {
-        $limite = Carbon::now()->subHours(72);
+        $limite = Carbon::now()->subHours(71);
 
-        // Buscar vendas "Aguardando pagamento" criadas há mais de 72h
         $vendasExpiradas = Venda::where('status', 'Aguardando pagamento')
             ->where('created_at', '<', $limite)
+            ->with(['pagamentos'])
             ->get();
 
         foreach ($vendasExpiradas as $venda) {
-            $venda->update(['status' => 'Expirado']);
+            $controller = app(self::class);
+            $controller->cancelarNoAsaas($venda);
 
-            // Atualizar pagamento vinculado
+            $venda->update([
+                'status' => 'Expirado',
+                'checkout_status' => 'EXPIRADO',
+            ]);
+
             Pagamento::where('venda_id', $venda->id)
                 ->where('status', 'pendente')
                 ->update(['status' => 'vencido']);
 
-            Log::info("Venda #{$venda->id} expirada automaticamente após 72h sem pagamento.");
+            Log::info("Venda #{$venda->id} expirada automaticamente após 71h e cancelada no Asaas.");
         }
     }
 

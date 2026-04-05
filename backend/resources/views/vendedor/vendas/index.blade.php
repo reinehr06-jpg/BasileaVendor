@@ -267,6 +267,7 @@ async function copiarLinkCheckout(vendaId, method = null) {
     const LIMIT_MS = LIMIT_HOURS * 60 * 60 * 1000;
 
     function updateCountdowns() {
+        var anyExpired = false;
         document.querySelectorAll('.countdown-live').forEach(function(badge) {
             const created = new Date(badge.getAttribute('data-created'));
             const now = new Date();
@@ -274,8 +275,9 @@ async function copiarLinkCheckout(vendaId, method = null) {
             const remaining = LIMIT_MS - elapsed;
 
             if (remaining <= 0) {
-                badge.querySelector('.countdown-text').textContent = 'Expirado';
+                badge.querySelector('.countdown-text').textContent = 'Expirando...';
                 badge.style.color = '#94a3b8';
+                anyExpired = true;
                 return;
             }
 
@@ -288,6 +290,10 @@ async function copiarLinkCheckout(vendaId, method = null) {
                 badge.querySelector('.countdown-text').textContent = totalMinutes + 'm restantes';
             }
         });
+
+        if (anyExpired) {
+            setTimeout(function() { location.reload(); }, 3000);
+        }
     }
 
     updateCountdowns();
