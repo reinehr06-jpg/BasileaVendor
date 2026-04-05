@@ -33,7 +33,7 @@ class ExternalCheckoutService
 
         // Formato pedido pelo payload do Checkout Externo
         $payload = [
-            'external_id' => (string) $venda->id,
+            'external_id' => 'venda_' . $venda->id,
             'amount' => (float) ($venda->valor_final ?? $venda->valor),
             'description' => $venda->plano ?? 'Plano',
             'payment_method' => $this->mapPaymentMethod($venda->forma_pagamento),

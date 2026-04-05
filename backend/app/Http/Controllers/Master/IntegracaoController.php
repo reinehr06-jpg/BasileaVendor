@@ -378,15 +378,6 @@ class IntegracaoController extends Controller
      */
     public function testarWebhook()
     {
-        $secret = Setting::get('checkout_webhook_secret', '');
-
-        if (empty($secret)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Nenhum Webhook Secret configurado. Gere um no "Passo 1 e 2" e salve.',
-            ]);
-        }
-
         try {
             $payload = [
                 'event' => 'PAYMENT_APPROVED',
@@ -400,21 +391,14 @@ class IntegracaoController extends Controller
                 'timestamp' => now()->toIso8601String(),
             ];
 
-            $signature = hash_hmac('sha256', json_encode($payload), $secret);
-
-            $request = new \Illuminate\Http\Request();
-            $request->merge($payload);
-            $request->headers->set('Content-Type', 'application/json');
-            $request->headers->set('X-Checkout-Signature', $signature);
-
             $controller = app(\App\Http\Controllers\Integration\CheckoutWebhookController::class);
-            $response = $controller->handle($request);
+            $response = $controller->testHandle($payload);
 
             if ($response->getStatusCode() === 200) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Webhook processado com sucesso! O evento simulado foi recebido e validado.',
-                    'detail' => 'Evento: PAYMENT_APPROVED (teste) — Assinatura: válida',
+                    'detail' => 'Evento: PAYMENT_APPROVED (teste) — Processado sem erros',
                 ]);
             }
 

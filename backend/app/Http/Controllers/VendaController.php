@@ -1225,6 +1225,7 @@ class VendaController extends Controller
                         'plano' => $venda->plano,
                         'tipo_negociacao' => $venda->tipo_negociacao,
                     ],
+                    'callback_url' => url('/webhook/checkout'),
                 ]);
 
                 if (empty($checkoutResponse['error'])) {

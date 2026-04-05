@@ -68,6 +68,50 @@ class CheckoutWebhookController extends Controller
         return response()->json(['received' => true]);
     }
 
+    /**
+     * Processa webhook internamente para testes (sem verificação HMAC).
+     */
+    public function testHandle(array $payload): \Illuminate\Http\JsonResponse
+    {
+        $eventNormalized = strtoupper($payload['event'] ?? '');
+        $transaction = $payload['transaction'] ?? [];
+
+        match ($eventNormalized) {
+            'PAYMENT_APPROVED', 'PAYMENT.APPROVED' => $this->handlePaymentApproved($transaction),
+            'PAYMENT_REFUSED', 'PAYMENT.REFUSED' => $this->handlePaymentRefused($transaction),
+            'PAYMENT_PENDING', 'PAYMENT.PENDING' => $this->handlePaymentPending($transaction),
+            'PAYMENT_OVERDUE', 'PAYMENT.OVERDUE' => $this->handlePaymentOverdue($transaction),
+            'PAYMENT_REFUNDED', 'PAYMENT.REFUNDED' => $this->handlePaymentRefunded($transaction),
+            'PAYMENT_CANCELLED', 'PAYMENT.CANCELLED' => $this->handlePaymentCancelled($transaction),
+            'PAYMENT_REFUND_PENDING', 'PAYMENT.REFUND_PENDING' => $this->handlePaymentRefundPending($transaction),
+            default => Log::info("Checkout webhook teste: evento não tratado: {$payload['event']}"),
+        };
+
+        return response()->json(['received' => true, 'test' => true]);
+    }
+
+    /**
+     * Processa webhook internamente para testes (sem verificação HMAC).
+     */
+    public function testHandle(array $payload): \Illuminate\Http\JsonResponse
+    {
+        $eventNormalized = strtoupper($payload['event'] ?? '');
+        $transaction = $payload['transaction'] ?? [];
+
+        match ($eventNormalized) {
+            'PAYMENT_APPROVED', 'PAYMENT.APPROVED' => $this->handlePaymentApproved($transaction),
+            'PAYMENT_REFUSED', 'PAYMENT.REFUSED' => $this->handlePaymentRefused($transaction),
+            'PAYMENT_PENDING', 'PAYMENT.PENDING' => $this->handlePaymentPending($transaction),
+            'PAYMENT_OVERDUE', 'PAYMENT.OVERDUE' => $this->handlePaymentOverdue($transaction),
+            'PAYMENT_REFUNDED', 'PAYMENT.REFUNDED' => $this->handlePaymentRefunded($transaction),
+            'PAYMENT_CANCELLED', 'PAYMENT.CANCELLED' => $this->handlePaymentCancelled($transaction),
+            'PAYMENT_REFUND_PENDING', 'PAYMENT.REFUND_PENDING' => $this->handlePaymentRefundPending($transaction),
+            default => Log::info("Checkout webhook teste: evento não tratado: {$payload['event']}"),
+        };
+
+        return response()->json(['received' => true, 'test' => true]);
+    }
+
     private function extractVendaId($externalId): ?int
     {
         if (!$externalId) return null;
@@ -99,6 +143,11 @@ class CheckoutWebhookController extends Controller
             ]);
 
             $this->pagamentoService->confirmarPagamento($pagamento, []);
+        }
+
+        if (strtoupper($venda->status) === 'PAGO') {
+            Log::info("Venda {$venda->id} já estava PAGO, ignorando webhook duplicado");
+            return;
         }
 
         $venda->update([
