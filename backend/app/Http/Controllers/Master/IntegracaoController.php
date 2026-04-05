@@ -390,8 +390,9 @@ class IntegracaoController extends Controller
         try {
             $payload = [
                 'event' => 'PAYMENT_APPROVED',
-                'data' => [
-                    'transaction_uuid' => 'test-' . now()->timestamp,
+                'transaction' => [
+                    'uuid' => 'test-' . now()->timestamp,
+                    'external_id' => 'venda_teste_1',
                     'status' => 'APPROVED',
                     'amount' => 100,
                     'currency' => 'BRL',
@@ -401,25 +402,27 @@ class IntegracaoController extends Controller
 
             $signature = hash_hmac('sha256', json_encode($payload), $secret);
 
-            $response = Http::withHeaders([
-                'Content-Type' => 'application/json',
-                'X-Checkout-Signature' => $signature,
-            ])
-                ->timeout(15)
-                ->post(url('/webhook/checkout'), $payload);
+            $request = new \Illuminate\Http\Request();
+            $request->merge($payload);
+            $request->headers->set('Content-Type', 'application/json');
+            $request->headers->set('X-Checkout-Signature', $signature);
 
-            if ($response->successful()) {
+            $controller = app(\App\Http\Controllers\Integration\CheckoutWebhookController::class);
+            $response = $controller->handle($request);
+
+            if ($response->getStatusCode() === 200) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Webhook respondeu com sucesso! O evento simulado foi processado.',
-                    'detail' => 'Status: ' . $response->status() . ' — Evento: PAYMENT_APPROVED (teste)',
+                    'message' => 'Webhook processado com sucesso! O evento simulado foi recebido e validado.',
+                    'detail' => 'Evento: PAYMENT_APPROVED (teste) — Assinatura: válida',
                 ]);
             }
 
+            $body = $response->getContent();
             return response()->json([
                 'success' => false,
-                'message' => 'O webhook respondeu com erro.',
-                'detail' => "HTTP {$response->status()}\n" . substr($response->body(), 0, 500),
+                'message' => 'O webhook rejeitou o evento.',
+                'detail' => "HTTP {$response->getStatusCode()}\n" . substr($body, 0, 500),
             ]);
         } catch (\Exception $e) {
             return response()->json([

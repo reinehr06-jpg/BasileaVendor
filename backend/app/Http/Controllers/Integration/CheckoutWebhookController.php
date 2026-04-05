@@ -19,6 +19,9 @@ class CheckoutWebhookController extends Controller
     {
         $signature = $request->header('X-Checkout-Signature');
         $secret = config('checkout-integration.webhook_secret', env('CHECKOUT_WEBHOOK_SECRET'));
+        if (empty($secret)) {
+            $secret = \App\Models\Setting::get('checkout_webhook_secret', '');
+        }
 
         // Signature verification is MANDATORY
         if (!$secret) {
