@@ -4,6 +4,7 @@ namespace App\Services\Checkout;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\Setting;
 
 class CheckoutClient
 {
@@ -13,8 +14,8 @@ class CheckoutClient
 
     public function __construct()
     {
-        $this->baseUrl = rtrim(config('checkout-integration.base_url', ''), '/');
-        $this->apiKey = config('checkout-integration.api_key', '');
+        $this->baseUrl = rtrim(config('checkout-integration.base_url', Setting::get('checkout_external_url', '')), '/');
+        $this->apiKey = config('checkout-integration.api_key', Setting::get('checkout_api_key', ''));
         $this->timeout = config('checkout-integration.timeout', 30);
     }
 

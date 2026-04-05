@@ -332,6 +332,8 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/configuracoes/integracoes/google-calendar', [IntegracaoController::class, 'updateGoogleCalendar'])->name('configuracoes.integracoes.google-calendar');
         Route::post('/configuracoes/integracoes/google-gmail', [IntegracaoController::class, 'updateGoogleGmail'])->name('configuracoes.integracoes.google-gmail');
         Route::post('/configuracoes/integracoes/testar', [IntegracaoController::class, 'testarConexao'])->name('configuracoes.integracoes.testar');
+        Route::post('/configuracoes/integracoes/test-checkout-api', [IntegracaoController::class, 'testarCheckoutApi'])->name('configuracoes.integracoes.test-checkout-api');
+        Route::post('/configuracoes/integracoes/test-webhook', [IntegracaoController::class, 'testarWebhook'])->name('configuracoes.integracoes.test-webhook');
         Route::post('/configuracoes/integracoes/validar-wallet', [IntegracaoController::class, 'validarWallet'])->name('configuracoes.integracoes.validar-wallet');
         
         // Comissões por Plano
