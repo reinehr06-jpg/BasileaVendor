@@ -91,17 +91,17 @@ class CheckoutWebhookController extends Controller
         $pagamento = Pagamento::where('venda_id', $venda->id)->first();
         if ($pagamento) {
             $pagamento->update([
-                'status' => 'confirmado',
+                'status' => 'RECEIVED',
                 'data_pagamento' => now(),
             ]);
+
+            $this->pagamentoService->confirmarPagamento($pagamento, []);
         }
 
         $venda->update([
-            'status' => 'paga',
+            'status' => 'PAGO',
             'data_pagamento' => now(),
         ]);
-
-        $this->pagamentoService->confirmarPagamento($venda);
 
         Log::info("Venda {$venda->id} atualizada via Checkout webhook: pagamento aprovado");
     }
