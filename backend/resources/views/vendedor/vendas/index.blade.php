@@ -115,7 +115,9 @@
                     @if($venda->status === 'Aguardando pagamento')
                         @php $horasRestantes = max(0, 72 - floor(now()->diffInHours($venda->created_at))); @endphp
                         @if($horasRestantes > 0)
-                            <span class="countdown-badge"><i class="fas fa-clock"></i> {{ $horasRestantes }}h restantes</span>
+                            <span class="countdown-badge countdown-live" data-created="{{ $venda->created_at->toIso8601String() }}" data-venda-id="{{ $venda->id }}">
+                                <i class="fas fa-clock"></i> <span class="countdown-text">{{ $horasRestantes }}h restantes</span>
+                            </span>
                         @endif
                     @endif
                 </td>
@@ -257,6 +259,40 @@ async function copiarLinkCheckout(vendaId, method = null) {
         alert('❌ Erro ao buscar link do servidor. Tente novamente.');
     }
 }
+</script>
+
+<script>
+(function() {
+    const LIMIT_HOURS = 72;
+    const LIMIT_MS = LIMIT_HOURS * 60 * 60 * 1000;
+
+    function updateCountdowns() {
+        document.querySelectorAll('.countdown-live').forEach(function(badge) {
+            const created = new Date(badge.getAttribute('data-created'));
+            const now = new Date();
+            const elapsed = now - created;
+            const remaining = LIMIT_MS - elapsed;
+
+            if (remaining <= 0) {
+                badge.querySelector('.countdown-text').textContent = 'Expirado';
+                badge.style.color = '#94a3b8';
+                return;
+            }
+
+            const totalHours = Math.floor(remaining / (1000 * 60 * 60));
+            const totalMinutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+
+            if (totalHours > 0) {
+                badge.querySelector('.countdown-text').textContent = totalHours + 'h ' + totalMinutes + 'm restantes';
+            } else {
+                badge.querySelector('.countdown-text').textContent = totalMinutes + 'm restantes';
+            }
+        });
+    }
+
+    updateCountdowns();
+    setInterval(updateCountdowns, 30000);
+})();
 </script>
 
 @endsection
