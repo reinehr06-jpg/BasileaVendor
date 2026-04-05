@@ -188,10 +188,10 @@
                     <span class="badge badge-{{ $vendedor->status === 'ativo' ? 'success' : ($vendedor->status === 'bloqueado' ? 'danger' : 'warning') }}">{{ ucfirst($vendedor->status) }}</span>
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
-                    <button class="action-btn btn-equipe" title="Selecionar Equipe" data-vendedor-id="{{ $vendedor->id }}" data-vendedor-name="{{ $vendedor->name }}" data-equipes='@json($equipes ?? [])'>
+                    <button class="action-btn" title="Selecionar Equipe" onclick='openEquipeModal({{ $vendedor->id }}, {!! json_encode($vendedor->name, JSON_HEX_APOS | JSON_HEX_QUOT) !!}, {{ json_encode($equipes ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                         <i class="fas fa-people-group"></i>
                     </button>
-                    <button class="action-btn btn-view" title="Visualizar" data-vendedor='@json([
+                    <button class="action-btn" title="Visualizar" onclick='openViewModal({{ json_encode([
                         'id' => $vendedor->id,
                         'name' => $vendedor->name,
                         'email' => $vendedor->email,
@@ -207,10 +207,10 @@
                         'split_ativo' => $vendedor->vendedor?->split_ativo ?? false,
                         'wallet_status' => $vendedor->vendedor?->wallet_status ?? 'pendente',
                         'gestor_nome' => $vendedor->vendedor?->gestor?->name ?? 'Nenhum',
-                    ])'>
+                    ], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="action-btn btn-edit" title="Editar" data-vendedor='@json([
+                    <button class="action-btn" title="Editar" onclick='openEditModal({{ json_encode([
                         'id' => $vendedor->id,
                         'name' => $vendedor->name,
                         'email' => $vendedor->email,
@@ -230,7 +230,7 @@
                         'tipo_split' => $vendedor->vendedor?->tipo_split ?? 'percentual',
                         'valor_split_inicial' => $vendedor->vendedor?->valor_split_inicial ?? 0,
                         'valor_split_recorrencia' => $vendedor->vendedor?->valor_split_recorrencia ?? 0,
-                    ])'>
+                    ], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                         <i class="fas fa-pen"></i>
                     </button>
                     @if($vendedor->status === 'ativo')
@@ -991,34 +991,8 @@
         }
         var el = document.getElementById('editTelefoneDdi');
         if (el) el.value = ddi;
-    var et = document.getElementById('editTelefone');
-    if (et) { et.value = num; }
+        var et = document.getElementById('editTelefone');
+        if (et) { et.value = num; }
     };
-
-    // === Event delegation for action buttons ===
-    document.addEventListener('click', function(e) {
-        var btnView = e.target.closest('.btn-view');
-        if (btnView) {
-            var data = JSON.parse(btnView.getAttribute('data-vendedor'));
-            openViewModal(data);
-            return;
-        }
-
-        var btnEdit = e.target.closest('.btn-edit');
-        if (btnEdit) {
-            var data = JSON.parse(btnEdit.getAttribute('data-vendedor'));
-            openEditModal(data);
-            return;
-        }
-
-        var btnEquipe = e.target.closest('.btn-equipe');
-        if (btnEquipe) {
-            var vendedorId = btnEquipe.getAttribute('data-vendedor-id');
-            var vendedorNome = btnEquipe.getAttribute('data-vendedor-name');
-            var equipes = JSON.parse(btnEquipe.getAttribute('data-equipes'));
-            openEquipeModal(vendedorId, vendedorNome, equipes);
-            return;
-        }
-    });
 </script>
 @endsection
