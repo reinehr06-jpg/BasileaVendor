@@ -188,7 +188,7 @@
                     <span class="badge badge-{{ $vendedor->status === 'ativo' ? 'success' : ($vendedor->status === 'bloqueado' ? 'danger' : 'warning') }}">{{ ucfirst($vendedor->status) }}</span>
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
-                    <button class="action-btn" title="Selecionar Equipe" onclick='openEquipeModal({{ $vendedor->id }}, "{{ addslashes($vendedor->name) }}", {{ json_encode($equipes ?? []) }})'>
+                    <button class="action-btn" title="Selecionar Equipe" onclick='openEquipeModal({{ $vendedor->id }}, "{{ addslashes($vendedor->name) }}", {{ json_encode($equipes ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                         <i class="fas fa-people-group"></i>
                     </button>
                     <button class="action-btn" title="Visualizar" onclick='openViewModal({{ json_encode([
@@ -207,7 +207,7 @@
                         'split_ativo' => $vendedor->vendedor?->split_ativo ?? false,
                         'wallet_status' => $vendedor->vendedor?->wallet_status ?? 'pendente',
                         'gestor_nome' => $vendedor->vendedor?->gestor?->name ?? 'Nenhum',
-                    ]) }})'>
+                    ], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                         <i class="fas fa-eye"></i>
                     </button>
                     <button class="action-btn" title="Editar" onclick='openEditModal({{ json_encode([
@@ -230,7 +230,7 @@
                         'tipo_split' => $vendedor->vendedor?->tipo_split ?? 'percentual',
                         'valor_split_inicial' => $vendedor->vendedor?->valor_split_inicial ?? 0,
                         'valor_split_recorrencia' => $vendedor->vendedor?->valor_split_recorrencia ?? 0,
-                    ]) }})'>
+                    ], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                         <i class="fas fa-pen"></i>
                     </button>
                     @if($vendedor->status === 'ativo')
@@ -930,9 +930,6 @@
         document.querySelectorAll('#editModal .tab-btn').forEach(function(b) { b.classList.remove('active'); });
         firstTab.classList.add('active');
         document.getElementById('edit-tab-dados').classList.add('active');
-
-        // Always show vendor commissions section (both vendedor and gestor can earn sales commission)
-        document.getElementById('edit-tab-comissoes').style.display = 'block';
 
         BasileiaModal.open('editModal');
     }
