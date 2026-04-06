@@ -58,6 +58,14 @@
         .kpi-grid { grid-template-columns: 1fr; }
         .filters-bar { flex-direction: column; }
     }
+    
+    /* Override select styling para evitar conflitos */
+    .filters-bar select.form-control {
+        appearance: auto !important;
+        -webkit-appearance: auto !important;
+        background-image: none !important;
+        padding-right: 12px !important;
+    }
 </style>
 
 <x-page-hero 
