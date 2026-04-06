@@ -172,7 +172,7 @@
                     <label style="display:block; font-size:0.8rem; font-weight:800; color:var(--materio-text-muted); text-transform:uppercase; margin-bottom:10px;">Vendedor Responsável</label>
                     <div style="position:relative;">
                         <input type="hidden" id="cliente_id" value="{{ $cliente->id }}">
-                        <select id="vendedor_select" class="vendedor-dropdown" onchange="salvarAtribuicao()">
+                        <select id="vendedor_select" class="vendedor-dropdown">
                             <option value="">— Selecionar Vendedor —</option>
                             @if($listaG->count() > 0)
                             <optgroup label="Gestores">
@@ -191,6 +191,9 @@
                         </select>
                         <i class="fas fa-chevron-down" style="position:absolute; right:16px; top:16px; pointer-events:none; color:#94a3b8;"></i>
                     </div>
+                    <button type="button" id="btn_salvar_vendedor" onclick="salvarAtribuicao()" class="materio-btn-primary" style="margin-top:12px; width:100%; padding:12px; font-weight:700;">
+                        <i class="fas fa-save"></i> Salvar Vendedor
+                    </button>
                     <div id="save_feedback" style="font-size:0.75rem; font-weight:700; color:#166534; margin-top:8px; display:none;">
                         <i class="fas fa-check"></i> Salvo com sucesso!
                     </div>

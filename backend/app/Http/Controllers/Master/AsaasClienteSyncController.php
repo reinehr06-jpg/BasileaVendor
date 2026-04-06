@@ -17,14 +17,19 @@ class AsaasClienteSyncController extends Controller
     const PAGAMENTOS_CONFIRMADOS = ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'];
     // Status que indicam pagamento pendente/em aberto
     const PAGAMENTOS_PENDENTES = ['PENDING', 'OVERDUE', 'AWAITING_RISK_ANALYSIS'];
-    // Mês de referência para comissões
-    const MES_REFERENCIA = '2026-03';
+    // Mês de referência para comissões (dinâmico - usa o mês atual)
+    const MES_REFERENCIA = null; // null = usa mês atual
 
     protected AsaasService $asaas;
 
     public function __construct()
     {
         $this->asaas = new AsaasService();
+    }
+
+    private function getMesReferencia(): string
+    {
+        return self::MES_REFERENCIA ?? now()->format('Y-m');
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -332,9 +337,10 @@ class AsaasClienteSyncController extends Controller
             $parcelasPagas = count(array_filter($payments, fn($p) =>
                 in_array($p['status'] ?? '', self::PAGAMENTOS_CONFIRMADOS)
             ));
-            // Valor pago em março
+            $mesRef = $this->getMesReferencia();
+            // Valor pago no mês de referência
             $pagoMarco = array_filter($confirmadosDeste, fn($p) =>
-                str_starts_with($p['paymentDate'] ?? '', self::MES_REFERENCIA)
+                str_starts_with($p['paymentDate'] ?? '', $mesRef)
             );
             $valorMarcoPago = array_sum(array_column($pagoMarco, 'value')) ?: null;
 
@@ -344,8 +350,9 @@ class AsaasClienteSyncController extends Controller
             $valorPlano     = (float) ($payments[0]['value'] ?? 0);
             $valorTotal     = array_sum(array_column($payments, 'value'));
 
+            $mesRef = $this->getMesReferencia();
             $pagoMarco = array_filter($confirmadosDeste, fn($p) =>
-                str_starts_with($p['paymentDate'] ?? '', self::MES_REFERENCIA)
+                str_starts_with($p['paymentDate'] ?? '', $mesRef)
             );
             $valorMarcoPago = array_sum(array_column($pagoMarco, 'value')) ?: null;
         }
@@ -365,10 +372,11 @@ class AsaasClienteSyncController extends Controller
             $subStatusLocal = $parcelasPagas >= $parcelasTotal ? 'INACTIVE' : 'ACTIVE';
         }
 
-        // ── Tipo de comissão (só calcula se ATIVO e tem pagamento em março) ──
+        // ── Tipo de comissão (só calcula se ATIVO e tem pagamento no mês de referência) ──
         $comissaoTipo = null;
+        $mesRef = $this->getMesReferencia();
         if ($diagnostico === 'ATIVO' && $valorMarcoPago > 0 && $primeiroPgtAt) {
-            $isPrimeiroEmMarco = str_starts_with($primeiroPgtAt, self::MES_REFERENCIA);
+            $isPrimeiroEmMarco = str_starts_with($primeiroPgtAt, $mesRef);
             if ($tipoCobranca === 'installment' && $isPrimeiroEmMarco) {
                 $comissaoTipo = 'inicial_antecipada';
             } elseif ($isPrimeiroEmMarco) {
@@ -447,7 +455,7 @@ class AsaasClienteSyncController extends Controller
         $vendedorId       = $request->vendedor_id;
         $comissaoVendedor = 0;
         $comissaoGestor   = 0;
-        $mesRef           = self::MES_REFERENCIA;
+        $mesRef           = $this->getMesReferencia();
 
         if ($vendedorId && $import->diagnostico_status === 'ATIVO' && $import->comissao_tipo) {
             $vendedor = Vendedor::with('user')->find($vendedorId);
