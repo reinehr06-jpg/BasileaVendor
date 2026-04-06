@@ -1157,7 +1157,7 @@ class VendaController extends Controller
     }
 
     // ==========================================
-    // Checkout - Gerar Link de Pagamento
+    // Checkout - Gerar Link de Pagamento (usa checkout próprio configurado)
     // ==========================================
     public function gerarLinkCheckout(Request $request, Venda $venda)
     {
@@ -1169,11 +1169,7 @@ class VendaController extends Controller
                 }
             }
 
-            $allowedMethods = ['pix', 'boleto', 'credit_card', 'cartao'];
             $method = $request->get('method', $venda->forma_pagamento ?? 'credit_card');
-            if (!in_array(strtolower($method), $allowedMethods)) {
-                return response()->json(['error' => 'Método de pagamento inválido.'], 400);
-            }
             $methodMap = [
                 'CREDIT_CARD' => 'credit_card',
                 'PIX' => 'pix',
@@ -1182,7 +1178,7 @@ class VendaController extends Controller
             ];
             $paymentMethod = $methodMap[strtoupper($method)] ?? 'credit_card';
 
-            // BOLETO: download direto do Asaas (única exceção)
+            // BOLETO: download direto do Asaas
             if ($paymentMethod === 'boleto') {
                 return response()->json([
                     'success' => true,
@@ -1192,57 +1188,59 @@ class VendaController extends Controller
                 ]);
             }
 
-            // SEMPRE usar o checkout externo (secure.basileia.global) para CARTÃO e PIX
-            $checkoutService = new \App\Services\ExternalCheckoutService();
             $cliente = $venda->cliente;
-
             if (!$cliente) {
                 return response()->json(['error' => 'Cliente não encontrado para esta venda.'], 404);
             }
 
-            // Determinar tipo: assinatura (mensal) ou transação avulsa
-            $isMensal = strtolower($venda->tipo_negociacao ?? '') === 'mensal';
+            // USAR SEMPRE o checkout próprio configurado nas integrações
+            $checkoutBaseUrl = \App\Models\Setting::get('checkout_external_url');
 
-            // Criar assinatura ou transação no checkout
-            if ($isMensal) {
-                $result = $checkoutService->createSubscriptionForVenda($venda, $cliente);
-            } else {
-                $result = $checkoutService->createTransactionForVenda($venda, $cliente);
-            }
-
-            if ($result && $result['success']) {
-                Log::info('Checkout: Link gerado com sucesso', [
-                    'venda_id' => $venda->id,
-                    'uuid' => $result['uuid'],
-                    'tipo' => $isMensal ? 'subscription' : 'transaction',
-                ]);
-                
+            if (!$checkoutBaseUrl) {
                 return response()->json([
-                    'success' => true,
-                    'url' => $result['payment_url'] ?? $result['uuid'],
-                    'checkout_uuid' => $result['uuid'],
-                    'message' => 'Link de checkout gerado!',
-                ]);
+                    'error' => 'Checkout não configurado. Configure a URL do checkout nas Integrações.',
+                ], 400);
             }
 
-            $errorMsg = $result['message'] ?? 'Erro desconhecido ao comunicar com o checkout.';
-            $errorStatus = $result['status'] ?? 500;
+            // Pegar dados do pagamento
+            $pagamento = $venda->pagamentos->first();
+            $asaasId = $pagamento ? $pagamento->asaas_payment_id : ($venda->asaas_payment_link_id ?? null);
 
-            Log::error('Checkout: Falha ao criar link', [
+            // Preparar parâmetros para o checkout
+            $params = http_build_query([
                 'venda_id' => $venda->id,
-                'error' => $errorMsg,
-                'status' => $errorStatus,
+                'hash' => $venda->checkout_hash,
+                'valor' => (float) $venda->valor_final,
+                'plano' => $venda->plano,
+                'ciclo' => $venda->tipo_negociacao,
+                'metodo' => $paymentMethod,
+                'forma_pagamento' => $venda->forma_pagamento,
+                'parcelas' => $venda->parcelas ?? 1,
+                'cliente' => $cliente->nome_igreja ?? $cliente->nome ?? '',
+                'documento' => preg_replace('/[^0-9]/', '', $cliente->documento ?? ''),
+                'email' => $cliente->email ?? '',
+                'whatsapp' => preg_replace('/[^0-9]/', '', $cliente->whatsapp ?? ''),
+            ]);
+
+            $separator = str_contains($checkoutBaseUrl, '?') ? '&' : '?';
+            $checkoutUrl = rtrim($checkoutBaseUrl, '/') . $separator . $params;
+
+            Log::info('Checkout: Link gerado para checkout próprio', [
+                'venda_id' => $venda->id,
+                'checkout_url' => $checkoutBaseUrl,
+                'ciclo' => $venda->tipo_negociacao,
             ]);
 
             return response()->json([
-                'error' => 'Falha ao gerar link de pagamento: ' . $errorMsg,
-            ], $errorStatus ?: 500);
+                'success' => true,
+                'url' => $checkoutUrl,
+                'message' => 'Link do checkout próprio gerado!',
+            ]);
 
         } catch (\Exception $e) {
             Log::error('Erro ao gerar link de checkout', [
                 'venda_id' => $venda->id ?? null,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
             return response()->json([
                 'error' => 'Erro interno ao gerar link de pagamento: ' . $e->getMessage(),

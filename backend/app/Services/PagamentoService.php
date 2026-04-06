@@ -473,6 +473,19 @@ class PagamentoService
                 $this->dispararAutomacoes($venda, $pagamento);
             }
 
+            // ─── Ciclo de Assinatura ──────────────────────
+            if ($venda->tipo_negociacao === 'anual' || $venda->tipo_negociacao === 'mensal') {
+                try {
+                    $lifecycle = new SubscriptionLifecycleService();
+                    $lifecycle->ativarAssinatura($venda);
+                } catch (\Exception $e) {
+                    Log::error('[Lifecycle] Falha ao ativar assinatura', [
+                        'venda_id' => $venda->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             Log::info("PagamentoService: Venda #{$venda->id} confirmada com sucesso.");
         }
 

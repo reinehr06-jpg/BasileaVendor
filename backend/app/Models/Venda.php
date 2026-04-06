@@ -34,6 +34,8 @@ class Venda extends Model
         'modo_cobranca_asaas', 'asaas_subscription_id', 'asaas_installment_id',
         // Campos de email
         'email_vendedor_enviado', 'email_cliente_enviado',
+        // Campos de assinatura/ciclo
+        'inicio_assinatura', 'proximo_vencimento', 'status_assinatura', 'renovacao_ativa', 'ciclo_meses',
     ];
 
     protected function casts(): array
