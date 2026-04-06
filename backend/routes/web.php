@@ -34,6 +34,16 @@ use App\Http\Middleware\CheckMaster;
 use App\Http\Middleware\CheckVendedor;
 
 Route::get('/', function () {
+    // Se for uma requisição de API/json, retorna info
+    if (request()->expectsJson()) {
+        return response()->json([
+            'status' => 'ok',
+            'app' => 'BasileiaVendas',
+            'version' => '1.0',
+            'route' => 'home',
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    }
     return redirect()->route('login');
 });
 
@@ -110,10 +120,10 @@ Route::get('/webhooks/asaas/status', [WebhookController::class, 'webhookStatus']
 // Git Auto-Deploy (protegido por HMAC signature no controller)
 Route::post('/webhooks/git-deploy', [\App\Http\Controllers\GitWebhookController::class, 'deploy'])->name('webhooks.git-deploy');
 
-// Health check (public)
-Route::get('/health', function() {
-    return response()->json(['status' => 'ok', 'timestamp' => now()]);
-});
+// Health check público (sem middleware para funcionar sempre)
+Route::get('/up', function () {
+    return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);
+})->withoutMiddleware(\App\Http\Middleware\SecurityHeaders::class);
 
 // Login routes (com rate limiting)
 Route::middleware('throttle:10,1')->group(function () {
