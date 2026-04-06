@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\AsaasService;
 use App\Models\Vendedor;
 use App\Models\Cliente;
+use App\Models\Comissao;
+use App\Models\Venda;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -461,6 +463,23 @@ class AsaasClienteSyncController extends Controller
             $vendedor = Vendedor::with('user')->find($vendedorId);
             if ($vendedor) {
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
+                
+                // Criar registro de comissão
+                $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
+                if ($comissaoVendedor > 0 || $comissaoGestor > 0) {
+                    Comissao::create([
+                        'vendedor_id' => $vendedorId,
+                        'gerente_id' => $gestorId,
+                        'tipo_comissao' => $import->comissao_tipo ?? 'inicial',
+                        'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
+                        'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
+                        'valor_venda' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
+                        'valor_comissao' => $comissaoVendedor,
+                        'valor_gerente' => $comissaoGestor,
+                        'status' => 'pendente',
+                        'competencia' => $mesRef,
+                    ]);
+                }
             }
         }
 
@@ -506,6 +525,9 @@ class AsaasClienteSyncController extends Controller
         $totalComissaoGestor = 0;
         $atribuidos = 0;
 
+        // Buscar o gestor do vendedor (se for vendedor, pega o gestor; se for gestor, usa ele mesmo)
+        $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
+
         foreach ($customerIds as $customerId) {
             $import = DB::table('legacy_customer_imports')->where('id', $customerId)->first();
             
@@ -527,6 +549,22 @@ class AsaasClienteSyncController extends Controller
                 'comissao_mes_referencia' => $mesRef,
                 'updated_at' => now(),
             ]);
+
+            // Criar registro de comissão se houver valor
+            if ($comissaoVendedor > 0 || $comissaoGestor > 0) {
+                Comissao::create([
+                    'vendedor_id' => $vendedorId,
+                    'gerente_id' => $gestorId,
+                    'tipo_comissao' => $import->comissao_tipo ?? 'inicial',
+                    'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
+                    'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
+                    'valor_venda' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
+                    'valor_comissao' => $comissaoVendedor,
+                    'valor_gerente' => $comissaoGestor,
+                    'status' => 'pendente',
+                    'competencia' => $mesRef,
+                ]);
+            }
 
             $totalComissaoVendedor += $comissaoVendedor;
             $totalComissaoGestor += $comissaoGestor;
