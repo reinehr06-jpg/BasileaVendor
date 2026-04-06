@@ -110,13 +110,13 @@
         ['type' => 'excel', 'url' => route('master.vendedores', ['formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
         ['type' => 'csv', 'url' => route('master.vendedores', ['formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
     ]"
-/>
-
-<div style="display: flex; gap: 10px; align-items: center; margin-top: 12px;">
-    <button class="btn btn-primary" onclick="BasileiaModal.open('createModal')">
-        <i class="fas fa-plus"></i> Novo Vendedor
-    </button>
-</div>
+>
+    <x-slot:actions>
+        <button class="btn btn-primary" onclick="BasileiaModal.open('createModal')" style="padding: 10px 24px; font-weight: 800; box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);">
+            <i class="fas fa-plus-circle" style="margin-right: 6px;"></i> Novo Vendedor
+        </button>
+    </x-slot:actions>
+</x-page-hero>
 
 <div class="filters-bar">
     <div style="position: relative; flex-grow: 1;">
@@ -188,7 +188,7 @@
                     <span class="badge badge-{{ $vendedor->status === 'ativo' ? 'success' : ($vendedor->status === 'bloqueado' ? 'danger' : 'warning') }}">{{ ucfirst($vendedor->status) }}</span>
                 </td>
                 <td style="text-align: right; white-space: nowrap;">
-                    <button class="action-btn" title="Selecionar Equipe" onclick='openEquipeModal({{ $vendedor->id }}, "{{ addslashes($vendedor->name) }}", {{ json_encode($equipes ?? []) }})'>
+                    <button class="action-btn" title="Selecionar Equipe" onclick='openEquipeModal({{ $vendedor->id }}, {!! json_encode($vendedor->name, JSON_HEX_APOS | JSON_HEX_QUOT) !!}, {{ json_encode($equipes ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                         <i class="fas fa-people-group"></i>
                     </button>
                     <button class="action-btn" title="Visualizar" onclick='openViewModal({{ json_encode([
@@ -207,7 +207,7 @@
                         'split_ativo' => $vendedor->vendedor?->split_ativo ?? false,
                         'wallet_status' => $vendedor->vendedor?->wallet_status ?? 'pendente',
                         'gestor_nome' => $vendedor->vendedor?->gestor?->name ?? 'Nenhum',
-                    ]) }})'>
+                    ], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                         <i class="fas fa-eye"></i>
                     </button>
                     <button class="action-btn" title="Editar" onclick='openEditModal({{ json_encode([
@@ -230,7 +230,7 @@
                         'tipo_split' => $vendedor->vendedor?->tipo_split ?? 'percentual',
                         'valor_split_inicial' => $vendedor->vendedor?->valor_split_inicial ?? 0,
                         'valor_split_recorrencia' => $vendedor->vendedor?->valor_split_recorrencia ?? 0,
-                    ]) }})'>
+                    ], JSON_HEX_APOS | JSON_HEX_QUOT) }})'>
                         <i class="fas fa-pen"></i>
                     </button>
                     @if($vendedor->status === 'ativo')
@@ -289,21 +289,23 @@
                     <div class="form-group">
                         <label>Telefone</label>
                         <div style="display:flex; gap:8px; align-items:center;">
-                            <select name="telefone_ddi" class="form-control" style="flex:0 0 95px; font-size:0.78rem; padding:8px 4px; min-width:0;">
-                                <option value="55">🇧🇷 +55</option>
-                                <option value="1">🇺🇸 +1</option>
-                                <option value="351">🇵🇹 +351</option>
-                                <option value="54">🇦🇷 +54</option>
-                                <option value="52">🇲🇽 +52</option>
-                                <option value="56">🇨🇱 +56</option>
-                                <option value="57">🇨🇴 +57</option>
-                                <option value="58">🇻🇪 +58</option>
-                                <option value="44">🇬🇧 +44</option>
-                                <option value="49">🇩🇪 +49</option>
-                                <option value="33">🇫🇷 +33</option>
-                                <option value="39">🇮🇹 +39</option>
-                                <option value="34">🇪🇸 +34</option>
-                            </select>
+                            <div style="flex:0 0 105px;">
+                                <select name="telefone_ddi" class="form-control">
+                                    <option value="55">🇧🇷 +55</option>
+                                    <option value="1">🇺🇸 +1</option>
+                                    <option value="351">🇵🇹 +351</option>
+                                    <option value="54">🇦🇷 +54</option>
+                                    <option value="52">🇲🇽 +52</option>
+                                    <option value="56">🇨🇱 +56</option>
+                                    <option value="57">🇨🇴 +57</option>
+                                    <option value="58">🇻🇪 +58</option>
+                                    <option value="44">🇬🇧 +44</option>
+                                    <option value="49">🇩🇪 +49</option>
+                                    <option value="33">🇫🇷 +33</option>
+                                    <option value="39">🇮🇹 +39</option>
+                                    <option value="34">🇪🇸 +34</option>
+                                </select>
+                            </div>
                             <input type="text" name="telefone" id="createTelefone" class="form-control" placeholder="(00) 00000-0000" style="flex:1;">
                         </div>
                     </div>
@@ -421,10 +423,11 @@
                             <label>E-mail <span class="required">*</span></label>
                             <input type="email" name="email" id="editEmail" class="form-control" required>
                         </div>
-                            <div class="form-group">
-                                <label>Telefone</label>
-                                <div style="display:flex; gap:8px;">
-                                    <select id="editTelefoneDdi" class="form-control" style="flex:0 0 85px; font-size:0.78rem; padding:8px 6px; min-width:0;">
+                        <div class="form-group">
+                            <label>Telefone</label>
+                            <div style="display:flex; gap:8px;">
+                                <div style="flex:0 0 105px;">
+                                    <select id="editTelefoneDdi" class="form-control">
                                         <option value="55">🇧🇷 +55</option>
                                         <option value="1">🇺🇸 +1</option>
                                         <option value="7">🇷🇺 +7</option>
@@ -471,6 +474,7 @@
                                         <option value="94">🇱🇰 +94</option>
                                         <option value="95">🇲🇲 +95</option>
                                         <option value="98">🇮🇷 +98</option>
+                                        <option value="211">🇸🇸 +211</option>
                                         <option value="212">🇲🇦 +212</option>
                                         <option value="213">🇩🇿 +213</option>
                                         <option value="216">🇹🇳 +216</option>
@@ -502,7 +506,6 @@
                                         <option value="244">🇦🇴 +244</option>
                                         <option value="245">🇬🇼 +245</option>
                                         <option value="246">🇮🇴 +246</option>
-                                        <option value="247">🇦🇨 +247</option>
                                         <option value="248">🇸🇨 +248</option>
                                         <option value="249">🇸🇩 +249</option>
                                         <option value="250">🇷🇼 +250</option>
@@ -548,10 +551,10 @@
                                         <option value="376">🇦🇩 +376</option>
                                         <option value="377">🇲🇨 +377</option>
                                         <option value="378">🇸🇲 +378</option>
+                                        <option value="379">🇻🇦 +379</option>
                                         <option value="380">🇺🇦 +380</option>
                                         <option value="381">🇷🇸 +381</option>
                                         <option value="382">🇲🇪 +382</option>
-                                        <option value="383">🇽🇰 +383</option>
                                         <option value="385">🇭🇷 +385</option>
                                         <option value="386">🇸🇮 +386</option>
                                         <option value="387">🇧🇦 +387</option>
@@ -580,7 +583,7 @@
                                         <option value="598">🇺🇾 +598</option>
                                         <option value="599">🇨🇼 +599</option>
                                         <option value="670">🇹🇱 +670</option>
-                                        <option value="672">🇳🇫 +672</option>
+                                        <option value="672">🇦🇶 +672</option>
                                         <option value="673">🇧🇳 +673</option>
                                         <option value="674">🇳🇷 +674</option>
                                         <option value="675">🇵🇬 +675</option>
@@ -634,6 +637,7 @@
                                     <input type="text" name="telefone" id="editTelefone" class="form-control" style="flex:1;">
                                 </div>
                             </div>
+                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -731,28 +735,24 @@
                 <div id="edit-tab-split" class="tab-content">
                     <div class="form-section" style="margin-top: 12px;">
                         <div class="form-section-title"><i class="fas fa-link"></i> Configuração de Split</div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Wallet ID (Asaas)</label>
-                                <input type="text" name="asaas_wallet_id" id="editWalletId" class="form-control" placeholder="ID da wallet no Asaas">
+                        
+                        <div class="rate-display" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                            <div class="rate-box" style="background: #f8f7ff; border: 1px solid #e0e0e8; border-radius: 12px; padding: 16px; text-align: center;">
+                                <div class="rate-label" style="font-size: 0.72rem; color: #6b7280; text-transform: uppercase;">1ª Venda</div>
+                                <div class="rate-value" id="dispSplitInicial" style="font-size: 1.4rem; font-weight: 800; color: #4C1D95; margin: 4px 0;">0%</div>
+                                <div class="rate-type" id="dispTipoSplitInicial" style="font-size: 0.75rem; color: #a1a1b5;">Percentual</div>
                             </div>
-                            <div class="form-group">
-                                <label>Tipo de Split</label>
-                                <select name="tipo_split" id="editTipoSplit" class="form-control">
-                                    <option value="percentual">Percentual (%)</option>
-                                    <option value="fixo">Valor Fixo (R$)</option>
-                                </select>
+                            <div class="rate-box" style="background: #f8f7ff; border: 1px solid #e0e0e8; border-radius: 12px; padding: 16px; text-align: center;">
+                                <div class="rate-label" style="font-size: 0.72rem; color: #6b7280; text-transform: uppercase;">Recorrência</div>
+                                <div class="rate-value" id="dispSplitRecorrencia" style="font-size: 1.4rem; font-weight: 800; color: #4C1D95; margin: 4px 0;">0%</div>
+                                <div class="rate-type" id="dispTipoSplitRecorrencia" style="font-size: 0.75rem; color: #a1a1b5;">Percentual</div>
                             </div>
                         </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Valor Split - Inicial</label>
-                                <input type="number" step="0.01" name="valor_split_inicial" id="editSplitInicial" class="form-control" placeholder="0.00">
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label>Valor Split - Recorrência</label>
-                                <input type="number" step="0.01" name="valor_split_recorrencia" id="editSplitRecorrencia" class="form-control" placeholder="0.00">
-                            </div>
+
+                        <div class="form-group">
+                            <label>Wallet ID (Asaas)</label>
+                            <input type="text" name="asaas_wallet_id" id="editWalletId" class="form-control" placeholder="ID da wallet no Asaas">
+                            <div class="field-hint">O ID da carteira do vendedor no Asaas para processamento do split.</div>
                         </div>
                     </div>
                 </div>
@@ -905,9 +905,23 @@
         document.getElementById('editComissaoGestorPrimeira').value = data.comissao_gestor_primeira || 0;
         document.getElementById('editComissaoGestorRecorrencia').value = data.comissao_gestor_recorrencia || 0;
         document.getElementById('editWalletId').value = data.asaas_wallet_id || '';
-        document.getElementById('editTipoSplit').value = data.tipo_split || 'percentual';
-        document.getElementById('editSplitInicial').value = data.valor_split_inicial || 0;
-        document.getElementById('editSplitRecorrencia').value = data.valor_split_recorrencia || 0;
+        
+        // Atualizar mostradores de Split (leitura apenas)
+        const tipoSplit = data.tipo_split || 'percentual';
+        const valorInicial = data.valor_split_inicial || 0;
+        const valorRecorrencia = data.valor_split_recorrencia || 0;
+
+        if (tipoSplit === 'percentual') {
+            document.getElementById('dispSplitInicial').textContent = valorInicial + '%';
+            document.getElementById('dispSplitRecorrencia').textContent = valorRecorrencia + '%';
+            document.getElementById('dispTipoSplitInicial').textContent = 'Percentual';
+            document.getElementById('dispTipoSplitRecorrencia').textContent = 'Percentual';
+        } else {
+            document.getElementById('dispSplitInicial').textContent = 'R$ ' + parseFloat(valorInicial).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('dispSplitRecorrencia').textContent = 'R$ ' + parseFloat(valorRecorrencia).toLocaleString('pt-BR', {minimumFractionDigits: 2});
+            document.getElementById('dispTipoSplitInicial').textContent = 'Valor Fixo';
+            document.getElementById('dispTipoSplitRecorrencia').textContent = 'Valor Fixo';
+        }
         document.getElementById('editMetaMensal').value = data.meta_mensal || 0;
         document.getElementById('editMetaPessoal').value = data.meta_pessoal || 0;
 
@@ -917,9 +931,6 @@
         document.querySelectorAll('#editModal .tab-btn').forEach(function(b) { b.classList.remove('active'); });
         firstTab.classList.add('active');
         document.getElementById('edit-tab-dados').classList.add('active');
-
-        // Always show vendor commissions section (both vendedor and gestor can earn sales commission)
-        document.getElementById('edit-tab-comissoes').style.display = 'block';
 
         BasileiaModal.open('editModal');
     }

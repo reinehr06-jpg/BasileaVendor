@@ -25,6 +25,11 @@
     title="Vendas Globais" 
     subtitle="Todas as vendas da operação." 
     icon="fas fa-shopping-bag"
+    :exports="[
+        ['type' => 'excel', 'url' => route('master.vendas.exportar', array_merge(request()->query(), ['formato' => 'excel'])), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => route('master.vendas.exportar', array_merge(request()->query(), ['formato' => 'pdf'])), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => route('master.vendas.exportar', array_merge(request()->query(), ['formato' => 'csv'])), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
 />
 
 <!-- Stats -->
@@ -121,7 +126,7 @@ foreach ($vendas as $v) {
                         <div class="d-flex flex-column gap-1">
                             <div style="display: flex; gap: 4px;">
                                 @if($formaUpper === 'BOLETO' || empty($formaUpper))
-                                    <button onclick="openCheckoutLink({{ $venda->id }}, 'boleto')" class="action-btn-sm action-btn-boleto" style="flex: 1;" title="Abrir Checkout Boleto">
+                                    <button onclick="baixarBoleto({{ $venda->id }})" class="action-btn-sm action-btn-boleto" style="flex: 1;" title="Baixar Boleto do Asaas">
                                         <i class="fas fa-barcode"></i> Boleto
                                     </button>
                                 @endif
@@ -289,6 +294,23 @@ async function openCheckoutLink(vendaId, method = null) {
     } catch (error) {
         console.error('Erro:', error);
         alert('❌ Erro ao abrir checkout.');
+    }
+}
+
+async function baixarBoleto(vendaId) {
+    try {
+        const response = await fetch(`/master/vendas/${vendaId}/boleto`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            alert('❌ ' + (data.message || 'Não foi possível baixar o boleto.'));
+            return;
+        }
+        window.open(data.url, '_blank');
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('❌ Erro ao buscar boleto. Tente novamente.');
     }
 }
 </script>

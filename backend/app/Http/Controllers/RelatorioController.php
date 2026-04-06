@@ -400,50 +400,63 @@ class RelatorioController extends Controller
     }
 
     /**
-     * 12.6 — Exportar CSV
+     * 12.6 — Exportar Relatórios (Standardized)
      */
     public function exportar(Request $request)
     {
         $filtros = $this->parseFiltros($request);
         $tipo = $request->get('tipo_relatorio', 'vendas');
+        $formato = $request->get('formato', 'csv');
 
-        $filename = "relatorio_{$tipo}_" . now()->format('Y-m-d_His') . '.csv';
+        $filename = "relatorio_{$tipo}_" . now()->format('Y-m-d_His') . '.' . ($formato === 'excel' ? 'csv' : $formato);
 
         $headers = [
             'Content-Type'        => 'text/csv; charset=UTF-8',
             'Content-Disposition' => "attachment; filename={$filename}",
+            'Cache-Control'       => 'no-cache, no-store, must-revalidate',
+            'Pragma'              => 'no-cache',
+            'Expires'             => '0',
         ];
 
-        $query = Venda::with(['cliente', 'vendedor.user']);
-        $this->applyVendaFilters($query, $filtros);
-        $vendas = $query->get();
+        // Lógica de busca baseada no tipo de relatório solicitado
+        if ($tipo === 'vendas') {
+            $query = Venda::with(['cliente', 'vendedor.user']);
+            $this->applyVendaFilters($query, $filtros);
+            $dados = $query->get();
+        } else {
+            // Outros tipos podem ser implementados aqui (ex: pagamentos, churn)
+            $query = Venda::with(['cliente', 'vendedor.user']);
+            $this->applyVendaFilters($query, $filtros);
+            $dados = $query->get();
+        }
 
-        $callback = function () use ($vendas) {
+        $callback = function () use ($dados, $tipo) {
             $file = fopen('php://output', 'w');
-            // BOM para Excel
             fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            fputcsv($file, [
-                'ID', 'Igreja', 'Pastor', 'Vendedor', 'Plano', 'Valor',
-                'Desconto %', 'Comissão', 'Status', 'Forma Pagamento',
-                'Tipo Negociação', 'Data Venda'
-            ], ';');
-
-            foreach ($vendas as $v) {
+            if ($tipo === 'vendas') {
                 fputcsv($file, [
-                    $v->id,
-                    $v->cliente->nome_igreja ?? $v->cliente->nome ?? '—',
-                    $v->cliente->nome_pastor ?? '—',
-                    $v->vendedor->user->name ?? 'N/A',
-                    $v->plano ?? 'N/A',
-                    number_format($v->valor, 2, ',', '.'),
-                    $v->desconto ?? 0,
-                    number_format($v->comissao_gerada ?? 0, 2, ',', '.'),
-                    $v->status,
-                    $v->forma_pagamento ?? '—',
-                    $v->tipo_negociacao ?? '—',
-                    $v->created_at->format('d/m/Y'),
+                    'ID', 'Igreja', 'Pastor', 'Vendedor', 'Plano', 'Valor',
+                    'Desconto %', 'Comissão', 'Status', 'Forma Pagamento',
+                    'Tipo Negociação', 'Data Venda'
                 ], ';');
+
+                foreach ($dados as $v) {
+                    fputcsv($file, [
+                        $v->id,
+                        $v->cliente?->nome_igreja ?? $v->cliente?->nome ?? '—',
+                        $v->cliente?->nome_pastor ?? '—',
+                        $v->vendedor->user->name ?? 'N/A',
+                        $v->plano ?? 'N/A',
+                        number_format($v->valor, 2, ',', '.'),
+                        $v->desconto ?? 0,
+                        number_format($v->comissao_gerada ?? 0, 2, ',', '.'),
+                        $v->status,
+                        $v->forma_pagamento ?? '—',
+                        $v->tipo_negociacao ?? '—',
+                        $v->created_at->format('d/m/Y'),
+                    ], ';');
+                }
             }
 
             fclose($file);

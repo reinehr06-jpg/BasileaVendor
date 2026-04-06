@@ -229,38 +229,41 @@
     <h3><i class="fas fa-wallet"></i> Configuração de Split</h3>
     <p class="desc">Configure sua carteira Asaas para recebimento automático de comissões</p>
 
+    <div class="rate-display" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+        <div class="rate-box" style="background: #f8f7ff; border: 1px solid #e0e0e8; border-radius: 12px; padding: 16px; text-align: center;">
+            <div class="rate-label" style="font-size: 0.72rem; color: #6b7280; text-transform: uppercase;">Primeira Venda</div>
+            <div class="rate-value" style="font-size: 1.4rem; font-weight: 800; color: #4C1D95; margin: 4px 0;">
+                {{ ($vendedor->tipo_split ?? 'percentual') === 'percentual' ? ($vendedor->valor_split_inicial ?? 0) . '%' : 'R$ ' . number_format($vendedor->valor_split_inicial ?? 0, 2, ',', '.') }}
+            </div>
+            <div class="rate-type" style="font-size: 0.75rem; color: #a1a1b5;">Comissão Atribuída</div>
+        </div>
+        <div class="rate-box" style="background: #f8f7ff; border: 1px solid #e0e0e8; border-radius: 12px; padding: 16px; text-align: center;">
+            <div class="rate-label" style="font-size: 0.72rem; color: #6b7280; text-transform: uppercase;">Renovações</div>
+            <div class="rate-value" style="font-size: 1.4rem; font-weight: 800; color: #4C1D95; margin: 4px 0;">
+                {{ ($vendedor->tipo_split ?? 'percentual') === 'percentual' ? ($vendedor->valor_split_recorrencia ?? 0) . '%' : 'R$ ' . number_format($vendedor->valor_split_recorrencia ?? 0, 2, ',', '.') }}
+            </div>
+            <div class="rate-type" style="font-size: 0.75rem; color: #a1a1b5;">Comissão Atribuída</div>
+        </div>
+    </div>
+
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+
     <form method="POST" action="{{ route('vendedor.configuracoes.split.update') }}">
         @csrf
         @method('PUT')
 
         <div class="form-group">
             <label>Wallet ID Asaas</label>
-            <input type="text" name="asaas_wallet_id" value="{{ old('asaas_wallet_id', $vendedor->asaas_wallet_id ?? '') }}" {{ ($vendedor->wallet_validada ?? false) ? 'disabled' : '' }} placeholder="Digite o ID da sua carteira Asaas">
-            @if($vendedor->wallet_validada ?? false)
+            <input type="text" name="asaas_wallet_id" value="{{ old('asaas_wallet_id', $vendedor->asaas_wallet_id ?? '') }}" {{ (($vendedor->wallet_status ?? '') === 'validado') ? 'readonly' : '' }} placeholder="Digite o ID da sua carteira Asaas">
+            @if(($vendedor->wallet_status ?? '') === 'validado')
             <div style="color: #16a34a; font-size: 0.8rem; margin-top: 4px;"><i class="fas fa-check-circle"></i> Wallet validada — não pode ser alterada</div>
+            @else
+            <div style="color: #a1a1b5; font-size: 0.75rem; margin-top: 4px;">Utilize o Wallet ID gerada no Asaas para receber as comissões via split.</div>
             @endif
         </div>
 
-        <div class="form-group">
-            <label>Tipo de Split</label>
-            <select name="tipo_split" {{ ($vendedor->wallet_validada ?? false) ? 'disabled' : '' }}>
-                <option value="percentual" {{ ($vendedor->tipo_split ?? 'percentual') === 'percentual' ? 'selected' : '' }}>Percentual (%)</option>
-                <option value="fixo" {{ ($vendedor->tipo_split ?? '') === 'fixo' ? 'selected' : '' }}>Valor Fixo (R$)</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Valor Split Primeira Venda</label>
-            <input type="number" step="0.01" name="valor_split_inicial" value="{{ old('valor_split_inicial', $vendedor->valor_split_inicial ?? 0) }}" {{ ($vendedor->wallet_validada ?? false) ? 'disabled' : '' }}>
-        </div>
-
-        <div class="form-group">
-            <label>Valor Split Recorrência</label>
-            <input type="number" step="0.01" name="valor_split_recorrencia" value="{{ old('valor_split_recorrencia', $vendedor->valor_split_recorrencia ?? 0) }}" {{ ($vendedor->wallet_validada ?? false) ? 'disabled' : '' }}>
-        </div>
-
-        @if(!($vendedor->wallet_validada ?? false))
-        <button type="submit" class="btn-save"><i class="fas fa-check"></i> Salvar Configurações</button>
+        @if(($vendedor->wallet_status ?? '') !== 'validado')
+        <button type="submit" class="btn-save"><i class="fas fa-check"></i> Salvar Wallet ID</button>
         @endif
     </form>
 </div>

@@ -52,6 +52,16 @@
         .payment-methods { grid-template-columns: 1fr; }
         .negotiation-types { grid-template-columns: 1fr; }
     }
+
+    /* CEP Loading Animation */
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulse-subtle { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+    .animate-pulse { animation: pulse-subtle 1s ease-in-out infinite; }
+    .loading-cep {
+        pointer-events: none;
+        opacity: 0.8;
+        cursor: wait;
+    }
 </style>
 <x-page-hero title="Nova Venda" subtitle="Cadastre uma nova venda para seu cliente" icon="fas fa-plus-circle" />
 
@@ -132,27 +142,27 @@
         <div class="form-row">
             <div class="form-group">
                 <label>WhatsApp de Contato <span class="required">*</span></label>
-                <div style="display:flex; gap:4px; align-items:center;">
-                    <div style="width:45px;flex-shrink:0;">
-                        <select name="ddi" id="inputDdi" style="width:100%;font-size:0.6rem;padding:4px 1px;">
-                            <option value="55">+55</option>
-                            <option value="1">+1</option>
-                            <option value="54">+54</option>
-                            <option value="351">+351</option>
-                            <option value="52">+52</option>
-                            <option value="56">+56</option>
-                            <option value="57">+57</option>
-                            <option value="598">+598</option>
-                            <option value="595">+595</option>
-                            <option value="591">+591</option>
-                            <option value="593">+593</option>
-                            <option value="51">+51</option>
-                            <option value="58">+58</option>
-                            <option value="44">+44</option>
-                            <option value="49">+49</option>
-                            <option value="33">+33</option>
-                            <option value="39">+39</option>
-                            <option value="34">+34</option>
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <div style="flex:0 0 105px;">
+                        <select name="ddi" id="inputDdi" class="form-control">
+                            <option value="55">🇧🇷 +55</option>
+                            <option value="1">🇺🇸 +1</option>
+                            <option value="54">🇦🇷 +54</option>
+                            <option value="351">🇵🇹 +351</option>
+                            <option value="52">🇲🇽 +52</option>
+                            <option value="56">🇨🇱 +56</option>
+                            <option value="57">🇨🇴 +57</option>
+                            <option value="598">🇺🇾 +598</option>
+                            <option value="595">🇵🇾 +595</option>
+                            <option value="591">🇧🇴 +591</option>
+                            <option value="593">🇪🇨 +593</option>
+                            <option value="51">🇵🇪 +51</option>
+                            <option value="58">🇻🇪 +58</option>
+                            <option value="44">🇬🇧 +44</option>
+                            <option value="49">🇩🇪 +49</option>
+                            <option value="33">🇫🇷 +33</option>
+                            <option value="39">🇮🇹 +39</option>
+                            <option value="34">🇪🇸 +34</option>
                         </select>
                     </div>
                     <input type="text" name="whatsapp" id="inputWhatsapp" class="form-control" value="{{ old('whatsapp') }}" required placeholder="(00) 00000-0000" maxlength="20" style="flex:1;min-width:0;">
@@ -704,29 +714,113 @@ document.addEventListener('DOMContentLoaded', function() {
         this.value = v;
     });
 
-    // CEP mask e ViaCEP
+    // ===== Busca de CEP via Fetch API com debounce =====
+    let cepDebounceTimer = null;
+    let cepLoading = false;
+
+    function setCepLoading(loading) {
+        const inputCep = document.getElementById('inputCep');
+        if (!inputCep) return;
+        cepLoading = loading;
+        if (loading) {
+            inputCep.classList.add('loading-cep');
+            inputCep.style.background = '#f8fafc url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%234C1D95\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'M21 12a9 9 0 1 1-6.219-8.56\'/%3E%3C/svg%3E") no-repeat 95% center';
+            inputCep.style.animation = 'spin 1s linear infinite';
+            inputCep.style.backgroundSize = '18px';
+        } else {
+            inputCep.classList.remove('loading-cep');
+            inputCep.style.background = '';
+            inputCep.style.animation = '';
+        }
+    }
+
+    function fillAddress(data) {
+        const fields = {
+            'inputEndereco': data.logradouro || '',
+            'inputBairro': data.bairro || '',
+            'inputCidade': data.localidade || '',
+            'inputEstado': data.uf || ''
+        };
+        for (const [id, value] of Object.entries(fields)) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.value = value;
+                if (value) {
+                    el.classList.add('animate-pulse');
+                    setTimeout(() => el.classList.remove('animate-pulse'), 1500);
+                }
+            }
+        }
+        const inputNum = document.getElementById('inputNumero');
+        if (inputNum) inputNum.focus();
+    }
+
+    async function buscarCep(cep) {
+        const rawCep = cep.replace(/\D/g, '');
+        if (rawCep.length !== 8) return;
+        if (cepLoading) return;
+
+        setCepLoading(true);
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            const response = await fetch(`https://viacep.com.br/ws/${rawCep}/json/`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.erro) {
+                if (typeof BasileiaToast !== 'undefined') {
+                    BasileiaToast.error('CEP não encontrado.');
+                }
+            } else {
+                fillAddress(data);
+                if (typeof BasileiaToast !== 'undefined') {
+                    BasileiaToast.success('Endereço localizado!');
+                }
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                if (typeof BasileiaToast !== 'undefined') {
+                    BasileiaToast.error('Timeout: servidor de CEP não respondeu.');
+                }
+            } else {
+                if (typeof BasileiaToast !== 'undefined') {
+                    BasileiaToast.error('Erro de conexão com servidor de CEP.');
+                }
+            }
+        } finally {
+            setCepLoading(false);
+        }
+    }
+
     const inputCep = document.getElementById('inputCep');
     if (inputCep) {
-        inputCep.addEventListener('input', function(e) {
+        inputCep.addEventListener('input', function() {
             let v = this.value.replace(/\D/g, '');
             if (v.length > 5) v = v.substring(0,5) + '-' + v.substring(5,8);
             this.value = v;
+
+            clearTimeout(cepDebounceTimer);
+            const rawCep = v.replace(/\D/g, '');
+            if (rawCep.length === 8) {
+                cepDebounceTimer = setTimeout(() => buscarCep(rawCep), 400);
+            }
         });
 
         inputCep.addEventListener('blur', function() {
-            let cep = this.value.replace(/\D/g, '');
-            if (cep.length === 8) {
-                fetch(`https://viacep.com.br/ws/${cep}/json/`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (!data.erro) {
-                            document.getElementById('inputEndereco').value = data.logradouro;
-                            document.getElementById('inputBairro').value = data.bairro;
-                            document.getElementById('inputCidade').value = data.localidade;
-                            document.getElementById('inputEstado').value = data.uf;
-                            document.getElementById('inputNumero').focus();
-                        }
-                    });
+            clearTimeout(cepDebounceTimer);
+            const rawCep = this.value.replace(/\D/g, '');
+            if (rawCep.length === 8 && !cepLoading) {
+                buscarCep(rawCep);
             }
         });
     }
@@ -805,21 +899,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 xhr.onerror = function() {};
                 xhr.send();
             }, 500);
-        });
-    }
-
-    // ===== Máscara de WhatsApp =====
-    if (inputWhatsapp) {
-        inputWhatsapp.addEventListener('input', function(e) {
-            let v = this.value.replace(/\D/g, '');
-            if (v.length > 11) v = v.substring(0, 11);
-            if (v.length > 6) {
-                this.value = '(' + v.substring(0,2) + ') ' + v.substring(2,7) + '-' + v.substring(7);
-            } else if (v.length > 2) {
-                this.value = '(' + v.substring(0,2) + ') ' + v.substring(2);
-            } else if (v.length > 0) {
-                this.value = '(' + v;
-            }
         });
     }
 });

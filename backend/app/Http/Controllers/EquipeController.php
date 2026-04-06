@@ -26,11 +26,11 @@ class EquipeController extends Controller
 
             $vendasEfetivas = Venda::whereIn('vendedor_id', $equipe->vendedores->pluck('id'))
                 ->whereBetween('created_at', [$dataInicio, $dataFim])
-                ->whereNotIn('status', ['Cancelado', 'Expirado'])
+                ->whereNotIn(DB::raw('UPPER(status)'), ['CANCELADO', 'EXPIRADO', 'ESTORNADO'])
                 ->get();
 
             $equipe->valor_vendido = $vendasEfetivas->sum('valor');
-            $equipe->valor_recebido = $vendasEfetivas->where('status', 'PAGO')->sum('valor');
+            $equipe->valor_recebido = $vendasEfetivas->filter(fn($v) => in_array(strtoupper($v->status), ['PAGO', 'RECEIVED', 'CONFIRMED']))->sum('valor');
             $equipe->total_vendas_periodo = $vendasEfetivas->count();
             $equipe->percentual_meta = $equipe->meta_mensal > 0
                 ? round(($equipe->valor_recebido / $equipe->meta_mensal) * 100, 1)

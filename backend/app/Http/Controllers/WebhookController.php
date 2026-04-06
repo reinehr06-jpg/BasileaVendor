@@ -24,7 +24,7 @@ class WebhookController extends Controller
     {
         // Quando o Asaas redireciona o usuário via GET após pagamento
         if ($request->isMethod('get')) {
-            return redirect()->route('master.vendas.index');
+            return redirect()->route('master.vendas');
         }
 
         // Validar token de autenticação

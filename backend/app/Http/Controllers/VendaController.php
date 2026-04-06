@@ -265,6 +265,7 @@ class VendaController extends Controller
 
                 // Atualiza apenas se pertence ao vendedor atual
                 $clienteExistente->update([
+                    'documento' => $documento,
                     'nome' => $request->nome_igreja,
                     'nome_igreja' => $request->nome_igreja,
                     'nome_pastor' => $request->nome_pastor,
@@ -285,6 +286,7 @@ class VendaController extends Controller
                 $cliente = $clienteExistente;
             } else {
                 $cliente = Cliente::create([
+                    'documento' => $documento,
                     'nome' => $request->nome_igreja,
                     'nome_igreja' => $request->nome_igreja,
                     'nome_pastor' => $request->nome_pastor,
@@ -578,10 +580,13 @@ class VendaController extends Controller
                 // Prepara os parâmetros para encodar
                 $cleanCpf = preg_replace('/[^0-9]/', '', $cliente->documento ?? '');
                 $cleanCep = preg_replace('/[^0-9]/', '', $cliente->cep ?? '');
+                $cleanWhatsapp = preg_replace('/[^0-9]/', '', $cliente->whatsapp ?? '');
 
-                $params = http_build_query([
-                    'asaas_payment_id' => $paymentIdSalvar,
-                    'cpf_cnpj' => $cleanCpf,
+                $queryParams = http_build_query([
+                    'documento' => $cleanCpf,
+                    'nome' => $cliente->nome_igreja ?? '',
+                    'email' => $cliente->email ?? '',
+                    'telefone' => $cleanWhatsapp,
                     'cep' => $cleanCep,
                     'endereco' => $cliente->endereco ?? '',
                     'numero' => $cliente->numero ?? '',
@@ -589,10 +594,13 @@ class VendaController extends Controller
                     'bairro' => $cliente->bairro ?? '',
                     'cidade' => $cliente->cidade ?? '',
                     'estado' => $cliente->estado ?? '',
+                    'venda_id' => $venda->id,
+                    'valor' => $venda->valor,
+                    'source' => 'basileia_vendas',
                 ]);
 
-                $separator = str_contains($checkoutBaseUrl, '?') ? '&' : '?';
-                $linkCheckoutNativo = rtrim($checkoutBaseUrl, '/') . $separator . $params;
+                // A rota correta no CheckoutProject é /pay/asaas/{asaasPaymentId}
+                $linkCheckoutNativo = rtrim($checkoutBaseUrl, '/') . "/pay/asaas/" . $paymentIdSalvar . "?" . $queryParams;
 
                 $venda->update(['checkout_payment_link' => $linkCheckoutNativo]);
                 Log::info('Link de Checkout NATIVO gerado e salvo', ['venda_id' => $venda->id, 'link' => $linkCheckoutNativo]);
@@ -710,17 +718,20 @@ class VendaController extends Controller
         $vendas = Venda::whereNotIn('status', ['Expirado', 'Cancelado'])
             ->with(['cliente', 'vendedor.user', 'cobrancas', 'pagamentos'])
             ->orderByDesc('created_at')
+            ->limit(100)
             ->get();
 
         // Vendas canceladas (aba separada)
         $vendasCanceladas = Venda::where('status', 'Cancelado')
             ->with(['cliente', 'vendedor.user'])
             ->orderByDesc('created_at')
+            ->limit(100)
             ->get();
 
         $vendasExpiradas = Venda::where('status', 'Expirado')
             ->with(['cliente', 'vendedor.user'])
             ->orderByDesc('created_at')
+            ->limit(100)
             ->get();
 
         return view('master.vendas.index', compact('vendas', 'vendasCanceladas', 'vendasExpiradas'));
@@ -1116,28 +1127,32 @@ class VendaController extends Controller
     }
 
     // ==========================================
-    // Auto-expirar vendas com mais de 72h
+    // Auto-expirar vendas com mais de 71h (última hora)
     // ==========================================
     private static function expirarVendasAntigas()
     {
         $limite = Carbon::now()->subHours(72);
 
-        // Buscar vendas "Aguardando pagamento" criadas há mais de 72h
-        // Limita a 50 por execução para evitar sobrecarga
         $vendasExpiradas = Venda::where('status', 'Aguardando pagamento')
             ->where('created_at', '<', $limite)
+            ->with(['pagamentos'])
             ->take(50)
             ->get();
 
         foreach ($vendasExpiradas as $venda) {
-            $venda->update(['status' => 'Expirado']);
+            $controller = app(self::class);
+            $controller->cancelarNoAsaas($venda);
 
-            // Atualizar pagamento vinculado
+            $venda->update([
+                'status' => 'Expirado',
+                'checkout_status' => 'EXPIRADO',
+            ]);
+
             Pagamento::where('venda_id', $venda->id)
                 ->where('status', 'pendente')
                 ->update(['status' => 'vencido']);
 
-            Log::info("Venda #{$venda->id} expirada automaticamente após 72h sem pagamento.");
+            Log::info("Venda #{$venda->id} expirada automaticamente após 71h e cancelada no Asaas.");
         }
     }
 
@@ -1146,116 +1161,170 @@ class VendaController extends Controller
     // ==========================================
     public function gerarLinkCheckout(Request $request, Venda $venda)
     {
-        $user = Auth::user();
-        if ($user->perfil !== 'master') {
-            if (!$user->vendedor || $venda->vendedor_id !== $user->vendedor->id) {
-                return response()->json(['error' => 'Você não tem permissão para gerar link desta venda.'], 403);
-            }
-        }
-
-        $allowedMethods = ['pix', 'boleto', 'credit_card', 'cartao'];
-        $method = $request->get('method', $venda->forma_pagamento ?? 'credit_card');
-        if (!in_array(strtolower($method), $allowedMethods)) {
-            return response()->json(['error' => 'Método de pagamento inválido.'], 400);
-        }
-        $methodMap = [
-            'CREDIT_CARD' => 'credit_card',
-            'PIX' => 'pix',
-            'BOLETO' => 'boleto',
-            'cartao' => 'credit_card',
-        ];
-        $paymentMethod = $methodMap[strtoupper($method)] ?? 'credit_card';
-
-        $checkoutBaseUrl = config('checkout-integration.base_url', 'http://localhost:8001');
-        $checkoutUuid = $venda->checkout_transaction_uuid;
-
-        if (!$checkoutUuid) {
-            try {
-                $checkoutClient = new CheckoutClient();
-                $paymentMethodMap = ['PIX' => 'pix', 'BOLETO' => 'boleto', 'CREDIT_CARD' => 'credit_card'];
-                $formaPagamento = $venda->forma_pagamento ?? 'CREDIT_CARD';
-                $installments = ($formaPagamento === 'CREDIT_CARD' && $venda->parcelas > 1) ? ($venda->parcelas ?? 1) : 1;
-
-                $valor = (float) $venda->valor_final;
-                if ($venda->tipo_negociacao === 'anual' && $installments > 1) {
-                    $plano = \App\Models\Plano::where('nome', $venda->plano)->first();
-                    if ($plano && $plano->valor_anual > 0) {
-                        $valor = (float) $plano->valor_anual;
-                    }
+        try {
+            $user = Auth::user();
+            if ($user->perfil !== 'master') {
+                if (!$user->vendedor || $venda->vendedor_id !== $user->vendedor->id) {
+                    return response()->json(['error' => 'Você não tem permissão para gerar link desta venda.'], 403);
                 }
-
-                $cliente = $venda->cliente;
-                $checkoutResponse = $checkoutClient->createTransaction([
-                    'external_id' => 'venda_' . $venda->id,
-                    'amount' => $valor,
-                    'description' => "Plano {$venda->plano} - {$cliente->nome_igreja}",
-                    'payment_method' => $paymentMethodMap[$formaPagamento] ?? 'pix',
-                    'installments' => $installments,
-                    'customer' => [
-                        'name' => $cliente->nome_igreja,
-                        'email' => $cliente->email,
-                        'document' => preg_replace('/\D/', '', $cliente->cpf_cnpj),
-                        'phone' => $cliente->whatsapp,
-                    ],
-                    'metadata' => [
-                        'venda_id' => $venda->id,
-                        'plano' => $venda->plano,
-                        'tipo_negociacao' => $venda->tipo_negociacao,
-                    ],
-                ]);
-
-                if (empty($checkoutResponse['error'])) {
-                    $checkoutUuid = $checkoutResponse['transaction']['uuid'] ?? null;
-                    $venda->update(['checkout_transaction_uuid' => $checkoutUuid]);
-                    Log::info('Checkout: Transação criada via gerarLinkCheckout', ['venda_id' => $venda->id, 'uuid' => $checkoutUuid]);
-                } else {
-                    Log::warning('Checkout: Erro ao criar transação via gerarLinkCheckout', ['venda_id' => $venda->id, 'error' => $checkoutResponse['message'] ?? 'Erro desconhecido']);
-                }
-            } catch (\Exception $e) {
-                Log::warning('Checkout: Falha ao conectar em gerarLinkCheckout', ['venda_id' => $venda->id, 'error' => $e->getMessage()]);
             }
-        }
 
-        // 1. Tentar URL do Checkout Externo (do Painel Master)
-        $externalBaseUrl = \App\Models\Setting::get('checkout_external_url');
-        
-        if ($externalBaseUrl) {
-            $pagamento = $venda->pagamentos->first();
-            $asaasId = $pagamento ? $pagamento->asaas_payment_id : ($venda->asaas_payment_link_id ?? null);
-            
-            $params = [
-                'id_asaas' => $asaasId,
-                'venda_id' => $venda->id,
-                'valor'    => (float) $venda->valor_final,
-                'plano'    => $venda->plano,
-                'ciclo'    => $venda->tipo_negociacao,
-                'metodo'   => $paymentMethod,
-                'hash'     => $venda->checkout_hash,
-                'cliente'  => $venda->cliente->nome_igreja ?? '',
+            $allowedMethods = ['pix', 'boleto', 'credit_card', 'cartao'];
+            $method = $request->get('method', $venda->forma_pagamento ?? 'credit_card');
+            if (!in_array(strtolower($method), $allowedMethods)) {
+                return response()->json(['error' => 'Método de pagamento inválido.'], 400);
+            }
+            $methodMap = [
+                'CREDIT_CARD' => 'credit_card',
+                'PIX' => 'pix',
+                'BOLETO' => 'boleto',
+                'cartao' => 'credit_card',
             ];
-            
-            $url = rtrim($externalBaseUrl, '/') . (str_contains($externalBaseUrl, '?') ? '&' : '?') . http_build_query($params);
-            
-            return response()->json([
-                'success' => true,
-                'url' => $url,
-                'message' => 'Redirecionando para checkout externo...',
+            $paymentMethod = $methodMap[strtoupper($method)] ?? 'credit_card';
+
+            // BOLETO: download direto do Asaas (única exceção)
+            if ($paymentMethod === 'boleto') {
+                return response()->json([
+                    'success' => true,
+                    'url' => url('/vendedor/vendas/' . $venda->id . '/boleto'),
+                    'message' => 'Use o endpoint de boleto para download.',
+                    'boleto_download' => true,
+                ]);
+            }
+
+            // SEMPRE usar o checkout externo (secure.basileia.global) para CARTÃO e PIX
+            $checkoutService = new \App\Services\ExternalCheckoutService();
+            $cliente = $venda->cliente;
+
+            if (!$cliente) {
+                return response()->json(['error' => 'Cliente não encontrado para esta venda.'], 404);
+            }
+
+            // Determinar tipo: assinatura (mensal) ou transação avulsa
+            $isMensal = strtolower($venda->tipo_negociacao ?? '') === 'mensal';
+
+            // Criar assinatura ou transação no checkout
+            if ($isMensal) {
+                $result = $checkoutService->createSubscriptionForVenda($venda, $cliente);
+            } else {
+                $result = $checkoutService->createTransactionForVenda($venda, $cliente);
+            }
+
+            if ($result && $result['success']) {
+                Log::info('Checkout: Link gerado com sucesso', [
+                    'venda_id' => $venda->id,
+                    'uuid' => $result['uuid'],
+                    'tipo' => $isMensal ? 'subscription' : 'transaction',
+                ]);
+                
+                return response()->json([
+                    'success' => true,
+                    'url' => $result['payment_url'] ?? $result['uuid'],
+                    'checkout_uuid' => $result['uuid'],
+                    'message' => 'Link de checkout gerado!',
+                ]);
+            }
+
+            $errorMsg = $result['message'] ?? 'Erro desconhecido ao comunicar com o checkout.';
+            $errorStatus = $result['status'] ?? 500;
+
+            Log::error('Checkout: Falha ao criar link', [
+                'venda_id' => $venda->id,
+                'error' => $errorMsg,
+                'status' => $errorStatus,
             ]);
+
+            return response()->json([
+                'error' => 'Falha ao gerar link de pagamento: ' . $errorMsg,
+            ], $errorStatus ?: 500);
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao gerar link de checkout', [
+                'venda_id' => $venda->id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'error' => 'Erro interno ao gerar link de pagamento: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // ==========================================
+    // VENDEDOR/MASTER: Exportar Vendas
+    // ==========================================
+    public function exportar(Request $request)
+    {
+        $user = Auth::user();
+        $vendedor = $user->vendedor;
+        $formato = $request->get('formato', 'csv');
+        $filename = "vendas_" . now()->format('Y-m-d_His');
+
+        $query = Venda::with(['cliente', 'vendedor.user']);
+
+        // Se for vendedor, filtrar apenas as dele
+        if ($user->perfil === 'vendedor') {
+            $query->where('vendedor_id', $vendedor->id);
         }
 
-        // 2. Fallback antigo
-        if ($checkoutUuid) {
-            $url = rtrim($checkoutBaseUrl, '/') . '/checkout/' . $checkoutUuid . '?method=' . $paymentMethod;
-        } else {
-            $url = url('/checkout/' . $venda->checkout_hash . '?method=' . $paymentMethod);
+        // Filtros opcionais
+        if ($request->has('status') && $request->status) {
+            $query->where('status', $request->status);
         }
 
-        return response()->json([
-            'success' => true,
-            'url' => $url,
-            'checkout_uuid' => $checkoutUuid,
-            'hash' => $venda->checkout_hash,
-            'message' => 'Link de pagamento gerado!',
-        ]);
+        $vendas = $query->orderByDesc('created_at')->get();
+
+        // ==========================================
+        // PDF LOGIC
+        // ==========================================
+        if ($formato === 'pdf') {
+            $resumo = [
+                'total' => $vendas->sum('valor'),
+                'count' => $vendas->count(),
+                'pagas' => $vendas->filter(fn($v) => in_array(strtoupper($v->getStatusEfetivo()), ['PAGO', 'RECEIVED', 'CONFIRMED']))->count(),
+            ];
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('vendedor.vendas.pdf', compact('vendas', 'resumo'));
+            return $pdf->download($filename . '.pdf');
+        }
+
+        // ==========================================
+        // CSV LOGIC (Excel compatible)
+        // ==========================================
+        $headers = [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename={$filename}.csv",
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ];
+
+        $callback = function () use ($vendas) {
+            $file = fopen('php://output', 'w');
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            fputcsv($file, [
+                'ID', 'Cliente', 'WhatsApp', 'Vendedor', 'Plano', 'Valor', 
+                'Status', 'Forma Pagamento', 'Tipo Negociação', 'Data Venda'
+            ], ';');
+
+            foreach ($vendas as $v) {
+                fputcsv($file, [
+                    $v->id,
+                    $v->cliente?->nome_igreja ?? $v->cliente?->nome ?? 'N/A',
+                    $v->cliente?->whatsapp ?? 'N/A',
+                    $v->vendedor->user->name ?? 'N/A',
+                    $v->plano,
+                    number_format((float)($v->valor ?? 0), 2, ',', '.'),
+                    $v->status,
+                    $v->forma_pagamento,
+                    $v->tipo_negociacao,
+                    $v->created_at->format('d/m/Y'),
+                ], ';');
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

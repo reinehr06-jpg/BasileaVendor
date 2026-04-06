@@ -11,136 +11,98 @@
     .badge-recorrencia { background: #faf5ff; color: #7e22ce; }
 </style>
 
-<x-page-hero title="Minhas Comissões" subtitle="Acompanhe suas comissões e pagamentos" icon="fas fa-hand-holding-dollar" :exports="[
-    ['type' => 'excel', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes]), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
-]" />
+<x-page-hero 
+    title="Minhas Comissões" 
+    subtitle="Acompanhe seus ganhos e comissões do período." 
+    icon="fas fa-hand-holding-dollar"
+    :exports="[
+        ['type' => 'excel', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes, 'formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes, 'formato' => 'pdf']), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => route('vendedor.comissoes.exportar', ['mes' => $mes, 'formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+/>
 
 <!-- Summary Cards -->
-<div class="stats-bar">
-    <div class="stat-card">
-        <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
-        <div class="stat-value" style="color: var(--warning);">R$ {{ number_format($resumo['pendente'], 2, ',', '.') }}</div>
-        <div class="stat-label">Pendente</div>
+<div class="stats-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">
+    <div class="stat-card" style="background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+        <div class="stat-label" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Pendente</div>
+        <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: var(--warning); margin-top: 8px;">R$ {{ number_format((float)($resumo['pendente'] ?? 0), 2, ',', '.') }}</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon success"><i class="fas fa-circle-check"></i></div>
-        <div class="stat-value" style="color: var(--success);">R$ {{ number_format($resumo['confirmada'], 2, ',', '.') }}</div>
-        <div class="stat-label">Confirmada</div>
+    <div class="stat-card" style="background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+        <div class="stat-label" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Confirmada</div>
+        <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: var(--success); margin-top: 8px;">R$ {{ number_format((float)($resumo['confirmada'] ?? 0), 2, ',', '.') }}</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon info"><i class="fas fa-building-columns"></i></div>
-        <div class="stat-value" style="color: var(--info);">R$ {{ number_format($resumo['paga'], 2, ',', '.') }}</div>
-        <div class="stat-label">Paga</div>
+    <div class="stat-card" style="background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+        <div class="stat-label" style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Paga</div>
+        <div class="stat-value" style="font-size: 1.5rem; font-weight: 700; color: var(--info); margin-top: 8px;">R$ {{ number_format((float)($resumo['paga'] ?? 0), 2, ',', '.') }}</div>
     </div>
-    <div class="stat-card">
-        <div class="stat-icon primary"><i class="fas fa-rotate"></i></div>
-        <div class="stat-value">{{ $resumo['recorrencias'] }}</div>
-        <div class="stat-label">Recorrências</div>
-    </div>
-    <div class="stat-card" style="background: var(--primary); border-color: var(--primary);">
-        <div class="stat-icon" style="background: rgba(255,255,255,0.2); color: white;"><i class="fas fa-dollar-sign"></i></div>
-        <div class="stat-value" style="color: white;">R$ {{ number_format($resumo['total'], 2, ',', '.') }}</div>
-        <div class="stat-label" style="color: rgba(255,255,255,0.8);">Total do Mês</div>
+    <div class="stat-card" style="background: var(--primary); padding: 20px; border-radius: 12px; color: white; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.2);">
+        <div class="stat-label" style="font-size: 0.75rem; color: rgba(255,255,255,0.9); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Total do Mês</div>
+        <div class="stat-value" style="font-size: 1.6rem; font-weight: 800; color: #ffffff; margin-top: 8px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">R$ {{ number_format((float)($resumo['total'] ?? 0), 2, ',', '.') }}</div>
     </div>
 </div>
 
 <!-- Filters -->
 <form method="GET" action="{{ route('vendedor.comissoes') }}">
-<div class="filters-bar">
-    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px;">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-calendar"></i> Mês</label>
+<div class="filters-bar" style="background: white; padding: 16px; border-radius: 12px; border: 1px solid var(--border); display: flex; gap: 16px; margin-bottom: 24px; align-items: flex-end;">
+    <div style="flex: 1;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);"><i class="fas fa-calendar"></i> Mês</label>
         <input type="month" name="mes" class="form-control" value="{{ $mes }}" onchange="this.form.submit()">
     </div>
-    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px;">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-tag"></i> Tipo</label>
+    <div style="flex: 1;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);"><i class="fas fa-tag"></i> Tipo</label>
         <select name="tipo" class="form-control" onchange="this.form.submit()">
             <option value="">Todos</option>
-            <option value="inicial" {{ $tipo == 'inicial' ? 'selected' : '' }}>Inicial</option>
-            <option value="recorrencia" {{ $tipo == 'recorrencia' ? 'selected' : '' }}>Recorrência</option>
+            <option value="inicial" {{ isset($tipo) && $tipo == 'inicial' ? 'selected' : '' }}>Inicial</option>
+            <option value="recorrencia" {{ isset($tipo) && $tipo == 'recorrencia' ? 'selected' : '' }}>Recorrência</option>
         </select>
     </div>
-    <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px;">
-        <label style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);"><i class="fas fa-circle-check"></i> Status</label>
-        <select name="status" class="form-control" onchange="this.form.submit()">
-            <option value="">Todos</option>
-            <option value="pendente" {{ $status == 'pendente' ? 'selected' : '' }}>Pendente</option>
-            <option value="confirmada" {{ $status == 'confirmada' ? 'selected' : '' }}>Confirmada</option>
-            <option value="paga" {{ $status == 'paga' ? 'selected' : '' }}>Paga</option>
-        </select>
-    </div>
-    <div style="display: flex; gap: 8px; align-items: flex-end;">
+    <div style="display: flex; gap: 8px;">
         <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtrar</button>
         <a href="{{ route('vendedor.comissoes') }}" class="btn btn-ghost btn-sm">Limpar</a>
     </div>
 </div>
 </form>
 
-<!-- Table -->
-<div class="table-container">
-    @if($comissoes->count() > 0)
-    <table>
-        <thead>
+<div class="table-container" style="background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead style="background: #f8fafc; border-bottom: 1px solid var(--border);">
             <tr>
-                <th><i class="fas fa-building" style="margin-right: 4px;"></i> Cliente</th>
-                <th><i class="fas fa-id-card" style="margin-right: 4px;"></i> CPF/CNPJ</th>
-                <th><i class="fas fa-hashtag" style="margin-right: 4px;"></i> Venda</th>
-                <th>%</th>
-                <th><i class="fas fa-dollar-sign" style="margin-right: 4px;"></i> Comissão</th>
-                <th><i class="fas fa-tag" style="margin-right: 4px;"></i> Tipo</th>
-                <th><i class="fas fa-calendar-check" style="margin-right: 4px;"></i> Data Pag.</th>
-                <th>Status</th>
+                <th style="padding: 14px 16px; text-align: left; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Cliente</th>
+                <th style="padding: 14px 16px; text-align: left; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Venda</th>
+                <th style="padding: 14px 16px; text-align: center; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">%</th>
+                <th style="padding: 14px 16px; text-align: right; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Valor Comissão</th>
+                <th style="padding: 14px 16px; text-align: center; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Status</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($comissoes as $c)
-            @php
-                $isDirect = ($vendedor && $c->vendedor_id == $vendedor->id);
-                $valorExibido = $isDirect ? $c->valor_comissao : $c->valor_gerente;
-                $percentualExibido = $isDirect ? $c->percentual_aplicado : $c->percentual_gerente;
-            @endphp
-            <tr>
-                <td>
-                    <div style="font-weight: 600; color: var(--text-primary);">{{ $c->cliente->nome_igreja ?? $c->cliente->nome ?? 'N/A' }}</div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted);">
-                        @if(!$isDirect)
-                            <span style="color: var(--primary); font-weight: 600;">[Equipe: {{ $c->vendedor->user->name ?? 'Vendedor' }}]</span>
-                        @endif
-                        {{ $c->cliente->nome_pastor ?? $c->cliente->nome_responsavel ?? '' }}
-                    </div>
-                </td>
-                <td style="font-family: monospace; font-size: 0.8rem; color: var(--text-muted);">{{ $c->cliente->documento ?? '-' }}</td>
-                <td style="font-weight: 600; text-align: center;">#{{ $c->venda_id }}</td>
-                <td style="text-align: center; font-weight: 700;">{{ number_format($percentualExibido, 1) }}%</td>
-                <td style="font-weight: 700; color: var(--primary);">R$ {{ number_format($valorExibido, 2, ',', '.') }}</td>
-                <td>
-                    @if($isDirect)
-                        <span class="badge" style="background: #e0f2fe; color: #0369a1;"><i class="fas fa-user"></i> Direta</span>
-                    @else
-                        <span class="badge" style="background: #fdf2f8; color: #9d174d;"><i class="fas fa-users"></i> Equipe</span>
-                    @endif
-                    <br>
-                    <span class="badge badge-{{ $c->tipo_comissao }}" style="margin-top: 4px; font-size: 0.65rem;">
-                        <i class="fas fa-{{ $c->tipo_comissao === "recorrencia" ? "rotate" : "star" }}"></i> 
-                        {{ ucfirst($c->tipo_comissao) }}
-                    </span>
-                </td>
-                <td>{{ $c->data_pagamento ? $c->data_pagamento->format('d/m/Y') : '-' }}</td>
-                <td><span class="badge badge-{{ $c->status }}">{{ ucfirst($c->status) }}</span></td>
-            </tr>
-            @endforeach
+            @if(isset($comissoes) && $comissoes->count() > 0)
+                @foreach($comissoes as $c)
+                    <tr style="border-bottom: 1px solid var(--border-light); transition: background 0.2s;">
+                        <td style="padding: 14px 16px;">
+                            <div style="font-weight: 600; color: var(--text-primary);">{{ $c->cliente?->nome_igreja ?? $c->cliente?->nome ?? 'N/A' }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">{{ $c->cliente?->documento ?? '-' }}</div>
+                        </td>
+                        <td style="padding: 14px 16px; font-weight: 600;">#{{ $c->venda_id }}</td>
+                        <td style="padding: 14px 16px; text-align: center; font-weight: 700;">{{ number_format((float)($c->percentual_aplicado ?? 0), 1) }}%</td>
+                        <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: var(--primary);">R$ {{ number_format((float)($c->valor_comissao ?? 0), 2, ',', '.') }}</td>
+                        <td style="padding: 14px 16px; text-align: center;">
+                            <span class="badge badge-{{ $c->status ?? 'pendente' }}">{{ ucfirst($c->status ?? 'pendente') }}</span>
+                        </td>
+                    </tr>
+                @endforeach
+            @else
+                <tr>
+                    <td colspan="5" style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
+                        <div style="font-size: 2.5rem; opacity: 0.2; margin-bottom: 16px;"><i class="fas fa-hand-holding-dollar"></i></div>
+                        <h4 style="margin-bottom: 8px; font-weight: 600;">Nenhuma comissão encontrada</h4>
+                        <p style="font-size: 0.85rem;">As comissões aparecerão aqui conforme as vendas forem confirmadas.</p>
+                    </td>
+                </tr>
+            @endif
         </tbody>
     </table>
-    <div style="padding: 16px 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 0.85rem; color: var(--text-muted);">Mostrando {{ $comissoes->firstItem() ?? 0 }} a {{ $comissoes->lastItem() ?? 0 }} de {{ $comissoes->total() }} registros</span>
-        <div>{{ $comissoes->appends(request()->query())->links('pagination::bootstrap-4') }}</div>
-    </div>
-    @else
-    <div class="empty-state">
-        <div class="empty-icon"><i class="fas fa-hand-holding-dollar"></i></div>
-        <h3>Nenhuma comissão encontrada</h3>
-        <p>As comissões aparecerão aqui quando seus pagamentos forem confirmados.</p>
-    </div>
-    @endif
+    
+    {{ $comissoes->onEachSide(1)->links() }}
 </div>
-
 @endsection

@@ -20,12 +20,17 @@
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        background: var(--primary-light);
-        color: var(--primary);
+        padding: 8px 16px;
+        border-radius: 24px;
+        font-size: 0.85rem;
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+        border: 1.5px solid rgba(255, 255, 255, 0.4);
+        backdrop-filter: blur(8px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 
     .stats-row {
@@ -227,19 +232,19 @@
         <div class="stat-label">Vendedores</div>
     </div>
     <div class="stat-box">
-        <div class="stat-icon"><i class="fas fa-shopping-bag"></i></div>
-        <div class="stat-value">{{ $stats['total_vendas'] }}</div>
-        <div class="stat-label">Vendas (Mês)</div>
+        <div class="stat-icon"><i class="fas fa-check-circle" style="color: var(--success);"></i></div>
+        <div class="stat-value">{{ session('count_vendas_pagas', $vendedores->sum('stats_vendas_count_pagas')) }}</div>
+        <div class="stat-label">Vendas (Pagas)</div>
     </div>
     <div class="stat-box">
-        <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
-        <div class="stat-value">R$ {{ number_format($stats['valor_vendido'], 0, ',', '.') }}</div>
-        <div class="stat-label">Vendido (Mês)</div>
+        <div class="stat-icon"><i class="fas fa-clock" style="color: var(--warning);"></i></div>
+        <div class="stat-value">R$ {{ number_format($vendedores->sum('stats_valor_pendente'), 0, ',', '.') }}</div>
+        <div class="stat-label">Pendente (Mensal)</div>
     </div>
     <div class="stat-box">
-        <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-icon"><i class="fas fa-dollar-sign" style="color: var(--success);"></i></div>
         <div class="stat-value" style="color: var(--success);">R$ {{ number_format($stats['valor_recebido'], 0, ',', '.') }}</div>
-        <div class="stat-label">Recebido (Mês)</div>
+        <div class="stat-label">Recebido (Pago)</div>
     </div>
 </div>
 
@@ -294,14 +299,6 @@
     @if($vendedores->count() > 0)
         <div style="display: grid; gap: 12px;">
             @foreach($vendedores as $vendedor)
-            @php
-                $vendasMes = $vendedor->vendas()
-                    ->whereBetween('created_at', [\Carbon\Carbon::now()->startOfMonth(), \Carbon\Carbon::now()])
-                    ->whereNotIn('status', ['Cancelado', 'Expirado'])
-                    ->get();
-                $valorVendido = $vendasMes->sum('valor');
-                $valorRecebido = $vendasMes->where('status', 'PAGO')->sum('valor');
-            @endphp
             <div class="member-card">
                 <div class="member-info">
                     <div class="member-avatar">{{ strtoupper(substr($vendedor->user->name, 0, 1)) }}</div>
@@ -312,15 +309,15 @@
                 </div>
                 <div class="member-stats">
                     <div>
-                        <div class="member-stat-value">{{ $vendasMes->count() }}</div>
-                        <div class="member-stat-label">Vendas</div>
+                        <div class="member-stat-value">{{ $vendedor->stats_vendas_count_pagas }}</div>
+                        <div class="member-stat-label">Pagas</div>
                     </div>
                     <div>
-                        <div class="member-stat-value">R$ {{ number_format($valorVendido, 0, ',', '.') }}</div>
-                        <div class="member-stat-label">Vendido</div>
+                        <div class="member-stat-value" style="color: var(--warning);">R$ {{ number_format($vendedor->stats_valor_pendente, 0, ',', '.') }}</div>
+                        <div class="member-stat-label">Pendente</div>
                     </div>
                     <div>
-                        <div class="member-stat-value" style="color: var(--success);">R$ {{ number_format($valorRecebido, 0, ',', '.') }}</div>
+                        <div class="member-stat-value" style="color: var(--success);">R$ {{ number_format($vendedor->stats_valor_recebido, 0, ',', '.') }}</div>
                         <div class="member-stat-label">Recebido</div>
                     </div>
                     <div>

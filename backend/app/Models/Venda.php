@@ -174,7 +174,7 @@ class Venda extends Model
                 if ($this->todasParcelasPagas()) {
                     return 'PAGO';
                 }
-                return 'PAGO';
+                return 'Pago (' . $parcelaAtual . '/' . $this->parcelas . ')';
             }
         }
 

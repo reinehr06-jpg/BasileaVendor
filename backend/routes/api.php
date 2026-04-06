@@ -66,10 +66,19 @@ Route::middleware('throttle:30,1')->group(function () {
         }
         $vendaAtiva = \App\Models\Venda::where('cliente_id', $cliente->id)
             ->whereNotIn('status', ['Cancelado', 'Expirado'])
-            ->exists();
+            ->first();
         return response()->json([
             'exists' => true,
-            'has_active_sale' => $vendaAtiva,
+            'has_active_sale' => $vendaAtiva !== null,
+            'cliente' => [
+                'id' => $cliente->id,
+                'nome_igreja' => $cliente->nome_igreja ?? $cliente->nome ?? '',
+            ],
+            'venda' => $vendaAtiva ? [
+                'id' => $vendaAtiva->id,
+                'status' => $vendaAtiva->status,
+                'plano' => $vendaAtiva->plano,
+            ] : null,
         ]);
     });
 });

@@ -22,14 +22,23 @@
     .expired-table tr:hover { opacity: 0.85; }
 </style>
 
-<x-page-hero title="Minhas Vendas" subtitle="Gerencie suas vendas e cobranças" icon="fas fa-shopping-bag">
+<x-page-hero 
+    title="Minhas Vendas" 
+    subtitle="Gerencie suas vendas e cobranças do período." 
+    icon="fas fa-shopping-bag"
+    :exports="[
+        ['type' => 'excel', 'url' => route('vendedor.vendas.exportar', ['formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+        ['type' => 'pdf', 'url' => route('vendedor.vendas.exportar', ['formato' => 'pdf']), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+        ['type' => 'csv', 'url' => route('vendedor.vendas.exportar', ['formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ]"
+>
     <x-slot:actions>
         <div style="display:flex; gap:10px;">
             <a href="{{ route('vendedor.vendas.canceladas') }}" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4); padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:0.2s;">
-                <i class="fas fa-ban"></i> Canceladas ({{ $vendasCanceladas->count() + $vendasExpiradas->count() }})
+                <i class="fas fa-ban"></i> Canceladas ({{ ($vendasCanceladas->count() ?? 0) + ($vendasExpiradas->count() ?? 0) }})
             </a>
-            <a href="{{ route('vendedor.vendas.create') }}" style="background:white; color:#4C1D95; padding:10px 20px; border-radius:10px; font-weight:800; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 4px 12px rgba(0,0,0,0.15); transition:0.2s;">
-                <i class="fas fa-plus"></i> Nova Venda
+            <a href="{{ route('vendedor.vendas.create') }}" class="btn btn-primary" style="padding: 12px 24px; font-weight: 800; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.4); border: none;">
+                <i class="fas fa-plus-circle"></i> Nova Venda
             </a>
         </div>
     </x-slot:actions>
@@ -106,7 +115,9 @@
                     @if($venda->status === 'Aguardando pagamento')
                         @php $horasRestantes = max(0, 72 - floor(now()->diffInHours($venda->created_at))); @endphp
                         @if($horasRestantes > 0)
-                            <span class="countdown-badge"><i class="fas fa-clock"></i> {{ $horasRestantes }}h restantes</span>
+                            <span class="countdown-badge countdown-live" data-created="{{ $venda->created_at->toIso8601String() }}" data-venda-id="{{ $venda->id }}">
+                                <i class="fas fa-clock"></i> <span class="countdown-text">{{ $horasRestantes }}h restantes</span>
+                            </span>
                         @endif
                     @endif
                 </td>
@@ -118,7 +129,7 @@
                     @if(!in_array(strtoupper($venda->status), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']))
                         <div class="d-flex flex-column gap-1">
                             @if($formaUpper === 'BOLETO' || empty($formaUpper))
-                                <button onclick="copiarLinkCheckout({{ $venda->id }}, 'boleto')" class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Gerar Link Boleto">
+                                <button onclick="baixarBoleto({{ $venda->id }})" class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Baixar Boleto do Asaas">
                                     <i class="fas fa-barcode"></i> Boleto
                                 </button>
                             @endif
@@ -248,6 +259,63 @@ async function copiarLinkCheckout(vendaId, method = null) {
         alert('❌ Erro ao buscar link do servidor. Tente novamente.');
     }
 }
+
+async function baixarBoleto(vendaId) {
+    try {
+        const response = await fetch(`/vendedor/vendas/${vendaId}/boleto`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            alert('❌ ' + (data.message || 'Não foi possível baixar o boleto.'));
+            return;
+        }
+        window.open(data.url, '_blank');
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('❌ Erro ao buscar boleto. Tente novamente.');
+    }
+}
+</script>
+
+<script>
+(function() {
+    const LIMIT_HOURS = 72;
+    const LIMIT_MS = LIMIT_HOURS * 60 * 60 * 1000;
+
+    function updateCountdowns() {
+        var anyExpired = false;
+        document.querySelectorAll('.countdown-live').forEach(function(badge) {
+            const created = new Date(badge.getAttribute('data-created'));
+            const now = new Date();
+            const elapsed = now - created;
+            const remaining = LIMIT_MS - elapsed;
+
+            if (remaining <= 0) {
+                badge.querySelector('.countdown-text').textContent = 'Expirando...';
+                badge.style.color = '#94a3b8';
+                anyExpired = true;
+                return;
+            }
+
+            const totalHours = Math.floor(remaining / (1000 * 60 * 60));
+            const totalMinutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+
+            if (totalHours > 0) {
+                badge.querySelector('.countdown-text').textContent = totalHours + 'h ' + totalMinutes + 'm restantes';
+            } else {
+                badge.querySelector('.countdown-text').textContent = totalMinutes + 'm restantes';
+            }
+        });
+
+        if (anyExpired) {
+            setTimeout(function() { location.reload(); }, 3000);
+        }
+    }
+
+    updateCountdowns();
+    setInterval(updateCountdowns, 30000);
+})();
 </script>
 
 @endsection

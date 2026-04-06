@@ -22,7 +22,8 @@ class MasterPanelController extends Controller
 
         $vendedores = User::whereIn('perfil', ['vendedor', 'gestor'])->with('vendedor')->get();
         $gestores = User::whereHas('vendedor', function($q) { $q->where('is_gestor', true); })->with('vendedor')->get();
-        return view('master.vendedores.index', compact('vendedores', 'gestores'));
+        $equipes = Equipe::with(['gestor', 'vendedores'])->get();
+        return view('master.vendedores.index', compact('vendedores', 'gestores', 'equipes'));
     }
 
     private function exportarVendedores($formato)
@@ -42,7 +43,7 @@ class MasterPanelController extends Controller
                 ];
             });
 
-        if ($formato === 'csv') {
+        if (in_array($formato, ['csv', 'excel'])) {
             $headers = [
                 'Content-Type' => 'text/csv; charset=UTF-8',
                 'Content-Disposition' => 'attachment; filename="vendedores_' . date('Y-m-d_His') . '.csv"',
@@ -59,7 +60,7 @@ class MasterPanelController extends Controller
             return response()->stream($callback, 200, $headers);
         }
 
-        return back()->with('error', 'Formato de exportação não suportado.');
+        return back()->with('error', 'Formato de exportação não suportado para Vendedores ainda.');
     }
 
     public function storeVendedor(Request $request)

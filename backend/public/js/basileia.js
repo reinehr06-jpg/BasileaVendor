@@ -113,6 +113,9 @@ const BasileiaConfirm = {
 // === MODAL HELPER ===
 const BasileiaModal = {
     open(modalId) {
+        document.querySelectorAll('.modal-overlay.show').forEach(m => {
+            m.classList.remove('show');
+        });
         const modal = document.getElementById(modalId);
         if (modal) {
             modal.classList.add('show');

@@ -34,6 +34,16 @@ use App\Http\Middleware\CheckMaster;
 use App\Http\Middleware\CheckVendedor;
 
 Route::get('/', function () {
+    // Se for uma requisição de API/json, retorna info
+    if (request()->expectsJson()) {
+        return response()->json([
+            'status' => 'ok',
+            'app' => 'BasileiaVendas',
+            'version' => '1.0',
+            'route' => 'home',
+            'timestamp' => now()->toIso8601String(),
+        ]);
+    }
     return redirect()->route('login');
 });
 
@@ -110,10 +120,10 @@ Route::get('/webhooks/asaas/status', [WebhookController::class, 'webhookStatus']
 // Git Auto-Deploy (protegido por HMAC signature no controller)
 Route::post('/webhooks/git-deploy', [\App\Http\Controllers\GitWebhookController::class, 'deploy'])->name('webhooks.git-deploy');
 
-// Health check (public)
-Route::get('/health', function() {
-    return response()->json(['status' => 'ok', 'timestamp' => now()]);
-});
+// Health check público (sem middleware para funcionar sempre)
+Route::get('/up', function () {
+    return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);
+})->withoutMiddleware(\App\Http\Middleware\SecurityHeaders::class);
 
 // Login routes (com rate limiting)
 Route::middleware('throttle:10,1')->group(function () {
@@ -254,10 +264,14 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::delete('/equipes/{equipeId}/membros/{vendedorId}', [EquipeController::class, 'removerMembro'])->name('equipes.remover-membro');
 
         Route::get('/vendas', [VendaController::class, 'indexMaster'])->name('vendas');
+        Route::get('/vendas/exportar', [VendaController::class, 'exportar'])->name('vendas.exportar');
         Route::delete('/vendas/{id}', [VendaController::class, 'cancelarMaster'])->name('vendas.cancelar');
         Route::post('/vendas/{id}/estornar', [VendaController::class, 'estornarMaster'])->name('vendas.estornar');
         Route::get('/vendas/{venda}/checkout-link', [VendaController::class, 'gerarLinkCheckout'])->name('vendas.checkout-link');
+        Route::get('/vendas/{id}/boleto', [PagamentoBoletoController::class, 'download'])->name('vendas.boleto');
+        Route::get('/vendas/{id}/boleto/baixar', [PagamentoBoletoController::class, 'forceDownload'])->name('vendas.boleto.baixar');
         Route::get('/pagamentos', [PagamentoController::class, 'indexMaster'])->name('pagamentos');
+        Route::get('/pagamentos/exportar', [PagamentoController::class, 'exportar'])->name('pagamentos.exportar');
         Route::get('/relatorios', [RelatorioController::class, 'index'])->name('relatorios');
         Route::get('/relatorios/exportar', [RelatorioController::class, 'exportar'])->name('relatorios.exportar');
 
@@ -330,6 +344,8 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/configuracoes/integracoes/google-calendar', [IntegracaoController::class, 'updateGoogleCalendar'])->name('configuracoes.integracoes.google-calendar');
         Route::post('/configuracoes/integracoes/google-gmail', [IntegracaoController::class, 'updateGoogleGmail'])->name('configuracoes.integracoes.google-gmail');
         Route::post('/configuracoes/integracoes/testar', [IntegracaoController::class, 'testarConexao'])->name('configuracoes.integracoes.testar');
+        Route::post('/configuracoes/integracoes/test-checkout-api', [IntegracaoController::class, 'testarCheckoutApi'])->name('configuracoes.integracoes.test-checkout-api');
+        Route::post('/configuracoes/integracoes/test-webhook', [IntegracaoController::class, 'testarWebhook'])->name('configuracoes.integracoes.test-webhook');
         Route::post('/configuracoes/integracoes/validar-wallet', [IntegracaoController::class, 'validarWallet'])->name('configuracoes.integracoes.validar-wallet');
         
         // Comissões por Plano
@@ -367,6 +383,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         
         Route::get('/vendas', [VendaController::class, 'index'])->name('vendas');
+        Route::get('/vendas/exportar', [VendaController::class, 'exportar'])->name('vendas.exportar');
         Route::get('/vendas/canceladas', [VendaController::class, 'canceladas'])->name('vendas.canceladas');
         Route::get('/vendas/nova', [VendaController::class, 'create'])->name('vendas.create');
         Route::get('/vendas/verificar-documento', [VendaController::class, 'verificarDocumento'])->name('vendas.verificar-documento');
@@ -379,10 +396,11 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/vendas/{venda}/checkout-link', [VendaController::class, 'gerarLinkCheckout'])->name('vendas.checkout-link');
 
         Route::get('/pagamentos', [PagamentoController::class, 'indexVendedor'])->name('pagamentos');
+        Route::get('/pagamentos/exportar', [PagamentoController::class, 'exportar'])->name('pagamentos.exportar');
         Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes');
         Route::get('/clientes/{id}', [ClienteController::class, 'show'])->name('clientes.show');
         Route::get('/comissoes', [ComissaoController::class, 'index'])->name('comissoes');
-        Route::get('/comissoes/exportar', [ComissaoController::class, 'exportar'])->name('vendedor.comissoes.exportar');
+        Route::get('/comissoes/exportar', [ComissaoController::class, 'exportar'])->name('comissoes.exportar');
         Route::get('/comissao', function() { return redirect()->route('vendedor.comissoes'); })->name('comissao');
         
         // Configurações do Vendedor (Perfil, Segurança, Split)

@@ -85,56 +85,61 @@
         <div class="rate-box">
             <div class="rate-label">Primeira Venda</div>
             <div class="rate-value">
-                {{ $vendedor->valor_split_inicial ?? 0 }}
-                @if($vendedor->tipo_split === 'percentual')% @else R$ @endif
+                {{ $vendedor->tipo_split === 'percentual' ? $vendedor->valor_split_inicial . '%' : 'R$ ' . number_format($vendedor->valor_split_inicial, 2, ',', '.') }}
             </div>
-            <div class="rate-type">Repasse Automático</div>
+            <div class="rate-type">Comissão Atribuída</div>
         </div>
         <div class="rate-box">
             <div class="rate-label">Renovações</div>
             <div class="rate-value">
-                {{ $vendedor->valor_split_recorrencia ?? 0 }}
-                @if($vendedor->tipo_split === 'percentual')% @else R$ @endif
+                {{ $vendedor->tipo_split === 'percentual' ? $vendedor->valor_split_recorrencia . '%' : 'R$ ' . number_format($vendedor->valor_split_recorrencia, 2, ',', '.') }}
             </div>
-            <div class="rate-type">Repasse Automático</div>
+            <div class="rate-type">Comissão Atribuída</div>
         </div>
     </div>
 
-    <div class="info-row">
-        <span class="info-label">Tipo de Split</span>
-        <span class="info-value">{{ $vendedor->tipo_split === 'percentual' ? 'Percentual (%)' : 'Valor Fixo (R$)' }}</span>
-    </div>
+    <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
+    <h3 style="font-size: 1.05rem; font-weight: 800; color: #1e1b4b; margin-bottom: 16px;">Sua Carteira Asaas (Wallet ID)</h3>
 
-    <div class="info-row">
-        <span class="info-label">Status da Carteira</span>
-        <span>
-            <span class="status-badge {{ $vendedor->wallet_status ?? 'pendente' }}">
-                @if($vendedor->wallet_status === 'validado') ✅ Validada
-                @elseif($vendedor->wallet_status === 'erro') ❌ Erro
-                @else ⏳ Aguardando Validação
-                @endif
-            </span>
-        </span>
-    </div>
-
-    @if($vendedor->asaas_wallet_id)
-    <div class="info-row">
-        <span class="info-label">Wallet ID Asaas</span>
-        <span class="info-value" style="font-family: monospace; font-size: 0.8rem;">{{ $vendedor->asaas_wallet_id }}</span>
-    </div>
+    @if($vendedor->wallet_status === 'validado')
+        <div class="info-row">
+            <span class="info-label">Wallet ID Asaas</span>
+            <span class="info-value" style="font-family: monospace; font-size: 0.85rem;">{{ $vendedor->asaas_wallet_id }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Status da Carteira</span>
+            <span><span class="status-badge validado">✅ Validada</span></span>
+        </div>
+        @if($vendedor->wallet_validado_em)
+        <div class="info-row">
+            <span class="info-label">Última Validação</span>
+            <span class="info-value">{{ $vendedor->wallet_validado_em->format('d/m/Y H:i') }}</span>
+        </div>
+        @endif
+        <div class="lock-notice">
+            <i class="fas fa-lock"></i>
+            <span>Sua carteira foi validada. Para alteração, entre em contato com o suporte.</span>
+        </div>
+    @else
+        <form action="{{ route('configuracoes.split.update') }}" method="POST">
+            @csrf
+            @method('PUT')
+            <div class="form-group" style="margin-bottom: 16px;">
+                <label>Insira sua Wallet ID gerada no Asaas <span class="required">*</span></label>
+                <input type="text" name="asaas_wallet_id" class="form-control" placeholder="Ex: b655eecb-ef79-4d2b..." value="{{ old('asaas_wallet_id', $vendedor->asaas_wallet_id) }}" required>
+                <div class="field-hint" style="margin-top: 6px;">Ex: aca61e3d-dcb7-4d6b-acb4-022e3e...</div>
+            </div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="status-badge {{ $vendedor->wallet_status ?? 'pendente' }}">
+                    @if($vendedor->wallet_status === 'erro') ❌ Erro na Validação, verifique
+                    @else ⏳ Aguardando Envio/Validação
+                    @endif
+                </span>
+                <button type="submit" class="btn btn-primary" style="padding: 10px 24px;">Salvar Wallet ID</button>
+            </div>
+        </form>
     @endif
-
-    @if($vendedor->wallet_validado_em)
-    <div class="info-row">
-        <span class="info-label">Última Validação</span>
-        <span class="info-value">{{ $vendedor->wallet_validado_em->format('d/m/Y H:i') }}</span>
-    </div>
-    @endif
-
-    <div class="lock-notice">
-        <i class="fas fa-lock"></i>
-        <span>Estas configurações são definidas pelo administrador. Para alterações, entre em contato com o suporte.</span>
-    </div>
 
     @else
     <div class="alert alert-warning">

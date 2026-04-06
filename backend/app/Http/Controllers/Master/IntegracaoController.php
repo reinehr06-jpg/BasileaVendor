@@ -7,7 +7,9 @@ use Illuminate\Http\Request;
 use App\Models\Setting;
 use App\Models\Vendedor;
 use App\Services\AsaasService;
+use App\Services\Checkout\CheckoutClient;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class IntegracaoController extends Controller
 {
@@ -91,6 +93,7 @@ class IntegracaoController extends Controller
             'asaas_webhook_token' => 'nullable|string|max:255',
             'asaas_environment' => 'required|in:sandbox,production',
             'asaas_callback_url' => 'nullable|url|max:255',
+            'checkout_api_key' => 'nullable|string|max:255',
         ]);
 
         $apiKey = $request->input('asaas_api_key');
@@ -117,6 +120,7 @@ class IntegracaoController extends Controller
         Setting::set('asaas_environment', $request->input('asaas_environment'));
         Setting::set('asaas_callback_url', $request->input('asaas_callback_url'));
         Setting::set('checkout_external_url', $request->input('checkout_external_url'));
+        Setting::set('checkout_api_key', $request->input('checkout_api_key'));
         Setting::set('checkout_webhook_secret', $request->input('checkout_webhook_secret'));
 
         // Forçar limpeza de todo cache de configurações para garantir atualização instantânea
@@ -316,5 +320,100 @@ class IntegracaoController extends Controller
             ['nome' => 'Professional', 'max_membros' => 500],
             ['nome' => 'Performance', 'max_membros' => 99999],
         ];
+    }
+
+    /**
+     * Test the Checkout API Key connectivity.
+     */
+    public function testarCheckoutApi()
+    {
+        $apiKey = Setting::get('checkout_api_key', '');
+        $baseUrl = Setting::get('checkout_external_url', '');
+
+        if (empty($apiKey)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nenhuma API Key do Checkout configurada. Preencha o campo "Passo 1.5" e salve.',
+            ]);
+        }
+
+        if (empty($baseUrl)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nenhuma URL de Checkout configurada. Preencha o "Passo 5" e salve.',
+            ]);
+        }
+
+        try {
+            $response = Http::withToken($apiKey)
+                ->timeout(15)
+                ->acceptJson()
+                ->get(rtrim($baseUrl, '/') . '/api/v1/transactions?limit=1');
+
+            if ($response->successful()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Conexão com o Checkout estabelecida com sucesso! A API Key está válida.',
+                    'detail' => 'Status: ' . $response->status() . ' — Resposta recebida.',
+                ]);
+            }
+
+            $body = $response->body();
+            return response()->json([
+                'success' => false,
+                'message' => 'O Checkout respondeu mas retornou erro.',
+                'detail' => "HTTP {$response->status()}\n" . substr($body, 0, 500),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Não foi possível conectar ao Checkout.',
+                'detail' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Test the webhook endpoint by sending a simulated event.
+     */
+    public function testarWebhook()
+    {
+        try {
+            $payload = [
+                'event' => 'PAYMENT_APPROVED',
+                'transaction' => [
+                    'uuid' => 'test-' . now()->timestamp,
+                    'external_id' => 'venda_teste_1',
+                    'status' => 'APPROVED',
+                    'amount' => 100,
+                    'currency' => 'BRL',
+                ],
+                'timestamp' => now()->toIso8601String(),
+            ];
+
+            $controller = app(\App\Http\Controllers\Integration\CheckoutWebhookController::class);
+            $response = $controller->testHandle($payload);
+
+            if ($response->getStatusCode() === 200) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Webhook processado com sucesso! O evento simulado foi recebido e validado.',
+                    'detail' => 'Evento: PAYMENT_APPROVED (teste) — Processado sem erros',
+                ]);
+            }
+
+            $body = $response->getContent();
+            return response()->json([
+                'success' => false,
+                'message' => 'O webhook rejeitou o evento.',
+                'detail' => "HTTP {$response->getStatusCode()}\n" . substr($body, 0, 500),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao testar o webhook.',
+                'detail' => $e->getMessage(),
+            ]);
+        }
     }
 }

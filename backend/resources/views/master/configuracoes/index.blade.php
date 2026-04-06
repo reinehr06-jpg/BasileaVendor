@@ -685,6 +685,26 @@
                             <p style="font-size:0.75rem; color:#dc2626; margin-top:8px; font-weight:600;"><i class="fas fa-info-circle"></i> Após gerar, clique no botão Copiar e cole no seu sistema de Checkout (geralmente em Configurações > Sistemas).</p>
                         </div>
 
+                        {{-- PASSO 1.5: API Key do Checkout --}}
+                        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:20px;">
+                            <h4 style="font-size:1rem; font-weight:800; color:var(--materio-text-main); margin-bottom:8px;"><span style="background:var(--primary); color:white; padding:2px 8px; border-radius:6px; font-size:0.8rem; margin-right:6px;">Passo 1.5</span> API Key do Checkout</h4>
+                            <p style="font-size:0.85rem; color:var(--materio-text-muted); margin-bottom:12px;">Copie a <code>ck_live_...</code> do seu Checkout e cole aqui. Esta chave autentica requisições que o Basileia Vendas faz ativamente ao Checkout — como consultar status, cancelar transações ou buscar detalhes de pagamento.</p>
+                            
+                            <div style="display:flex; gap:10px;">
+                                <input type="password" id="checkout_api_key" name="checkout_api_key" class="materio-input" 
+                                       value="{{ $integracoes['checkoutApiKey'] ?? '' }}" 
+                                       placeholder="Cole aqui a ck_live_... do seu Checkout" 
+                                       style="font-family:monospace; font-weight:600;">
+                                <button type="button" class="materio-btn-primary" onclick="toggleApiKeyVisibility()" title="Mostrar/Ocultar Chave" style="min-width:50px;">
+                                    <i class="fas fa-eye" id="toggle-api-key-icon"></i>
+                                </button>
+                                <button type="button" class="materio-btn-primary" onclick="copiarTexto('checkout_api_key')" title="Copiar Chave">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <p style="font-size:0.75rem; color:var(--materio-text-muted); margin-top:8px;"><i class="fas fa-info-circle"></i> A API Key permite que o Vendas consulte, cancele e busque transações diretamente no Checkout.</p>
+                        </div>
+
                         {{-- PASSO 3 & 4: Webhook URL --}}
                         <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px; margin-bottom:20px;">
                             <h4 style="font-size:1rem; font-weight:800; color:var(--materio-text-main); margin-bottom:8px;"><span style="background:var(--primary); color:white; padding:2px 8px; border-radius:6px; font-size:0.8rem; margin-right:6px;">Passos 3 e 4</span> Endpoint do Webhook</h4>
@@ -727,6 +747,33 @@
                             <i class="fas fa-save"></i> Salvar Integração de Checkout
                         </button>
                     </form>
+                </div>
+
+                {{-- TESTE DE CONEXAO --}}
+                <div class="materio-card" style="margin-top: 20px;">
+                    <div class="section-header">
+                        <h4><i class="fas fa-vial"></i> Testar Conexões</h4>
+                    </div>
+                    <div class="materio-row">
+                        <div class="materio-col-6">
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px;">
+                                <h5 style="font-size:0.95rem; font-weight:700; margin-bottom:8px;"><i class="fas fa-key" style="color:var(--materio-primary);"></i> Testar API Key</h5>
+                                <p style="font-size:0.8rem; color:var(--materio-text-muted); margin-bottom:14px;">Verifica se a API Key do Checkout está válida e acessível.</p>
+                                <button type="button" class="materio-btn-primary" id="btn-test-api" onclick="testarCheckoutApi()">
+                                    <i class="fas fa-plug"></i> Testar API Key
+                                </button>
+                            </div>
+                        </div>
+                        <div class="materio-col-6">
+                            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:20px;">
+                                <h5 style="font-size:0.95rem; font-weight:700; margin-bottom:8px;"><i class="fas fa-satellite-dish" style="color:var(--materio-info);"></i> Testar Webhook</h5>
+                                <p style="font-size:0.8rem; color:var(--materio-text-muted); margin-bottom:14px;">Envia um evento simulado para validar o endpoint do webhook.</p>
+                                <button type="button" class="materio-btn-primary" id="btn-test-webhook" onclick="testarWebhook()" style="background:var(--materio-info);">
+                                    <i class="fas fa-broadcast-tower"></i> Testar Webhook
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1272,6 +1319,88 @@
         btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
         btn.style.width = '120px';
         setTimeout(() => { btn.innerHTML = origIcon; btn.style.width = ''; }, 2000);
+    }
+
+    function toggleApiKeyVisibility() {
+        const inp = document.getElementById('checkout_api_key');
+        const icon = document.getElementById('toggle-api-key-icon');
+        if (inp.type === 'password') {
+            inp.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            inp.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
+    function testarCheckoutApi() {
+        const btn = document.getElementById('btn-test-api');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testando...';
+        btn.disabled = true;
+
+        fetch('{{ route("master.configuracoes.integracoes.test-checkout-api") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+        })
+        .then(r => r.json())
+        .then(d => {
+            showTestResult(d.success, d.message, d.detail || '');
+        })
+        .catch(e => {
+            showTestResult(false, 'Erro ao conectar: ' + e.message);
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="fas fa-plug"></i> Testar API Key';
+            btn.disabled = false;
+        });
+    }
+
+    function testarWebhook() {
+        const btn = document.getElementById('btn-test-webhook');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testando...';
+        btn.disabled = true;
+
+        fetch('{{ route("master.configuracoes.integracoes.test-webhook") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+        })
+        .then(r => r.json())
+        .then(d => {
+            showTestResult(d.success, d.message, d.detail || '');
+        })
+        .catch(e => {
+            showTestResult(false, 'Erro ao testar webhook: ' + e.message);
+        })
+        .finally(() => {
+            btn.innerHTML = '<i class="fas fa-broadcast-tower"></i> Testar Webhook';
+            btn.disabled = false;
+        });
+    }
+
+    function showTestResult(success, message, detail) {
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;animation:fadeIn 0.2s ease;';
+
+        const icon = success ? 'fa-check-circle' : 'fa-times-circle';
+        const color = success ? '#56CA00' : '#FF4C51';
+        const title = success ? 'Sucesso!' : 'Falha!';
+        const bgColor = success ? '#f6ffed' : '#fff2f0';
+        const borderColor = success ? '#b7eb8f' : '#ffccc7';
+
+        overlay.innerHTML = `
+            <div style="background:${bgColor};border:2px solid ${borderColor};border-radius:16px;padding:32px 40px;max-width:480px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+                <i class="fas ${icon}" style="font-size:3rem;color:${color};margin-bottom:16px;display:block;"></i>
+                <h3 style="font-size:1.3rem;font-weight:800;color:${color};margin:0 0 12px 0;">${title}</h3>
+                <p style="font-size:0.9rem;color:#4d5156;margin:0 0 8px 0;line-height:1.5;">${message}</p>
+                ${detail ? `<pre style="font-size:0.72rem;color:#666;background:#f5f5f5;padding:10px;border-radius:6px;text-align:left;max-height:150px;overflow:auto;margin-top:12px;white-space:pre-wrap;">${detail}</pre>` : ''}
+                <button onclick="this.closest('div').parentElement.remove()" style="margin-top:20px;background:${color};color:white;border:none;padding:10px 32px;border-radius:8px;font-weight:700;font-size:0.9rem;cursor:pointer;">Entendi</button>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
     }
 
 </script>

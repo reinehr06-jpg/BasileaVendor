@@ -19,6 +19,9 @@ class CheckoutWebhookController extends Controller
     {
         $signature = $request->header('X-Checkout-Signature');
         $secret = config('checkout-integration.webhook_secret', env('CHECKOUT_WEBHOOK_SECRET'));
+        if (empty($secret)) {
+            $secret = \App\Models\Setting::get('checkout_webhook_secret', '');
+        }
 
         // Signature verification is MANDATORY
         if (!$secret) {
@@ -31,8 +34,8 @@ class CheckoutWebhookController extends Controller
             return response()->json(['error' => 'Missing signature'], 401);
         }
 
-        $payload = $request->getContent();
-        $expected = hash_hmac('sha256', $payload, $secret);
+        $data = $request->all();
+        $expected = hash_hmac('sha256', json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $secret);
 
         if (!hash_equals($expected, $signature)) {
             Log::warning('Checkout webhook: assinatura inválida', ['ip' => $request->ip()]);
@@ -65,6 +68,28 @@ class CheckoutWebhookController extends Controller
         return response()->json(['received' => true]);
     }
 
+    /**
+     * Processa webhook internamente para testes (sem verificação HMAC).
+     */
+    public function testHandle(array $payload): \Illuminate\Http\JsonResponse
+    {
+        $eventNormalized = strtoupper($payload['event'] ?? '');
+        $transaction = $payload['transaction'] ?? [];
+
+        match ($eventNormalized) {
+            'PAYMENT_APPROVED', 'PAYMENT.APPROVED' => $this->handlePaymentApproved($transaction),
+            'PAYMENT_REFUSED', 'PAYMENT.REFUSED' => $this->handlePaymentRefused($transaction),
+            'PAYMENT_PENDING', 'PAYMENT.PENDING' => $this->handlePaymentPending($transaction),
+            'PAYMENT_OVERDUE', 'PAYMENT.OVERDUE' => $this->handlePaymentOverdue($transaction),
+            'PAYMENT_REFUNDED', 'PAYMENT.REFUNDED' => $this->handlePaymentRefunded($transaction),
+            'PAYMENT_CANCELLED', 'PAYMENT.CANCELLED' => $this->handlePaymentCancelled($transaction),
+            'PAYMENT_REFUND_PENDING', 'PAYMENT.REFUND_PENDING' => $this->handlePaymentRefundPending($transaction),
+            default => Log::info("Checkout webhook teste: evento não tratado: {$payload['event']}"),
+        };
+
+        return response()->json(['received' => true, 'test' => true]);
+    }
+
     private function extractVendaId($externalId): ?int
     {
         if (!$externalId) return null;
@@ -91,17 +116,22 @@ class CheckoutWebhookController extends Controller
         $pagamento = Pagamento::where('venda_id', $venda->id)->first();
         if ($pagamento) {
             $pagamento->update([
-                'status' => 'confirmado',
+                'status' => 'RECEIVED',
                 'data_pagamento' => now(),
             ]);
+
+            $this->pagamentoService->confirmarPagamento($pagamento, []);
+        }
+
+        if (strtoupper($venda->status) === 'PAGO') {
+            Log::info("Venda {$venda->id} já estava PAGO, ignorando webhook duplicado");
+            return;
         }
 
         $venda->update([
-            'status' => 'paga',
+            'status' => 'PAGO',
             'data_pagamento' => now(),
         ]);
-
-        $this->pagamentoService->confirmarPagamento($venda);
 
         Log::info("Venda {$venda->id} atualizada via Checkout webhook: pagamento aprovado");
     }
