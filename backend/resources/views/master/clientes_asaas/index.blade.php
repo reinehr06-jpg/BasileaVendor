@@ -372,6 +372,40 @@ function filtrarAba(aba) {
     window.location.href = '{{ route("master.clientes-asaas.index") }}?aba=' + aba;
 }
 
+function getSelectedFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('selected') ? params.get('selected').split(',') : [];
+}
+
+function saveSelectionToUrl() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    const ids = Array.from(checkboxes).map(cb => cb.value);
+    const url = new URL(window.location);
+    if (ids.length > 0) {
+        url.searchParams.set('selected', ids.join(','));
+    } else {
+        url.searchParams.delete('selected');
+    }
+    window.history.replaceState({}, '', url);
+}
+
+function restoreSelection() {
+    const saved = getSelectedFromUrl();
+    if (saved.length > 0) {
+        saved.forEach(id => {
+            const cb = document.querySelector(`.row-checkbox[value="${id}"]`);
+            if (cb) cb.checked = true;
+        });
+        updateSelectedCount();
+    }
+}
+
+function filtrarComSelecao() {
+    saveSelectionToUrl();
+    const form = document.querySelector('.asaas-filters');
+    form.submit();
+}
+
 async function sincronizarAsaas() {
     const btn      = document.getElementById('btn-sincronizar');
     const progress = document.getElementById('sync-progress');
@@ -430,6 +464,9 @@ function updateSelectedCount() {
     const count = checkboxes.length;
     countEl.textContent = count + ' selecionado' + (count !== 1 ? 's' : '');
     bar.style.display = count > 0 ? 'block' : 'none';
+    
+    // Salvar seleção na URL
+    saveSelectionToUrl();
 }
 
 async function atribuirEmMassa() {
@@ -467,6 +504,10 @@ async function atribuirEmMassa() {
         
         if (data.success) {
             alert(data.message + '\n\nVendedor: R$ ' + data.comissao_vendedor + '\nGestor: R$ ' + data.comissao_gestor);
+            // Limpar seleção da URL
+            const url = new URL(window.location);
+            url.searchParams.delete('selected');
+            window.history.replaceState({}, '', url);
             setTimeout(() => window.location.reload(), 1500);
         } else {
             alert('Erro: ' + (data.message || 'Não foi possível atribuir.'));
@@ -478,5 +519,8 @@ async function atribuirEmMassa() {
         btn.innerHTML = '<i class="fas fa-user-plus"></i> Atribuir';
     }
 }
+
+// Restaurar seleção ao carregar página
+document.addEventListener('DOMContentLoaded', restoreSelection);
 </script>
 @endsection
