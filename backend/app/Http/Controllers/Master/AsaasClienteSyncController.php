@@ -566,6 +566,28 @@ class AsaasClienteSyncController extends Controller
                 ]);
             }
 
+            // Criar cliente no sistema automaticamente (se ainda não existir)
+            $doc = preg_replace('/\D/', '', $import->documento ?? '');
+            $clienteExistente = DB::table('clientes')->where('documento', $doc)->first();
+            
+            if (!$clienteExistente && $doc) {
+                $clienteId = DB::table('clientes')->insertGetId([
+                    'nome'       => $import->nome,
+                    'documento'  => $doc,
+                    'contato'    => $import->telefone,
+                    'whatsapp'   => $import->telefone,
+                    'email'      => $import->email,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                
+                // Vincular ao import
+                DB::table('legacy_customer_imports')->where('id', $customerId)->update([
+                    'local_cliente_id' => $clienteId,
+                    'confirmado_em' => now(),
+                ]);
+            }
+
             $totalComissaoVendedor += $comissaoVendedor;
             $totalComissaoGestor += $comissaoGestor;
             $atribuidos++;
