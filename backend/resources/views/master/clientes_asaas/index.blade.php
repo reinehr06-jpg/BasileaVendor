@@ -574,8 +574,8 @@ function calcularComissaoPreview() {
     .then(data => {
         if (data.success) {
             document.getElementById('preview-result').style.display = 'block';
-            document.getElementById('preview-comissao-vendedor').textContent = data.comissao_vendedor;
-            document.getElementById('preview-comissao-gestor').textContent = data.comissao_gestor;
+            document.getElementById('preview-comissao-vendedor').textContent = data.comissao_vendedor + ' (' + data.percentual_vendedor + '%)';
+            document.getElementById('preview-comissao-gestor').textContent = data.comissao_gestor + ' (' + data.percentual_gestor + '%)';
             
             const confirmBtn = document.getElementById('btn-confirm-assign');
             confirmBtn.disabled = false;

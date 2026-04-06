@@ -583,6 +583,8 @@ class AsaasClienteSyncController extends Controller
             'success' => true,
             'total_clientes' => $totalClientes,
             'vendedor_nome' => $vendedor->user->name ?? 'Vendedor',
+            'percentual_vendedor' => $vendedor->comissao_inicial ?? 0,
+            'percentual_gestor' => $vendedor->comissao_gestor_primeira ?? 0,
             'comissao_vendedor' => number_format($totalComissaoVendedor, 2, ',', '.'),
             'comissao_gestor' => number_format($totalComissaoGestor, 2, ',', '.'),
         ]);
