@@ -150,7 +150,8 @@
     </div>
 
     {{-- Filtros --}}
-    <form method="GET" action="{{ route('master.clientes-asaas.index') }}" class="asaas-filters" onsubmit="saveSelectionToUrl(); return true;">
+    <form method="GET" action="{{ route('master.clientes-asaas.index') }}" class="asaas-filters" onsubmit="return saveSelectionBeforeSubmit();">
+        <input type="hidden" name="selected_ids" id="selected_ids_input" value="{{ request('selected_ids') }}">
         @if($aba && $aba !== 'todos') <input type="hidden" name="aba" value="{{ $aba }}"> @endif
         <div>
             <label>Buscar</label>
@@ -373,6 +374,13 @@ function filtrarAba(aba) {
 }
 
 function getSelectedFromUrl() {
+    // First check hidden input
+    const hiddenInput = document.getElementById('selected_ids_input');
+    if (hiddenInput && hiddenInput.value) {
+        return hiddenInput.value.split(',').filter(id => id);
+    }
+    
+    // Fallback to URL parameter
     const params = new URLSearchParams(window.location.search);
     return params.get('selected') ? params.get('selected').split(',') : [];
 }
@@ -380,6 +388,11 @@ function getSelectedFromUrl() {
 function saveSelectionToUrl() {
     const checkboxes = document.querySelectorAll('.row-checkbox:checked');
     const ids = Array.from(checkboxes).map(cb => cb.value);
+    
+    // Save to hidden input
+    document.getElementById('selected_ids_input').value = ids.join(',');
+    
+    // Also save to URL for current page
     const url = new URL(window.location);
     if (ids.length > 0) {
         url.searchParams.set('selected', ids.join(','));
@@ -387,9 +400,31 @@ function saveSelectionToUrl() {
         url.searchParams.delete('selected');
     }
     window.history.replaceState({}, '', url);
+    
+    return true;
+}
+
+function saveSelectionBeforeSubmit() {
+    saveSelectionToUrl();
+    return true;
 }
 
 function restoreSelection() {
+    // First try hidden input
+    const hiddenInput = document.getElementById('selected_ids_input');
+    if (hiddenInput && hiddenInput.value) {
+        const ids = hiddenInput.value.split(',').filter(id => id);
+        if (ids.length > 0) {
+            ids.forEach(id => {
+                const cb = document.querySelector(`.row-checkbox[value="${id}"]`);
+                if (cb) cb.checked = true;
+            });
+            updateSelectedCount();
+            return;
+        }
+    }
+    
+    // Fallback to URL parameter
     const saved = getSelectedFromUrl();
     if (saved.length > 0) {
         saved.forEach(id => {
