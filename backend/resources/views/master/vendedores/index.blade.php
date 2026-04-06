@@ -111,11 +111,9 @@
         ['type' => 'csv', 'url' => route('master.vendedores', ['formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
     ]"
 >
-    <x-slot:actions>
-        <button class="btn btn-primary" onclick="BasileiaModal.open('createModal')" style="padding: 10px 24px; font-weight: 800; box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);">
-            <i class="fas fa-plus-circle" style="margin-right: 6px;"></i> Novo Vendedor
-        </button>
-    </x-slot:actions>
+    <button class="btn btn-primary" onclick="BasileiaModal.open('createModal')" style="padding: 10px 24px; font-weight: 800; box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);">
+        <i class="fas fa-plus-circle" style="margin-right: 6px;"></i> Novo Vendedor
+    </button>
 </x-page-hero>
 
 <div class="filters-bar">
