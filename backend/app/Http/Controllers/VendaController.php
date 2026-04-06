@@ -720,33 +720,24 @@ class VendaController extends Controller
     // ==========================================
     public function indexMaster()
     {
-        // Auto-expirar vendas com mais de 72h sem pagamento
-        self::expirarVendasAntigas();
-
-        // Sincronizar proativamente todas as vendas pendentes com Asaas (com proteção)
-        try {
-            self::syncPendentes();
-        } catch (\Exception $e) {
-            Log::warning('VendaController: Falha ao sincronizar pendentes no indexMaster', [
-                'error' => $e->getMessage(),
-            ]);
-        }
-
         // Vendas ativas (não canceladas, não expiradas)
         $vendas = Venda::whereNotIn('status', ['Expirado', 'Cancelado'])
             ->with(['cliente', 'vendedor.user', 'cobrancas', 'pagamentos'])
             ->orderByDesc('created_at')
+            ->limit(100)
             ->get();
 
         // Vendas canceladas (aba separada)
         $vendasCanceladas = Venda::where('status', 'Cancelado')
             ->with(['cliente', 'vendedor.user'])
             ->orderByDesc('created_at')
+            ->limit(100)
             ->get();
 
         $vendasExpiradas = Venda::where('status', 'Expirado')
             ->with(['cliente', 'vendedor.user'])
             ->orderByDesc('created_at')
+            ->limit(100)
             ->get();
 
         return view('master.vendas.index', compact('vendas', 'vendasCanceladas', 'vendasExpiradas'));
