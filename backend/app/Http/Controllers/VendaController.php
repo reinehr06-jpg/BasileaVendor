@@ -1202,12 +1202,84 @@ class VendaController extends Controller
                 ], 400);
             }
 
-            // Pegar dados do pagamento
-            $pagamento = $venda->pagamentos->first();
-            $asaasId = $pagamento ? $pagamento->asaas_payment_id : ($venda->asaas_payment_link_id ?? null);
+            // Pegar dados do pagamento ou criar se não existir
+            $pagamento = $venda->pagamentos()->first();
+            $asaasId = $pagamento?->asaas_payment_id ?? $venda->asaas_payment_link_id;
 
-            // Preparar parâmetros para o checkout
+            // Se não tiver ID Asaas, criar cobrança
+            if (!$asaasId) {
+                try {
+                    $asaasService = app(\App\Services\AsaasService::class);
+                    
+                    $billingType = match (strtoupper($venda->forma_pagamento)) {
+                        'PIX' => 'PIX',
+                        'BOLETO' => 'BOLETO_BANCARIO',
+                        default => 'CREDIT_CARD'
+                    };
+
+                    // Criar cliente Asaas se não tiver
+                    $asaasCustomerId = $cliente->asaas_customer_id;
+                    if (!$asaasCustomerId) {
+                        $asaasCustomer = $asaasService->createCustomer(
+                            $cliente->nome_igreja ?? $cliente->nome ?? 'Cliente',
+                            preg_replace('/\D/', '', $cliente->documento ?? ''),
+                            $cliente->whatsapp ?? null,
+                            $cliente->email ?? null
+                        );
+                        $asaasCustomerId = $asaasCustomer['id'] ?? null;
+                        if ($asaasCustomerId) {
+                            $cliente->update(['asaas_customer_id' => $asaasCustomerId]);
+                        }
+                    }
+
+                    // Criar cobrança
+                    $asaasResult = $asaasService->createPayment(
+                        $asaasCustomerId,
+                        (float) ($venda->valor_final ?? $venda->valor),
+                        now()->format('Y-m-d'),
+                        $billingType,
+                        'Plano ' . ($venda->plano ?? 'Basileia'),
+                        'venda_' . $venda->id
+                    );
+
+                    if (!empty($asaasResult['id'])) {
+                        $asaasId = $asaasResult['id'];
+                        
+                        // Salvar na venda
+                        $venda->update([
+                            'asaas_payment_link_id' => $asaasId,
+                        ]);
+
+                        // Criar registro de pagamento
+                        \App\Models\Pagamento::create([
+                            'venda_id' => $venda->id,
+                            'asaas_payment_id' => $asaasId,
+                            'asaas_customer_id' => $asaasCustomerId,
+                            'valor' => (float) ($venda->valor_final ?? $venda->valor),
+                            'forma_pagamento' => strtolower($venda->forma_pagamento ?? 'credit_card'),
+                            'status' => 'PENDING',
+                            'data_pagamento' => null,
+                        ]);
+
+                        Log::info('Checkout: Cobrança Asaas criada para link', [
+                            'venda_id' => $venda->id,
+                            'asaas_id' => $asaasId,
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Checkout: Falha ao criar cobrança Asaas', [
+                        'venda_id' => $venda->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    return response()->json([
+                        'error' => 'Falha ao criar cobrança de pagamento: ' . $e->getMessage(),
+                    ], 500);
+                }
+            }
+
+            // Preparar parâmetros para o checkout (incluindo id_asaas)
             $params = http_build_query([
+                'id_asaas' => $asaasId,
                 'venda_id' => $venda->id,
                 'hash' => $venda->checkout_hash,
                 'valor' => (float) $venda->valor_final,
