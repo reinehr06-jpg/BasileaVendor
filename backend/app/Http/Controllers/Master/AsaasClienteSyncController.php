@@ -555,7 +555,23 @@ class AsaasClienteSyncController extends Controller
 
             // Criar registro de comissão
             if ($isGestor) {
-                // Se é gestor, só ele recebe (a Calculations já retorna o valor correto)
+                // Se é gestor, recebe como vendedor E como gestor (duas comissões)
+                if ($comissaoVendedor > 0) {
+                    // Comissão como vendedor
+                    Comissao::create([
+                        'vendedor_id' => $vendedorId,
+                        'gerente_id' => null,
+                        'tipo_comissao' => $import->comissao_tipo ?? 'inicial',
+                        'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
+                        'percentual_gerente' => 0,
+                        'valor_venda' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
+                        'valor_comissao' => $comissaoVendedor,
+                        'valor_gerente' => 0,
+                        'status' => 'pendente',
+                        'competencia' => $mesRef,
+                    ]);
+                }
+                // Também recebe como gestor (sobre as vendas próprias também recebe % de gestor)
                 if ($comissaoGestor > 0) {
                     Comissao::create([
                         'vendedor_id' => $vendedorId,
