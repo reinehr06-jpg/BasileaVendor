@@ -59,11 +59,15 @@
         .filters-bar { flex-direction: column; }
     }
     
-    /* Override select styling para evitar conflitos */
+    /* Override select styling para usar nativo do navegador */
     .filters-bar select.form-control {
-        appearance: auto !important;
         -webkit-appearance: auto !important;
+        -moz-appearance: auto !important;
+        appearance: auto !important;
         background-image: none !important;
+        background-repeat: no-repeat !important;
+        background-position: unset !important;
+        background-size: auto !important;
         padding-right: 12px !important;
     }
 </style>
