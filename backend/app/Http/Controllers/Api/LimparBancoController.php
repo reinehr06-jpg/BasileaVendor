@@ -25,7 +25,13 @@ class LimparBancoController extends Controller
                 'vendedores',
             ];
 
-            DB::statement('SET FOREIGN_KEY_CHECKS=0');
+            // PostgreSQL: desabilitar triggers
+            DB::statement('ALTER TABLE comissaos DISABLE TRIGGER ALL');
+            DB::statement('ALTER TABLE pagamentos DISABLE TRIGGER ALL');
+            DB::statement('ALTER TABLE cobrancas DISABLE TRIGGER ALL');
+            DB::statement('ALTER TABLE vendas DISABLE TRIGGER ALL');
+            DB::statement('ALTER TABLE clientes DISABLE TRIGGER ALL');
+            DB::statement('ALTER TABLE vendedores DISABLE TRIGGER ALL');
 
             foreach ($tabelas as $tabela) {
                 if (Schema::hasTable($tabela)) {
@@ -33,7 +39,13 @@ class LimparBancoController extends Controller
                 }
             }
 
-            DB::statement('SET FOREIGN_KEY_CHECKS=1');
+            // Reabilitar triggers
+            DB::statement('ALTER TABLE comissaos ENABLE TRIGGER ALL');
+            DB::statement('ALTER TABLE pagamentos ENABLE TRIGGER ALL');
+            DB::statement('ALTER TABLE cobrancas ENABLE TRIGGER ALL');
+            DB::statement('ALTER TABLE vendas ENABLE TRIGGER ALL');
+            DB::statement('ALTER TABLE clientes ENABLE TRIGGER ALL');
+            DB::statement('ALTER TABLE vendedores ENABLE TRIGGER ALL');
 
             \Illuminate\Support\Facades\Log::info('Banco limpo pelo usuário: ' . auth()->id());
 
