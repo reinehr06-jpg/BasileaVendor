@@ -472,7 +472,6 @@ function updateSelectedCount() {
 async function atribuirEmMassa() {
     const checkboxes = document.querySelectorAll('.row-checkbox:checked');
     const vendedorId = document.getElementById('bulk_vendedor_select').value;
-    const btn = document.querySelector('.btn-bulk-assign');
     
     if (checkboxes.length === 0) {
         alert('Selecione pelo menos um cliente.');
@@ -484,19 +483,10 @@ async function atribuirEmMassa() {
         return;
     }
     
-    if (!confirm('Atribuir ' + checkboxes.length + ' cliente(s) ao vendedor selecionado?')) {
-        return;
-    }
+    const clienteIds = Array.from(checkboxes).map(cb => cb.value);
+    const vendedorNome = document.getElementById('bulk_vendedor_select').options[document.getElementById('bulk_vendedor_select').selectedIndex].text;
     
-async function atribuirEmMassa() {
-    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
-    const vendedorId = document.getElementById('bulk_vendedor_select').value;
-    
-    if (checkboxes.length === 0) {
-        alert('Selecione pelo menos um cliente.');
-        return;
-    }
-    
+    const modalHtml = `
     if (!vendedorId) {
         alert('Selecione um vendedor.');
         return;
