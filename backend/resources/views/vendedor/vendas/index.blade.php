@@ -129,8 +129,11 @@
                     @if(!in_array(strtoupper($venda->status), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']))
                         <div class="d-flex flex-column gap-1">
                             @if($formaUpper === 'BOLETO' || empty($formaUpper))
-                                <button onclick="baixarBoleto({{ $venda->id }})" class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Baixar Boleto do Asaas">
-                                    <i class="fas fa-barcode"></i> Boleto
+                                <button onclick="baixarBoleto({{ $venda->id }})" class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Baixar Boleto">
+                                    <i class="fas fa-file-pdf"></i> Baixar Boleto
+                                </button>
+                                <button onclick="copiarLinkBoleto({{ $venda->id }})" class="btn btn-sm" style="background: var(--success); color: white; font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Copiar Link do Boleto">
+                                    <i class="fas fa-copy"></i> Copiar Link
                                 </button>
                             @endif
 
@@ -145,10 +148,6 @@
                                     <i class="fas fa-credit-card"></i> Cartão
                                 </button>
                             @endif
-
-                            <button onclick="copiarLinkCheckout({{ $venda->id }})" class="btn btn-success btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Copiar Link de Checkout">
-                                <i class="fas fa-copy"></i> Copiar
-                            </button>
                         </div>
                     @else
                         <span style="font-size: 0.8rem; color: var(--text-muted);">—</span>
@@ -257,6 +256,25 @@ async function copiarLinkCheckout(vendaId, method = null) {
     } catch (error) {
         console.error('Erro:', error);
         alert('❌ Erro ao buscar link do servidor. Tente novamente.');
+    }
+}
+
+async function copiarLinkBoleto(vendaId) {
+    try {
+        const response = await fetch(`/vendedor/vendas/${vendaId}/checkout-link?method=boleto`);
+        const data = await response.json();
+        
+        if (data.success && data.boleto_url) {
+            await navigator.clipboard.writeText(data.boleto_url);
+            alert('✅ Link do boleto copiado!\n\n' + data.boleto_url);
+        } else if (data.error) {
+            alert('❌ ' + data.error);
+        } else {
+            alert('❌ Não foi possível obter o link do boleto.');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('❌ Erro ao buscar link do boleto. Tente novamente.');
     }
 }
 

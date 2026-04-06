@@ -126,8 +126,11 @@ foreach ($vendas as $v) {
                         <div class="d-flex flex-column gap-1">
                             <div style="display: flex; gap: 4px;">
                                 @if($formaUpper === 'BOLETO' || empty($formaUpper))
-                                    <button onclick="baixarBoleto({{ $venda->id }})" class="action-btn-sm action-btn-boleto" style="flex: 1;" title="Baixar Boleto do Asaas">
-                                        <i class="fas fa-barcode"></i> Boleto
+                                    <button onclick="baixarBoleto({{ $venda->id }})" class="action-btn-sm action-btn-boleto" style="flex: 1;" title="Baixar Boleto">
+                                        <i class="fas fa-file-pdf"></i> Baixar
+                                    </button>
+                                    <button onclick="copiarLinkBoletoMaster({{ $venda->id }})" class="action-btn-sm" style="background: var(--success); color: white; flex: 1;" title="Copiar Link do Boleto">
+                                        <i class="fas fa-copy"></i> Copiar
                                     </button>
                                 @endif
 
@@ -143,10 +146,6 @@ foreach ($vendas as $v) {
                                     </button>
                                 @endif
                             </div>
-
-                            <button onclick="copyCheckoutLink({{ $venda->id }})" class="action-btn-sm" style="background: var(--success); color: white;" title="Copiar Link de Checkout">
-                                <i class="fas fa-copy"></i> Copiar Link
-                            </button>
                         </div>
                     @else
                         @if($linkBoleto)
@@ -311,6 +310,25 @@ async function baixarBoleto(vendaId) {
     } catch (error) {
         console.error('Erro:', error);
         alert('❌ Erro ao buscar boleto. Tente novamente.');
+    }
+}
+
+async function copiarLinkBoletoMaster(vendaId) {
+    try {
+        const response = await fetch(`/master/vendas/${vendaId}/checkout-link?method=boleto`);
+        const data = await response.json();
+        
+        if (data.success && data.boleto_url) {
+            await navigator.clipboard.writeText(data.boleto_url);
+            alert('✅ Link do boleto copiado!\n\n' + data.boleto_url);
+        } else if (data.error) {
+            alert('❌ ' + data.error);
+        } else {
+            alert('❌ Não foi possível obter o link do boleto.');
+        }
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('❌ Erro ao buscar link do boleto. Tente novamente.');
     }
 }
 </script>

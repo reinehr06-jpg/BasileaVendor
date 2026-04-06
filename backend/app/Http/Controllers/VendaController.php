@@ -1178,14 +1178,80 @@ class VendaController extends Controller
             ];
             $paymentMethod = $methodMap[strtoupper($method)] ?? 'credit_card';
 
-            // BOLETO: download direto do Asaas
+            // BOLETO: retorna link do boleto para copiar
             if ($paymentMethod === 'boleto') {
-                return response()->json([
-                    'success' => true,
-                    'url' => url('/vendedor/vendas/' . $venda->id . '/boleto'),
-                    'message' => 'Use o endpoint de boleto para download.',
-                    'boleto_download' => true,
-                ]);
+                try {
+                    $asaasService = app(\App\Services\AsaasService::class);
+                    
+                    // Buscar ou criar cobrança
+                    $pagamento = $venda->pagamentos()->first();
+                    $asaasId = $pagamento?->asaas_payment_id ?? $venda->asaas_payment_link_id;
+
+                    if (!$asaasId) {
+                        // Criar cobrança se não existir
+                        $cliente = $venda->cliente;
+                        $asaasCustomerId = $cliente?->asaas_customer_id;
+                        
+                        if (!$asaasCustomerId && $cliente) {
+                            $asaasCustomer = $asaasService->createCustomer(
+                                $cliente->nome_igreja ?? $cliente->nome ?? 'Cliente',
+                                preg_replace('/\D/', '', $cliente->documento ?? ''),
+                                $cliente->whatsapp ?? null,
+                                $cliente->email ?? null
+                            );
+                            $asaasCustomerId = $asaasCustomer['id'] ?? null;
+                            if ($asaasCustomerId && $cliente) {
+                                $cliente->update(['asaas_customer_id' => $asaasCustomerId]);
+                            }
+                        }
+
+                        $asaasResult = $asaasService->createPayment(
+                            $asaasCustomerId,
+                            (float) ($venda->valor_final ?? $venda->valor),
+                            now()->format('Y-m-d'),
+                            'BOLETO_BANCARIO',
+                            'Plano ' . ($venda->plano ?? 'Basileia'),
+                            'venda_' . $venda->id
+                        );
+
+                        $asaasId = $asaasResult['id'] ?? null;
+
+                        if ($asaasId) {
+                            $venda->update(['asaas_payment_link_id' => $asaasId]);
+                            \App\Models\Pagamento::create([
+                                'venda_id' => $venda->id,
+                                'asaas_payment_id' => $asaasId,
+                                'asaas_customer_id' => $asaasCustomerId,
+                                'valor' => (float) ($venda->valor_final ?? $venda->valor),
+                                'forma_pagamento' => 'boleto',
+                                'status' => 'PENDING',
+                            ]);
+                        }
+                    }
+
+                    // Obter dados do boleto (linha digitável, URL do PDF)
+                    $boletoUrl = null;
+                    if ($asaasId) {
+                        $paymentData = $asaasService->getPayment($asaasId);
+                        $boletoUrl = $paymentData['bankSlipUrl'] ?? $paymentData['invoiceUrl'] ?? null;
+                    }
+
+                    return response()->json([
+                        'success' => true,
+                        'boleto_url' => $boletoUrl,
+                        'asaas_id' => $asaasId,
+                        'message' => 'Link do boleto disponível para cópia.',
+                    ]);
+
+                } catch (\Exception $e) {
+                    Log::error('Checkout: Erro ao gerar link boleto', [
+                        'venda_id' => $venda->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    return response()->json([
+                        'error' => 'Erro ao gerar link do boleto: ' . $e->getMessage(),
+                    ], 500);
+                }
             }
 
             $cliente = $venda->cliente;
