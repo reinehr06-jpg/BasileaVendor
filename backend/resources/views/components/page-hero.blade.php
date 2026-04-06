@@ -3,7 +3,6 @@
     'subtitle' => '',
     'icon' => 'fas fa-chart-bar',
     'exports' => [],
-    'actions' => null,
 ])
 
 <style>
@@ -93,7 +92,7 @@
             <p>{{ $subtitle }}</p>
             @endif
         </div>
-        @if(count($exports) > 0 || $actions)
+        @if(count($exports) > 0 || $slot)
         <div class="page-hero-actions">
             @if(count($exports) > 0)
             <div class="hero-dropdown">
@@ -110,9 +109,7 @@
                 </div>
             </div>
             @endif
-            @if($actions)
-            {{ $actions }}
-            @endif
+            {{ $slot }}
         </div>
         @endif
     </div>
