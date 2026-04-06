@@ -76,11 +76,9 @@
     subtitle="Sincronize, classifique e atribua comissões aos clientes pré-existentes no Asaas." 
     icon="fas fa-cloud-arrow-down"
 >
-    <x-slot:actions>
-        <button id="btn-sincronizar" onclick="sincronizarAsaas()" class="btn btn-primary" style="font-weight:700;">
-            <i class="fas fa-rotate"></i> Sincronizar com Asaas
-        </button>
-    </x-slot:actions>
+    <button id="btn-sincronizar" onclick="sincronizarAsaas()" class="btn btn-primary" style="font-weight:700;">
+        <i class="fas fa-rotate"></i> Sincronizar com Asaas
+    </button>
 </x-page-hero>
 
 {{-- PROGRESSO DE SINCRONIZAÇÃO --}}
