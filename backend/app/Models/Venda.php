@@ -128,16 +128,26 @@ class Venda extends Model
 
     /**
      * Retorna a parcela atual paga (quantos pagamentos confirmados existem).
+     * Usa cache em memória para evitar múltiplas queries por linha.
      */
+    private ?int $cachedParcelaAtual = null;
+
     public function getParcelaAtual(): int
     {
-        // The provided snippet seems to be controller logic and not suitable for this model method.
-        // To maintain syntactic correctness and the method's original purpose,
-        // the original implementation is kept, as the provided snippet would
-        // introduce an undefined variable ($hash) and not return an int.
-        return $this->pagamentos()
-            ->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago'])
-            ->count();
+        if ($this->cachedParcelaAtual !== null) {
+            return $this->cachedParcelaAtual;
+        }
+        // Usa a relationship já carregada em vez de nova query
+        if ($this->relationLoaded('pagamentos')) {
+            $this->cachedParcelaAtual = $this->pagamentos
+                ->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago'])
+                ->count();
+        } else {
+            $this->cachedParcelaAtual = $this->pagamentos()
+                ->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago'])
+                ->count();
+        }
+        return $this->cachedParcelaAtual;
     }
 
     /**

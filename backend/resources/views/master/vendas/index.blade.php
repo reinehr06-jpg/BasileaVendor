@@ -28,45 +28,40 @@
 />
 
 <!-- Stats -->
+@php
+$statsAtivas = 0;
+$statsPagas = 0;
+$statsAguardando = 0;
+$statsValorTotal = 0;
+foreach ($vendas as $v) {
+    $s = strtoupper($v->status);
+    if (!in_array($s, ['ESTORNADO', 'CANCELADO', 'EXPIRADO', 'VENCIDO'])) $statsAtivas++;
+    if (in_array($s, ['PAGO', 'RECEIVED', 'CONFIRMED'])) {
+        $statsPagas++;
+        $statsValorTotal += $v->valor;
+    }
+    if (in_array($s, ['AGUARDANDO PAGAMENTO', 'PENDING', 'AGUARDANDO APROVAÇÃO'])) $statsAguardando++;
+}
+@endphp
 <div class="stats-bar">
     <div class="stat-card">
         <div class="stat-icon primary"><i class="fas fa-shopping-bag"></i></div>
-        <div class="stat-value">
-            {{ $vendas->filter(function($v) {
-                $s = strtoupper($v->getStatusEfetivo());
-                return !in_array($s, ['ESTORNADO', 'CANCELADO', 'EXPIRADO', 'VENCIDO']);
-            })->count() }}
-        </div>
+        <div class="stat-value">{{ $statsAtivas }}</div>
         <div class="stat-label">Ativas</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon success"><i class="fas fa-dollar-sign"></i></div>
-        <div class="stat-value">
-            R$ {{ number_format($vendas->filter(function($v) {
-                $s = strtoupper($v->getStatusEfetivo());
-                return in_array($s, ['PAGO', 'RECEIVED', 'CONFIRMED']);
-            })->sum('valor'), 2, ',', '.') }}
-        </div>
+        <div class="stat-value">R$ {{ number_format($statsValorTotal, 2, ',', '.') }}</div>
         <div class="stat-label">Valor Total</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon success"><i class="fas fa-circle-check"></i></div>
-        <div class="stat-value" style="color: var(--success);">
-            {{ $vendas->filter(function($v) {
-                $s = strtoupper($v->getStatusEfetivo());
-                return in_array($s, ['PAGO', 'RECEIVED', 'CONFIRMED']);
-            })->count() }}
-        </div>
+        <div class="stat-value" style="color: var(--success);">{{ $statsPagas }}</div>
         <div class="stat-label">Pagas</div>
     </div>
     <div class="stat-card">
         <div class="stat-icon warning"><i class="fas fa-clock"></i></div>
-        <div class="stat-value" style="color: var(--warning);">
-            {{ $vendas->filter(function($v) {
-                $s = strtoupper($v->getStatusEfetivo());
-                return in_array($s, ['AGUARDANDO PAGAMENTO', 'PENDING', 'AGUARDANDO APROVAÇÃO']);
-            })->count() }}
-        </div>
+        <div class="stat-value" style="color: var(--warning);">{{ $statsAguardando }}</div>
         <div class="stat-label">Aguardando</div>
     </div>
 </div>

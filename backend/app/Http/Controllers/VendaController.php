@@ -51,12 +51,6 @@ class VendaController extends Controller
                 ->withErrors(['error' => 'Perfil de vendedor não encontrado.']);
         }
 
-        // Auto-expirar vendas com mais de 72h sem pagamento
-        self::expirarVendasAntigas();
-
-        // Sincronizar proativamente vendas pendentes com Asaas
-        self::syncPendentes($vendedor->id);
-
         // Vendas ativas (não canceladas, não expiradas)
         $vendas = Venda::where('vendedor_id', $vendedor->id)
             ->whereNotIn('status', ['Expirado', 'Cancelado'])
@@ -712,12 +706,6 @@ class VendaController extends Controller
     // ==========================================
     public function indexMaster()
     {
-        // Auto-expirar vendas com mais de 72h sem pagamento
-        self::expirarVendasAntigas();
-
-        // Sincronizar proativamente todas as vendas pendentes com Asaas
-        self::syncPendentes();
-
         // Vendas ativas (não canceladas, não expiradas)
         $vendas = Venda::whereNotIn('status', ['Expirado', 'Cancelado'])
             ->with(['cliente', 'vendedor.user', 'cobrancas', 'pagamentos'])
@@ -1135,8 +1123,10 @@ class VendaController extends Controller
         $limite = Carbon::now()->subHours(72);
 
         // Buscar vendas "Aguardando pagamento" criadas há mais de 72h
+        // Limita a 50 por execução para evitar sobrecarga
         $vendasExpiradas = Venda::where('status', 'Aguardando pagamento')
             ->where('created_at', '<', $limite)
+            ->take(50)
             ->get();
 
         foreach ($vendasExpiradas as $venda) {
