@@ -1430,16 +1430,22 @@
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(r => r.json())
-        .then(d => {
-            if (d.success) {
-                alert('✅ Banco de dados limpo com sucesso!');
-                location.reload();
-            } else {
-                alert('❌ Erro: ' + (d.error || 'Desconhecido'));
+        .then(r => r.text())
+        .then(text => {
+            console.log('Response:', text);
+            try {
+                const d = JSON.parse(text);
+                if (d.success) {
+                    alert('✅ Banco de dados limpo com sucesso!');
+                    location.reload();
+                } else {
+                    alert('❌ Erro: ' + (d.error || d.message || 'Desconhecido'));
+                }
+            } catch(e) {
+                alert('❌ Resposta inválida do servidor. Veja o console.');
             }
         })
-        .catch(e => alert('❌ Erro: ' + e.message));
+        .catch(e => alert('❌ Erro de conexão: ' + e.message));
     }
 
 </script>
