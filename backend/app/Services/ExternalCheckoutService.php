@@ -108,4 +108,109 @@ class ExternalCheckoutService
         
         return 'credit_card'; // default de fallback
     }
+
+    /**
+     * Cria uma assinatura (subscription) no sistema de Checkout externo.
+     * Para vendas mensais/recorrentes.
+     */
+    public function createSubscriptionForVenda(Venda $venda, Cliente $cliente)
+    {
+        $apiUrl = env('CHECKOUT_API_URL');
+        $apiKey = env('CHECKOUT_API_KEY', '');
+
+        if (!$apiUrl) {
+            Log::warning("Checkout API URL não está configurada no .env.");
+            return null;
+        }
+
+        $endpoint = rtrim($apiUrl, '/') . '/api/v1/subscriptions';
+        $callbackUrl = env('CHECKOUT_WEBHOOK_URL', url('/api/webhook/checkout'));
+
+        $document = preg_replace('/[^0-9]/', '', $cliente->documento);
+        $phone = preg_replace('/[^0-9]/', '', $cliente->contato ?? $cliente->whatsapp ?? '');
+
+        $billingCycle = $this->mapBillingCycle($venda->tipo_negociacao);
+        $valor = (float) ($venda->valor_final ?? $venda->valor);
+
+        // Para plano anual com parcelas, usar valor anual
+        if ($venda->tipo_negociacao === 'anual' && $venda->parcelas > 1) {
+            $plano = \App\Models\Plano::where('nome', $venda->plano)->first();
+            if ($plano && $plano->valor_anual > 0) {
+                $valor = (float) $plano->valor_anual;
+            }
+        }
+
+        $payload = [
+            'plan_name' => $venda->plano ?? 'Plano',
+            'amount' => $valor,
+            'billing_cycle' => $billingCycle,
+            'customer' => [
+                'name' => $cliente->nome_igreja ?? $cliente->nome,
+                'email' => $cliente->email ?? '',
+                'document' => $document,
+                'phone' => $phone,
+            ],
+            'metadata' => [
+                'venda_id' => $venda->id,
+                'plano' => $venda->plano ?? '',
+                'ciclo' => $venda->tipo_negociacao ?? '',
+                'forma_pagamento' => $venda->forma_pagamento ?? '',
+            ],
+            'callback_url' => $callbackUrl,
+        ];
+
+        try {
+            $response = Http::withHeaders([
+                'Accept' => 'application/json',
+                'Authorization' => "Bearer {$apiKey}"
+            ])->post($endpoint, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                $uuid = $data['subscription']['uuid'] ?? $data['uuid'] ?? null;
+                $paymentUrl = $data['subscription']['payment_url'] ?? $data['payment_url'] ?? null;
+
+                if ($uuid) {
+                    $venda->update([
+                        'checkout_transaction_uuid' => $uuid,
+                        'checkout_payment_link' => $paymentUrl,
+                        'modo_cobranca_asaas' => 'SUBSCRIPTION',
+                    ]);
+                    
+                    Log::info("Checkout: Assinatura criada com sucesso", [
+                        'venda_id' => $venda->id,
+                        'uuid' => $uuid,
+                        'billing_cycle' => $billingCycle,
+                    ]);
+                    
+                    return $uuid;
+                }
+            }
+
+            Log::error("Falha ao criar assinatura no checkout externo para Venda {$venda->id}", [
+                'status' => $response->status(),
+                'body' => $response->body(),
+                'payload' => $payload,
+            ]);
+
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Exceção ao criar assinatura no checkout externo (Venda {$venda->id}): " . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Mapeia tipo de negociação para billing cycle do checkout.
+     */
+    private function mapBillingCycle(?string $tipoNegociacao): string
+    {
+        return match (strtolower($tipoNegociacao ?? '')) {
+            'anual', 'annual', 'yearly' => 'yearly',
+            'trimestral', 'quarterly' => 'quarterly',
+            'semestral', 'semiannual' => 'semiannual',
+            default => 'monthly',
+        };
+    }
 }

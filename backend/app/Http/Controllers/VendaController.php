@@ -1169,11 +1169,131 @@ class VendaController extends Controller
     // ==========================================
     public function gerarLinkCheckout(Request $request, Venda $venda)
     {
-        $user = Auth::user();
-        if ($user->perfil !== 'master') {
-            if (!$user->vendedor || $venda->vendedor_id !== $user->vendedor->id) {
-                return response()->json(['error' => 'Você não tem permissão para gerar link desta venda.'], 403);
+        try {
+            $user = Auth::user();
+            if ($user->perfil !== 'master') {
+                if (!$user->vendedor || $venda->vendedor_id !== $user->vendedor->id) {
+                    return response()->json(['error' => 'Você não tem permissão para gerar link desta venda.'], 403);
+                }
             }
+
+            $allowedMethods = ['pix', 'boleto', 'credit_card', 'cartao'];
+            $method = $request->get('method', $venda->forma_pagamento ?? 'credit_card');
+            if (!in_array(strtolower($method), $allowedMethods)) {
+                return response()->json(['error' => 'Método de pagamento inválido.'], 400);
+            }
+            $methodMap = [
+                'CREDIT_CARD' => 'credit_card',
+                'PIX' => 'pix',
+                'BOLETO' => 'boleto',
+                'cartao' => 'credit_card',
+            ];
+            $paymentMethod = $methodMap[strtoupper($method)] ?? 'credit_card';
+
+            // Boleto: não gera link de checkout, usa download direto do Asaas
+            if ($paymentMethod === 'boleto') {
+                return response()->json([
+                    'success' => true,
+                    'url' => url('/vendedor/vendas/' . $venda->id . '/boleto'),
+                    'message' => 'Use o endpoint de boleto para download.',
+                    'boleto_download' => true,
+                ]);
+            }
+
+            $checkoutBaseUrl = config('checkout-integration.base_url', 'http://localhost:8001');
+            $checkoutUuid = $venda->checkout_transaction_uuid;
+
+            // Tentar criar transação/assinatura no checkout externo se não tiver UUID
+            if (!$checkoutUuid) {
+                try {
+                    $checkoutService = new \App\Services\ExternalCheckoutService();
+                    $cliente = $venda->cliente;
+
+                    if (!$cliente) {
+                        return response()->json(['error' => 'Cliente não encontrado para esta venda.'], 404);
+                    }
+
+                    // Venda mensal/recorrente → assinatura
+                    $isMensal = strtolower($venda->tipo_negociacao ?? '') === 'mensal';
+                    $isBoletoOuCartao = in_array(strtolower($venda->forma_pagamento ?? ''), ['boleto', 'credit_card', 'cartao', 'bolet']);
+
+                    if ($isMensal && $isBoletoOuCartao) {
+                        $checkoutUuid = $checkoutService->createSubscriptionForVenda($venda, $cliente);
+                    } else {
+                        $checkoutUuid = $checkoutService->createTransactionForVenda($venda, $cliente);
+                    }
+
+                    if ($checkoutUuid) {
+                        Log::info('Checkout: Link gerado com sucesso', [
+                            'venda_id' => $venda->id,
+                            'uuid' => $checkoutUuid,
+                            'tipo' => $isMensal && $isBoletoOuCartao ? 'subscription' : 'transaction',
+                        ]);
+                    } else {
+                        Log::warning('Checkout: Falha ao criar transação/assinatura no checkout externo', [
+                            'venda_id' => $venda->id,
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Checkout: Erro ao conectar com checkout externo', [
+                        'venda_id' => $venda->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            // 1. Tentar URL do Checkout Externo ( Painel Master)
+            $externalBaseUrl = \App\Models\Setting::get('checkout_external_url');
+            
+            if ($externalBaseUrl) {
+                $pagamento = $venda->pagamentos()->first();
+                $asaasId = $pagamento ? $pagamento->asaas_payment_id : ($venda->asaas_payment_link_id ?? null);
+                
+                $params = [
+                    'id_asaas' => $asaasId,
+                    'venda_id' => $venda->id,
+                    'valor'    => (float) $venda->valor_final,
+                    'plano'    => $venda->plano,
+                    'ciclo'    => $venda->tipo_negociacao,
+                    'metodo'   => $paymentMethod,
+                    'hash'     => $venda->checkout_hash,
+                    'cliente'  => $venda->cliente?->nome_igreja ?? '',
+                ];
+                
+                $url = rtrim($externalBaseUrl, '/') . (str_contains($externalBaseUrl, '?') ? '&' : '?') . http_build_query($params);
+                
+                return response()->json([
+                    'success' => true,
+                    'url' => $url,
+                    'message' => 'Redirecionando para checkout externo...',
+                ]);
+            }
+
+            // 2. Fallback: usar checkout interno
+            if ($checkoutUuid) {
+                $url = rtrim($checkoutBaseUrl, '/') . '/checkout/' . $checkoutUuid . '?method=' . $paymentMethod;
+            } else {
+                $url = url('/checkout/' . $venda->checkout_hash . '?method=' . $paymentMethod);
+            }
+
+            return response()->json([
+                'success' => true,
+                'url' => $url,
+                'checkout_uuid' => $checkoutUuid,
+                'hash' => $venda->checkout_hash,
+                'message' => 'Link de pagamento gerado!',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao gerar link de checkout', [
+                'venda_id' => $venda->id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'error' => 'Erro interno ao gerar link de pagamento: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
         }
 
         $allowedMethods = ['pix', 'boleto', 'credit_card', 'cartao'];
