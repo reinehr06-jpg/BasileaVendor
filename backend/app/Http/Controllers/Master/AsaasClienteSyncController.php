@@ -375,6 +375,7 @@ class AsaasClienteSyncController extends Controller
         }
 
         // ── Tipo de comissão (só calcula se ATIVO e tem pagamento no mês de referência) ──
+        // Obs: Usa o campo comissao_tipo que já foi definido na sincronização
         $comissaoTipo = null;
         $mesRef = $this->getMesReferencia();
         if ($diagnostico === 'ATIVO' && $valorMarcoPago > 0 && $primeiroPgtAt) {
@@ -386,6 +387,11 @@ class AsaasClienteSyncController extends Controller
             } else {
                 $comissaoTipo = 'recorrencia';
             }
+        }
+        
+        // Se já existe um tipo de comissão definido, usar ele (preserve para atribuições retroativas)
+        if (!empty($import->comissao_tipo)) {
+            $comissaoTipo = $import->comissao_tipo;
         }
 
         $data = [
@@ -458,27 +464,49 @@ class AsaasClienteSyncController extends Controller
         $comissaoVendedor = 0;
         $comissaoGestor   = 0;
         $mesRef           = $this->getMesReferencia();
+        $comissaoTipo     = $import->comissao_tipo ?? 'recorrencia';
 
-        if ($vendedorId && $import->diagnostico_status === 'ATIVO' && $import->comissao_tipo) {
+        if ($vendedorId && $import->diagnostico_status === 'ATIVO' && $comissaoTipo) {
             $vendedor = Vendedor::with('user')->find($vendedorId);
             if ($vendedor) {
+                $isGestor = $vendedor->is_gestor ?? false;
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
                 
                 // Criar registro de comissão
                 $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
-                if ($comissaoVendedor > 0 || $comissaoGestor > 0) {
-                    Comissao::create([
-                        'vendedor_id' => $vendedorId,
-                        'gerente_id' => $gestorId,
-                        'tipo_comissao' => $import->comissao_tipo ?? 'inicial',
-                        'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
-                        'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
-                        'valor_venda' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
-                        'valor_comissao' => $comissaoVendedor,
-                        'valor_gerente' => $comissaoGestor,
-                        'status' => 'pendente',
-                        'competencia' => $mesRef,
-                    ]);
+                
+                if ($isGestor) {
+                    // Gestor recebe apenas como vendedor
+                    if ($comissaoVendedor > 0) {
+                        Comissao::create([
+                            'vendedor_id' => $vendedorId,
+                            'gerente_id' => null,
+                            'tipo_comissao' => $comissaoTipo,
+                            'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
+                            'percentual_gerente' => 0,
+                            'valor_venda' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
+                            'valor_comissao' => $comissaoVendedor,
+                            'valor_gerente' => 0,
+                            'status' => 'pendente',
+                            'competencia' => $mesRef,
+                        ]);
+                    }
+                } else {
+                    // Vendedor normal: cria comissão para vendedor E gestor
+                    if ($comissaoVendedor > 0 || $comissaoGestor > 0) {
+                        Comissao::create([
+                            'vendedor_id' => $vendedorId,
+                            'gerente_id' => $gestorId,
+                            'tipo_comissao' => $comissaoTipo,
+                            'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
+                            'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
+                            'valor_venda' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
+                            'valor_comissao' => $comissaoVendedor,
+                            'valor_gerente' => $comissaoGestor,
+                            'status' => 'pendente',
+                            'competencia' => $mesRef,
+                        ]);
+                    }
                 }
             }
         }
@@ -540,8 +568,9 @@ class AsaasClienteSyncController extends Controller
 
             $comissaoVendedor = 0;
             $comissaoGestor = 0;
+            $comissaoTipo = $import->comissao_tipo ?? 'recorrencia'; // Padrão para vendas antigas
 
-            if ($import->diagnostico_status === 'ATIVO' && $import->comissao_tipo) {
+            if ($import->diagnostico_status === 'ATIVO' && $comissaoTipo) {
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
             }
 
@@ -550,6 +579,7 @@ class AsaasClienteSyncController extends Controller
                 'comissao_vendedor_calculada' => $comissaoVendedor,
                 'comissao_gestor_calculada' => $comissaoGestor,
                 'comissao_mes_referencia' => $mesRef,
+                'comissao_tipo' => $comissaoTipo,
                 'updated_at' => now(),
             ]);
 
@@ -560,7 +590,7 @@ class AsaasClienteSyncController extends Controller
                     Comissao::create([
                         'vendedor_id' => $vendedorId,
                         'gerente_id' => null,
-                        'tipo_comissao' => $import->comissao_tipo ?? 'inicial',
+                        'tipo_comissao' => $comissaoTipo,
                         'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
                         'percentual_gerente' => 0,
                         'valor_venda' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
