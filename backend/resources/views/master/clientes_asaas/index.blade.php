@@ -487,7 +487,7 @@ async function atribuirEmMassa() {
     const vendedorNome = document.getElementById('bulk_vendedor_select').options[document.getElementById('bulk_vendedor_select').selectedIndex].text;
     
     const modalHtml = `
-        <div id="confirm-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
+        <div id="confirm-modal" data-vendedor-id="${vendedorId}" data-cliente-ids="${clienteIds.join(',')}" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
             <div style="background:white;border-radius:16px;padding:24px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
                 <h3 style="margin:0 0 20px;color:#1e293b;font-size:1.2rem;font-weight:800;">
                     <i class="fas fa-user-plus" style="color:#4C1D95;"></i> Confirmar Atribuição
@@ -506,8 +506,7 @@ async function atribuirEmMassa() {
                     </div>
                     
                     <div style="padding-top:16px;border-top:1px solid #e2e8f0;">
-                        <button id="btn-calcular" onclick="calcularComissaoPreview('${vendedorId}', '${JSON.stringify(clienteIds)}')" 
-                            style="width:100%;padding:12px;background:#4C1D95;border:none;border-radius:8px;color:white;font-weight:700;cursor:pointer;">
+                        <button id="btn-calcular" type="button" style="width:100%;padding:12px;background:#4C1D95;border:none;border-radius:8px;color:white;font-weight:700;cursor:pointer;">
                             <i class="fas fa-calculator"></i> Calcular Comissões
                         </button>
                     </div>
@@ -528,7 +527,7 @@ async function atribuirEmMassa() {
                 
                 <div style="display:flex;gap:12px;">
                     <button onclick="closeConfirmModal()" style="flex:1;padding:12px;border:2px solid #e2e8f0;border-radius:8px;background:white;color:#64748b;font-weight:700;cursor:pointer;">Cancelar</button>
-                    <button id="btn-confirm-assign" onclick="executarAtribuicao('${vendedorId}', '${JSON.stringify(clienteIds)}')" disabled style="flex:1;padding:12px;border:none;border-radius:8px;background:#9ca3af;color:white;font-weight:700;cursor:not-allowed;opacity:0.6;">
+                    <button id="btn-confirm-assign" type="button" disabled style="flex:1;padding:12px;border:none;border-radius:8px;background:#9ca3af;color:white;font-weight:700;cursor:not-allowed;opacity:0.6;">
                         <i class="fas fa-check"></i> Confirmar
                     </button>
                 </div>
@@ -539,6 +538,10 @@ async function atribuirEmMassa() {
     const existing = document.getElementById('confirm-modal');
     if (existing) existing.remove();
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Attach event listeners after modal is added
+    document.getElementById('btn-calcular').onclick = function() { calcularComissaoPreview(); };
+    document.getElementById('btn-confirm-assign').onclick = function() { executarAtribuicaoPreview(); };
 }
 
 function closeConfirmModal() {
@@ -546,51 +549,29 @@ function closeConfirmModal() {
     if (modal) modal.remove();
 }
 
-async function calcularComissaoPreview(vendedorId, clienteIds) {
+function calcularComissaoPreview() {
+    const modal = document.getElementById('confirm-modal');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const btn = document.getElementById('btn-calcular');
-    let parsedIds;
     
-    console.log('DEBUG: vendedorId =', vendedorId);
-    console.log('DEBUG: clienteIds =', clienteIds);
-    
-    try {
-        parsedIds = typeof clienteIds === 'string' ? JSON.parse(clienteIds) : clienteIds;
-    } catch(e) {
-        console.log('DEBUG: erro parse', e);
-        parsedIds = clienteIds;
-    }
-    
-    console.log('DEBUG: parsedIds =', parsedIds);
+    const vendedorId = modal.dataset.vendedorId;
+    const clienteIdsStr = modal.dataset.clienteIds;
+    const parsedIds = clienteIdsStr.split(',').map(id => parseInt(id));
     
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculando...';
     
-    try {
-        const routeUrl = '/master/clientes-asaas/preview-assign';
-        console.log('DEBUG: Fetching', routeUrl);
-        
-        const resp = await fetch(routeUrl, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json', 
-                'X-CSRF-TOKEN': csrfToken, 
-                'Accept': 'application/json' 
-            },
-            body: JSON.stringify({ customer_ids: parsedIds, vendedor_id: parseInt(vendedorId) })
-        });
-        
-        console.log('DEBUG: resp status', resp.status);
-        
-        if (!resp.ok) {
-            const errText = await resp.text();
-            alert('Erro do servidor: ' + resp.status + ' - ' + errText);
-            return;
-        }
-        
-        const data = await resp.json();
-        console.log('DEBUG: data', data);
-        
+    fetch('/master/clientes-asaas/preview-assign', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'X-CSRF-TOKEN': csrfToken, 
+            'Accept': 'application/json' 
+        },
+        body: JSON.stringify({ customer_ids: parsedIds, vendedor_id: parseInt(vendedorId) })
+    })
+    .then(resp => resp.json())
+    .then(data => {
         if (data.success) {
             document.getElementById('preview-result').style.display = 'block';
             document.getElementById('preview-comissao-vendedor').textContent = data.comissao_vendedor;
@@ -604,46 +585,53 @@ async function calcularComissaoPreview(vendedorId, clienteIds) {
         } else {
             alert('Erro: ' + (data.message || 'Não foi possível calcular.'));
         }
-    } catch (e) {
+    })
+    .catch(e => {
         alert('Erro de conexão: ' + e.message);
-    } finally {
+    })
+    .finally(() => {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-calculator"></i> Calcular Comissões';
-    }
+    });
 }
 
-async function executarAtribuicao(vendedorId, clienteIds) {
-    closeConfirmModal();
-    
-    const btn = document.querySelector('.btn-bulk-assign');
+function executarAtribuicaoPreview() {
+    const modal = document.getElementById('confirm-modal');
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-    const parsedIds = JSON.parse(clienteIds);
+    const btn = document.getElementById('btn-confirm-assign');
+    
+    const vendedorId = modal.dataset.vendedorId;
+    const clienteIdsStr = modal.dataset.clienteIds;
+    const parsedIds = clienteIdsStr.split(',').map(id => parseInt(id));
     
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
     
-    const bulkAssignUrl = '/master/clientes-asaas/bulk-assign';
-    
-    try {
-        const resp = await fetch(bulkAssignUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-            body: JSON.stringify({ customer_ids: parsedIds, vendedor_id: parseInt(vendedorId) })
-        });
-        const data = await resp.json();
-        
+    fetch('/master/clientes-asaas/bulk-assign', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json', 
+            'X-CSRF-TOKEN': csrfToken, 
+            'Accept': 'application/json' 
+        },
+        body: JSON.stringify({ customer_ids: parsedIds, vendedor_id: parseInt(vendedorId) })
+    })
+    .then(resp => resp.json())
+    .then(data => {
         if (data.success) {
             alert(data.message + '\n\nVendedor: R$ ' + data.comissao_vendedor + '\nGestor: R$ ' + data.comissao_gestor);
             setTimeout(() => window.location.reload(), 1500);
         } else {
             alert('Erro: ' + (data.message || 'Não foi possível atribuir.'));
         }
-    } catch (e) {
+    })
+    .catch(e => {
         alert('Erro de conexão: ' + e.message);
-    } finally {
+    })
+    .finally(() => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-user-plus"></i> Atribuir';
-    }
+        btn.innerHTML = '<i class="fas fa-check"></i> Confirmar';
+    });
 }
 
 // Restaurar seleção ao carregar página
