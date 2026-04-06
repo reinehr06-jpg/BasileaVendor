@@ -555,6 +555,7 @@ class AsaasClienteSyncController extends Controller
         $totalComissaoVendedor = 0;
         $totalComissaoGestor = 0;
         $totalClientes = 0;
+        $debugImports = [];
 
         foreach ($customerIds as $customerId) {
             $import = DB::table('legacy_customer_imports')->where('id', $customerId)->first();
@@ -565,6 +566,13 @@ class AsaasClienteSyncController extends Controller
 
             $comissaoVendedor = 0;
             $comissaoGestor = 0;
+
+            $debugImports[] = [
+                'id' => $import->id,
+                'diagnostico_status' => $import->diagnostico_status,
+                'comissao_tipo' => $import->comissao_tipo,
+                'valor_marco_pago' => $import->valor_marco_pago,
+            ];
 
             if ($import->diagnostico_status === 'ATIVO' && $import->comissao_tipo) {
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
@@ -587,6 +595,12 @@ class AsaasClienteSyncController extends Controller
             'percentual_gestor' => $vendedor->comissao_gestor_primeira ?? 0,
             'comissao_vendedor' => number_format($totalComissaoVendedor, 2, ',', '.'),
             'comissao_gestor' => number_format($totalComissaoGestor, 2, ',', '.'),
+            'debug' => [
+                'vendedor_comissao_inicial' => $vendedor->comissao_inicial,
+                'vendedor_comissao_recorrencia' => $vendedor->comissao_recorrencia,
+                'vendedor_comissao_gestor_primeira' => $vendedor->comissao_gestor_primeira,
+                'imports' => $debugImports,
+            ]
         ]);
     }
 
