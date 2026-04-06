@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Subscription;
 use App\Models\SubscriptionCard;
 use App\Services\Checkout\SubscriptionService;
+use App\Services\SubscriptionLifecycleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
@@ -116,5 +117,38 @@ class SubscriptionController extends Controller
         }
 
         return redirect()->back()->with('error', 'Erro ao retomar assinatura.');
+    }
+
+    public function migrar(Request $request)
+    {
+        $lifecycle = new SubscriptionLifecycleService();
+        $count = $lifecycle->migrarVendasExistentes();
+
+        Log::info('[Admin] Migração de assinaturas acionada manualmente', [
+            'usuario_id' => auth()->id() ?? 0,
+            'vendas_migradas' => $count,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'migradas' => $count,
+            'message' => "{$count} vendas migradas com sucesso.",
+        ]);
+    }
+
+    public function verificar(Request $request)
+    {
+        $lifecycle = new SubscriptionLifecycleService();
+        $resultado = $lifecycle->verificarInadimplencia();
+
+        Log::info('[Admin] Verificação de inadimplência acionada manualmente', [
+            'usuario_id' => auth()->id() ?? 0,
+            'resultado' => $resultado,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'resultado' => $resultado,
+        ]);
     }
 }

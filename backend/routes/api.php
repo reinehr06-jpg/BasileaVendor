@@ -7,6 +7,7 @@ use App\Http\Controllers\VendaCobrancaController;
 use App\Http\Controllers\CobrancaController;
 use App\Http\Controllers\Api\ClienteStatusController;
 use App\Http\Controllers\Api\CheckoutSessionController;
+use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Middleware\ApiKeyAuth;
 
 // ==========================================
@@ -30,6 +31,13 @@ Route::middleware('api.key')->group(function () {
 
     // Checkout Session
     Route::post('/checkout/session', [\App\Http\Controllers\Api\CheckoutSessionController::class, 'create']);
+
+    // Ciclo de Assinatura — Migrar vendas existentes
+    Route::post('/subscriptions/migrate', [SubscriptionController::class, 'migrar']);
+    Route::post('/subscriptions/migrate/{vendaId}', [SubscriptionController::class, 'migrarVenda']);
+
+    // Ciclo de Assinatura — Verificar inadimplência
+    Route::post('/subscriptions/verificar-inadimplencia', [SubscriptionController::class, 'verificarInadimplencia']);
 });
 
 // ==========================================

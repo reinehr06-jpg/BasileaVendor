@@ -322,6 +322,10 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/assinaturas/{id}/resume', [SubscriptionController::class, 'resume'])->name('assinaturas.resume');
         Route::get('/assinaturas/{id}/card', [SubscriptionController::class, 'viewCard'])->name('assinaturas.card');
 
+        // Ciclo de Assinatura — Migração e Verificação
+        Route::post('/assinaturas/migrar', [\App\Http\Controllers\Master\SubscriptionController::class, 'migrar'])->name('assinaturas.migrar');
+        Route::post('/assinaturas/verificar', [\App\Http\Controllers\Master\SubscriptionController::class, 'verificar'])->name('assinaturas.verificar');
+
         // Aprovações Comerciais
         Route::get('/aprovacoes', [AprovacaoController::class, 'index'])->name('aprovacoes');
         Route::patch('/aprovacoes/{id}/aprovar', [AprovacaoController::class, 'aprovar'])->name('aprovacoes.aprovar');
