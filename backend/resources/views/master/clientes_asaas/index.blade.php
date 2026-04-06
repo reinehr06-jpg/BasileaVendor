@@ -504,11 +504,8 @@ async function atribuirEmMassa() {
         
         if (data.success) {
             alert(data.message + '\n\nVendedor: R$ ' + data.comissao_vendedor + '\nGestor: R$ ' + data.comissao_gestor);
-            // Limpar seleção da URL
-            const url = new URL(window.location);
-            url.searchParams.delete('selected');
-            window.history.replaceState({}, '', url);
-            setTimeout(() => window.location.reload(), 1500);
+            // Redirecionar para página de clientes
+            window.location.href = '{{ route("master.clientes") }}';
         } else {
             alert('Erro: ' + (data.message || 'Não foi possível atribuir.'));
         }

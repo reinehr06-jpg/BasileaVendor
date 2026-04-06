@@ -306,7 +306,7 @@ async function confirmarVendaSistema(btn) {
         if (data.success) {
             btn.innerHTML = '✓ Puxado para o Sistema';
             btn.style.background = '#0e7490';
-            setTimeout(() => { window.location.href = "{{ route('master.clientes-asaas.index') }}"; }, 1500);
+            setTimeout(() => { window.location.href = "{{ route('master.clientes') }}"; }, 1500);
         } else {
             alert('Erro: ' + (data.message || 'Não foi possível aprovar.'));
             btn.innerHTML = origText;
