@@ -150,7 +150,7 @@
     </div>
 
     {{-- Filtros --}}
-    <form method="GET" action="{{ route('master.clientes-asaas.index') }}" class="asaas-filters" onsubmit="saveSelectionToUrl();">
+    <form method="GET" action="{{ route('master.clientes-asaas.index') }}" class="asaas-filters" onsubmit="saveSelectionToUrl(); return true;">
         @if($aba && $aba !== 'todos') <input type="hidden" name="aba" value="{{ $aba }}"> @endif
         <div>
             <label>Buscar</label>
@@ -560,8 +560,10 @@ async function calcularComissaoPreview(vendedorId, clienteIds) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculando...';
     
+        const routeUrl = '/master/clientes-asaas/preview-assign';
+    
     try {
-        const resp = await fetch('{{ route("master.clientes-asaas.preview-assign") }}', {
+        const resp = await fetch(routeUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
             body: JSON.stringify({ customer_ids: parsedIds, vendedor_id: parseInt(vendedorId) })
@@ -606,8 +608,10 @@ async function executarAtribuicao(vendedorId, clienteIds) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
     
+    const bulkAssignUrl = '/master/clientes-asaas/bulk-assign';
+    
     try {
-        const resp = await fetch('{{ route("master.clientes-asaas.bulk-assign") }}', {
+        const resp = await fetch(bulkAssignUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
             body: JSON.stringify({ customer_ids: parsedIds, vendedor_id: parseInt(vendedorId) })
