@@ -8,6 +8,7 @@ use App\Http\Controllers\CobrancaController;
 use App\Http\Controllers\Api\ClienteStatusController;
 use App\Http\Controllers\Api\CheckoutSessionController;
 use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\LimparBancoController;
 use App\Http\Middleware\ApiKeyAuth;
 
 // ==========================================
@@ -38,6 +39,9 @@ Route::middleware('api.key')->group(function () {
 
     // Ciclo de Assinatura — Verificar inadimplência
     Route::post('/subscriptions/verificar-inadimplencia', [SubscriptionController::class, 'verificarInadimplencia']);
+
+    // Limpar banco de dados (apenas master)
+    Route::post('/limpar-banco', [LimparBancoController::class, 'limpar']);
 });
 
 // ==========================================
