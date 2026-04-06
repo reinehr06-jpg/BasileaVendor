@@ -3,47 +3,51 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Support\Facades\File;
 
 // Auto-clear stale caches after deploy (routes, config, views)
-// This runs only once per deploy when bootstrap/app.php changes
+// Uses plain PHP functions only - no Laravel facades available at this stage
 $cacheCheckFile = __DIR__ . '/../storage/framework/cache/.last_cache_check';
-$bootstrapMtime = filemtime(__FILE__);
+$bootstrapMtime = @filemtime(__FILE__);
 $shouldClear = false;
 
-if (!File::exists($cacheCheckFile)) {
-    $shouldClear = true;
-} else {
-    $lastCheck = (int) File::get($cacheCheckFile);
-    if ($bootstrapMtime > $lastCheck) {
+if ($bootstrapMtime !== false) {
+    if (!file_exists($cacheCheckFile)) {
         $shouldClear = true;
+    } else {
+        $lastCheck = (int) @file_get_contents($cacheCheckFile);
+        if ($bootstrapMtime > $lastCheck) {
+            $shouldClear = true;
+        }
     }
 }
 
 if ($shouldClear) {
     try {
-        File::ensureDirectoryExists(__DIR__ . '/../storage/framework/cache');
-        File::put($cacheCheckFile, (string) $bootstrapMtime);
+        $cacheDir = __DIR__ . '/../storage/framework/cache';
+        $bootstrapCacheDir = __DIR__ . '/cache';
+        
+        if (!is_dir($cacheDir)) {
+            @mkdir($cacheDir, 0755, true);
+        }
+        @file_put_contents($cacheCheckFile, (string) $bootstrapMtime);
         
         // Clear route cache (most common cause of 404s after deploy)
-        if (File::exists(__DIR__ . '/../bootstrap/cache/routes-v7.php')) {
-            File::delete(__DIR__ . '/../bootstrap/cache/routes-v7.php');
-        }
-        if (File::exists(__DIR__ . '/../bootstrap/cache/routes.php')) {
-            File::delete(__DIR__ . '/../bootstrap/cache/routes.php');
-        }
+        @unlink($bootstrapCacheDir . '/routes-v7.php');
+        @unlink($bootstrapCacheDir . '/routes.php');
         
         // Clear config cache
-        if (File::exists(__DIR__ . '/../bootstrap/cache/config.php')) {
-            File::delete(__DIR__ . '/../bootstrap/cache/config.php');
-        }
+        @unlink($bootstrapCacheDir . '/config.php');
         
         // Clear compiled services/packages
-        if (File::exists(__DIR__ . '/../bootstrap/cache/services.php')) {
-            File::delete(__DIR__ . '/../bootstrap/cache/services.php');
-        }
-        if (File::exists(__DIR__ . '/../bootstrap/cache/packages.php')) {
-            File::delete(__DIR__ . '/../bootstrap/cache/packages.php');
+        @unlink($bootstrapCacheDir . '/services.php');
+        @unlink($bootstrapCacheDir . '/packages.php');
+        
+        // Clear compiled views
+        $viewsCache = __DIR__ . '/../storage/framework/views';
+        if (is_dir($viewsCache)) {
+            foreach (glob($viewsCache . '/*') as $f) {
+                @unlink($f);
+            }
         }
     } catch (\Throwable $e) {
         // Silently fail - don't break the app
