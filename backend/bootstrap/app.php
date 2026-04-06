@@ -3,6 +3,52 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Support\Facades\File;
+
+// Auto-clear stale caches after deploy (routes, config, views)
+// This runs only once per deploy when bootstrap/app.php changes
+$cacheCheckFile = __DIR__ . '/../storage/framework/cache/.last_cache_check';
+$bootstrapMtime = filemtime(__FILE__);
+$shouldClear = false;
+
+if (!File::exists($cacheCheckFile)) {
+    $shouldClear = true;
+} else {
+    $lastCheck = (int) File::get($cacheCheckFile);
+    if ($bootstrapMtime > $lastCheck) {
+        $shouldClear = true;
+    }
+}
+
+if ($shouldClear) {
+    try {
+        File::ensureDirectoryExists(__DIR__ . '/../storage/framework/cache');
+        File::put($cacheCheckFile, (string) $bootstrapMtime);
+        
+        // Clear route cache (most common cause of 404s after deploy)
+        if (File::exists(__DIR__ . '/../bootstrap/cache/routes-v7.php')) {
+            File::delete(__DIR__ . '/../bootstrap/cache/routes-v7.php');
+        }
+        if (File::exists(__DIR__ . '/../bootstrap/cache/routes.php')) {
+            File::delete(__DIR__ . '/../bootstrap/cache/routes.php');
+        }
+        
+        // Clear config cache
+        if (File::exists(__DIR__ . '/../bootstrap/cache/config.php')) {
+            File::delete(__DIR__ . '/../bootstrap/cache/config.php');
+        }
+        
+        // Clear compiled services/packages
+        if (File::exists(__DIR__ . '/../bootstrap/cache/services.php')) {
+            File::delete(__DIR__ . '/../bootstrap/cache/services.php');
+        }
+        if (File::exists(__DIR__ . '/../bootstrap/cache/packages.php')) {
+            File::delete(__DIR__ . '/../bootstrap/cache/packages.php');
+        }
+    } catch (\Throwable $e) {
+        // Silently fail - don't break the app
+    }
+}
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
