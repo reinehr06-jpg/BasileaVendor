@@ -723,8 +723,14 @@ class VendaController extends Controller
         // Auto-expirar vendas com mais de 72h sem pagamento
         self::expirarVendasAntigas();
 
-        // Sincronizar proativamente todas as vendas pendentes com Asaas
-        self::syncPendentes();
+        // Sincronizar proativamente todas as vendas pendentes com Asaas (com proteção)
+        try {
+            self::syncPendentes();
+        } catch (\Exception $e) {
+            Log::warning('VendaController: Falha ao sincronizar pendentes no indexMaster', [
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         // Vendas ativas (não canceladas, não expiradas)
         $vendas = Venda::whereNotIn('status', ['Expirado', 'Cancelado'])
