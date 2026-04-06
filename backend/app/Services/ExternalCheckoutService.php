@@ -39,7 +39,7 @@ class ExternalCheckoutService
             'payment_method' => $this->mapPaymentMethod($venda->forma_pagamento),
             'installments' => (int) ($venda->parcelas ?? 1),
             'customer' => [
-                'name' => $cliente->nome,
+                'name' => $cliente->nome_igreja ?? $cliente->nome,
                 'email' => $cliente->email ?? '',
                 'phone' => $phone,
                 'document' => $document,
@@ -61,7 +61,6 @@ class ExternalCheckoutService
         ];
 
         try {
-            // A API key pode ser enviada no Header de Autorização caso o seu Checkout implemente Sanctum ou Passport.
             $response = Http::withHeaders([
                 'Accept' => 'application/json',
                 'Authorization' => "Bearer {$apiKey}"
@@ -73,26 +72,29 @@ class ExternalCheckoutService
                 $uuid = $data['transaction']['uuid'] ?? null;
                 $paymentUrl = $data['transaction']['payment_url'] ?? null;
 
-                // Se o UUID não vier mas na documentação estiver em outro campo, ele adapta.
                 if ($uuid) {
                     $venda->update([
                         'checkout_transaction_uuid' => $uuid,
                         'checkout_payment_link' => $paymentUrl
                     ]);
                     
-                    return $uuid;
+                    return ['success' => true, 'uuid' => $uuid, 'payment_url' => $paymentUrl];
                 }
             }
 
+            $errorBody = $response->json();
+            $errorMessage = $errorBody['message'] ?? $errorBody['error'] ?? $response->body();
+
             Log::error("Falha ao criar transação no checkout externo para Venda {$venda->id}", [
                 'status' => $response->status(),
-                'body' => $response->body()
+                'body' => $errorBody,
+                'payload' => $payload,
             ]);
 
-            return null;
+            return ['success' => false, 'message' => $errorMessage, 'status' => $response->status()];
         } catch (\Exception $e) {
             Log::error("Exceção ao ligar para o Checkout externo (Venda {$venda->id}): " . $e->getMessage());
-            return null;
+            return ['success' => false, 'message' => 'Erro de conexão com o checkout: ' . $e->getMessage(), 'status' => 0];
         }
     }
 
@@ -149,6 +151,14 @@ class ExternalCheckoutService
                 'email' => $cliente->email ?? '',
                 'document' => $document,
                 'phone' => $phone,
+                'address' => [
+                    'street' => $cliente->endereco ?? '',
+                    'number' => $cliente->numero ?? '',
+                    'neighborhood' => $cliente->bairro ?? '',
+                    'city' => $cliente->cidade ?? '',
+                    'state' => strtoupper($cliente->estado ?? ''),
+                    'postalCode' => preg_replace('/[^0-9]/', '', $cliente->cep ?? ''),
+                ],
             ],
             'metadata' => [
                 'venda_id' => $venda->id,
@@ -184,20 +194,23 @@ class ExternalCheckoutService
                         'billing_cycle' => $billingCycle,
                     ]);
                     
-                    return $uuid;
+                    return ['success' => true, 'uuid' => $uuid, 'payment_url' => $paymentUrl];
                 }
             }
 
+            $errorBody = $response->json();
+            $errorMessage = $errorBody['message'] ?? $errorBody['error'] ?? $response->body();
+
             Log::error("Falha ao criar assinatura no checkout externo para Venda {$venda->id}", [
                 'status' => $response->status(),
-                'body' => $response->body(),
+                'body' => $errorBody,
                 'payload' => $payload,
             ]);
 
-            return null;
+            return ['success' => false, 'message' => $errorMessage, 'status' => $response->status()];
         } catch (\Exception $e) {
             Log::error("Exceção ao criar assinatura no checkout externo (Venda {$venda->id}): " . $e->getMessage());
-            return null;
+            return ['success' => false, 'message' => 'Erro de conexão com o checkout: ' . $e->getMessage(), 'status' => 0];
         }
     }
 

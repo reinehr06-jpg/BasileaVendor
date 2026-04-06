@@ -1218,21 +1218,31 @@ class VendaController extends Controller
                     $isBoletoOuCartao = in_array(strtolower($venda->forma_pagamento ?? ''), ['boleto', 'credit_card', 'cartao', 'bolet']);
 
                     if ($isMensal && $isBoletoOuCartao) {
-                        $checkoutUuid = $checkoutService->createSubscriptionForVenda($venda, $cliente);
+                        $result = $checkoutService->createSubscriptionForVenda($venda, $cliente);
                     } else {
-                        $checkoutUuid = $checkoutService->createTransactionForVenda($venda, $cliente);
+                        $result = $checkoutService->createTransactionForVenda($venda, $cliente);
                     }
 
-                    if ($checkoutUuid) {
+                    if ($result['success']) {
+                        $checkoutUuid = $result['uuid'];
                         Log::info('Checkout: Link gerado com sucesso', [
                             'venda_id' => $venda->id,
                             'uuid' => $checkoutUuid,
                             'tipo' => $isMensal && $isBoletoOuCartao ? 'subscription' : 'transaction',
                         ]);
                     } else {
-                        Log::warning('Checkout: Falha ao criar transação/assinatura no checkout externo', [
+                        $errorMsg = $result['message'] ?? 'Erro desconhecido ao comunicar com o checkout.';
+                        $errorStatus = $result['status'] ?? 500;
+                        
+                        Log::warning('Checkout: Erro ao criar transação/assinatura', [
                             'venda_id' => $venda->id,
+                            'error' => $errorMsg,
+                            'status' => $errorStatus,
                         ]);
+                        
+                        return response()->json([
+                            'error' => 'Falha ao gerar link de pagamento: ' . $errorMsg,
+                        ], $errorStatus ?: 500);
                     }
                 } catch (\Exception $e) {
                     Log::warning('Checkout: Erro ao conectar com checkout externo', [
