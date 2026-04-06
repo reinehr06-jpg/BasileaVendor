@@ -27,9 +27,9 @@ class ForcePasswordChange
             try {
                 if (Schema::hasColumn('users', 'require_password_change') &&
                     $user->require_password_change && 
-                    Route::has('password.change') && 
                     !$request->is('password/*') && 
-                    !$request->is('logout')) {
+                    !$request->is('logout') &&
+                    !$request->is('api/*')) {
                     
                     return redirect()->route('password.change')
                         ->with('warning', 'Você deve alterar sua senha provisória antes de continuar.');

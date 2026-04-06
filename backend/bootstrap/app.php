@@ -4,56 +4,6 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 
-// Auto-clear stale caches after deploy (routes, config, views)
-// Uses plain PHP functions only - no Laravel facades available at this stage
-$cacheCheckFile = __DIR__ . '/../storage/framework/cache/.last_cache_check';
-$bootstrapMtime = @filemtime(__FILE__);
-$shouldClear = false;
-
-if ($bootstrapMtime !== false) {
-    if (!file_exists($cacheCheckFile)) {
-        $shouldClear = true;
-    } else {
-        $lastCheck = (int) @file_get_contents($cacheCheckFile);
-        if ($bootstrapMtime > $lastCheck) {
-            $shouldClear = true;
-        }
-    }
-}
-
-if ($shouldClear) {
-    try {
-        $cacheDir = __DIR__ . '/../storage/framework/cache';
-        $bootstrapCacheDir = __DIR__ . '/cache';
-        
-        if (!is_dir($cacheDir)) {
-            @mkdir($cacheDir, 0755, true);
-        }
-        @file_put_contents($cacheCheckFile, (string) $bootstrapMtime);
-        
-        // Clear route cache (most common cause of 404s after deploy)
-        @unlink($bootstrapCacheDir . '/routes-v7.php');
-        @unlink($bootstrapCacheDir . '/routes.php');
-        
-        // Clear config cache
-        @unlink($bootstrapCacheDir . '/config.php');
-        
-        // Clear compiled services/packages
-        @unlink($bootstrapCacheDir . '/services.php');
-        @unlink($bootstrapCacheDir . '/packages.php');
-        
-        // Clear compiled views
-        $viewsCache = __DIR__ . '/../storage/framework/views';
-        if (is_dir($viewsCache)) {
-            foreach (glob($viewsCache . '/*') as $f) {
-                @unlink($f);
-            }
-        }
-    } catch (\Throwable $e) {
-        // Silently fail - don't break the app
-    }
-}
-
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
