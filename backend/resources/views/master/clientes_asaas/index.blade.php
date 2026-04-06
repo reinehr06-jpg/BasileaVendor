@@ -487,15 +487,6 @@ async function atribuirEmMassa() {
     const vendedorNome = document.getElementById('bulk_vendedor_select').options[document.getElementById('bulk_vendedor_select').selectedIndex].text;
     
     const modalHtml = `
-    if (!vendedorId) {
-        alert('Selecione um vendedor.');
-        return;
-    }
-    
-    const clienteIds = Array.from(checkboxes).map(cb => cb.value);
-    const vendedorNome = document.getElementById('bulk_vendedor_select').options[document.getElementById('bulk_vendedor_select').selectedIndex].text;
-    
-    const modalHtml = `
         <div id="confirm-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
             <div style="background:white;border-radius:16px;padding:24px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
                 <h3 style="margin:0 0 20px;color:#1e293b;font-size:1.2rem;font-weight:800;">
