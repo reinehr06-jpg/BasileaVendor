@@ -571,7 +571,7 @@ class AsaasClienteSyncController extends Controller
                     ]);
                 }
             } else {
-                // Se é vendedor normal, cria comissão para vendedor e gestor
+                // Vendedor normal: cria comissão para vendedor E gestor da equipe
                 if ($comissaoVendedor > 0 || $comissaoGestor > 0) {
                     Comissao::create([
                         'vendedor_id' => $vendedorId,
