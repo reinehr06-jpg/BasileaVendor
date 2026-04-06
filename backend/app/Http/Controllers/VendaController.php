@@ -1187,6 +1187,8 @@ class VendaController extends Controller
             ];
             $paymentMethod = $methodMap[strtoupper($method)] ?? 'credit_card';
 
+            $isVendor = $user->perfil !== 'master';
+
             // Boleto: não gera link de checkout, usa download direto do Asaas
             if ($paymentMethod === 'boleto') {
                 return response()->json([
@@ -1197,9 +1199,60 @@ class VendaController extends Controller
                 ]);
             }
 
+            $externalBaseUrl = \App\Models\Setting::get('checkout_external_url');
             $checkoutBaseUrl = config('checkout-integration.base_url', 'http://localhost:8001');
             $checkoutUuid = $venda->checkout_transaction_uuid;
 
+            // Para VENDEDOR: usar link direto do Asaas quando checkout externo não está configurado
+            if ($isVendor && !$externalBaseUrl) {
+                $pagamento = $venda->pagamentos()->first();
+                $asaasId = $pagamento ? $pagamento->asaas_payment_id : ($venda->asaas_payment_link_id ?? null);
+                
+                if ($asaasId) {
+                    // Link direto do Asaas
+                    $asaasService = new \App\Services\AsaasService();
+                    $asaasBaseUrl = $asaasService->baseUrl;
+                    $asaasUrl = $asaasBaseUrl . '/payment/link/' . $asaasId;
+                    
+                    return response()->json([
+                        'success' => true,
+                        'url' => $asaasUrl,
+                        'message' => 'Link de pagamento Asaas.',
+                    ]);
+                }
+                
+                // Se não tem Asaas ID, tentar criar pagamento Asaas direto
+                try {
+                    $asaasService = new \App\Services\AsaasService();
+                    $asaasResult = $asaasService->createPaymentLink([
+                        'billingType' => $paymentMethod === 'pix' ? 'PIX' : ($paymentMethod === 'boleto' ? 'BOLETO_BANCARIO' : 'CREDIT_CARD'),
+                        'chargeType' => $venda->tipo_negociacao === 'mensal' ? 'RECURRING' : 'DETACHED',
+                        'name' => 'Plano ' . ($venda->plano ?? 'Basileia'),
+                        'value' => (float) $venda->valor_final,
+                        'externalReference' => 'venda_' . $venda->id,
+                        'client' => $venda->cliente?->asaas_customer_id ?? null,
+                        'dueDate' => now()->format('Y-m-d'),
+                    ]);
+                    
+                    if (!empty($asaasResult['id'])) {
+                        $asaasId = $asaasResult['id'];
+                        $venda->update(['asaas_payment_link_id' => $asaasId]);
+                        return response()->json([
+                            'success' => true,
+                            'url' => $asaasService->baseUrl . '/payment/link/' . $asaasId,
+                            'message' => 'Link de pagamento Asaas criado.',
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Vendedor: Falha ao gerar link Asaas', ['venda_id' => $venda->id, 'error' => $e->getMessage()]);
+                }
+                
+                return response()->json([
+                    'error' => 'Venda sem link de pagamento Asaas. Solicite ao administrador que gere uma cobrança.',
+                ], 400);
+            }
+
+            // Para MASTER ou quando checkout externo está configurado:
             // Tentar criar transação/assinatura no checkout externo se não tiver UUID
             if (!$checkoutUuid) {
                 try {
@@ -1220,14 +1273,14 @@ class VendaController extends Controller
                         $result = $checkoutService->createTransactionForVenda($venda, $cliente);
                     }
 
-                    if ($result['success']) {
+                    if ($result && $result['success']) {
                         $checkoutUuid = $result['uuid'];
                         Log::info('Checkout: Link gerado com sucesso', [
                             'venda_id' => $venda->id,
                             'uuid' => $checkoutUuid,
                             'tipo' => $isMensal && $isBoletoOuCartao ? 'subscription' : 'transaction',
                         ]);
-                    } else {
+                    } elseif ($result) {
                         $errorMsg = $result['message'] ?? 'Erro desconhecido ao comunicar com o checkout.';
                         $errorStatus = $result['status'] ?? 500;
                         
@@ -1250,8 +1303,6 @@ class VendaController extends Controller
             }
 
             // 1. Tentar URL do Checkout Externo ( Painel Master)
-            $externalBaseUrl = \App\Models\Setting::get('checkout_external_url');
-            
             if ($externalBaseUrl) {
                 $pagamento = $venda->pagamentos()->first();
                 $asaasId = $pagamento ? $pagamento->asaas_payment_id : ($venda->asaas_payment_link_id ?? null);
