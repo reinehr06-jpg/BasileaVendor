@@ -16,6 +16,7 @@ class LimparBancoController extends Controller
         }
 
         try {
+            // PostgreSQL: TRUNCATE com CASCADE ignora foreign keys
             $tabelas = [
                 'comissoes',
                 'pagamentos',
@@ -30,12 +31,9 @@ class LimparBancoController extends Controller
                 'subscription_cards',
             ];
 
-            // Limpar cada tabela com cascade
-            foreach ($tabelas as $tabela) {
-                if (Schema::hasTable($tabela)) {
-                    DB::table($tabela)->delete();
-                }
-            }
+            // Montar query TRUNCATE com CASCADE
+            $tabelasStr = implode(', ', $tabelas);
+            DB::statement("TRUNCATE TABLE {$tabelasStr} RESTART IDENTITY CASCADE");
 
             \Illuminate\Support\Facades\Log::info('Banco limpo pelo usuário: ' . auth()->id());
 
