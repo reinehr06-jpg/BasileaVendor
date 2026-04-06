@@ -482,6 +482,67 @@ class AsaasClienteSyncController extends Controller
     }
 
     // ──────────────────────────────────────────────────────────────
+    // ATRIBUIÇÃO EM MASSA
+    // ──────────────────────────────────────────────────────────────
+
+    public function bulkAssign(Request $request)
+    {
+        $request->validate([
+            'customer_ids' => 'required|array|min:1',
+            'customer_ids.*' => 'integer|exists:legacy_customer_imports,id',
+            'vendedor_id' => 'required|exists:vendedores,id',
+        ]);
+
+        $vendedorId = $request->vendedor_id;
+        $customerIds = $request->customer_ids;
+        $mesRef = $this->getMesReferencia();
+
+        $vendedor = Vendedor::with('user')->find($vendedorId);
+        if (!$vendedor) {
+            return response()->json(['success' => false, 'message' => 'Vendedor não encontrado'], 404);
+        }
+
+        $totalComissaoVendedor = 0;
+        $totalComissaoGestor = 0;
+        $atribuidos = 0;
+
+        foreach ($customerIds as $customerId) {
+            $import = DB::table('legacy_customer_imports')->where('id', $customerId)->first();
+            
+            if (!$import || $import->vendedor_id) {
+                continue;
+            }
+
+            $comissaoVendedor = 0;
+            $comissaoGestor = 0;
+
+            if ($import->diagnostico_status === 'ATIVO' && $import->comissao_tipo) {
+                [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
+            }
+
+            DB::table('legacy_customer_imports')->where('id', $customerId)->update([
+                'vendedor_id' => $vendedorId,
+                'comissao_vendedor_calculada' => $comissaoVendedor,
+                'comissao_gestor_calculada' => $comissaoGestor,
+                'comissao_mes_referencia' => $mesRef,
+                'updated_at' => now(),
+            ]);
+
+            $totalComissaoVendedor += $comissaoVendedor;
+            $totalComissaoGestor += $comissaoGestor;
+            $atribuidos++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$atribuidos} cliente(s) atribuído(s) com sucesso!",
+            'atribuidos' => $atribuidos,
+            'comissao_vendedor' => number_format($totalComissaoVendedor, 2, ',', '.'),
+            'comissao_gestor' => number_format($totalComissaoGestor, 2, ',', '.'),
+        ]);
+    }
+
+    // ──────────────────────────────────────────────────────────────
     // CONFIRMAR CLIENTE → cria em clientes + vendas do sistema
     // ──────────────────────────────────────────────────────────────
 

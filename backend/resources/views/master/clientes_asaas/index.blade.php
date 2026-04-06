@@ -199,6 +199,42 @@
 
 {{-- TABELA PRINCIPAL --}}
 <div style="background:white; border-radius:12px; border:1px solid #ededf2; overflow:hidden; box-shadow:0 2px 4px rgba(50,50,71,0.06);">
+    {{-- BARRA DE ATRIBUIÇÃO EM MASSA --}}
+    <div id="bulk_assign_bar" style="display:none; background:linear-gradient(135deg, #4C1D95 0%, #7c3aed 100%); padding:16px 20px; color:white;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <input type="checkbox" id="select_all_checkbox" onchange="toggleAllCheckboxes()" style="width:18px; height:18px; cursor:pointer;">
+                <span style="font-weight:700; font-size:0.95rem;" id="selected_count">0 selecionados</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+                <select id="bulk_vendedor_select" style="padding:10px 14px; border-radius:8px; border:2px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); color:white; font-weight:600; min-width:200px;">
+                    <option value="">— Selecionar Vendedor —</option>
+                    @php
+                        $listaG = $vendedores->where('is_gestor', true);
+                        $listaV = $vendedores->where('is_gestor', false);
+                    @endphp
+                    @if($listaG->count() > 0)
+                    <optgroup label="Gestores" style="color:#1e1e1e;">
+                        @foreach($listaG as $v)
+                        <option value="{{ $v->id }}" style="color:#1e1e1e;">{{ $v->user->name ?? 'N/A' }}</option>
+                        @endforeach
+                    </optgroup>
+                    @endif
+                    @if($listaV->count() > 0)
+                    <optgroup label="Vendedores" style="color:#1e1e1e;">
+                        @foreach($listaV as $v)
+                        <option value="{{ $v->id }}" style="color:#1e1e1e;">{{ $v->user->name ?? 'N/A' }}</option>
+                        @endforeach
+                    </optgroup>
+                    @endif
+                </select>
+                <button type="button" onclick="atribuirEmMassa()" class="btn-bulk-assign" style="padding:10px 20px; background:#22c55e; border:none; border-radius:8px; color:white; font-weight:800; cursor:pointer; font-size:0.9rem;">
+                    <i class="fas fa-user-plus"></i> Atribuir
+                </button>
+            </div>
+        </div>
+    </div>
+
     @if($clientes->isEmpty())
         <div style="text-align:center; padding:80px 20px; color:#a1a1b5;">
             <i class="fas fa-cloud-arrow-down" style="font-size:3rem; opacity:0.15; display:block; margin-bottom:16px; color:#4C1D95;"></i>
@@ -219,6 +255,9 @@
         <table class="asaas-table">
             <thead>
                 <tr>
+                    <th style="width:40px;">
+                        <input type="checkbox" id="select_all_top" onchange="toggleAllCheckboxes()" style="width:16px; height:16px; cursor:pointer;">
+                    </th>
                     <th>Cliente</th>
                     <th class="text-center">Status</th>
                     <th class="text-center">Tipo</th>
@@ -253,6 +292,9 @@
                     $jaConfirmado = !is_null($c->local_cliente_id);
                 @endphp
                 <tr>
+                    <td style="text-align:center;">
+                        <input type="checkbox" class="row-checkbox" value="{{ $c->id }}" onchange="updateSelectedCount()" style="width:16px; height:16px; cursor:pointer;">
+                    </td>
                     <td style="max-width:220px;">
                         <div style="font-weight:700; color:#3b3b5c; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ $c->nome }}">
                             {{ $c->nome ?? '—' }}
@@ -281,7 +323,7 @@
                     <td class="text-center" style="white-space:nowrap; color:#a1a1b5; font-size:0.75rem;">{{ $tipoLabel }}</td>
                     <td class="text-center" style="white-space:nowrap;">
                         @if($c->primeiro_pagamento_at)
-                            <span style="font-size:0.8rem; font-weight:600; color:{{ str_starts_with($c->primeiro_pagamento_at, '2026-03') ? '#4C1D95' : '#3b3b5c' }};">
+                            <span style="font-size:0.8rem; font-weight:600; color:#3b3b5c;">
                                 {{ \Carbon\Carbon::parse($c->primeiro_pagamento_at)->format('d/m/Y') }}
                             </span>
                         @else
@@ -371,6 +413,69 @@ async function sincronizarAsaas() {
     } finally {
         btn.disabled  = false;
         btn.innerHTML = '<i class="fas fa-rotate"></i> Sincronizar com Asaas';
+    }
+}
+
+function toggleAllCheckboxes() {
+    const master = document.getElementById('select_all_top');
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = master.checked);
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    const bar = document.getElementById('bulk_assign_bar');
+    const countEl = document.getElementById('selected_count');
+    const count = checkboxes.length;
+    countEl.textContent = count + ' selecionado' + (count !== 1 ? 's' : '');
+    bar.style.display = count > 0 ? 'block' : 'none';
+}
+
+async function atribuirEmMassa() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    const vendedorId = document.getElementById('bulk_vendedor_select').value;
+    const btn = document.querySelector('.btn-bulk-assign');
+    
+    if (checkboxes.length === 0) {
+        alert('Selecione pelo menos um cliente.');
+        return;
+    }
+    
+    if (!vendedorId) {
+        alert('Selecione um vendedor.');
+        return;
+    }
+    
+    if (!confirm('Atribuir ' + checkboxes.length + ' cliente(s) ao vendedor selecionado?')) {
+        return;
+    }
+    
+    const clienteIds = Array.from(checkboxes).map(cb => cb.value);
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+    
+    try {
+        const resp = await fetch('{{ route("master.clientes-asaas.bulk-assign") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            body: JSON.stringify({ customer_ids: clienteIds, vendedor_id: parseInt(vendedorId) })
+        });
+        const data = await resp.json();
+        
+        if (data.success) {
+            alert(data.message + '\n\nVendedor: R$ ' + data.comissao_vendedor + '\nGestor: R$ ' + data.comissao_gestor);
+            setTimeout(() => window.location.reload(), 1500);
+        } else {
+            alert('Erro: ' + (data.message || 'Não foi possível atribuir.'));
+        }
+    } catch (e) {
+        alert('Erro de conexão: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Atribuir';
     }
 }
 </script>
