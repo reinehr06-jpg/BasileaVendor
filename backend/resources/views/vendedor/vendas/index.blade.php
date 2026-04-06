@@ -32,16 +32,14 @@
         ['type' => 'csv', 'url' => route('vendedor.vendas.exportar', ['formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
     ]"
 >
-    <x-slot:actions>
-        <div style="display:flex; gap:10px;">
-            <a href="{{ route('vendedor.vendas.canceladas') }}" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4); padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:0.2s;">
-                <i class="fas fa-ban"></i> Canceladas ({{ ($vendasCanceladas->count() ?? 0) + ($vendasExpiradas->count() ?? 0) }})
-            </a>
-            <a href="{{ route('vendedor.vendas.create') }}" class="btn btn-primary" style="padding: 12px 24px; font-weight: 800; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.4); border: none;">
-                <i class="fas fa-plus-circle"></i> Nova Venda
-            </a>
-        </div>
-    </x-slot:actions>
+    <div style="display:flex; gap:10px;">
+        <a href="{{ route('vendedor.vendas.canceladas') }}" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid rgba(239,68,68,0.4); padding:10px 18px; border-radius:10px; font-weight:700; font-size:0.85rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:0.2s;">
+            <i class="fas fa-ban"></i> Canceladas ({{ ($vendasCanceladas->count() ?? 0) + ($vendasExpiradas->count() ?? 0) }})
+        </a>
+        <a href="{{ route('vendedor.vendas.create') }}" class="btn btn-primary" style="padding: 12px 24px; font-weight: 800; font-size: 0.95rem; box-shadow: 0 4px 15px rgba(var(--primary-rgb), 0.4); border: none;">
+            <i class="fas fa-plus-circle"></i> Nova Venda
+        </a>
+    </div>
 </x-page-hero>
 
 <!-- Stats -->
