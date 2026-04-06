@@ -488,8 +488,126 @@ async function atribuirEmMassa() {
         return;
     }
     
+async function atribuirEmMassa() {
+    const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+    const vendedorId = document.getElementById('bulk_vendedor_select').value;
+    
+    if (checkboxes.length === 0) {
+        alert('Selecione pelo menos um cliente.');
+        return;
+    }
+    
+    if (!vendedorId) {
+        alert('Selecione um vendedor.');
+        return;
+    }
+    
     const clienteIds = Array.from(checkboxes).map(cb => cb.value);
+    const vendedorNome = document.getElementById('bulk_vendedor_select').options[document.getElementById('bulk_vendedor_select').selectedIndex].text;
+    
+    const modalHtml = `
+        <div id="confirm-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
+            <div style="background:white;border-radius:16px;padding:24px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <h3 style="margin:0 0 20px;color:#1e293b;font-size:1.2rem;font-weight:800;">
+                    <i class="fas fa-user-plus" style="color:#4C1D95;"></i> Confirmar Atribuição
+                </h3>
+                
+                <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:16px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+                        <div>
+                            <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Clientes</div>
+                            <div style="font-size:1.5rem;font-weight:800;color:#4C1D95;">${clienteIds.length}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Vendedor</div>
+                            <div style="font-size:1rem;font-weight:700;color:#1e293b;">${vendedorNome}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="padding-top:16px;border-top:1px solid #e2e8f0;">
+                        <button id="btn-calcular" onclick="calcularComissaoPreview('${vendedorId}', '${JSON.stringify(clienteIds)}')" 
+                            style="width:100%;padding:12px;background:#4C1D95;border:none;border-radius:8px;color:white;font-weight:700;cursor:pointer;">
+                            <i class="fas fa-calculator"></i> Calcular Comissões
+                        </button>
+                    </div>
+                    
+                    <div id="preview-result" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div>
+                                <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Comissão Vendedor</div>
+                                <div id="preview-comissao-vendedor" style="font-size:1.2rem;font-weight:800;color:#166534;">—</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Comissão Gestor</div>
+                                <div id="preview-comissao-gestor" style="font-size:1.2rem;font-weight:800;color:#2563eb;">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="display:flex;gap:12px;">
+                    <button onclick="closeConfirmModal()" style="flex:1;padding:12px;border:2px solid #e2e8f0;border-radius:8px;background:white;color:#64748b;font-weight:700;cursor:pointer;">Cancelar</button>
+                    <button id="btn-confirm-assign" onclick="executarAtribuicao('${vendedorId}', '${JSON.stringify(clienteIds)}')" disabled style="flex:1;padding:12px;border:none;border-radius:8px;background:#9ca3af;color:white;font-weight:700;cursor:not-allowed;opacity:0.6;">
+                        <i class="fas fa-check"></i> Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const existing = document.getElementById('confirm-modal');
+    if (existing) existing.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeConfirmModal() {
+    const modal = document.getElementById('confirm-modal');
+    if (modal) modal.remove();
+}
+
+async function calcularComissaoPreview(vendedorId, clienteIds) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const btn = document.getElementById('btn-calcular');
+    const parsedIds = JSON.parse(clienteIds);
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculando...';
+    
+    try {
+        const resp = await fetch('{{ route("master.clientes-asaas.preview-assign") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            body: JSON.stringify({ customer_ids: parsedIds, vendedor_id: parseInt(vendedorId) })
+        });
+        const data = await resp.json();
+        
+        if (data.success) {
+            document.getElementById('preview-result').style.display = 'block';
+            document.getElementById('preview-comissao-vendedor').textContent = data.comissao_vendedor;
+            document.getElementById('preview-comissao-gestor').textContent = data.comissao_gestor;
+            
+            const confirmBtn = document.getElementById('btn-confirm-assign');
+            confirmBtn.disabled = false;
+            confirmBtn.style.background = '#22c55e';
+            confirmBtn.style.cursor = 'pointer';
+            confirmBtn.style.opacity = '1';
+        } else {
+            alert('Erro: ' + (data.message || 'Não foi possível calcular.'));
+        }
+    } catch (e) {
+        alert('Erro: ' + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-calculator"></i> Calcular Comissões';
+    }
+}
+
+async function executarAtribuicao(vendedorId, clienteIds) {
+    closeConfirmModal();
+    
+    const btn = document.querySelector('.btn-bulk-assign');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
+    const parsedIds = JSON.parse(clienteIds);
     
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
@@ -498,14 +616,13 @@ async function atribuirEmMassa() {
         const resp = await fetch('{{ route("master.clientes-asaas.bulk-assign") }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-            body: JSON.stringify({ customer_ids: clienteIds, vendedor_id: parseInt(vendedorId) })
+            body: JSON.stringify({ customer_ids: parsedIds, vendedor_id: parseInt(vendedorId) })
         });
         const data = await resp.json();
         
         if (data.success) {
             alert(data.message + '\n\nVendedor: R$ ' + data.comissao_vendedor + '\nGestor: R$ ' + data.comissao_gestor);
-            // Redirecionar para página de clientes
-            window.location.href = '{{ route("master.clientes") }}';
+            setTimeout(() => window.location.reload(), 1500);
         } else {
             alert('Erro: ' + (data.message || 'Não foi possível atribuir.'));
         }

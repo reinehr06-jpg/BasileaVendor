@@ -529,6 +529,66 @@ class AsaasClienteSyncController extends Controller
     }
 
     // ──────────────────────────────────────────────────────────────
+    // ATRIBUIÇÃO EM MASSA - PRÉVIA (CALCULAR ANTES)
+    // ──────────────────────────────────────────────────────────────
+
+    public function previewAssign(Request $request)
+    {
+        $request->validate([
+            'customer_ids' => 'required|array|min:1',
+            'customer_ids.*' => 'integer|exists:legacy_customer_imports,id',
+            'vendedor_id' => 'required|exists:vendedores,id',
+        ]);
+
+        $vendedorId = $request->vendedor_id;
+        $customerIds = $request->customer_ids;
+        $mesRef = $this->getMesReferencia();
+
+        $vendedor = Vendedor::with('user')->find($vendedorId);
+        if (!$vendedor) {
+            return response()->json(['success' => false, 'message' => 'Vendedor não encontrado'], 404);
+        }
+
+        $isGestor = $vendedor->is_gestor ?? false;
+        $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
+
+        $totalComissaoVendedor = 0;
+        $totalComissaoGestor = 0;
+        $totalClientes = 0;
+
+        foreach ($customerIds as $customerId) {
+            $import = DB::table('legacy_customer_imports')->where('id', $customerId)->first();
+            
+            if (!$import || $import->vendedor_id) {
+                continue;
+            }
+
+            $comissaoVendedor = 0;
+            $comissaoGestor = 0;
+
+            if ($import->diagnostico_status === 'ATIVO' && $import->comissao_tipo) {
+                [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
+            }
+
+            if ($isGestor) {
+                $totalComissaoVendedor += $comissaoVendedor;
+            } else {
+                $totalComissaoVendedor += $comissaoVendedor;
+                $totalComissaoGestor += $comissaoGestor;
+            }
+            $totalClientes++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'total_clientes' => $totalClientes,
+            'vendedor_nome' => $vendedor->user->name ?? 'Vendedor',
+            'comissao_vendedor' => number_format($totalComissaoVendedor, 2, ',', '.'),
+            'comissao_gestor' => number_format($totalComissaoGestor, 2, ',', '.'),
+        ]);
+    }
+
+    // ──────────────────────────────────────────────────────────────
     // ATRIBUIÇÃO EM MASSA
     // ──────────────────────────────────────────────────────────────
 
@@ -623,10 +683,13 @@ class AsaasClienteSyncController extends Controller
             $atribuidos++;
         }
 
+        $vendedorNome = $vendedor->user->name ?? 'Vendedor';
+
         return response()->json([
             'success' => true,
             'message' => "{$atribuidos} cliente(s) atribuído(s) com sucesso!",
             'atribuidos' => $atribuidos,
+            'vendedor_nome' => $vendedorNome,
             'comissao_vendedor' => number_format($totalComissaoVendedor, 2, ',', '.'),
             'comissao_gestor' => number_format($totalComissaoGestor, 2, ',', '.'),
         ]);

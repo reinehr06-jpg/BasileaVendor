@@ -372,6 +372,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::patch('/clientes-asaas/{id}/vendedor', [AsaasClienteSyncController::class, 'atribuirVendedor'])->name('clientes-asaas.vendedor');
         Route::post('/clientes-asaas/{id}/confirmar', [AsaasClienteSyncController::class, 'confirmarCliente'])->name('clientes-asaas.confirmar');
         Route::post('/clientes-asaas/bulk-assign', [AsaasClienteSyncController::class, 'bulkAssign'])->name('clientes-asaas.bulk-assign');
+        Route::post('/clientes-asaas/preview-assign', [AsaasClienteSyncController::class, 'previewAssign'])->name('clientes-asaas.preview-assign');
 
 
 
