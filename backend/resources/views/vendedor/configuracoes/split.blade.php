@@ -96,6 +96,19 @@
             </div>
             <div class="rate-type">Comissão Atribuída</div>
         </div>
+        
+        @if($vendedor->is_gestor && ($vendedor->comissao_gestor_primeira > 0 || $vendedor->comissao_gestor_recorrencia > 0))
+        <div class="rate-box" style="border-color: #f59e0b; background: #fffbeb;">
+            <div class="rate-label" style="color: #92400e;">Comissão de Gestor</div>
+            <div class="rate-value" style="color: #f59e0b;">
+                {{ $vendedor->comissao_gestor_primeira }}%
+            </div>
+            <div class="rate-type">1ª Venda Equipe</div>
+            <div style="margin-top: 8px; font-size: 0.85rem; color: #f59e0b; font-weight: 600;">
+                {{ $vendedor->comissao_gestor_recorrencia }}% Renovações
+            </div>
+        </div>
+        @endif
     </div>
 
     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
