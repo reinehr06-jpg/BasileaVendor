@@ -525,6 +525,9 @@ class AsaasClienteSyncController extends Controller
         $totalComissaoGestor = 0;
         $atribuidos = 0;
 
+        // Verificar se é gestor
+        $isGestor = $vendedor->is_gestor ?? false;
+        
         // Buscar o gestor do vendedor (se for vendedor, pega o gestor; se for gestor, usa ele mesmo)
         $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
 
@@ -550,20 +553,39 @@ class AsaasClienteSyncController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Criar registro de comissão se houver valor
-            if ($comissaoVendedor > 0 || $comissaoGestor > 0) {
-                Comissao::create([
-                    'vendedor_id' => $vendedorId,
-                    'gerente_id' => $gestorId,
-                    'tipo_comissao' => $import->comissao_tipo ?? 'inicial',
-                    'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
-                    'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
-                    'valor_venda' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
-                    'valor_comissao' => $comissaoVendedor,
-                    'valor_gerente' => $comissaoGestor,
-                    'status' => 'pendente',
-                    'competencia' => $mesRef,
-                ]);
+            // Criar registro de comissão
+            if ($isGestor) {
+                // Se é gestor, só ele recebe (a Calculations já retorna o valor correto)
+                if ($comissaoGestor > 0) {
+                    Comissao::create([
+                        'vendedor_id' => $vendedorId,
+                        'gerente_id' => null,
+                        'tipo_comissao' => $import->comissao_tipo ?? 'inicial',
+                        'percentual_aplicado' => $vendedor->comissao_gestor_primeira ?? 0,
+                        'percentual_gerente' => 0,
+                        'valor_venda' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
+                        'valor_comissao' => $comissaoGestor,
+                        'valor_gerente' => 0,
+                        'status' => 'pendente',
+                        'competencia' => $mesRef,
+                    ]);
+                }
+            } else {
+                // Se é vendedor normal, cria comissão para vendedor e gestor
+                if ($comissaoVendedor > 0 || $comissaoGestor > 0) {
+                    Comissao::create([
+                        'vendedor_id' => $vendedorId,
+                        'gerente_id' => $gestorId,
+                        'tipo_comissao' => $import->comissao_tipo ?? 'inicial',
+                        'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
+                        'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
+                        'valor_venda' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
+                        'valor_comissao' => $comissaoVendedor,
+                        'valor_gerente' => $comissaoGestor,
+                        'status' => 'pendente',
+                        'competencia' => $mesRef,
+                    ]);
+                }
             }
 
             // Criar cliente no sistema automaticamente (se ainda não existir)
@@ -588,7 +610,7 @@ class AsaasClienteSyncController extends Controller
                 ]);
             }
 
-            $totalComissaoVendedor += $comissaoVendedor;
+            $totalComissaoVendedor += $isGestor ? $comissaoGestor : $comissaoVendedor;
             $totalComissaoGestor += $comissaoGestor;
             $atribuidos++;
         }
