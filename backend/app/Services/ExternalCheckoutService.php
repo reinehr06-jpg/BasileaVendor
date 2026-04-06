@@ -9,9 +9,12 @@ use Illuminate\Support\Facades\Log;
 
 class ExternalCheckoutService
 {
+    private int $maxRetries = 3;
+    private int $timeoutSeconds = 15;
+
     /**
      * Tenta criar uma transação no sistema de Checkout externo.
-     * Retorna o UUID da transação ou nulo se falhar.
+     * Com retry automático e fallback para Asaas em caso de falha.
      */
     public function createTransactionForVenda(Venda $venda, Cliente $cliente)
     {
@@ -19,19 +22,16 @@ class ExternalCheckoutService
         $apiKey = env('CHECKOUT_API_KEY', '');
 
         if (!$apiUrl) {
-            Log::warning("Checkout API URL não está configurada no .env.");
-            return null;
+            Log::warning("Checkout: API URL não configurada. Usando fallback Asaas.");
+            return $this->fallbackToAsaas($venda, 'transaction');
         }
 
         $endpoint = rtrim($apiUrl, '/') . '/api/v1/transactions';
-        // Você pode configurar customizadamente o webhook ou abstrair usando a url do sistema local
-        $callbackUrl = env('CHECKOUT_WEBHOOK_URL', url('/api/webhook/checkout')); 
+        $callbackUrl = env('CHECKOUT_WEBHOOK_URL', url('/api/webhook/checkout'));
 
-        // Converte limpar máscaras
         $document = preg_replace('/[^0-9]/', '', $cliente->documento);
         $phone = preg_replace('/[^0-9]/', '', $cliente->contato ?? $cliente->whatsapp ?? '');
 
-        // Formato pedido pelo payload do Checkout Externo
         $payload = [
             'external_id' => 'venda_' . $venda->id,
             'amount' => (float) ($venda->valor_final ?? $venda->valor),
@@ -60,60 +60,84 @@ class ExternalCheckoutService
             'callback_url' => $callbackUrl,
         ];
 
-        try {
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-                'Authorization' => "Bearer {$apiKey}"
-            ])->post($endpoint, $payload);
+        $lastError = null;
 
-            if ($response->successful()) {
-                $data = $response->json();
-                
-                $uuid = $data['transaction']['uuid'] ?? null;
-                $paymentUrl = $data['transaction']['payment_url'] ?? null;
+        for ($attempt = 1; $attempt <= $this->maxRetries; $attempt++) {
+            try {
+                Log::info("Checkout: Tentativa {$attempt}/{$this->maxRetries} de criar transação", [
+                    'venda_id' => $venda->id,
+                    'endpoint' => $endpoint,
+                ]);
 
-                if ($uuid) {
-                    $venda->update([
-                        'checkout_transaction_uuid' => $uuid,
-                        'checkout_payment_link' => $paymentUrl
-                    ]);
-                    
-                    return ['success' => true, 'uuid' => $uuid, 'payment_url' => $paymentUrl];
+                $response = Http::timeout($this->timeoutSeconds)
+                    ->withHeaders([
+                        'Accept' => 'application/json',
+                        'Authorization' => "Bearer {$apiKey}"
+                    ])->post($endpoint, $payload);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $uuid = $data['transaction']['uuid'] ?? null;
+                    $paymentUrl = $data['transaction']['payment_url'] ?? null;
+
+                    if ($uuid) {
+                        $venda->update([
+                            'checkout_transaction_uuid' => $uuid,
+                            'checkout_payment_link' => $paymentUrl
+                        ]);
+                        
+                        Log::info("Checkout: Transação criada com sucesso", [
+                            'venda_id' => $venda->id,
+                            'uuid' => $uuid,
+                            'attempt' => $attempt,
+                        ]);
+                        
+                        return ['success' => true, 'uuid' => $uuid, 'payment_url' => $paymentUrl];
+                    }
                 }
+
+                $errorBody = $response->json();
+                $lastError = $errorBody['message'] ?? $errorBody['error'] ?? $response->body();
+                
+                Log::warning("Checkout: Tentativa {$attempt} falhou", [
+                    'venda_id' => $venda->id,
+                    'status' => $response->status(),
+                    'error' => $lastError,
+                ]);
+
+                // Se for erro de validação (422), não tentar novamente
+                if ($response->status() === 422) {
+                    break;
+                }
+
+            } catch (\Exception $e) {
+                $lastError = 'Erro de conexão: ' . $e->getMessage();
+                Log::warning("Checkout: Tentativa {$attempt} exception", [
+                    'venda_id' => $venda->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
-            $errorBody = $response->json();
-            $errorMessage = $errorBody['message'] ?? $errorBody['error'] ?? $response->body();
-
-            Log::error("Falha ao criar transação no checkout externo para Venda {$venda->id}", [
-                'status' => $response->status(),
-                'body' => $errorBody,
-                'payload' => $payload,
-            ]);
-
-            return ['success' => false, 'message' => $errorMessage, 'status' => $response->status()];
-        } catch (\Exception $e) {
-            Log::error("Exceção ao ligar para o Checkout externo (Venda {$venda->id}): " . $e->getMessage());
-            return ['success' => false, 'message' => 'Erro de conexão com o checkout: ' . $e->getMessage(), 'status' => 0];
+            // Aguardar antes de tentar novamente (exceto na última tentativa)
+            if ($attempt < $this->maxRetries) {
+                usleep(500000 * $attempt); // 0.5s, 1s, 1.5s
+            }
         }
-    }
 
-    /**
-     * Mapeia nomenclatura interna para a API externa
-     */
-    private function mapPaymentMethod(?string $method): string
-    {
-        $method = strtolower($method ?? '');
-        if (str_contains($method, 'cart') || str_contains($method, 'credit')) return 'credit_card';
-        if (str_contains($method, 'pix')) return 'pix';
-        if (str_contains($method, 'bolet')) return 'boleto';
+        // Todas as tentativas falharam, usar fallback
+        Log::error("Checkout: Todas as tentativas falharam. Usando fallback Asaas.", [
+            'venda_id' => $venda->id,
+            'last_error' => $lastError,
+        ]);
         
-        return 'credit_card'; // default de fallback
+        return $this->fallbackToAsaas($venda, 'transaction');
+
+        // return ['success' => false, 'message' => $lastError ?? 'Erro desconhecido', 'status' => 500];
     }
 
     /**
-     * Cria uma assinatura (subscription) no sistema de Checkout externo.
-     * Para vendas mensais/recorrentes.
+     * Cria uma assinatura no sistema de Checkout externo.
+     * Com retry automático e fallback para Asaas.
      */
     public function createSubscriptionForVenda(Venda $venda, Cliente $cliente)
     {
@@ -121,8 +145,8 @@ class ExternalCheckoutService
         $apiKey = env('CHECKOUT_API_KEY', '');
 
         if (!$apiUrl) {
-            Log::warning("Checkout API URL não está configurada no .env.");
-            return null;
+            Log::warning("Checkout: API URL não configurada para assinatura. Usando fallback Asaas.");
+            return $this->fallbackToAsaas($venda, 'subscription');
         }
 
         $endpoint = rtrim($apiUrl, '/') . '/api/v1/subscriptions';
@@ -130,11 +154,9 @@ class ExternalCheckoutService
 
         $document = preg_replace('/[^0-9]/', '', $cliente->documento);
         $phone = preg_replace('/[^0-9]/', '', $cliente->contato ?? $cliente->whatsapp ?? '');
-
         $billingCycle = $this->mapBillingCycle($venda->tipo_negociacao);
         $valor = (float) ($venda->valor_final ?? $venda->valor);
 
-        // Para plano anual com parcelas, usar valor anual
         if ($venda->tipo_negociacao === 'anual' && $venda->parcelas > 1) {
             $plano = \App\Models\Plano::where('nome', $venda->plano)->first();
             if ($plano && $plano->valor_anual > 0) {
@@ -169,54 +191,162 @@ class ExternalCheckoutService
             'callback_url' => $callbackUrl,
         ];
 
-        try {
-            $response = Http::withHeaders([
-                'Accept' => 'application/json',
-                'Authorization' => "Bearer {$apiKey}"
-            ])->post($endpoint, $payload);
+        $lastError = null;
 
-            if ($response->successful()) {
-                $data = $response->json();
-                
-                $uuid = $data['subscription']['uuid'] ?? $data['uuid'] ?? null;
-                $paymentUrl = $data['subscription']['payment_url'] ?? $data['payment_url'] ?? null;
+        for ($attempt = 1; $attempt <= $this->maxRetries; $attempt++) {
+            try {
+                Log::info("Checkout: Tentativa {$attempt}/{$this->maxRetries} de criar assinatura", [
+                    'venda_id' => $venda->id,
+                    'endpoint' => $endpoint,
+                    'billing_cycle' => $billingCycle,
+                ]);
 
-                if ($uuid) {
-                    $venda->update([
-                        'checkout_transaction_uuid' => $uuid,
-                        'checkout_payment_link' => $paymentUrl,
-                        'modo_cobranca_asaas' => 'SUBSCRIPTION',
-                    ]);
-                    
-                    Log::info("Checkout: Assinatura criada com sucesso", [
-                        'venda_id' => $venda->id,
-                        'uuid' => $uuid,
-                        'billing_cycle' => $billingCycle,
-                    ]);
-                    
-                    return ['success' => true, 'uuid' => $uuid, 'payment_url' => $paymentUrl];
+                $response = Http::timeout($this->timeoutSeconds)
+                    ->withHeaders([
+                        'Accept' => 'application/json',
+                        'Authorization' => "Bearer {$apiKey}"
+                    ])->post($endpoint, $payload);
+
+                if ($response->successful()) {
+                    $data = $response->json();
+                    $uuid = $data['subscription']['uuid'] ?? $data['uuid'] ?? null;
+                    $paymentUrl = $data['subscription']['payment_url'] ?? $data['payment_url'] ?? null;
+
+                    if ($uuid) {
+                        $venda->update([
+                            'checkout_transaction_uuid' => $uuid,
+                            'checkout_payment_link' => $paymentUrl,
+                            'modo_cobranca_asaas' => 'SUBSCRIPTION',
+                        ]);
+                        
+                        Log::info("Checkout: Assinatura criada com sucesso", [
+                            'venda_id' => $venda->id,
+                            'uuid' => $uuid,
+                            'billing_cycle' => $billingCycle,
+                            'attempt' => $attempt,
+                        ]);
+                        
+                        return ['success' => true, 'uuid' => $uuid, 'payment_url' => $paymentUrl];
+                    }
                 }
+
+                $errorBody = $response->json();
+                $lastError = $errorBody['message'] ?? $errorBody['error'] ?? $response->body();
+
+                Log::warning("Checkout: Tentativa {$attempt} de assinatura falhou", [
+                    'venda_id' => $venda->id,
+                    'status' => $response->status(),
+                    'error' => $lastError,
+                ]);
+
+                if ($response->status() === 422) {
+                    break;
+                }
+
+            } catch (\Exception $e) {
+                $lastError = 'Erro de conexão: ' . $e->getMessage();
+                Log::warning("Checkout: Tentativa {$attempt} de assinatura exception", [
+                    'venda_id' => $venda->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
 
-            $errorBody = $response->json();
-            $errorMessage = $errorBody['message'] ?? $errorBody['error'] ?? $response->body();
-
-            Log::error("Falha ao criar assinatura no checkout externo para Venda {$venda->id}", [
-                'status' => $response->status(),
-                'body' => $errorBody,
-                'payload' => $payload,
-            ]);
-
-            return ['success' => false, 'message' => $errorMessage, 'status' => $response->status()];
-        } catch (\Exception $e) {
-            Log::error("Exceção ao criar assinatura no checkout externo (Venda {$venda->id}): " . $e->getMessage());
-            return ['success' => false, 'message' => 'Erro de conexão com o checkout: ' . $e->getMessage(), 'status' => 0];
+            if ($attempt < $this->maxRetries) {
+                usleep(500000 * $attempt);
+            }
         }
+
+        Log::error("Checkout: Todas as tentativas de assinatura falharam. Usando fallback Asaas.", [
+            'venda_id' => $venda->id,
+            'last_error' => $lastError,
+        ]);
+
+        return $this->fallbackToAsaas($venda, 'subscription');
     }
 
     /**
-     * Mapeia tipo de negociação para billing cycle do checkout.
+     * Fallback: cria link de pagamento direto no Asaas quando o checkout falha.
      */
+    private function fallbackToAsaas(Venda $venda, string $tipo): array
+    {
+        try {
+            $asaasService = new AsaasService();
+            
+            $billingType = match ($venda->forma_pagamento) {
+                'pix', 'PIX' => 'PIX',
+                'boleto', 'BOLETO' => 'BOLETO_BANCARIO',
+                default => 'CREDIT_CARD'
+            };
+
+            $chargeType = $tipo === 'subscription' ? 'RECURRING' : 'DETACHED';
+
+            $asaasData = [
+                'billingType' => $billingType,
+                'chargeType' => $chargeType,
+                'name' => 'Plano ' . ($venda->plano ?? 'Basileia'),
+                'value' => (float) ($venda->valor_final ?? $venda->valor),
+                'externalReference' => 'venda_' . $venda->id,
+                'dueDate' => now()->format('Y-m-d'),
+            ];
+
+            if ($venda->cliente?->asaas_customer_id) {
+                $asaasData['client'] = $venda->cliente->asaas_customer_id;
+            }
+
+            $result = $asaasService->createPaymentLink($asaasData);
+
+            if (!empty($result['id'])) {
+                $asaasUrl = $asaasService->baseUrl . '/payment/link/' . $result['id'];
+                $venda->update([
+                    'asaas_payment_link_id' => $result['id'],
+                    'checkout_payment_link' => $asaasUrl,
+                    'modo_cobranca_asaas' => $tipo === 'subscription' ? 'SUBSCRIPTION' : 'TRANSACTION',
+                ]);
+
+                Log::info("Fallback Asaas: Link criado com sucesso", [
+                    'venda_id' => $venda->id,
+                    'asaas_id' => $result['id'],
+                    'tipo' => $tipo,
+                ]);
+
+                return [
+                    'success' => true,
+                    'uuid' => $result['id'],
+                    'payment_url' => $asaasUrl,
+                    'fallback' => true,
+                    'provider' => 'asaas',
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => 'Falha ao criar link no Asaas: resposta vazia',
+                'status' => 500,
+            ];
+
+        } catch (\Exception $e) {
+            Log::error("Fallback Asaas: Erro ao criar link", [
+                'venda_id' => $venda->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Checkout e Asaas indisponíveis: ' . $e->getMessage(),
+                'status' => 503,
+            ];
+        }
+    }
+
+    private function mapPaymentMethod(?string $method): string
+    {
+        $method = strtolower($method ?? '');
+        if (str_contains($method, 'cart') || str_contains($method, 'credit')) return 'credit_card';
+        if (str_contains($method, 'pix')) return 'pix';
+        if (str_contains($method, 'bolet')) return 'boleto';
+        return 'credit_card';
+    }
+
     private function mapBillingCycle(?string $tipoNegociacao): string
     {
         return match (strtolower($tipoNegociacao ?? '')) {
