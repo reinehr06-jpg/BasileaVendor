@@ -567,15 +567,28 @@ class AsaasClienteSyncController extends Controller
             $comissaoVendedor = 0;
             $comissaoGestor = 0;
 
-            $debugImports[] = [
-                'id' => $import->id,
-                'diagnostico_status' => $import->diagnostico_status,
-                'comissao_tipo' => $import->comissao_tipo,
-                'valor_marco_pago' => $import->valor_marco_pago,
-            ];
-
-            if ($import->diagnostico_status === 'ATIVO' && $import->comissao_tipo) {
-                [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
+            // Forçar cálculo se for ATIVO (ignorar comissao_tipo)
+            if ($import->diagnostico_status === 'ATIVO') {
+                // Definir tipo baseado em valor_marco_pago
+                $tipo = 'inicial';
+                if (!$import->valor_marco_pago || $import->valor_marco_pago == 0) {
+                    $tipo = 'recorrencia';
+                }
+                
+                // Calcular comissão
+                $percIni = (float) ($vendedor->comissao_inicial ?? 10);
+                $percRec = (float) ($vendedor->comissao_recorrencia ?? 10);
+                $percGst = (float) ($vendedor->comissao_gestor_primeira ?? 5);
+                
+                $valorBase = (float) ($import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0);
+                
+                if ($tipo === 'inicial') {
+                    $comissaoVendedor = $valorBase * ($percIni / 100);
+                    $comissaoGestor = $valorBase * ($percGst / 100);
+                } else {
+                    $comissaoVendedor = $valorBase * ($percRec / 100);
+                    $comissaoGestor = $valorBase * ($percGst / 100);
+                }
             }
 
             if ($isGestor) {
@@ -591,16 +604,10 @@ class AsaasClienteSyncController extends Controller
             'success' => true,
             'total_clientes' => $totalClientes,
             'vendedor_nome' => $vendedor->user->name ?? 'Vendedor',
-            'percentual_vendedor' => $vendedor->comissao_inicial ?? 0,
-            'percentual_gestor' => $vendedor->comissao_gestor_primeira ?? 0,
+            'percentual_vendedor' => $vendedor->comissao_inicial ?? 10,
+            'percentual_gestor' => $vendedor->comissao_gestor_primeira ?? 5,
             'comissao_vendedor' => number_format($totalComissaoVendedor, 2, ',', '.'),
             'comissao_gestor' => number_format($totalComissaoGestor, 2, ',', '.'),
-            'debug' => [
-                'vendedor_comissao_inicial' => $vendedor->comissao_inicial,
-                'vendedor_comissao_recorrencia' => $vendedor->comissao_recorrencia,
-                'vendedor_comissao_gestor_primeira' => $vendedor->comissao_gestor_primeira,
-                'imports' => $debugImports,
-            ]
         ]);
     }
 
