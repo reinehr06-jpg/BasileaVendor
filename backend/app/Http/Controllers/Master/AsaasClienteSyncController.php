@@ -537,11 +537,11 @@ class AsaasClienteSyncController extends Controller
         $request->validate([
             'customer_ids' => 'required|array|min:1',
             'customer_ids.*' => 'integer|exists:legacy_customer_imports,id',
-            'vendedor_id' => 'required|exists:vendedores,id',
+            'vendedor_id' => 'required',
         ]);
 
-        $vendedorId = $request->vendedor_id;
-        $customerIds = $request->customer_ids;
+        $vendedorId = (int) $request->vendedor_id;
+        $customerIds = array_map('intval', (array) $request->customer_ids);
         $mesRef = $this->getMesReferencia();
 
         $vendedor = Vendedor::with('user')->find($vendedorId);

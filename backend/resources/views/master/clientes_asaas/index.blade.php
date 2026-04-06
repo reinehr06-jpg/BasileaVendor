@@ -549,7 +549,13 @@ function closeConfirmModal() {
 async function calcularComissaoPreview(vendedorId, clienteIds) {
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
     const btn = document.getElementById('btn-calcular');
-    const parsedIds = JSON.parse(clienteIds);
+    let parsedIds;
+    
+    try {
+        parsedIds = JSON.parse(clienteIds);
+    } catch(e) {
+        parsedIds = clienteIds;
+    }
     
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculando...';
@@ -560,6 +566,13 @@ async function calcularComissaoPreview(vendedorId, clienteIds) {
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
             body: JSON.stringify({ customer_ids: parsedIds, vendedor_id: parseInt(vendedorId) })
         });
+        
+        if (!resp.ok) {
+            const errText = await resp.text();
+            alert('Erro do servidor: ' + resp.status + ' - ' + errText);
+            return;
+        }
+        
         const data = await resp.json();
         
         if (data.success) {
@@ -576,7 +589,7 @@ async function calcularComissaoPreview(vendedorId, clienteIds) {
             alert('Erro: ' + (data.message || 'Não foi possível calcular.'));
         }
     } catch (e) {
-        alert('Erro: ' + e.message);
+        alert('Erro de conexão: ' + e.message);
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-calculator"></i> Calcular Comissões';
