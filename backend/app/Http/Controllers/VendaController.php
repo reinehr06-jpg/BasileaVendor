@@ -1313,6 +1313,13 @@ class VendaController extends Controller
                         }
                     }
 
+                    // Se ainda não tiver customer ID, não pode criar cobrança
+                    if (!$asaasCustomerId) {
+                        return response()->json([
+                            'error' => 'Não foi possível identificar o cliente no Asaas. Tente novamente.',
+                        ], 400);
+                    }
+
                     // Pix/Cartão expira em 15 dias
                     $dueDate = now()->addDays(15)->format('Y-m-d');
 
@@ -1326,41 +1333,57 @@ class VendaController extends Controller
                         'venda_' . $venda->id
                     );
 
-                    if (!empty($asaasResult['id'])) {
-                        $asaasId = $asaasResult['id'];
-                        
-                        // Salvar na venda - atualizar link válido (15 dias para Pix/Cartão)
-                        $venda->update([
-                            'asaas_payment_link_id' => $asaasId,
-                            'link_valido_ate' => now()->addDays(15),
-                        ]);
-
-                        // Criar registro de pagamento
-                        \App\Models\Pagamento::create([
+                    // Verificar se a cobrança foi criada com sucesso
+                    if (empty($asaasResult['id'])) {
+                        Log::error('Checkout: Asaas não retornou ID da cobrança', [
                             'venda_id' => $venda->id,
-                            'asaas_payment_id' => $asaasId,
-                            'asaas_customer_id' => $asaasCustomerId,
-                            'valor' => (float) ($venda->valor_final ?? $venda->valor),
-                            'forma_pagamento' => strtolower($venda->forma_pagamento ?? 'credit_card'),
-                            'status' => 'PENDING',
-                            'data_pagamento' => null,
+                            'response' => $asaasResult,
                         ]);
-
-                        Log::info('Checkout: Cobrança Asaas criada para link (Pix/Cartão - 15 dias)', [
-                            'venda_id' => $venda->id,
-                            'asaas_id' => $asaasId,
-                            'valido_ate' => now()->addDays(15)->format('Y-m-d H:i:s'),
-                        ]);
+                        return response()->json([
+                            'error' => 'Erro ao criar cobrança no gateway. Tente novamente.',
+                        ], 500);
                     }
+
+                    $asaasId = $asaasResult['id'];
+                    
+                    // Salvar na venda - atualizar link válido (15 dias para Pix/Cartão)
+                    $venda->update([
+                        'asaas_payment_link_id' => $asaasId,
+                        'link_valido_ate' => now()->addDays(15),
+                    ]);
+
+                    // Criar registro de pagamento
+                    \App\Models\Pagamento::create([
+                        'venda_id' => $venda->id,
+                        'asaas_payment_id' => $asaasId,
+                        'asaas_customer_id' => $asaasCustomerId,
+                        'valor' => (float) ($venda->valor_final ?? $venda->valor),
+                        'forma_pagamento' => strtolower($venda->forma_pagamento ?? 'credit_card'),
+                        'status' => 'PENDING',
+                        'data_pagamento' => null,
+                    ]);
+
+                    Log::info('Checkout: Cobrança Asaas criada para link (Pix/Cartão - 15 dias)', [
+                        'venda_id' => $venda->id,
+                        'asaas_id' => $asaasId,
+                        'valido_ate' => now()->addDays(15)->format('Y-m-d H:i:s'),
+                    ]);
                 } catch (\Exception $e) {
                     Log::error('Checkout: Falha ao criar cobrança Asaas', [
                         'venda_id' => $venda->id,
                         'error' => $e->getMessage(),
                     ]);
                     return response()->json([
-                        'error' => 'Falha ao criar cobrança de pagamento: ' . $e->getMessage(),
+                        'error' => 'Erro ao comunicar com gateway de pagamento. Tente novamente em alguns segundos.',
                     ], 500);
                 }
+            }
+
+            // Verificação final - se não tiver asaasId, não pode continuar
+            if (!$asaasId) {
+                return response()->json([
+                    'error' => 'Cobrança não encontrada. Tente gerar o link novamente.',
+                ], 400);
             }
 
             // Preparar parâmetros para o checkout (incluindo asaas_payment_id)
