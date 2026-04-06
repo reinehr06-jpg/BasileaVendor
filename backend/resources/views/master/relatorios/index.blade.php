@@ -85,7 +85,7 @@
 
 {{-- ===== Filtros ===== --}}
 <form method="GET" action="{{ route('master.relatorios') }}">
-<div class="filters-bar animate-up" style="animation-delay: 0.15s;">
+<div class="filters-bar animate-up" style="animation-delay: 0.15s; position: relative; z-index: 100;">
     <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 130px;">
         <label style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--text-muted);">Início</label>
         <input type="date" name="data_inicio" class="form-control" value="{{ $filtros['data_inicio'] }}">
