@@ -25,7 +25,7 @@
     .page-hero-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; position: relative; }
     .page-hero-actions .export-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; display: none; }
     
-    .export-dropdown { position: relative; display: inline-block; }
+    .export-dropdown { position: static; display: inline-block; }
     .hero-export-toggle { 
         display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; 
         border-radius: 7px; font-weight: 600; font-size: 0.8rem; text-decoration: none; 
@@ -35,7 +35,7 @@
     .hero-export-toggle:hover { background: rgba(255, 255, 255, 0.25); }
     
     .export-dropdown-menu { 
-        position: absolute; right: 0; top: 100%; margin-top: 10px;
+        position: fixed;
         display: none;
         background: #ffffff; border-radius: var(--radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         padding: 6px; min-width: 160px; z-index: 99999 !important; border: 1px solid #e2e8f0;
@@ -57,7 +57,6 @@
     @media (max-width: 768px) {
         .page-hero { flex-direction: column; gap: 16px; text-align: center; padding: 24px; }
         .page-hero-actions { align-items: center; }
-        .export-dropdown-menu { right: auto; left: 50%; transform: translateX(-50%); margin-top: 5px; }
     }
 </style>
 
@@ -73,10 +72,10 @@
         <div class="page-hero-actions">
             @if(count($exports) > 0)
             <div class="export-dropdown">
-                <button type="button" class="hero-export-toggle" onclick="toggleExportDropdown(this)">
+                <button type="button" class="hero-export-toggle" onclick="toggleExportDropdown(this, event)">
                     <i class="fas fa-file-export"></i> Exportar Dados <i class="fas fa-chevron-down" style="font-size: 0.6rem; opacity: 0.8; margin-left: 2px;"></i>
                 </button>
-                <div class="export-dropdown-menu">
+                <div class="export-dropdown-menu" id="exportDropdownMenu">
                     @foreach($exports as $exp)
                     <a href="{{ $exp['url'] }}" class="export-dropdown-item {{ $exp['type'] ?? 'csv' }}">
                         <i class="{{ $exp['icon'] ?? 'fas fa-file' }}"></i> {{ $exp['label'] ?? strtoupper($exp['type'] ?? 'CSV') }}
@@ -94,16 +93,36 @@
 </div>
 
 <script>
-function toggleExportDropdown(btn) {
-    const menu = btn.nextElementSibling;
-    menu.classList.toggle('show');
+let exportDropdownActive = null;
+
+function toggleExportDropdown(btn, e) {
+    e.stopPropagation();
+    const menu = document.getElementById('exportDropdownMenu');
+    
+    if (menu.classList.contains('show') && exportDropdownActive === btn) {
+        menu.classList.remove('show');
+        exportDropdownActive = null;
+        return;
+    }
+    
+    // Posicionar o menu abaixo do botão
+    const rect = btn.getBoundingClientRect();
+    menu.style.top = (rect.bottom + 8) + 'px';
+    menu.style.right = (window.innerWidth - rect.right) + 'px';
+    menu.style.left = 'auto';
+    
+    menu.classList.add('show');
+    exportDropdownActive = btn;
     
     // Fechar ao clicar fora
-    document.addEventListener('click', function closeDropdown(e) {
-        if (!btn.parentElement.contains(e.target)) {
-            menu.classList.remove('show');
-            document.removeEventListener('click', closeDropdown);
-        }
-    });
+    setTimeout(() => {
+        document.addEventListener('click', function closeDropdown(e) {
+            if (!btn.parentElement.contains(e.target)) {
+                menu.classList.remove('show');
+                exportDropdownActive = null;
+                document.removeEventListener('click', closeDropdown);
+            }
+        });
+    }, 10);
 }
 </script>
