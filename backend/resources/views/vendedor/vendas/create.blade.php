@@ -53,23 +53,15 @@
         .negotiation-types { grid-template-columns: 1fr; }
     }
 
-<<<<<<< HEAD
-    /* Animations */
-    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .animate-pulse { animation: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-    .loading-cep { pointer-events: none; opacity: 0.7; }
-=======
     /* CEP Loading Animation */
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulse-subtle { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+    .animate-pulse { animation: pulse-subtle 1s ease-in-out infinite; }
     .loading-cep {
         pointer-events: none;
         opacity: 0.8;
         cursor: wait;
     }
-    @keyframes pulse-subtle { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-    .animate-pulse { animation: pulse-subtle 1s ease-in-out infinite; }
->>>>>>> 77136c4 (fix: resolve SQL Not Null violation and CEP connectivity errors)
 </style>
 <x-page-hero title="Nova Venda" subtitle="Cadastre uma nova venda para seu cliente" icon="fas fa-plus-circle" />
 
@@ -722,94 +714,112 @@ document.addEventListener('DOMContentLoaded', function() {
         this.value = v;
     });
 
-    // Callback Global para o ViaCEP (JSONP para evitar erros de CORS)
-    window.viaCepCallback = function(data) {
+    // ===== Busca de CEP via Fetch API com debounce =====
+    let cepDebounceTimer = null;
+    let cepLoading = false;
+
+    function setCepLoading(loading) {
         const inputCep = document.getElementById('inputCep');
         if (!inputCep) return;
+        cepLoading = loading;
+        if (loading) {
+            inputCep.classList.add('loading-cep');
+            inputCep.style.background = '#f8fafc url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%234C1D95\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'M21 12a9 9 0 1 1-6.219-8.56\'/%3E%3C/svg%3E") no-repeat 95% center';
+            inputCep.style.animation = 'spin 1s linear infinite';
+            inputCep.style.backgroundSize = '18px';
+        } else {
+            inputCep.classList.remove('loading-cep');
+            inputCep.style.background = '';
+            inputCep.style.animation = '';
+        }
+    }
 
-        inputCep.classList.remove('loading-cep');
-        inputCep.style.background = '';
-        inputCep.style.animation = '';
-
-        if (data && !data.erro) {
-            const fields = {
-                'inputEndereco': 'logradouro',
-                'inputBairro': 'bairro',
-                'inputCidade': 'localidade',
-                'inputEstado': 'uf'
-            };
-            for (const [id, key] of Object.entries(fields)) {
-                const el = document.getElementById(id);
-                if (el) {
-                    el.value = data[key] || '';
+    function fillAddress(data) {
+        const fields = {
+            'inputEndereco': data.logradouro || '',
+            'inputBairro': data.bairro || '',
+            'inputCidade': data.localidade || '',
+            'inputEstado': data.uf || ''
+        };
+        for (const [id, value] of Object.entries(fields)) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.value = value;
+                if (value) {
                     el.classList.add('animate-pulse');
                     setTimeout(() => el.classList.remove('animate-pulse'), 1500);
                 }
             }
-            const inputNum = document.getElementById('inputNumero');
-            if (inputNum) inputNum.focus();
-            
-            if (typeof BasileiaToast !== 'undefined') BasileiaToast.success('Endereço localizado!');
-        } else {
-            if (typeof BasileiaToast !== 'undefined') BasileiaToast.error('CEP não encontrado.');
         }
+        const inputNum = document.getElementById('inputNumero');
+        if (inputNum) inputNum.focus();
+    }
 
-        // Limpeza dos scripts injetados
-        const oldScripts = document.querySelectorAll('script[src*="viacep.com.br"]');
-        oldScripts.forEach(s => s.remove());
-    };
+    async function buscarCep(cep) {
+        const rawCep = cep.replace(/\D/g, '');
+        if (rawCep.length !== 8) return;
+        if (cepLoading) return;
 
-    function buscarCep(cep) {
-        const inputCep = document.getElementById('inputCep');
-        if (!inputCep || cep.length !== 8) return;
-        if (inputCep.classList.contains('loading-cep')) return;
+        setCepLoading(true);
 
-        // Feedback visual de carregamento
-        inputCep.classList.add('loading-cep');
-        inputCep.style.background = '#f8fafc url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%234C1D95\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'M21 12a9 9 0 1 1-6.219-8.56\'/%3E%3C/svg%3E") no-repeat 95% center';
-        inputCep.style.animation = 'spin 1s linear infinite';
-        inputCep.style.backgroundSize = '18px';
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        // Injeção de script JSONP
-        const script = document.createElement('script');
-        script.src = `https://viacep.com.br/ws/${cep}/json/?callback=viaCepCallback`;
-        script.onerror = function() {
-            inputCep.classList.remove('loading-cep');
-            inputCep.style.background = '';
-            inputCep.style.animation = '';
-            if (typeof BasileiaToast !== 'undefined') BasileiaToast.error('Erro de conexão com servidor de CEP.');
-            this.remove();
-        };
-        document.body.appendChild(script);
+            const response = await fetch(`https://viacep.com.br/ws/${rawCep}/json/`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
 
-        // Timeout de segurança (10s)
-        setTimeout(() => {
-            if (inputCep.classList.contains('loading-cep')) {
-                inputCep.classList.remove('loading-cep');
-                inputCep.style.background = '';
-                inputCep.style.animation = '';
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
             }
-        }, 10000);
+
+            const data = await response.json();
+
+            if (data.erro) {
+                if (typeof BasileiaToast !== 'undefined') {
+                    BasileiaToast.error('CEP não encontrado.');
+                }
+            } else {
+                fillAddress(data);
+                if (typeof BasileiaToast !== 'undefined') {
+                    BasileiaToast.success('Endereço localizado!');
+                }
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                if (typeof BasileiaToast !== 'undefined') {
+                    BasileiaToast.error('Timeout: servidor de CEP não respondeu.');
+                }
+            } else {
+                if (typeof BasileiaToast !== 'undefined') {
+                    BasileiaToast.error('Erro de conexão com servidor de CEP.');
+                }
+            }
+        } finally {
+            setCepLoading(false);
+        }
     }
 
     const inputCep = document.getElementById('inputCep');
     if (inputCep) {
-        inputCep.addEventListener('input', function(e) {
+        inputCep.addEventListener('input', function() {
             let v = this.value.replace(/\D/g, '');
             if (v.length > 5) v = v.substring(0,5) + '-' + v.substring(5,8);
             this.value = v;
 
-            // Gatilho automático ao completar 8 dígitos
+            clearTimeout(cepDebounceTimer);
             const rawCep = v.replace(/\D/g, '');
             if (rawCep.length === 8) {
-                buscarCep(rawCep);
+                cepDebounceTimer = setTimeout(() => buscarCep(rawCep), 400);
             }
         });
 
-        // Fallback para quando o usuário cola o CEP ou sai do campo
         inputCep.addEventListener('blur', function() {
+            clearTimeout(cepDebounceTimer);
             const rawCep = this.value.replace(/\D/g, '');
-            if (rawCep.length === 8 && !this.classList.contains('loading-cep')) {
+            if (rawCep.length === 8 && !cepLoading) {
                 buscarCep(rawCep);
             }
         });
@@ -889,21 +899,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 xhr.onerror = function() {};
                 xhr.send();
             }, 500);
-        });
-    }
-
-    // ===== Máscara de WhatsApp =====
-    if (inputWhatsapp) {
-        inputWhatsapp.addEventListener('input', function(e) {
-            let v = this.value.replace(/\D/g, '');
-            if (v.length > 11) v = v.substring(0, 11);
-            if (v.length > 6) {
-                this.value = '(' + v.substring(0,2) + ') ' + v.substring(2,7) + '-' + v.substring(7);
-            } else if (v.length > 2) {
-                this.value = '(' + v.substring(0,2) + ') ' + v.substring(2);
-            } else if (v.length > 0) {
-                this.value = '(' + v;
-            }
         });
     }
 });

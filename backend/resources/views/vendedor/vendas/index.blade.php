@@ -129,7 +129,7 @@
                     @if(!in_array(strtoupper($venda->status), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']))
                         <div class="d-flex flex-column gap-1">
                             @if($formaUpper === 'BOLETO' || empty($formaUpper))
-                                <button onclick="copiarLinkCheckout({{ $venda->id }}, 'boleto')" class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Gerar Link Boleto">
+                                <button onclick="baixarBoleto({{ $venda->id }})" class="btn btn-primary btn-sm" style="font-size: 0.75rem; padding: 4px 8px; width: 100%; text-align: left;" title="Baixar Boleto do Asaas">
                                     <i class="fas fa-barcode"></i> Boleto
                                 </button>
                             @endif
@@ -257,6 +257,23 @@ async function copiarLinkCheckout(vendaId, method = null) {
     } catch (error) {
         console.error('Erro:', error);
         alert('❌ Erro ao buscar link do servidor. Tente novamente.');
+    }
+}
+
+async function baixarBoleto(vendaId) {
+    try {
+        const response = await fetch(`/vendedor/vendas/${vendaId}/boleto`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            alert('❌ ' + (data.message || 'Não foi possível baixar o boleto.'));
+            return;
+        }
+        window.open(data.url, '_blank');
+    } catch (error) {
+        console.error('Erro:', error);
+        alert('❌ Erro ao buscar boleto. Tente novamente.');
     }
 }
 </script>
