@@ -2,30 +2,22 @@
 @section('title', 'Links de Pagamento')
 
 @section('content')
-<!-- Flatpickr CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
-    /* Custom Flatpickr Theme - Basileia Vendas */
-    .flatpickr-calendar {
-        background: var(--surface) !important;
-        box-shadow: var(--shadow-lg) !important;
-        border: 1px solid var(--border-light) !important;
-        border-radius: var(--radius-lg) !important;
-        font-family: var(--font) !important;
+    /* Flatpickr customizado com estilo do Basileia */
+    .datepicker {
+        background: #fafafa !important;
+        border: 1.5px solid #e5e7eb !important;
+        border-radius: 10px !important;
+        padding: 10px 14px !important;
+        font-size: 0.9375rem !important;
+        width: 100%;
+        box-sizing: border-box;
     }
-    .flatpickr-day.selected {
-        background: var(--primary) !important;
-        border-color: var(--primary) !important;
-    }
-    .flatpickr-day:hover {
-        background: var(--bg) !important;
-    }
-    .flatpickr-months .flatpickr-month {
-        color: var(--text-primary) !important;
-        fill: var(--text-primary) !important;
-    }
-    .flatpickr-current-month .flatpickr-monthDropdown-months {
-        font-weight: 700 !important;
+    .datepicker:focus {
+        outline: none;
+        border-color: #7c3aed !important;
+        box-shadow: 0 0 0 3px rgba(124,58,237,0.15) !important;
+        background: white !important;
     }
 </style>
 
@@ -258,59 +250,4 @@
     </div>
 </div>
 
-<!-- Flatpickr JS -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
-
-<script>
-    // Inicializar Flatpickr
-    document.addEventListener('DOMContentLoaded', function() {
-        flatpickr(".datepicker", {
-            locale: "pt",
-            dateFormat: "Y-m-d",
-            disableMobile: "true",
-            minDate: "today",
-            animate: true
-        });
-    });
-
-    function toggleInstallmentField() {
-        const select = document.getElementById('charge_type_select');
-        const group = document.getElementById('installment_field_group');
-        if (select.value === 'INSTALLMENT') {
-            group.style.display = 'block';
-        } else {
-            group.style.display = 'none';
-        }
-    }
-
-    function openBasileiaModal(show) {
-        const overlay = document.getElementById('modalNovoLink');
-        if (overlay) {
-            if (show) {
-                overlay.classList.add('show');
-                document.body.style.overflow = 'hidden';
-            } else {
-                overlay.classList.remove('show');
-                document.body.style.overflow = 'auto';
-            }
-        }
-    }
-
-    function copyToClipboard(text, btn) {
-        navigator.clipboard.writeText(text).then(() => {
-            const icon = btn.querySelector('i');
-            const originalIcon = icon.className;
-            icon.className = 'fas fa-check text-success';
-            setTimeout(() => { icon.className = originalIcon; }, 2000);
-        });
-    }
-
-    window.onclick = function(event) {
-        let overlay = document.getElementById('modalNovoLink');
-        if (event.target == overlay) {
-            openBasileiaModal(false);
-        }
-    }
-</script>
 @endsection
