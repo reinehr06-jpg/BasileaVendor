@@ -322,6 +322,9 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/assinaturas/{id}/resume', [SubscriptionController::class, 'resume'])->name('assinaturas.resume');
         Route::get('/assinaturas/{id}/card', [SubscriptionController::class, 'viewCard'])->name('assinaturas.card');
 
+        // Limpar Banco de Dados (via POST para evitar acidentes)
+        Route::post('/limpar-banco', [\App\Http\Controllers\Api\LimparBancoController::class, 'limpar'])->name('limpar-banco');
+
         // Ciclo de Assinatura — Migração e Verificação
         Route::post('/assinaturas/migrar', [\App\Http\Controllers\Master\SubscriptionController::class, 'migrar'])->name('assinaturas.migrar');
         Route::post('/assinaturas/verificar', [\App\Http\Controllers\Master\SubscriptionController::class, 'verificar'])->name('assinaturas.verificar');

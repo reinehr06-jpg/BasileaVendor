@@ -274,6 +274,20 @@
     {{-- HUB DE CONFIGURAÇÕES (ESTILO WINDOWS) --}}
     @if(!$activeTab)
     <div id="settings-hub" class="animate-up">
+        
+        {{-- ZONA DE PERIGO --}}
+        <div style="background: #FFF5F5; border: 2px solid #FF4C51; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+            <h3 style="color: #FF4C51; margin: 0 0 12px 0; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-exclamation-triangle"></i> Zona de Perigo
+            </h3>
+            <p style="color: #666; font-size: 0.9rem; margin: 0 0 16px 0;">
+                Esta ação é IRREVERSÍVEL. Todos os dados serão apagados permanentemente.
+            </p>
+            <button type="button" onclick="limparBanco()" class="btn btn-danger" style="background: #FF4C51; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer;">
+                <i class="fas fa-trash-alt"></i> Limpar Banco de Dados
+            </button>
+        </div>
+        
         <div style="text-align: center; margin-bottom: 50px;">
             <h1 style="font-size: 2.2rem; font-weight: 800; color: var(--materio-text-main); margin-bottom: 30px;">Configurações</h1>
             <div style="position: relative; max-width: 600px; margin: 0 auto;">
@@ -1401,6 +1415,30 @@
 
         document.body.appendChild(overlay);
         overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    }
+
+    // Função para limpar banco
+    function limparBanco() {
+        if (!confirm('⚠️ ATENÇÃO!\n\nIsso vai apagar TODOS os dados do sistema!\n\nExceto: Usuário admin\n\nContinuar?')) return;
+        if (!confirm('Tem certeza ABSOLUTAMENTE certeza?\n\nTodos os vendedores, vendas, clientes e pagamentos serão apagados!')) return;
+        
+        fetch('/master/limpar-banco', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.success) {
+                alert('✅ Banco de dados limpo com sucesso!');
+                location.reload();
+            } else {
+                alert('❌ Erro: ' + (d.error || 'Desconhecido'));
+            }
+        })
+        .catch(e => alert('❌ Erro: ' + e.message));
     }
 
 </script>
