@@ -611,47 +611,6 @@ async function calcularComissaoPreview(vendedorId, clienteIds) {
         btn.innerHTML = '<i class="fas fa-calculator"></i> Calcular Comissões';
     }
 }
-    
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Calculando...';
-    
-        const routeUrl = '/master/clientes-asaas/preview-assign';
-    
-    try {
-        const resp = await fetch(routeUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-            body: JSON.stringify({ customer_ids: parsedIds, vendedor_id: parseInt(vendedorId) })
-        });
-        
-        if (!resp.ok) {
-            const errText = await resp.text();
-            alert('Erro do servidor: ' + resp.status + ' - ' + errText);
-            return;
-        }
-        
-        const data = await resp.json();
-        
-        if (data.success) {
-            document.getElementById('preview-result').style.display = 'block';
-            document.getElementById('preview-comissao-vendedor').textContent = data.comissao_vendedor;
-            document.getElementById('preview-comissao-gestor').textContent = data.comissao_gestor;
-            
-            const confirmBtn = document.getElementById('btn-confirm-assign');
-            confirmBtn.disabled = false;
-            confirmBtn.style.background = '#22c55e';
-            confirmBtn.style.cursor = 'pointer';
-            confirmBtn.style.opacity = '1';
-        } else {
-            alert('Erro: ' + (data.message || 'Não foi possível calcular.'));
-        }
-    } catch (e) {
-        alert('Erro de conexão: ' + e.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-calculator"></i> Calcular Comissões';
-    }
-}
 
 async function executarAtribuicao(vendedorId, clienteIds) {
     closeConfirmModal();
