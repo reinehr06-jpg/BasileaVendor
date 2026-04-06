@@ -26,6 +26,23 @@ class PagamentoService
             return false;
         }
 
+        // PROTEÇÃO CRÍTICA: Verificar se a venda e cliente existem
+        $venda = $pagamento->venda;
+        if (!$venda) {
+            Log::error('PagamentoService: sync ignorado - pagamento sem venda', [
+                'pagamento_id' => $pagamento->id,
+                'asaas_payment_id' => $pagamento->asaas_payment_id,
+            ]);
+            return false;
+        }
+        if (!$venda->cliente) {
+            Log::error('PagamentoService: sync ignorado - venda sem cliente', [
+                'pagamento_id' => $pagamento->id,
+                'venda_id' => $venda->id,
+            ]);
+            return false;
+        }
+
         try {
             $asaas = new AsaasService;
             $asaasId = $pagamento->asaas_payment_id;
@@ -148,6 +165,33 @@ class PagamentoService
      */
     public function confirmarPagamento(Pagamento $pagamento, array $paymentData = []): void
     {
+        // PROTEÇÃO CRÍTICA: Verificar se a venda e cliente existem
+        $venda = $pagamento->venda;
+        if (!$venda) {
+            Log::error('PagamentoService: tentativa de confirmar pagamento sem venda', [
+                'pagamento_id' => $pagamento->id,
+                'asaas_payment_id' => $pagamento->asaas_payment_id,
+            ]);
+            return;
+        }
+        if (!$venda->cliente) {
+            Log::error('PagamentoService: venda sem cliente. NAO confirmando pagamento.', [
+                'pagamento_id' => $pagamento->id,
+                'venda_id' => $venda->id,
+            ]);
+            return;
+        }
+
+        // PROTEÇÃO CRÍTICA: Verificar se o status Asaas é válido
+        $statusAsaas = strtoupper($paymentData['status'] ?? '');
+        if (!in_array($statusAsaas, ['RECEIVED', 'CONFIRMED'])) {
+            Log::error('PagamentoService: status Asaas invalido para confirmacao', [
+                'pagamento_id' => $pagamento->id,
+                'status_asaas' => $statusAsaas,
+            ]);
+            return;
+        }
+
         $pagamento->status = 'RECEIVED';
         $pagamento->data_pagamento = now();
 
