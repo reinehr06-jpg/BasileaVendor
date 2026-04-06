@@ -150,7 +150,7 @@
     </div>
 
     {{-- Filtros --}}
-    <form method="GET" action="{{ route('master.clientes-asaas.index') }}" class="asaas-filters">
+    <form method="GET" action="{{ route('master.clientes-asaas.index') }}" class="asaas-filters" onsubmit="saveSelectionToUrl();">
         @if($aba && $aba !== 'todos') <input type="hidden" name="aba" value="{{ $aba }}"> @endif
         <div>
             <label>Buscar</label>
