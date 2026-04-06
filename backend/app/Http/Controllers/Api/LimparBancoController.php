@@ -17,35 +17,25 @@ class LimparBancoController extends Controller
 
         try {
             $tabelas = [
-                'comissaos',
+                'comissoes',
                 'pagamentos',
                 'cobrancas',
                 'vendas',
                 'clientes',
                 'vendedores',
+                'notas_fiscais',
+                'aprovacoes_venda',
+                'venda_participantes',
+                'subscription_invoices',
+                'subscription_cards',
             ];
 
-            // PostgreSQL: desabilitar triggers
-            DB::statement('ALTER TABLE comissaos DISABLE TRIGGER ALL');
-            DB::statement('ALTER TABLE pagamentos DISABLE TRIGGER ALL');
-            DB::statement('ALTER TABLE cobrancas DISABLE TRIGGER ALL');
-            DB::statement('ALTER TABLE vendas DISABLE TRIGGER ALL');
-            DB::statement('ALTER TABLE clientes DISABLE TRIGGER ALL');
-            DB::statement('ALTER TABLE vendedores DISABLE TRIGGER ALL');
-
+            // Limpar cada tabela com cascade
             foreach ($tabelas as $tabela) {
                 if (Schema::hasTable($tabela)) {
                     DB::table($tabela)->delete();
                 }
             }
-
-            // Reabilitar triggers
-            DB::statement('ALTER TABLE comissaos ENABLE TRIGGER ALL');
-            DB::statement('ALTER TABLE pagamentos ENABLE TRIGGER ALL');
-            DB::statement('ALTER TABLE cobrancas ENABLE TRIGGER ALL');
-            DB::statement('ALTER TABLE vendas ENABLE TRIGGER ALL');
-            DB::statement('ALTER TABLE clientes ENABLE TRIGGER ALL');
-            DB::statement('ALTER TABLE vendedores ENABLE TRIGGER ALL');
 
             \Illuminate\Support\Facades\Log::info('Banco limpo pelo usuário: ' . auth()->id());
 
