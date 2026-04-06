@@ -287,11 +287,78 @@ async function salvarAtribuicao() {
 }
 
 async function confirmarVendaSistema(btn) {
-    if (!confirm('Deseja puxar e confirmar esta venda no sistema? (Cria cliente, venda, e concilia as comissões)')) return;
-
     const clientId = document.getElementById('cliente_id').value;
-    const origText = btn.innerHTML;
     
+    // Buscar informações do cliente para o modal
+    const nome = document.querySelector('.cliente-nome')?.textContent || 'Cliente';
+    const valorPlano = document.getElementById('comissao_vendedor_box')?.textContent || '—';
+    const valorGestor = document.getElementById('comissao_gestor_box')?.textContent || '—';
+    const tipoComissao = document.querySelector('.tipo-comissao')?.textContent || 'Não definida';
+    const vendedorSelect = document.getElementById('vendedor_select');
+    const vendedorNome = vendedorSelect?.options[vendedorSelect.selectedIndex]?.text || 'Não selecionado';
+    
+    // Criar modal de confirmação
+    const modalHtml = `
+        <div id="confirm-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
+            <div style="background:white;border-radius:16px;padding:24px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                <h3 style="margin:0 0 20px;color:#1e293b;font-size:1.2rem;font-weight:800;"><i class="fas fa-check-circle" style="color:#22c55e;"></i> Confirmar Attribuição</h3>
+                
+                <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:16px;">
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Cliente</div>
+                        <div style="font-size:1rem;font-weight:700;color:#1e293b;">${nome}</div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Vendedor Atribuído</div>
+                        <div style="font-size:1rem;font-weight:700;color:#4C1D95;">${vendedorNome}</div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+                        <div>
+                            <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Comissão Vendedor</div>
+                            <div style="font-size:1.1rem;font-weight:800;color:#166534;">${valorPlano}</div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Comissão Gestor</div>
+                            <div style="font-size:1.1rem;font-weight:800;color:#2563eb;">${valorGestor}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Tipo de Comissão</div>
+                        <div style="font-size:0.85rem;font-weight:700;color:#7c3aed;">${tipoComissao}</div>
+                    </div>
+                </div>
+                
+                <p style="font-size:0.85rem;color:#64748b;margin-bottom:20px;">
+                    Ao confirmar, o cliente será criado no sistema e as comissões serão registradas definitivamente.
+                </p>
+                
+                <div style="display:flex;gap:12px;">
+                    <button onclick="closeConfirmModal()" style="flex:1;padding:12px;border:2px solid #e2e8f0;border-radius:8px;background:white;color:#64748b;font-weight:700;cursor:pointer;">Cancelar</button>
+                    <button onclick="executeConfirmacao(${clientId})" style="flex:1;padding:12px;border:none;border-radius:8px;background:#22c55e;color:white;font-weight:700;cursor:pointer;"><i class="fas fa-check"></i> Confirmar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remover modal existente se houver
+    const existing = document.getElementById('confirm-modal');
+    if (existing) existing.remove();
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closeConfirmModal() {
+    const modal = document.getElementById('confirm-modal');
+    if (modal) modal.remove();
+}
+
+async function executeConfirmacao(clientId) {
+    closeConfirmModal();
+    
+    const btn = document.querySelector('.btn-confirmar');
+    if (!btn) return;
+    
+    const origText = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
     btn.style.opacity = '0.7';
@@ -304,7 +371,7 @@ async function confirmarVendaSistema(btn) {
         const data = await resp.json();
 
         if (data.success) {
-            btn.innerHTML = '✓ Puxado para o Sistema';
+            btn.innerHTML = '✓ Confirmado!';
             btn.style.background = '#0e7490';
             setTimeout(() => { window.location.href = "{{ route('master.clientes') }}"; }, 1500);
         } else {
@@ -318,6 +385,8 @@ async function confirmarVendaSistema(btn) {
         btn.innerHTML = origText;
         btn.disabled = false;
         btn.style.opacity = '1';
+    }
+}
     }
 }
 </script>
