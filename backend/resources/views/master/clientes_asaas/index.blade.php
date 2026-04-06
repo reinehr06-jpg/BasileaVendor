@@ -200,7 +200,7 @@
 {{-- TABELA PRINCIPAL --}}
 <div style="background:white; border-radius:12px; border:1px solid #ededf2; overflow:hidden; box-shadow:0 2px 4px rgba(50,50,71,0.06);">
     {{-- BARRA DE ATRIBUIÇÃO EM MASSA --}}
-    <div id="bulk_assign_bar" style="display:none; background:linear-gradient(135deg, #4C1D95 0%, #7c3aed 100%); padding:16px 20px; color:white;">
+    <div id="bulk_assign_bar" style="display:block; background:linear-gradient(135deg, #4C1D95 0%, #7c3aed 100%); padding:16px 20px; color:white;">
         <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
             <div style="display:flex; align-items:center; gap:12px;">
                 <input type="checkbox" id="select_all_checkbox" onchange="toggleAllCheckboxes()" style="width:18px; height:18px; cursor:pointer;">
