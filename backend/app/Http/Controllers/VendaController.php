@@ -1178,17 +1178,21 @@ class VendaController extends Controller
             ];
             $paymentMethod = $methodMap[strtoupper($method)] ?? 'credit_card';
 
-            // BOLETO: retorna link do boleto para copiar
+            // BOLETO: retorna link do boleto para copiar (validade: 72h)
             if ($paymentMethod === 'boleto') {
                 try {
                     $asaasService = app(\App\Services\AsaasService::class);
+                    
+                    // Verificar se link expirou (72h para boleto)
+                    $linkValidoAte = $venda->link_valido_ate;
+                    $expirado = !$linkValidoAte || now()->greaterThan(Carbon::parse($linkValidoAte));
                     
                     // Buscar ou criar cobrança
                     $pagamento = $venda->pagamentos()->first();
                     $asaasId = $pagamento?->asaas_payment_id ?? $venda->asaas_payment_link_id;
 
-                    if (!$asaasId) {
-                        // Criar cobrança se não existir
+                    if (!$asaasId || $expirado) {
+                        // Criar nova cobrança se não existir ou expirou
                         $cliente = $venda->cliente;
                         $asaasCustomerId = $cliente?->asaas_customer_id;
                         
@@ -1205,10 +1209,13 @@ class VendaController extends Controller
                             }
                         }
 
+                        // Boleto expira em 72h (3 dias)
+                        $dueDate = now()->addDays(3)->format('Y-m-d');
+
                         $asaasResult = $asaasService->createPayment(
                             $asaasCustomerId,
                             (float) ($venda->valor_final ?? $venda->valor),
-                            now()->format('Y-m-d'),
+                            $dueDate,
                             'BOLETO_BANCARIO',
                             'Plano ' . ($venda->plano ?? 'Basileia'),
                             'venda_' . $venda->id
@@ -1217,7 +1224,10 @@ class VendaController extends Controller
                         $asaasId = $asaasResult['id'] ?? null;
 
                         if ($asaasId) {
-                            $venda->update(['asaas_payment_link_id' => $asaasId]);
+                            $venda->update([
+                                'asaas_payment_link_id' => $asaasId,
+                                'link_valido_ate' => now()->addDays(3),
+                            ]);
                             \App\Models\Pagamento::create([
                                 'venda_id' => $venda->id,
                                 'asaas_payment_id' => $asaasId,
@@ -1240,6 +1250,7 @@ class VendaController extends Controller
                         'success' => true,
                         'boleto_url' => $boletoUrl,
                         'asaas_id' => $asaasId,
+                        'valido_ate' => $venda->link_valido_ate?->format('d/m/Y H:i'),
                         'message' => 'Link do boleto disponível para cópia.',
                     ]);
 
@@ -1268,12 +1279,16 @@ class VendaController extends Controller
                 ], 400);
             }
 
+            // Verificar se link expirou (15 dias para Pix/Cartão)
+            $linkValidoAte = $venda->link_valido_ate;
+            $linkExpirado = !$linkValidoAte || now()->greaterThan(Carbon::parse($linkValidoAte));
+
             // Pegar dados do pagamento ou criar se não existir
             $pagamento = $venda->pagamentos()->first();
             $asaasId = $pagamento?->asaas_payment_id ?? $venda->asaas_payment_link_id;
 
-            // Se não tiver ID Asaas, criar cobrança
-            if (!$asaasId) {
+            // Se não tiver ID Asaas ou link expirou, criar nova cobrança
+            if (!$asaasId || $linkExpirado) {
                 try {
                     $asaasService = app(\App\Services\AsaasService::class);
                     
@@ -1298,11 +1313,14 @@ class VendaController extends Controller
                         }
                     }
 
+                    // Pix/Cartão expira em 15 dias
+                    $dueDate = now()->addDays(15)->format('Y-m-d');
+
                     // Criar cobrança
                     $asaasResult = $asaasService->createPayment(
                         $asaasCustomerId,
                         (float) ($venda->valor_final ?? $venda->valor),
-                        now()->format('Y-m-d'),
+                        $dueDate,
                         $billingType,
                         'Plano ' . ($venda->plano ?? 'Basileia'),
                         'venda_' . $venda->id
@@ -1311,9 +1329,10 @@ class VendaController extends Controller
                     if (!empty($asaasResult['id'])) {
                         $asaasId = $asaasResult['id'];
                         
-                        // Salvar na venda
+                        // Salvar na venda - atualizar link válido (15 dias para Pix/Cartão)
                         $venda->update([
                             'asaas_payment_link_id' => $asaasId,
+                            'link_valido_ate' => now()->addDays(15),
                         ]);
 
                         // Criar registro de pagamento
@@ -1327,9 +1346,10 @@ class VendaController extends Controller
                             'data_pagamento' => null,
                         ]);
 
-                        Log::info('Checkout: Cobrança Asaas criada para link', [
+                        Log::info('Checkout: Cobrança Asaas criada para link (Pix/Cartão - 15 dias)', [
                             'venda_id' => $venda->id,
                             'asaas_id' => $asaasId,
+                            'valido_ate' => now()->addDays(15)->format('Y-m-d H:i:s'),
                         ]);
                     }
                 } catch (\Exception $e) {
