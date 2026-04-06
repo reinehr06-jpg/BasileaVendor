@@ -1277,9 +1277,9 @@ class VendaController extends Controller
                 }
             }
 
-            // Preparar parâmetros para o checkout (incluindo id_asaas)
+            // Preparar parâmetros para o checkout (incluindo asaas_payment_id)
             $params = http_build_query([
-                'id_asaas' => $asaasId,
+                'asaas_payment_id' => $asaasId,
                 'venda_id' => $venda->id,
                 'hash' => $venda->checkout_hash,
                 'valor' => (float) $venda->valor_final,
