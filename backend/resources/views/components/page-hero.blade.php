@@ -22,10 +22,10 @@
     }
     .page-hero h2 { color: white; margin-bottom: 6px; font-size: 1.6rem; letter-spacing: -0.5px; }
     .page-hero p { opacity: 0.85; font-size: 0.95rem; }
-    .page-hero-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .page-hero-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; position: relative; z-index: 9998; }
     .page-hero-actions .export-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; display: none; }
     
-    .export-dropdown { position: relative; display: inline-block; }
+    .export-dropdown { position: relative; display: inline-block; z-index: 9999; }
     .hero-export-toggle { 
         display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; 
         border-radius: 7px; font-weight: 600; font-size: 0.8rem; text-decoration: none; 
@@ -39,7 +39,7 @@
         opacity: 0; visibility: hidden; transform: translateY(8px);
         transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
         background: #ffffff; border-radius: var(--radius-md); box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-        padding: 6px; min-width: 160px; z-index: 999; border: 1px solid #e2e8f0;
+        padding: 6px; min-width: 160px; z-index: 9999; border: 1px solid #e2e8f0;
         pointer-events: none;
     }
     
