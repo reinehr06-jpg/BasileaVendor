@@ -339,9 +339,14 @@
                         @endif
                     </td>
                     <td class="text-center">
-                        <a href="{{ route('master.clientes-asaas.show', $c->id) }}" class="btn-detalhes">
-                            <i class="fas fa-eye"></i> Detalhes
-                        </a>
+                        <div style="display:flex; gap:8px; justify-content:center;">
+                            <a href="{{ route('master.clientes-asaas.show', $c->id) }}" class="btn-detalhes">
+                                <i class="fas fa-eye"></i> Detalhes
+                            </a>
+                            <a href="{{ route('master.clientes-asaas.edit', $c->id) }}" class="btn-detalhes" style="background:#f97316;">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 @endforeach

@@ -127,6 +127,115 @@ class AsaasClienteSyncController extends Controller
     }
 
     // ──────────────────────────────────────────────────────────────
+    // EDITAR CLIENTE (FORMULÁRIO)
+    // ──────────────────────────────────────────────────────────────
+    public function edit(Request $request, $id)
+    {
+        $cliente = DB::table('legacy_customer_imports')->where('id', $id)->first();
+        if (!$cliente) {
+            return redirect()->route('master.clientes-asaas.index')->with('error', 'Cliente não encontrado.');
+        }
+
+        $vendedores = Vendedor::whereIn('status', ['ativo', '1', 1])->with('user')->get();
+        $listaG = collect();
+        $listaV = collect();
+        foreach($vendedores as $v) {
+            $r = strtolower($v->role ?? ($v->user->role ?? ''));
+            if(str_contains($r, 'gestor') || str_contains($r, 'master')) $listaG->push($v);
+            else $listaV->push($v);
+        }
+
+        return view('master.clientes_asaas.edit', compact('cliente', 'listaG', 'listaV'));
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // ATUALIZAR CLIENTE
+    // ──────────────────────────────────────────────────────────────
+    public function update(Request $request, $id)
+    {
+        $cliente = DB::table('legacy_customer_imports')->where('id', $id)->first();
+        if (!$cliente) {
+            return response()->json(['success' => false, 'message' => 'Cliente não encontrado'], 404);
+        }
+
+        $validated = $request->validate([
+            'nome' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'documento' => 'nullable|string|max:20',
+            'telefone' => 'nullable|string|max:20',
+            'tipo_cobranca' => 'nullable|in:subscription,installment,avulso',
+            'parcelas_total' => 'nullable|integer|min:1',
+            'parcelas_pagas' => 'nullable|integer|min:0',
+            'valor_plano_mensal' => 'nullable|numeric|min:0',
+            'primeiro_pagamento_at' => 'nullable|date',
+            'ultimo_pagamento_confirmado_at' => 'nullable|date',
+            'proximo_vencimento_at' => 'nullable|date',
+            'diagnostico_status' => 'nullable|in:ATIVO,CHURN,CANCELADO,PENDENTE',
+            'comissao_tipo' => 'nullable|in:inicial,inicial_antecipada,recorrencia',
+            'vendedor_id' => 'nullable|exists:vendedores,id',
+        ]);
+
+        $data = [
+            'updated_at' => now(),
+        ];
+
+        // Campos editáveis
+        $camposEditaveis = [
+            'nome', 'email', 'documento', 'telefone', 'tipo_cobranca',
+            'parcelas_total', 'parcelas_pagas', 'valor_plano_mensal',
+            'primeiro_pagamento_at', 'ultimo_pagamento_confirmado_at',
+            'proximo_vencimento_at', 'diagnostico_status', 'comissao_tipo'
+        ];
+
+        foreach ($camposEditaveis as $campo) {
+            if ($request->has($campo)) {
+                $data[$campo] = $request->input($campo);
+            }
+        }
+
+        // Recalcular dias_sem_pagar se alterou último pagamento
+        if ($request->has('ultimo_pagamento_confirmado_at') && $request->ultimo_pagamento_confirmado_at) {
+            $dias = (int) Carbon::parse($request->ultimo_pagamento_confirmado_at)->diffInDays(now(), false);
+            $data['dias_sem_pagar'] = max(0, $dias);
+        }
+
+        // Se alterou vendedor, recalcular comissão
+        $vendedorId = $request->input('vendedor_id');
+        $comissaoVendedor = 0;
+        $comissaoGestor = 0;
+
+        if ($vendedorId && ($validated['diagnostico_status'] ?? $cliente->diagnostico_status) === 'ATIVO') {
+            $vendedor = Vendedor::with('user')->find($vendedorId);
+            if ($vendedor) {
+                $import = (object) array_merge((array) $cliente, [
+                    'valor_marco_pago' => $cliente->valor_marco_pago ?? $request->input('valor_plano_mensal'),
+                    'comissao_tipo' => $request->input('comissao_tipo') ?? $cliente->comissao_tipo,
+                ]);
+                [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
+                $data['vendedor_id'] = $vendedorId;
+                $data['comissao_vendedor_calculada'] = $comissaoVendedor;
+                $data['comissao_gestor_calculada'] = $comissaoGestor;
+                $data['comissao_mes_referencia'] = $this->getMesReferencia();
+            }
+        } elseif ($vendedorId === null && $request->has('vendedor_id')) {
+            // Remover atribuição
+            $data['vendedor_id'] = null;
+            $data['comissao_vendedor_calculada'] = 0;
+            $data['comissao_gestor_calculada'] = 0;
+            $data['comissao_mes_referencia'] = null;
+        }
+
+        DB::table('legacy_customer_imports')->where('id', $id)->update($data);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cliente atualizado com sucesso!',
+            'comissao_vendedor' => 'R$ ' . number_format($comissaoVendedor, 2, ',', '.'),
+            'comissao_gestor' => 'R$ ' . number_format($comissaoGestor, 2, ',', '.'),
+        ]);
+    }
+
+    // ──────────────────────────────────────────────────────────────
     // SINCRONIZAÇÃO — PAGINADA COM PROGRESS VIA SSE
     // ──────────────────────────────────────────────────────────────
 

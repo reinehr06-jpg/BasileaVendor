@@ -73,7 +73,11 @@
 
 @section('content')
 <div class="materio-container">
-    <x-page-hero title="Detalhes do Cliente Asaas" subtitle="{{ $cliente->nome }} — {{ $cliente->email ?? 'Sem e-mail' }}" icon="fas fa-cloud-arrow-down" />
+    <x-page-hero title="Detalhes do Cliente Asaas" subtitle="{{ $cliente->nome }} — {{ $cliente->email ?? 'Sem e-mail' }}" icon="fas fa-cloud-arrow-down">
+        <a href="{{ route('master.clientes-asaas.edit', $cliente->id) }}" class="btn btn-primary" style="font-weight:700; background:#f97316; border-color:#f97316;">
+            <i class="fas fa-edit"></i> Editar Dados
+        </a>
+    </x-page-hero>
 
     @php
         $tipoLabel = match($cliente->tipo_cobranca ?? '') {
@@ -94,10 +98,23 @@
                 <div class="detail-header">
                     <h2>{{ $cliente->nome }}</h2>
                     <div style="display:flex; gap:8px;">
-                        <span style="font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; background: #e0f2fe; color: #0284c7;">
+                        <span style="font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; background:#e0f2fe; color:#0284c7;">
                             {{ $tipoLabel }}
                         </span>
-                        <span style="font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; background: {{ $cliente->diagnostico_status === 'ATIVO' ? '#dcfce7' : ($cliente->diagnostico_status === 'CHURN' ? '#ffedd5' : '#fee2e2') }}; color: {{ $cliente->diagnostico_status === 'ATIVO' ? '#166534' : ($cliente->diagnostico_status === 'CHURN' ? '#c2410c' : '#991b1b') }};">
+                        @php
+                            $diagStatus = $cliente->diagnostico_status;
+                            $bgColor = match($diagStatus) {
+                                'ATIVO' => '#dcfce7',
+                                'CHURN' => '#ffedd5',
+                                default => '#fee2e2'
+                            };
+                            $txtColor = match($diagStatus) {
+                                'ATIVO' => '#166534',
+                                'CHURN' => '#c2410c',
+                                default => '#991b1b'
+                            };
+                        @endphp
+                        <span style="font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; background:{{ $bgColor }}; color:{{ $txtColor }};">
                             {{ $cliente->diagnostico_status ?? 'DESCONHECIDO' }}
                         </span>
                     </div>
@@ -385,8 +402,6 @@ async function executeConfirmacao(clientId) {
         btn.innerHTML = origText;
         btn.disabled = false;
         btn.style.opacity = '1';
-    }
-}
     }
 }
 </script>
