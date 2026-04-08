@@ -33,53 +33,43 @@ class ClearStaleCache
      */
     private function clearSettingsCache(): void
     {
-        $keys = [
-            // Asaas
-            'setting_asaas_api_key',
-            'setting_asaas_webhook_token',
-            'setting_asaas_environment',
-            'setting_asaas_callback_url',
-            'setting_asaas_split_global_ativo',
-            'setting_asaas_juros_padrao',
-            'setting_asaas_multa_padrao',
-            // Email
-            'setting_email_vendedor_from',
-            'setting_email_cliente_from',
-            'setting_email_suporte',
-            'setting_whatsapp_suporte',
-            // Basileia Church
-            'setting_basileia_church_webhook_url',
-            'setting_basileia_church_webhook_token',
-            // Google Calendar
-            'setting_google_calendar_client_id',
-            'setting_google_calendar_client_secret',
-            'setting_google_calendar_redirect_uri',
-            'setting_google_calendar_id',
-            'setting_google_calendar_ativo',
-            // Google Gmail
-            'setting_google_gmail_client_id',
-            'setting_google_gmail_client_secret',
-            'setting_google_gmail_redirect_uri',
-            'setting_google_gmail_email',
-            'setting_google_gmail_ativo',
-        ];
-
-        foreach ($keys as $key) {
-            Cache::forget($key);
-        }
-    }
-
-    /**
-     * Limpar cache expirado para evitar acúmulo de dados obsoletos.
-     */
-    private function clearExpiredCache(): void
-    {
         try {
-            \Illuminate\Support\Facades\DB::table('cache')
-                ->where('expiration', '<', time())
-                ->delete();
+            $keys = [
+                // Asaas
+                'setting_asaas_api_key',
+                'setting_asaas_webhook_token',
+                'setting_asaas_environment',
+                'setting_asaas_callback_url',
+                'setting_asaas_split_global_ativo',
+                'setting_asaas_juros_padrao',
+                'setting_asaas_multa_padrao',
+                // Email
+                'setting_email_vendedor_from',
+                'setting_email_cliente_from',
+                'setting_email_suporte',
+                'setting_whatsapp_suporte',
+                // Basileia Church
+                'setting_basileia_church_webhook_url',
+                'setting_basileia_church_webhook_token',
+                // Google Calendar
+                'setting_google_calendar_client_id',
+                'setting_google_calendar_client_secret',
+                'setting_google_calendar_redirect_uri',
+                'setting_google_calendar_id',
+                'setting_google_calendar_ativo',
+                // Google Gmail
+                'setting_google_gmail_client_id',
+                'setting_google_gmail_client_secret',
+                'setting_google_gmail_redirect_uri',
+                'setting_google_gmail_email',
+                'setting_google_gmail_ativo',
+            ];
+
+            foreach ($keys as $key) {
+                Cache::forget($key);
+            }
         } catch (\Exception $e) {
-            // Ignorar erros de limpeza de cache
+            // Ignorar erros de cache
         }
     }
 }
