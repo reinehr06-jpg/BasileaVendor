@@ -171,7 +171,7 @@ class AsaasClienteSyncController extends Controller
             'ultimo_pagamento_confirmado_at' => 'nullable|date',
             'proximo_vencimento_at' => 'nullable|date',
             'diagnostico_status' => 'nullable|in:ATIVO,CHURN,CANCELADO,PENDENTE',
-            'comissao_tipo' => 'nullable|in:inicial,inicial_antecipada,recorrencia',
+            'comissao_tipo' => 'nullable|in:inicial,inicial_antecipada,recorrencia,sem_comissao',
             'vendedor_id' => 'nullable|exists:vendedores,id',
         ]);
 
@@ -958,6 +958,12 @@ class AsaasClienteSyncController extends Controller
                 // Assinatura recorrente — já pagava antes de março
                 $cv = $valorBase * ($percRec / 100);
                 $cg = $valorBase * ($percGstRec / 100);
+                break;
+
+            case 'sem_comissao':
+                // Sem comissão - cliente já foi pago anteriormente
+                $cv = 0;
+                $cg = 0;
                 break;
         }
 

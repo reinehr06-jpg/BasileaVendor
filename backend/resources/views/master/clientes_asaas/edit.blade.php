@@ -182,6 +182,7 @@
                 <div class="form-group">
                     <label>Tipo de Comissão</label>
                     <select name="comissao_tipo">
+                        <option value="sem_comissao" {{ $cliente->comissao_tipo === 'sem_comissao' ? 'selected' : '' }}>Sem Comissão (já pago)</option>
                         <option value="inicial" {{ $cliente->comissao_tipo === 'inicial' ? 'selected' : '' }}>Inicial (1º pagamento)</option>
                         <option value="inicial_antecipada" {{ $cliente->comissao_tipo === 'inicial_antecipada' ? 'selected' : '' }}>Inicial Antecipada (parcelado)</option>
                         <option value="recorrencia" {{ $cliente->comissao_tipo === 'recorrencia' ? 'selected' : '' }}>Recorrência</option>

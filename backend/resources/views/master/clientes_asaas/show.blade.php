@@ -89,6 +89,9 @@
         // Identificando as comissões formatadas
         $comissaoVendedor = ($cliente->comissao_vendedor_calculada ?? 0) > 0 ? 'R$ ' . number_format($cliente->comissao_vendedor_calculada, 2, ',', '.') : '—';
         $comissaoGestor = ($cliente->comissao_gestor_calculada ?? 0) > 0 ? 'R$ ' . number_format($cliente->comissao_gestor_calculada, 2, ',', '.') : '—';
+        
+        $mesLabel = \Carbon\Carbon::parse($mesReferencia . '-01')->translatedFormat('F/Y');
+        $mesSimples = \Carbon\Carbon::parse($mesReferencia . '-01')->translatedFormat('F');
     @endphp
 
     <div style="display: flex; flex-wrap: wrap; gap: 24px;">
@@ -98,23 +101,10 @@
                 <div class="detail-header">
                     <h2>{{ $cliente->nome }}</h2>
                     <div style="display:flex; gap:8px;">
-                        <span style="font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; background:#e0f2fe; color:#0284c7;">
+                        <span style="font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; background: #e0f2fe; color: #0284c7;">
                             {{ $tipoLabel }}
                         </span>
-                        @php
-                            $diagStatus = $cliente->diagnostico_status;
-                            $bgColor = match($diagStatus) {
-                                'ATIVO' => '#dcfce7',
-                                'CHURN' => '#ffedd5',
-                                default => '#fee2e2'
-                            };
-                            $txtColor = match($diagStatus) {
-                                'ATIVO' => '#166534',
-                                'CHURN' => '#c2410c',
-                                default => '#991b1b'
-                            };
-                        @endphp
-                        <span style="font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; background:{{ $bgColor }}; color:{{ $txtColor }};">
+                        <span style="font-size:0.75rem; font-weight:800; padding:4px 10px; border-radius:8px; background: {{ $cliente->diagnostico_status === 'ATIVO' ? '#dcfce7' : ($cliente->diagnostico_status === 'CHURN' ? '#ffedd5' : '#fee2e2') }}; color: {{ $cliente->diagnostico_status === 'ATIVO' ? '#166534' : ($cliente->diagnostico_status === 'CHURN' ? '#c2410c' : '#991b1b') }};">
                             {{ $cliente->diagnostico_status ?? 'DESCONHECIDO' }}
                         </span>
                     </div>
@@ -142,7 +132,7 @@
 
             <div class="detail-card">
                 <div class="detail-header">
-                    <h2>Dados de Pagamento (Março/2026)</h2>
+                    <h2>Dados de Pagamento ({{ ucfirst($mesLabel) }})</h2>
                 </div>
 
                 <div class="info-grid">
@@ -163,7 +153,7 @@
                         </div>
                     </div>
                     <div class="info-item">
-                        <label>Valor Pago em Março</label>
+                        <label>Valor Pago em {{ ucfirst($mesSimples) }}</label>
                         <div class="value highlight">
                             R$ {{ number_format($cliente->valor_marco_pago ?? 0, 2, ',', '.') }}
                         </div>
@@ -216,8 +206,24 @@
                     </div>
                 </div>
 
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; font-size:0.8rem; font-weight:800; color:var(--materio-text-muted); text-transform:uppercase; margin-bottom:10px;">Percentuais de Comissão (%)</label>
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <label style="font-size:0.7rem; color:#64748b; font-weight:600;">Vendedor %</label>
+                            <input type="number" id="perc_vendedor" step="0.5" min="0" max="100" value="{{ $percVendedor ?? 0 }}" 
+                                style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-size:1rem; font-weight:700; text-align:center;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:0.7rem; color:#64748b; font-weight:600;">Gestor %</label>
+                            <input type="number" id="perc_gestor" step="0.5" min="0" max="100" value="{{ $percGestor ?? 0 }}"
+                                style="width:100%; padding:10px; border:2px solid #e2e8f0; border-radius:8px; font-size:1rem; font-weight:700; text-align:center;">
+                        </div>
+                    </div>
+                </div>
+
                 <div style="background:var(--materio-body-bg); padding:16px; border-radius:10px;">
-                    <h4 style="font-size:0.85rem; font-weight:800; color:var(--materio-text-muted); text-transform:uppercase; margin-bottom:12px;">Comissões Projetadas (Março)</h4>
+                    <h4 style="font-size:0.85rem; font-weight:800; color:var(--materio-text-muted); text-transform:uppercase; margin-bottom:12px;">Comissões Projetadas ({{ ucfirst($mesSimples) }})</h4>
                     
                     <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                         <span style="font-size:0.85rem; font-weight:600; color:var(--materio-text-main);">Vendedor:</span>
@@ -262,6 +268,8 @@ async function salvarAtribuicao() {
     const select = document.getElementById('vendedor_select');
     const vendId = select.value;
     const clientId = document.getElementById('cliente_id').value;
+    const percVendedor = document.getElementById('perc_vendedor').value || 0;
+    const percGestor = document.getElementById('perc_gestor').value || 0;
     const feedback = document.getElementById('save_feedback');
     const origBorder = select.style.borderColor;
 
@@ -273,7 +281,7 @@ async function salvarAtribuicao() {
         const resp = await fetch(`{{ url('master/clientes-asaas') }}/${clientId}/vendedor`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
-            body: JSON.stringify({ vendedor_id: vendId || null }),
+            body: JSON.stringify({ vendedor_id: vendId || null, perc_vendedor: percVendedor, perc_gestor: percGestor }),
         });
         const data = await resp.json();
 
@@ -307,10 +315,9 @@ async function confirmarVendaSistema(btn) {
     const clientId = document.getElementById('cliente_id').value;
     
     // Buscar informações do cliente para o modal
-    const nome = document.querySelector('.cliente-nome')?.textContent || 'Cliente';
+    const nome = document.querySelector('.detail-header h2')?.textContent || 'Cliente';
     const valorPlano = document.getElementById('comissao_vendedor_box')?.textContent || '—';
     const valorGestor = document.getElementById('comissao_gestor_box')?.textContent || '—';
-    const tipoComissao = document.querySelector('.tipo-comissao')?.textContent || 'Não definida';
     const vendedorSelect = document.getElementById('vendedor_select');
     const vendedorNome = vendedorSelect?.options[vendedorSelect.selectedIndex]?.text || 'Não selecionado';
     
@@ -318,7 +325,7 @@ async function confirmarVendaSistema(btn) {
     const modalHtml = `
         <div id="confirm-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
             <div style="background:white;border-radius:16px;padding:24px;max-width:480px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
-                <h3 style="margin:0 0 20px;color:#1e293b;font-size:1.2rem;font-weight:800;"><i class="fas fa-check-circle" style="color:#22c55e;"></i> Confirmar Attribuição</h3>
+                <h3 style="margin:0 0 20px;color:#1e293b;font-size:1.2rem;font-weight:800;"><i class="fas fa-check-circle" style="color:#22c55e;"></i> Confirmar Atribuição</h3>
                 
                 <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-bottom:16px;">
                     <div style="margin-bottom:12px;">
@@ -339,10 +346,6 @@ async function confirmarVendaSistema(btn) {
                             <div style="font-size:1.1rem;font-weight:800;color:#2563eb;">${valorGestor}</div>
                         </div>
                     </div>
-                    <div>
-                        <div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">Tipo de Comissão</div>
-                        <div style="font-size:0.85rem;font-weight:700;color:#7c3aed;">${tipoComissao}</div>
-                    </div>
                 </div>
                 
                 <p style="font-size:0.85rem;color:#64748b;margin-bottom:20px;">
@@ -351,7 +354,7 @@ async function confirmarVendaSistema(btn) {
                 
                 <div style="display:flex;gap:12px;">
                     <button onclick="closeConfirmModal()" style="flex:1;padding:12px;border:2px solid #e2e8f0;border-radius:8px;background:white;color:#64748b;font-weight:700;cursor:pointer;">Cancelar</button>
-                    <button onclick="executeConfirmacao(${clientId})" style="flex:1;padding:12px;border:none;border-radius:8px;background:#22c55e;color:white;font-weight:700;cursor:pointer;"><i class="fas fa-check"></i> Confirmar</button>
+                    <button id="btn-execute-confirm" onclick="executeConfirmacao(${clientId})" style="flex:1;padding:12px;border:none;border-radius:8px;background:#22c55e;color:white;font-weight:700;cursor:pointer;"><i class="fas fa-check"></i> Confirmar</button>
                 </div>
             </div>
         </div>
@@ -370,15 +373,11 @@ function closeConfirmModal() {
 }
 
 async function executeConfirmacao(clientId) {
-    closeConfirmModal();
-    
-    const btn = document.querySelector('.btn-confirmar');
-    if (!btn) return;
-    
-    const origText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
-    btn.style.opacity = '0.7';
+    const btn = document.getElementById('btn-execute-confirm');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+    }
 
     try {
         const resp = await fetch(`{{ url('master/clientes-asaas') }}/${clientId}/confirmar`, {
@@ -388,22 +387,34 @@ async function executeConfirmacao(clientId) {
         const data = await resp.json();
 
         if (data.success) {
-            btn.innerHTML = '✓ Confirmado!';
-            btn.style.background = '#0e7490';
+            closeConfirmModal();
+            // Mostrar feedback de sucesso
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="success-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;">
+                    <div style="background:white;border-radius:16px;padding:32px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+                        <i class="fas fa-check-circle" style="font-size:3rem;color:#22c55e;margin-bottom:16px;display:block;"></i>
+                        <h3 style="color:#1e293b;margin:0 0 8px;">Cliente Confirmado!</h3>
+                        <p style="color:#64748b;font-size:0.9rem;">Redirecionando para a lista de clientes...</p>
+                    </div>
+                </div>
+            `);
             setTimeout(() => { window.location.href = "{{ route('master.clientes') }}"; }, 1500);
         } else {
             alert('Erro: ' + (data.message || 'Não foi possível aprovar.'));
-            btn.innerHTML = origText;
-            btn.disabled = false;
-            btn.style.opacity = '1';
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-check"></i> Confirmar';
+            }
         }
     } catch(e) {
         alert('Erro: ' + e.message);
-        btn.innerHTML = origText;
-        btn.disabled = false;
-        btn.style.opacity = '1';
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Confirmar';
+        }
     }
 }
 </script>
 @endpush
 @endsection
+
