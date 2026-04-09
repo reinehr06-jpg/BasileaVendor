@@ -1090,62 +1090,37 @@ class AsaasClienteSyncController extends Controller
 
     private function calcularComissao(object $import, Vendedor $vendedor): array
     {
-        // Fallback: se comissao_inicial for zero (0.00), o operador ?: pula para o próximo (comissao ou percentual_comissao)
+        // Percentuais (Vendedor e Gestor)
         $percIni    = (float) ($vendedor->comissao_inicial ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0);
         $percRec    = (float) ($vendedor->comissao_recorrencia ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0);
-        
         $percGstIni = (float) ($vendedor->comissao_gestor_primeira ?? 0);
         $percGstRec = (float) ($vendedor->comissao_gestor_recorrencia ?? 0);
 
-        $valorBase  = (float) ($import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0);
-        $valorPlano = (float) ($import->valor_plano_mensal ?? 0);
+        // Valores e Parcelas
+        $valorPlano    = (float) ($import->valor_plano_mensal ?? 0);
         $parcelasTotal = (int) ($import->parcelas_total ?? 1);
-        $parcelasPagas = (int) ($import->parcelas_pagas ?? 0);
-
-        Log::info("AsaasSync: Detalhes calcularComissao", [
-            'vendedor_id' => $vendedor->id,
-            'tipo' => $import->comissao_tipo ?? 'null',
-            'percIni' => $percIni,
-            'percRec' => $percRec,
-            'valorBase' => $valorBase,
-            'valorPlano' => $valorPlano,
-            'parcelasTotal' => $parcelasTotal,
-            'parcelasPagas' => $parcelasPagas
-        ]);
 
         $cv = 0.0;
         $cg = 0.0;
 
-        switch ($import->comissao_tipo) {
-            case 'inicial':
-                // Assinatura/PIX/Boleto: primeiro pagamento em março
-                $cv = $valorBase * ($percIni / 100);
-                $cg = $valorBase * ($percGstIni / 100);
-                break;
+        $comissaoTipo = $import->comissao_tipo ?? 'recorrencia';
 
-            case 'inicial_antecipada':
-                // Parcelado criado em março — antecipa TODA a comissão
-                // Comissão inicial sobre o valor da 1ª parcela
-                $cv = $valorPlano * ($percIni / 100);
-                $cg = $valorPlano * ($percGstIni / 100);
-                // Recorrência antecipada para as parcelas restantes (Sobra = Total - 1a parcela)
-                // Usamos max(1, pagas) para garantir que no mínimo a 1ª parcela seja descontada do saldo de recorrências.
-                $restantes = max(0, $parcelasTotal - max(1, $parcelasPagas));
-                $cv += $valorPlano * ($percRec / 100) * $restantes;
-                $cg += $valorPlano * ($percGstRec / 100) * $restantes;
-                break;
+        if ($comissaoTipo === 'inicial_antecipada') {
+            // Lógica: 1ª parcela (PercIni) + Demais (PercRec * Restantes)
+            $restantes = max(0, $parcelasTotal - 1);
+            $cv = ($valorPlano * ($percIni / 100)) + ($valorPlano * ($percRec / 100) * $restantes);
+            $cg = ($valorPlano * ($percGstIni / 100)) + ($valorPlano * ($percGstRec / 100) * $restantes);
+        } elseif ($comissaoTipo === 'inicial') {
+            $cv = $valorPlano * ($percIni / 100);
+            $cg = $valorPlano * ($percGstIni / 100);
+        } elseif ($comissaoTipo === 'recorrencia') {
+            $cv = $valorPlano * ($percRec / 100);
+            $cg = $valorPlano * ($percGstRec / 100);
+        }
 
-            case 'recorrencia':
-                // Assinatura recorrente — já pagava antes de março
-                $cv = $valorBase * ($percRec / 100);
-                $cg = $valorBase * ($percGstRec / 100);
-                break;
-
-            case 'sem_comissao':
-                // Sem comissão - cliente já foi pago anteriormente
-                $cv = 0;
-                $cg = 0;
-                break;
+        // Se o vendedor não tem gestor acima dele, a comissão de gestão deve ser ZERO
+        if (empty($vendedor->gestor_id)) {
+            $cg = 0;
         }
 
         return [round($cv, 2), round($cg, 2)];
