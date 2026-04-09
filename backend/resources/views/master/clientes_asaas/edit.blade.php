@@ -97,7 +97,9 @@
 <div class="materio-container">
     <x-page-hero title="Editar Cliente Asaas" subtitle="{{ $cliente->nome }}" icon="fas fa-edit" />
 
-    <form id="edit-form">
+    <form id="edit-form" action="{{ route('master.clientes-asaas.update', $cliente->id) }}" method="POST">
+        @csrf
+        @method('PUT')
         <div class="edit-card">
             <div class="edit-header">
                 <h2><i class="fas fa-user"></i> Dados do Cliente</h2>
@@ -248,7 +250,7 @@
     </form>
 </div>
 
-@push('js')
+@section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const editForm = document.getElementById('edit-form');
@@ -447,5 +449,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-@endpush
+@endsection
 @endsection
