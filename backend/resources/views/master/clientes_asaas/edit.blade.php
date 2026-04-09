@@ -431,16 +431,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await resp.json();
             
             if (result.success) {
-                window.location.href = '{{ route("master.clientes-asaas.show", $cliente->id) }}';
+                // Redireciona para a listagem principal para ver o cliente na aba correta
+                window.location.href = '{{ route("master.clientes-asaas.index") }}';
             } else {
-                // Silent error
                 btn.disabled = false;
                 btn.innerHTML = origText;
             }
-            // Silent error
+        } catch(e) {
+            console.error('Erro ao salvar:', e);
             btn.disabled = false;
             btn.innerHTML = origText;
         }
+        return false;
     });
 });
 </script>
