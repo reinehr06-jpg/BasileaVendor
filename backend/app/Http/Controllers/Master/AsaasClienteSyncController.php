@@ -1002,9 +1002,6 @@ class AsaasClienteSyncController extends Controller
         if (!$import->vendedor_id) {
             return response()->json(['success' => false, 'message' => 'Atribua um vendedor antes de confirmar.'], 422);
         }
-        if ($import->local_cliente_id) {
-            return response()->json(['success' => false, 'message' => 'Cliente já confirmado no sistema.'], 422);
-        }
 
         $doc = preg_replace('/\D/', '', $import->documento ?? '');
 

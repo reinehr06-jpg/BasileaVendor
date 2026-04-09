@@ -431,8 +431,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await resp.json();
             
             if (result.success) {
-                // Redireciona para a listagem principal para ver o cliente na aba correta
-                window.location.href = '{{ route("master.clientes-asaas.index") }}';
+                // Redireciona para a listagem na aba correta (Aba de Sem Vendedor para continuar o ritmo)
+                window.location.href = '{{ route("master.clientes-asaas.index", ["aba" => "sem_vendedor"]) }}';
             } else {
                 btn.disabled = false;
                 btn.innerHTML = origText;
