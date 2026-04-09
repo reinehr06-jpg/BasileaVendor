@@ -70,10 +70,24 @@ class TwoFactorController extends Controller
                 SecurityLogService::logTwoFactorEvent($user->id, 'verified', 'success');
                 return redirect()->intended(route('dashboard'));
             }
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            Log::error('2FA_VERIFY_DECRYPT_ERROR', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            
+            // Auto-heal: se ocorreu erro de decriptação, a APP_KEY mudou ou os dados estão corrompidos.
+            // Limpa o 2FA via Query Builder para não acionar os Casts do Model.
+            \Illuminate\Support\Facades\DB::table('users')
+                ->where('id', $user->id)
+                ->update([
+                    'two_factor_enabled' => false,
+                    'two_factor_secret' => null,
+                    'recovery_codes' => null,
+                ]);
+
+            return redirect()->route('2fa.setup')->with('warning', 'O sistema de chaves foi atualizado e seu 2FA antigo expirou. Por favor, reconfigure seu aplicativo autenticador e salve os novos códigos.');
         } catch (\Exception $e) {
             Log::error('2FA_VERIFY_FATAL_ERROR', ['user_id' => $user->id, 'error' => $e->getMessage()]);
             return back()->withErrors([
-                'code' => 'Erro interno de segurança. Se você possui códigos de recuperação, infelizmente a chave do servidor mudou. Contate o suporte para resetar o seu 2FA.',
+                'code' => 'Erro interno ao validar 2FA. Tente novamente mais tarde e contate o suporte.',
             ]);
         }
 
