@@ -265,6 +265,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectComissaoTipo = document.querySelector('select[name="comissao_tipo"]');
     const selectStatus = document.querySelector('select[name="diagnostico_status"]');
 
+    alert("DEBUG: Script de Comissoes Carregado 1.0 - Verificando IDs...");
+
     function updateFormVisibility() {
         if (!selectTipo || !groupValorTotal || !labelValorMensal || !inputValorMensal) return;
         
@@ -292,7 +294,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function updateCommissionPreview() {
-        if (!selectVendedor || !selectComissaoTipo || !inputValorMensal || !selectStatus) return;
+        if (!selectVendedor || !selectComissaoTipo || !inputValorMensal || !selectStatus) {
+            console.log('Faltando seletores no DOM para preview');
+            return;
+        }
 
         const veldId = selectVendedor.value;
         const tipoCom = selectComissaoTipo.value;
@@ -304,13 +309,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!elV || !elG) return;
 
-        if (!veldId || diagStat !== 'ATIVO' || tipoCom === 'sem_comissao') {
+        if (!veldId) {
             elV.textContent = 'R$ 0,00';
             elG.textContent = 'R$ 0,00';
             return;
         }
 
         try {
+            console.log('DEBUG: Enviando pedido de calculo...');
             const response = await fetch('{{ route("master.clientes-asaas.calculate-preview") }}', {
                 method: 'POST',
                 headers: {
@@ -327,24 +333,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     diagnostico_status: diagStat
                 })
             });
+
+            if (!response.ok) {
+                alert("ERRO NO SERVIDOR (AJAX): " + response.status + " " + response.statusText);
+                return;
+            }
+
             const data = await response.json();
             console.log('Commission Debug:', data);
+            
             if (data.success) {
                 elV.textContent = data.vendedor;
                 elG.textContent = data.gestor;
                 
                 // Super-Diagnóstico Visível
                 if (data.vendedor === 'R$ 0,00' && data.diagnostic) {
-                    alert('AVISO: Comissão retornou R$ 0,00.\n' + data.diagnostic);
+                    alert('AVISO CALCULADO: ' + data.diagnostic);
+                } else if (data.vendedor === 'R$ 0,00' && valMensal > 0) {
+                    alert('AVISO: Comissão veio zerada mas valor base é ' + valMensal);
                 }
-
-                if (data.vendedor === 'R$ 0,00' && data.debug && data.debug.valor_base > 0) {
-                    elV.title = `Diagnóstico: Perc=${data.debug.perc_ini}%, Base=${data.debug.valor_base}`;
-                } else {
-                    elV.title = '';
-                }
+            } else {
+                alert("ERRO LOGICO (JSON): " + (data.message || "Erro desconhecido"));
             }
         } catch (e) {
+            alert('ERRO JS CRITICO: ' + e.message);
             console.error('Erro ao calcular prévia:', e);
         }
     }
