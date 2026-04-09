@@ -1063,11 +1063,12 @@ class AsaasClienteSyncController extends Controller
             'updated_at'       => now(),
         ];
 
-        $vendaId = DB::table('vendas')->updateOrInsert(
+        DB::table('vendas')->updateOrInsert(
             ['cliente_id' => $clienteId, 'origem' => 'asaas_legado'],
             $vendaValues
         );
-        $vendaId = $vendaId ?: DB::table('vendas')->where('cliente_id', $clienteId)->where('origem', 'asaas_legado')->value('id');
+        $actualVenda = DB::table('vendas')->where('cliente_id', $clienteId)->where('origem', 'asaas_legado')->first();
+        $vendaId     = $actualVenda->id;
 
         // LÓGICA DE COMISSÃO (Mês 4 / Último Pagamento)
         $dataRef = $import->ultimo_pagamento_confirmado_at ?? $import->primeiro_pagamento_at ?? now();
