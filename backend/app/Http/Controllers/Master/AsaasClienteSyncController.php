@@ -127,6 +127,97 @@ class AsaasClienteSyncController extends Controller
     }
 
     // ──────────────────────────────────────────────────────────────
+    // AUDITORIA RETROATIVA
+    // ──────────────────────────────────────────────────────────────
+    public function auditoriaRetroativa(Request $request)
+    {
+        $vendedores = Vendedor::whereIn('status', ['ativo', '1', 1])->with('user')->get();
+        $vendedorId = $request->get('vendedor_id');
+        
+        $dadosTabela = []; // Mês => lista de clientes e comissões
+        
+        if ($vendedorId) {
+            $vendedor = Vendedor::find($vendedorId);
+            $clientes = DB::table('legacy_customer_imports')
+                ->where('vendedor_id', $vendedorId)
+                ->whereIn('diagnostico_status', ['ATIVO', 'CHURN', 'PENDENTE']) // Evitar cancelados se nao renderam
+                ->get();
+                
+            $percIni = (float) ($vendedor->comissao_inicial ?? 0);
+            $percRec = (float) ($vendedor->comissao_recorrencia ?? 0);
+
+            $now = Carbon::now();
+
+            foreach ($clientes as $c) {
+                // Usar a data do primeiro pagamento ou created_at se faltar
+                $dataRef = $c->primeiro_pagamento_at ?? $c->created_at;
+                if (!$dataRef) continue;
+
+                $start = Carbon::parse($dataRef)->startOfMonth();
+                $end = $now->copy()->startOfMonth();
+
+                $valorPlano = (float) ($c->valor_plano_mensal ?? 0);
+                $parcelasTotal = (int) ($c->parcelas_total ?? 1);
+                
+                $mesAtual = $start->copy();
+                $countMeses = 0;
+
+                while ($mesAtual <= $end) {
+                    $countMeses++;
+                    $mesStr = $mesAtual->format('Y-m');
+                    $cv = 0;
+
+                    if ($c->comissao_tipo === 'inicial_antecipada') {
+                        if ($countMeses === 1) {
+                            $cv = $valorPlano * ($percIni / 100);
+                            $restantes = max(0, $parcelasTotal - 1);
+                            $cv += $valorPlano * ($percRec / 100) * $restantes;
+                        }
+                    } elseif ($c->comissao_tipo === 'inicial') {
+                        if ($countMeses === 1) {
+                            $cv = $valorPlano * ($percIni / 100);
+                        } else {
+                            if ($c->tipo_cobranca === 'installment' && $countMeses > $parcelasTotal) {
+                                $cv = 0;
+                            } else {
+                                $cv = $valorPlano * ($percRec / 100);
+                            }
+                        }
+                    } elseif ($c->comissao_tipo === 'recorrencia') {
+                        if ($c->tipo_cobranca === 'installment' && $countMeses > $parcelasTotal) {
+                            $cv = 0;
+                        } else {
+                            $cv = $valorPlano * ($percRec / 100);
+                        }
+                    }
+
+                    if ($cv > 0) {
+                        if (!isset($dadosTabela[$mesStr])) {
+                            $dadosTabela[$mesStr] = [];
+                        }
+                        $dadosTabela[$mesStr][] = [
+                            'cliente_nome' => $c->nome,
+                            'cliente_doc' => $c->documento,
+                            'data_inicio' => Carbon::parse($dataRef)->format('d/m/Y'),
+                            'tipo' => $c->comissao_tipo,
+                            'cobranca' => $c->tipo_cobranca,
+                            'parcela_numero' => $countMeses,
+                            'comissao_calculada' => $cv
+                        ];
+                    }
+
+                    $mesAtual->addMonth();
+                }
+            }
+            
+            // Ordenar meses do mais recente para o mais antigo
+            krsort($dadosTabela);
+        }
+
+        return view('master.clientes_asaas.auditoria', compact('vendedores', 'vendedorId', 'dadosTabela'));
+    }
+
+    // ──────────────────────────────────────────────────────────────
     // EDITAR CLIENTE (FORMULÁRIO)
     // ──────────────────────────────────────────────────────────────
     public function edit(Request $request, $id)
@@ -172,6 +263,7 @@ class AsaasClienteSyncController extends Controller
             'proximo_vencimento_at' => 'nullable|date',
             'diagnostico_status' => 'nullable|in:ATIVO,CHURN,CANCELADO,PENDENTE',
             'comissao_tipo' => 'nullable|in:inicial,inicial_antecipada,recorrencia,sem_comissao',
+            'valor_total_cobranca' => 'nullable|numeric|min:0',
             'vendedor_id' => 'nullable|exists:vendedores,id',
         ]);
 
@@ -182,7 +274,7 @@ class AsaasClienteSyncController extends Controller
         // Campos editáveis
         $camposEditaveis = [
             'nome', 'email', 'documento', 'telefone', 'tipo_cobranca',
-            'parcelas_total', 'parcelas_pagas', 'valor_plano_mensal',
+            'parcelas_total', 'parcelas_pagas', 'valor_plano_mensal', 'valor_total_cobranca',
             'primeiro_pagamento_at', 'ultimo_pagamento_confirmado_at',
             'proximo_vencimento_at', 'diagnostico_status', 'comissao_tipo'
         ];
@@ -190,6 +282,16 @@ class AsaasClienteSyncController extends Controller
         foreach ($camposEditaveis as $campo) {
             if ($request->has($campo)) {
                 $data[$campo] = $request->input($campo);
+            }
+        }
+
+        // Se for parcelamento e informou valor total, garante valor_plano_mensal consistente
+        if (($data['tipo_cobranca'] ?? $cliente->tipo_cobranca) === 'installment') {
+            $vt = $data['valor_total_cobranca'] ?? $cliente->valor_total_cobranca ?? 0;
+            $pt = $data['parcelas_total'] ?? $cliente->parcelas_total ?? 1;
+            if ($vt > 0 && $pt > 0) {
+                // Auto recalcula o valor de cada parcela
+                $data['valor_plano_mensal'] = round($vt / $pt, 2);
             }
         }
 
@@ -208,8 +310,10 @@ class AsaasClienteSyncController extends Controller
             $vendedor = Vendedor::with('user')->find($vendedorId);
             if ($vendedor) {
                 $import = (object) array_merge((array) $cliente, [
-                    'valor_marco_pago' => $cliente->valor_marco_pago ?? $request->input('valor_plano_mensal'),
+                    'valor_marco_pago' => $cliente->valor_marco_pago ?? ($data['valor_plano_mensal'] ?? $request->input('valor_plano_mensal')),
+                    'valor_plano_mensal' => $data['valor_plano_mensal'] ?? $request->input('valor_plano_mensal'),
                     'comissao_tipo' => $request->input('comissao_tipo') ?? $cliente->comissao_tipo,
+                    'valor_total_cobranca' => $data['valor_total_cobranca'] ?? $cliente->valor_total_cobranca,
                 ]);
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
                 $data['vendedor_id'] = $vendedorId;
@@ -318,6 +422,14 @@ class AsaasClienteSyncController extends Controller
         $temConfirmado = !empty($confirmados);
         $temPendente   = !empty($pendentes);
 
+        // Verifica se há pendentes com mais de 2 dias de atraso (margem de regularização)
+        $temPendenteAtrasado = !empty(array_filter($pendentes, function($p) use ($now) {
+            if (empty($p['dueDate'])) return false;
+            $dueDate = \Carbon\Carbon::parse($p['dueDate'])->startOfDay();
+            // diffInDays retorna negativo se dueDate for no passado. < -2 significa mais de 2 dias.
+            return $now->startOfDay()->diffInDays($dueDate, false) < -2;
+        }));
+
         // 4. Determinar diagnóstico de status
         $subscriptionCancelada = !empty($subscriptions) && collect($subscriptions)->every(fn($s) =>
             in_array(strtoupper($s['status'] ?? ''), ['CANCELLED', 'CANCELED', 'EXPIRED'])
@@ -328,10 +440,11 @@ class AsaasClienteSyncController extends Controller
         } elseif (!$temConfirmado && $temPendente) {
             // Nunca pagou, só tem pendentes
             $diagnostico = 'CANCELADO';
-        } elseif ($temConfirmado && $temPendente) {
-            // Já pagou antes, mas tem pendente atual
+        } elseif ($temConfirmado && $temPendenteAtrasado) {
+            // Já pagou antes, mas tem pendente atual VENCIDO há mais de 2 dias
             $diagnostico = 'CHURN';
-        } elseif ($temConfirmado && !$temPendente) {
+        } elseif ($temConfirmado && !$temPendenteAtrasado) {
+            // Já pagou antes e, se tiver pendente, ainda está no prazo ou carência
             $diagnostico = 'ATIVO';
         } else {
             $diagnostico = 'PENDENTE';
@@ -948,8 +1061,9 @@ class AsaasClienteSyncController extends Controller
                 // Comissão inicial sobre o valor da 1ª parcela
                 $cv = $valorPlano * ($percIni / 100);
                 $cg = $valorPlano * ($percGstIni / 100);
-                // Recorrência antecipada para as parcelas restantes (total - pagas)
-                $restantes = max(0, $parcelasTotal - $parcelasPagas);
+                // Recorrência antecipada para as parcelas restantes (Sobra = Total - 1a parcela)
+                // Usamos max(1, pagas) para garantir que no mínimo a 1ª parcela seja descontada do saldo de recorrências.
+                $restantes = max(0, $parcelasTotal - max(1, $parcelasPagas));
                 $cv += $valorPlano * ($percRec / 100) * $restantes;
                 $cg += $valorPlano * ($percGstRec / 100) * $restantes;
                 break;

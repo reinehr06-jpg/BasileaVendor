@@ -179,9 +179,9 @@
         @endif
 
         <div class="insight-card">
-            <div class="insight-header"><i class="fas fa-rotate"></i> Ciclo de Renovações</div>
-            <div class="insight-value">{{ $renovacoesMes }} <small style="font-size: 0.7rem; color: var(--text-muted);">pagamentos este mês</small></div>
-            <p class="insight-desc">Estabilidade da receita recorrente.</p>
+            <div class="insight-header"><i class="fas fa-money-bill-1-wave"></i> Ticket Médio</div>
+            <div class="insight-value">R$ {{ number_format($ticketMedio, 2, ',', '.') }}</div>
+            <p class="insight-desc">Valor médio por cliente ativo (incluindo base histórica).</p>
         </div>
 
         <div class="insight-card" style="border-left: 3px solid var(--danger);">

@@ -137,8 +137,12 @@
                         <option value="avulso" {{ $cliente->tipo_cobranca === 'avulso' ? 'selected' : '' }}>Avulso</option>
                     </select>
                 </div>
+                <div class="form-group" id="group_valor_total" style="display: {{ $cliente->tipo_cobranca === 'installment' ? 'block' : 'none' }};">
+                    <label>Valor Total da Cobrança (R$)</label>
+                    <input type="number" name="valor_total_cobranca" step="0.01" min="0" value="{{ $cliente->valor_total_cobranca ?? ($cliente->tipo_cobranca === 'installment' ? (($cliente->valor_plano_mensal ?? 0) * ($cliente->parcelas_total ?? 1)) : 0) }}">
+                </div>
                 <div class="form-group">
-                    <label>Valor Plano Mensal (R$)</label>
+                    <label id="label_valor_mensal">Valor Plano Mensal (R$)</label>
                     <input type="number" name="valor_plano_mensal" step="0.01" min="0" value="{{ $cliente->valor_plano_mensal ?? 0 }}">
                 </div>
                 <div class="form-group">
@@ -248,6 +252,43 @@
 <script>
 document.getElementById('edit-form').addEventListener('submit', async function(e) {
     e.preventDefault();
+
+    const selectTipo = document.querySelector('select[name="tipo_cobranca"]');
+    const groupValorTotal = document.getElementById('group_valor_total');
+    const labelValorMensal = document.getElementById('label_valor_mensal');
+    const inputValorTotal = document.querySelector('input[name="valor_total_cobranca"]');
+    const inputValorMensal = document.querySelector('input[name="valor_plano_mensal"]');
+    const inputParcelasTotal = document.querySelector('input[name="parcelas_total"]');
+
+    function updateFormVisibility() {
+        if (selectTipo.value === 'installment') {
+            groupValorTotal.style.display = 'block';
+            labelValorMensal.textContent = 'Valor da Parcela (R$)';
+            inputValorMensal.readOnly = true;
+            inputValorMensal.style.background = '#e2e8f0';
+        } else {
+            groupValorTotal.style.display = 'none';
+            labelValorMensal.textContent = 'Valor Plano Mensal (R$)';
+            inputValorMensal.readOnly = false;
+            inputValorMensal.style.background = '#f8fafc';
+        }
+    }
+
+    function calculateInstallment() {
+        if (selectTipo.value === 'installment') {
+            const total = parseFloat(inputValorTotal.value) || 0;
+            const parcelas = parseInt(inputParcelasTotal.value) || 1;
+            inputValorMensal.value = (total / parcelas).toFixed(2);
+        }
+    }
+
+    selectTipo.addEventListener('change', updateFormVisibility);
+    inputValorTotal.addEventListener('input', calculateInstallment);
+    inputParcelasTotal.addEventListener('input', calculateInstallment);
+
+    // Run on load
+    updateFormVisibility();
+
     
     const formData = new FormData(this);
     const data = Object.fromEntries(formData.entries());
@@ -256,6 +297,11 @@ document.getElementById('edit-form').addEventListener('submit', async function(e
     if (data.parcelas_total) data.parcelas_total = parseInt(data.parcelas_total);
     if (data.parcelas_pagas) data.parcelas_pagas = parseInt(data.parcelas_pagas);
     if (data.valor_plano_mensal) data.valor_plano_mensal = parseFloat(data.valor_plano_mensal);
+    if (data.valor_total_cobranca && data.tipo_cobranca === 'installment') {
+        data.valor_total_cobranca = parseFloat(data.valor_total_cobranca);
+    } else {
+        data.valor_total_cobranca = null; // Enviar null se não for parcelamento
+    }
     if (data.vendedor_id === '') data.vendedor_id = null;
 
     const btn = document.querySelector('.btn-save');

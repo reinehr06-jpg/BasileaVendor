@@ -74,6 +74,16 @@
         <div class="stat-value" id="comissaoTotal">R$ 0,00</div>
         <div class="stat-label">Comissão Total</div>
     </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #06b6d4, #0891b2); color: white;"><i class="fas fa-receipt"></i></div>
+        <div class="stat-value" id="ticketMedio" style="color: #0891b2;">R$ 0,00</div>
+        <div class="stat-label">Ticket Médio</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: white;"><i class="fas fa-users"></i></div>
+        <div class="stat-value" id="clientesAtivosCard" style="color: #7c3aed;">0</div>
+        <div class="stat-label">Clientes Ativos</div>
+    </div>
 </div>
 
 <!-- SEÇÃO: Vendas -->
@@ -229,7 +239,9 @@ function formatMoney(value) {
 }
 
 function carregarHistorico() {
-    fetch(`/master/comissoes/${vendedorId}/historico?mes=${mesAtual}`)
+    fetch(`/master/comissoes/${vendedorId}/historico?mes=${mesAtual}`, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
         .then(response => response.json())
         .then(data => {
             // Dados do vendedor
@@ -253,6 +265,10 @@ function carregarHistorico() {
             
             // Comissão
             document.getElementById('comissaoTotal').textContent = formatMoney(data.comissoes.total);
+            
+            // Ticket Médio e Clientes Ativos
+            document.getElementById('ticketMedio').textContent = formatMoney(data.vendas.ticket_medio || 0);
+            document.getElementById('clientesAtivosCard').textContent = data.vendas.clientes_ativos || 0;
             
             // Forma de pagamento
             const formaBody = document.getElementById('formaPagamentoBody');
@@ -296,15 +312,17 @@ function carregarHistorico() {
             if (data.comissoes.detalhes && data.comissoes.detalhes.length > 0) {
                 data.comissoes.detalhes.forEach(c => {
                     const badgeClass = c.tipo === 'recorrencia' ? 'badge-success' : 'badge-info';
-                    const statusClass = c.status === 'paga' ? 'badge-success' : (c.status === 'pendente' ? 'badge-warning' : 'badge-danger');
+                    const statusClass = c.status === 'paga' || c.status === 'confirmada' ? 'badge-success' : (c.status === 'pendente' ? 'badge-warning' : 'badge-danger');
+                    const legacyBadge = c.is_legacy ? '<span style="font-size:0.6rem; background:#fbbf24; color:#78350f; padding:1px 6px; border-radius:8px; font-weight:800; margin-left:4px;">LEGADO</span>' : '';
+                    const tipoLabel = c.tipo === 'inicial_antecipada' ? 'Antecipada' : (c.tipo === 'recorrencia' ? 'Recorrência' : 'Inicial');
                     comissoesBody.innerHTML += `
                         <tr>
-                            <td class="font-bold">${c.cliente}</td>
+                            <td class="font-bold">${c.cliente}${legacyBadge}</td>
                             <td class="text-center">#${c.venda_id}</td>
                             <td class="text-right">${formatMoney(c.valor_venda)}</td>
                             <td class="text-center">${c.percentual}%</td>
                             <td class="text-right" style="color: var(--success); font-weight: 700;">${formatMoney(c.valor_comissao)}</td>
-                            <td><span class="badge ${badgeClass}">${c.tipo === 'recorrencia' ? 'Recorrência' : 'Inicial'}</span></td>
+                            <td><span class="badge ${badgeClass}">${tipoLabel}</span></td>
                             <td><span class="badge ${statusClass}">${c.status}</span></td>
                             <td>${c.data_pagamento || '-'}</td>
                         </tr>

@@ -98,7 +98,22 @@ class DashboardController extends Controller
               ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
             if ($vendedorIds) $q->whereIn('vendas.vendedor_id', $vendedorIds);
         });
-        $clientesAtivos = $queryClientes->count();
+        
+        // Integrar clientes legados ativos
+        $queryLegacyAtivos = DB::table('legacy_customer_imports')
+            ->where('diagnostico_status', 'ATIVO')
+            ->whereNotNull('primeiro_pagamento_at');
+        if ($vendedorIds) $queryLegacyAtivos->whereIn('vendedor_id', $vendedorIds);
+        
+        $clientesAtivos = $queryClientes->count() + $queryLegacyAtivos->count();
+
+        // Integrar faturamento legado (Mês atual/selecionado)
+        $totalLegacyRecebido = 0;
+        $legacyRows = $queryLegacyAtivos->get();
+        foreach ($legacyRows as $row) {
+            $totalLegacyRecebido += (float) ($row->valor_plano_mensal ?? 0);
+        }
+        $totalRecebido = (float) $totalRecebido + $totalLegacyRecebido;
 
         $queryChurn = Venda::whereIn('status', ['Estornado', 'Cancelado', 'Expirado', 'Vencido'])
             ->where('comissao_gerada', '>', 0)
@@ -111,6 +126,10 @@ class DashboardController extends Controller
             ->join('vendas', 'cobrancas.venda_id', '=', 'vendas.id');
         if ($vendedorIds) $queryRenov->whereIn('vendas.vendedor_id', $vendedorIds);
         $renovacoesMes = $queryRenov->count();
+
+        $ticketMedio = ($vendasAtivas + $queryLegacyAtivos->count()) > 0 
+            ? $totalRecebido / ($vendasAtivas + $queryLegacyAtivos->count()) 
+            : 0;
 
         $driver = DB::getDriverName();
         $graficoData = [];
@@ -183,7 +202,7 @@ class DashboardController extends Controller
             'totalRecebido', 'clientesAtivos', 'churnMes',
             'melhorFaixa', 'renovacoesMes', 'vendasTrend', 'recebidoTrend',
             'contagemPendentes', 'graficoData', 'tituloSessao', 'isPersonal',
-            'periodo', 'periodoLabel'
+            'periodo', 'periodoLabel', 'ticketMedio'
         ));
     }
 }

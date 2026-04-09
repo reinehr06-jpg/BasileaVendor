@@ -76,9 +76,14 @@
     subtitle="Sincronize, classifique e atribua comissões aos clientes pré-existentes no Asaas." 
     icon="fas fa-cloud-arrow-down"
 >
-    <button id="btn-sincronizar" onclick="sincronizarAsaas()" class="btn btn-primary" style="font-weight:700;">
-        <i class="fas fa-rotate"></i> Sincronizar com Asaas
-    </button>
+    <div style="display:flex; gap:12px;">
+        <a href="{{ route('master.clientes-asaas.auditoria') }}" class="btn btn-outline" style="font-weight:700; background: white; color: #4C1D95; border: 2px solid #4C1D95; padding: 10px 16px; border-radius: 8px; text-decoration: none;">
+            <i class="fas fa-file-invoice-dollar"></i> Auditoria Retroativa
+        </a>
+        <button id="btn-sincronizar" onclick="sincronizarAsaas()" class="btn btn-primary" style="font-weight:700;">
+            <i class="fas fa-rotate"></i> Sincronizar com Asaas
+        </button>
+    </div>
 </x-page-hero>
 
 {{-- PROGRESSO DE SINCRONIZAÇÃO --}}
