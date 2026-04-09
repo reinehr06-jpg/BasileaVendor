@@ -307,28 +307,18 @@ class AsaasClienteSyncController extends Controller
         $comissaoGestor = 0;
 
         if ($vendedorId && ($validated['diagnostico_status'] ?? $cliente->diagnostico_status) === 'ATIVO') {
-            $vendedor = Vendedor::with('user')->find($vendedorId);
+            $vendedor = Vendedor::find($vendedorId);
             if ($vendedor) {
                 // Priorizar valor que veio do form para o cálculo da comissão atual
                 $novoValorPlano = (float) ($data['valor_plano_mensal'] ?? $cliente->valor_plano_mensal ?? 0);
-                $importSimulado = (object) array_merge((array) $cliente, [
-                    'valor_marco_pago' => $novoValorPlano, // Se estamos editando, o valor atual é o que importa
+                $importSimulado = (object) array_merge((array) $cliente, $data, [
                     'valor_plano_mensal' => $novoValorPlano,
                     'comissao_tipo' => $request->input('comissao_tipo') ?? $cliente->comissao_tipo,
                     'parcelas_total' => $data['parcelas_total'] ?? $cliente->parcelas_total ?? 1,
-                    'parcelas_pagas' => $data['parcelas_pagas'] ?? $cliente->parcelas_pagas ?? 0,
                 ]);
-                Log::info("AsaasSync: Calculando comissão na atualização", [
-                    'cliente_id' => $cliente->id,
-                    'vendedor_id' => $vendedorId,
-                    'valor_plano' => $novoValorPlano,
-                    'is_ativo' => ($validated['diagnostico_status'] ?? $cliente->diagnostico_status) === 'ATIVO'
-                ]);
+
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($importSimulado, $vendedor);
-                Log::info("AsaasSync: Resultado cálculo atualização", [
-                    'vendedor' => $comissaoVendedor,
-                    'gestor' => $comissaoGestor
-                ]);
+                
                 $data['vendedor_id'] = $vendedorId;
                 $data['comissao_vendedor_calculada'] = $comissaoVendedor;
                 $data['comissao_gestor_calculada'] = $comissaoGestor;

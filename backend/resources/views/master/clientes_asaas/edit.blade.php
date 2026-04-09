@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectComissaoTipo = document.querySelector('select[name="comissao_tipo"]');
     const selectStatus = document.querySelector('select[name="diagnostico_status"]');
 
-    alert("DEBUG: Script de Comissoes Carregado 1.0 - Verificando IDs...");
+    // Script carregado silêncio
 
     function updateFormVisibility() {
         if (!selectTipo || !groupValorTotal || !labelValorMensal || !inputValorMensal) return;
@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (!response.ok) {
-                alert("ERRO NO SERVIDOR (AJAX): " + response.status + " " + response.statusText);
+                console.error("ERRO NO SERVIDOR (AJAX): " + response.status);
                 return;
             }
 
@@ -349,16 +349,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 elG.textContent = data.gestor;
                 
                 // Super-Diagnóstico Visível
-                if (data.vendedor === 'R$ 0,00' && data.diagnostic) {
-                    alert('AVISO CALCULADO: ' + data.diagnostic);
-                } else if (data.vendedor === 'R$ 0,00' && valMensal > 0) {
-                    alert('AVISO: Comissão veio zerada mas valor base é ' + valMensal);
-                }
+                // Silent warning in console
+                if (data.diagnostic) console.warn(data.diagnostic);
             } else {
-                alert("ERRO LOGICO (JSON): " + (data.message || "Erro desconhecido"));
+                console.error("ERRO LOGICO (JSON): " + (data.message || "Erro desconhecido"));
             }
         } catch (e) {
-            alert('ERRO JS CRITICO: ' + e.message);
+            console.error('ERRO JS CRITICO: ' + e.message);
             console.error('Erro ao calcular prévia:', e);
         }
     }
@@ -434,15 +431,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await resp.json();
             
             if (result.success) {
-                alert('Cliente atualizado com sucesso!\n\nComissão Vendedor: ' + result.comissao_vendedor + '\nComissão Gestor: ' + result.comissao_gestor);
                 window.location.href = '{{ route("master.clientes-asaas.show", $cliente->id) }}';
             } else {
-                alert('Erro: ' + (result.message || 'Não foi possível salvar.'));
+                // Silent error
                 btn.disabled = false;
                 btn.innerHTML = origText;
             }
-        } catch(e) {
-            alert('Erro de conexão: ' + e.message);
+            // Silent error
             btn.disabled = false;
             btn.innerHTML = origText;
         }
