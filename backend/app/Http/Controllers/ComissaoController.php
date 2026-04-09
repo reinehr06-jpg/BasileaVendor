@@ -226,27 +226,37 @@ class ComissaoController extends Controller
 
             // ── A partir daqui: JSON para o fetch() do front-end ──
 
-            $dataInicio = Carbon::parse($mes . '-01')->startOfMonth();
-            $dataFim    = (clone $dataInicio)->endOfMonth();
+            try {
+                $dataInicio = Carbon::parse($mes . '-01')->startOfMonth();
+                $dataFim    = (clone $dataInicio)->endOfMonth();
+            } catch (\Exception $e) {
+                $dataInicio = Carbon::now()->startOfMonth();
+                $dataFim    = Carbon::now()->endOfMonth();
+                $mes        = Carbon::now()->format('Y-m');
+            }
 
             // ── 1. Dados de Vendas (tabela vendas) ──
             $vendas = Venda::where('vendedor_id', $vendedorId)
                 ->whereBetween('created_at', [$dataInicio, $dataFim])
                 ->get();
 
-            $vendasPagas = $vendas->filter(fn($v) => in_array(strtoupper($v->status ?? ''), ['PAGO', 'PAGO_ASAAS']));
+            $vendasPagas = $vendas->filter(fn($v) => in_array(strtoupper($v->status ?? ''), ['PAGO', 'PAGO_ASAAS', 'CONFIRMED', 'RECEIVED']));
             $vendasCanceladas = $vendas->filter(fn($v) => in_array(strtoupper($v->status ?? ''), ['CANCELADO', 'ESTORNADO', 'EXPIRADO', 'VENCIDO']));
 
-            $valorRecebido = Pagamento::whereIn('venda_id', $vendasPagas->pluck('id'))
-                ->whereIn('status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
-                ->sum('valor');
+            $vendasPagasIds = $vendasPagas->pluck('id')->toArray();
+            $valorRecebido = 0;
+            if (!empty($vendasPagasIds)) {
+                $valorRecebido = Pagamento::whereIn('venda_id', $vendasPagasIds)
+                    ->whereIn('status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
+                    ->sum('valor');
+            }
 
             // Clientes ativos (únicos com pagamento confirmado)
             $clientesAtivos = $vendasPagas->pluck('cliente_id')->unique()->count();
 
             // ── 2. Dados Legacy (legacy_customer_imports) ──
-            $percIni = (float) ($vendedor->comissao_inicial ?? 0);
-            $percRec = (float) ($vendedor->comissao_recorrencia ?? 0);
+            $percIni = (float) ($vendedor->comissao_inicial ?? $vendedor->comissao ?? 0);
+            $percRec = (float) ($vendedor->comissao_recorrencia ?? $vendedor->comissao ?? 0);
 
             $legacyClientes = DB::table('legacy_customer_imports')
                 ->where('vendedor_id', $vendedorId)
@@ -258,9 +268,14 @@ class ComissaoController extends Controller
 
             foreach ($legacyClientes as $lc) {
                 $dataRef = $lc->primeiro_pagamento_at;
-                if (!$dataRef) continue;
+                if (!$dataRef || $dataRef == '0000-00-00 00:00:00') continue;
 
-                $start = Carbon::parse($dataRef)->startOfMonth();
+                try {
+                    $start = Carbon::parse($dataRef)->startOfMonth();
+                } catch (\Exception $e) {
+                    continue;
+                }
+                
                 $valorPlano = (float) ($lc->valor_plano_mensal ?? 0);
                 $parcelasTotal = (int) ($lc->parcelas_total ?? 1);
 
@@ -310,19 +325,19 @@ class ComissaoController extends Controller
                                 'cliente'        => $lc->nome ?? 'Cliente Legado',
                                 'venda_id'       => 'L-' . $lc->id,
                                 'valor_venda'    => $valorPlano,
-                                'percentual'     => $tipo === 'inicial' || $tipo === 'inicial_antecipada' ? $percIni : $percRec,
+                                'percentual'     => in_array($tipo, ['inicial', 'inicial_antecipada']) ? $percIni : $percRec,
                                 'valor_comissao' => round($cv, 2),
                                 'tipo'           => $tipo,
                                 'status'         => 'confirmada',
-                                'data_pagamento' => Carbon::parse($dataRef)->format('d/m/Y'),
+                                'data_pagamento' => $start->format('d/m/Y'),
                                 'is_legacy'      => true,
                             ];
                         }
-                        break; // Já achamos o mês, pode sair
+                        break; 
                     }
 
                     $mesAtualCalc->addMonth();
-                    if ($countMeses > 240) break; // Trava de segurança
+                    if ($countMeses > 240) break; 
                 }
             }
 
@@ -398,13 +413,13 @@ class ComissaoController extends Controller
                     'percentual'   => $percentualMeta,
                 ],
                 'vendas' => [
-                    'total'              => $vendas->count() + count($legacyComissoes),
-                    'valor_total'        => $valorVendido,
-                    'valor_recebido'     => (float) $valorRecebido + $legacyValorVendido,
-                    'clientes_ativos'    => $clientesAtivos + $legacyClientes->where('diagnostico_status', 'ATIVO')->count(),
-                    'cancelamentos'      => $vendasCanceladas->count(),
-                    'valor_cancelado'    => $vendasCanceladas->sum('valor'),
-                    'ticket_medio'       => $ticketMedio,
+                    'total'              => (int) ($vendas->count() + count($legacyComissoes)),
+                    'valor_total'        => (float) $valorVendido,
+                    'valor_recebido'     => (float) ($valorRecebido + $legacyValorVendido),
+                    'clientes_ativos'    => (int) ($clientesAtivos + $legacyClientes->where('diagnostico_status', 'ATIVO')->count()),
+                    'cancelamentos'      => (int) $vendasCanceladas->count(),
+                    'valor_cancelado'    => (float) $vendasCanceladas->sum('valor'),
+                    'ticket_medio'       => (float) $ticketMedio,
                     'por_forma_pagamento'  => $porForma,
                     'por_tipo_negociacao'  => $porTipo,
                 ],
@@ -422,7 +437,7 @@ class ComissaoController extends Controller
             ]);
             return response()->json([
                 'status' => 'error',
-                'message' => $e->getMessage(),
+                'message' => 'Erro interno ao processar histórico: ' . $e->getMessage(),
                 'line' => $e->getLine()
             ], 500);
         }
