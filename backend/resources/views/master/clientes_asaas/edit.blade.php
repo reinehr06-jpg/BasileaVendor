@@ -250,8 +250,9 @@
 
 @push('js')
 <script>
-document.getElementById('edit-form').addEventListener('submit', async function(e) {
-    e.preventDefault();
+document.addEventListener('DOMContentLoaded', function() {
+    const editForm = document.getElementById('edit-form');
+    if (!editForm) return;
 
     const selectTipo = document.querySelector('select[name="tipo_cobranca"]');
     const groupValorTotal = document.getElementById('group_valor_total');
@@ -259,8 +260,14 @@ document.getElementById('edit-form').addEventListener('submit', async function(e
     const inputValorTotal = document.querySelector('input[name="valor_total_cobranca"]');
     const inputValorMensal = document.querySelector('input[name="valor_plano_mensal"]');
     const inputParcelasTotal = document.querySelector('input[name="parcelas_total"]');
+    const inputParcelasPagas = document.querySelector('input[name="parcelas_pagas"]');
+    const selectVendedor = document.querySelector('select[name="vendedor_id"]');
+    const selectComissaoTipo = document.querySelector('select[name="comissao_tipo"]');
+    const selectStatus = document.querySelector('select[name="diagnostico_status"]');
 
     function updateFormVisibility() {
+        if (!selectTipo || !groupValorTotal || !labelValorMensal || !inputValorMensal) return;
+        
         if (selectTipo.value === 'installment') {
             groupValorTotal.style.display = 'block';
             labelValorMensal.textContent = 'Valor da Parcela (R$)';
@@ -275,6 +282,8 @@ document.getElementById('edit-form').addEventListener('submit', async function(e
     }
 
     function calculateInstallment() {
+        if (!selectTipo || !inputValorTotal || !inputParcelasTotal || !inputValorMensal) return;
+        
         if (selectTipo.value === 'installment') {
             const total = parseFloat(inputValorTotal.value) || 0;
             const parcelas = parseInt(inputParcelasTotal.value) || 1;
@@ -282,35 +291,20 @@ document.getElementById('edit-form').addEventListener('submit', async function(e
         }
     }
 
-    selectTipo.addEventListener('change', () => {
-        updateFormVisibility();
-        updateCommissionPreview();
-    });
-    inputValorTotal.addEventListener('input', () => {
-        calculateInstallment();
-        updateCommissionPreview();
-    });
-    inputParcelasTotal.addEventListener('input', () => {
-        calculateInstallment();
-        updateCommissionPreview();
-    });
-
-    // Listeners para Atualização de Comissão
-    document.querySelector('select[name="vendedor_id"]').addEventListener('change', updateCommissionPreview);
-    document.querySelector('select[name="comissao_tipo"]').addEventListener('change', updateCommissionPreview);
-    document.querySelector('select[name="diagnostico_status"]').addEventListener('change', updateCommissionPreview);
-    inputValorMensal.addEventListener('input', updateCommissionPreview);
-
     async function updateCommissionPreview() {
-        const veld = document.querySelector('select[name="vendedor_id"]').value;
-        const tipoCom = document.querySelector('select[name="comissao_tipo"]').value;
+        if (!selectVendedor || !selectComissaoTipo || !inputValorMensal || !selectStatus) return;
+
+        const veldId = selectVendedor.value;
+        const tipoCom = selectComissaoTipo.value;
         const valMensal = parseFloat(inputValorMensal.value) || 0;
-        const diagStat = document.querySelector('select[name="diagnostico_status"]').value;
+        const diagStat = selectStatus.value;
         
         const elV = document.getElementById('live-comissao-vendedor');
         const elG = document.getElementById('live-comissao-gestor');
 
-        if (!veld || diagStat !== 'ATIVO' || tipoCom === 'sem_comissao') {
+        if (!elV || !elG) return;
+
+        if (!veldId || diagStat !== 'ATIVO' || tipoCom === 'sem_comissao') {
             elV.textContent = 'R$ 0,00';
             elG.textContent = 'R$ 0,00';
             return;
@@ -325,11 +319,11 @@ document.getElementById('edit-form').addEventListener('submit', async function(e
                     'Accept': 'application/json'
                 },
                 body: JSON.stringify({
-                    vendedor_id: veld,
+                    vendedor_id: veldId,
                     comissao_tipo: tipoCom,
                     valor_plano_mensal: valMensal,
-                    parcelas_total: document.querySelector('input[name="parcelas_total"]').value,
-                    parcelas_pagas: document.querySelector('input[name="parcelas_pagas"]').value,
+                    parcelas_total: inputParcelasTotal ? inputParcelasTotal.value : 1,
+                    parcelas_pagas: inputParcelasPagas ? inputParcelasPagas.value : 0,
                     diagnostico_status: diagStat
                 })
             });
@@ -343,55 +337,90 @@ document.getElementById('edit-form').addEventListener('submit', async function(e
         }
     }
 
-    // Run on load
-    updateFormVisibility();
-
-    
-    const formData = new FormData(this);
-    const data = Object.fromEntries(formData.entries());
-    
-    // Converter campos numéricos
-    if (data.parcelas_total) data.parcelas_total = parseInt(data.parcelas_total);
-    if (data.parcelas_pagas) data.parcelas_pagas = parseInt(data.parcelas_pagas);
-    if (data.valor_plano_mensal) data.valor_plano_mensal = parseFloat(data.valor_plano_mensal);
-    if (data.valor_total_cobranca && data.tipo_cobranca === 'installment') {
-        data.valor_total_cobranca = parseFloat(data.valor_total_cobranca);
-    } else {
-        data.valor_total_cobranca = null; // Enviar null se não for parcelamento
-    }
-    if (data.vendedor_id === '') data.vendedor_id = null;
-
-    const btn = document.querySelector('.btn-save');
-    const origText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
-
-    try {
-        const resp = await fetch('{{ route("master.clientes-asaas.update", $cliente->id) }}', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(data)
+    // Event Listeners
+    if (selectTipo) {
+        selectTipo.addEventListener('change', () => {
+            updateFormVisibility();
+            updateCommissionPreview();
         });
+    }
+
+    if (inputValorTotal) {
+        inputValorTotal.addEventListener('input', () => {
+            calculateInstallment();
+            updateCommissionPreview();
+        });
+    }
+
+    if (inputParcelasTotal) {
+        inputParcelasTotal.addEventListener('input', () => {
+            calculateInstallment();
+            updateCommissionPreview();
+        });
+    }
+
+    if (selectVendedor) selectVendedor.addEventListener('change', updateCommissionPreview);
+    if (selectComissaoTipo) selectComissaoTipo.addEventListener('change', updateCommissionPreview);
+    if (selectStatus) selectStatus.addEventListener('change', updateCommissionPreview);
+    if (inputValorMensal) inputValorMensal.addEventListener('input', updateCommissionPreview);
+    if (inputParcelasPagas) {
+        inputParcelasPagas.addEventListener('input', updateCommissionPreview);
+    }
+
+    // Initial load
+    updateFormVisibility();
+    updateCommissionPreview();
+
+    // Submit handler
+    editForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
         
-        const result = await resp.json();
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
         
-        if (result.success) {
-            alert('Cliente atualizado com sucesso!\n\nComissão Vendedor: ' + result.comissao_vendedor + '\nComissão Gestor: ' + result.comissao_gestor);
-            window.location.href = '{{ route("master.clientes-asaas.show", $cliente->id) }}';
+        // Converter campos numéricos
+        if (data.parcelas_total) data.parcelas_total = parseInt(data.parcelas_total);
+        if (data.parcelas_pagas) data.parcelas_pagas = parseInt(data.parcelas_pagas);
+        if (data.valor_plano_mensal) data.valor_plano_mensal = parseFloat(data.valor_plano_mensal);
+        if (data.valor_total_cobranca && data.tipo_cobranca === 'installment') {
+            data.valor_total_cobranca = parseFloat(data.valor_total_cobranca);
         } else {
-            alert('Erro: ' + (result.message || 'Não foi possível salvar.'));
+            data.valor_total_cobranca = null;
+        }
+        if (data.vendedor_id === '') data.vendedor_id = null;
+
+        const btn = document.querySelector('.btn-save');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+
+        try {
+            const resp = await fetch('{{ route("master.clientes-asaas.update", $cliente->id) }}', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await resp.json();
+            
+            if (result.success) {
+                alert('Cliente atualizado com sucesso!\n\nComissão Vendedor: ' + result.comissao_vendedor + '\nComissão Gestor: ' + result.comissao_gestor);
+                window.location.href = '{{ route("master.clientes-asaas.show", $cliente->id) }}';
+            } else {
+                alert('Erro: ' + (result.message || 'Não foi possível salvar.'));
+                btn.disabled = false;
+                btn.innerHTML = origText;
+            }
+        } catch(e) {
+            alert('Erro de conexão: ' + e.message);
             btn.disabled = false;
             btn.innerHTML = origText;
         }
-    } catch(e) {
-        alert('Erro de conexão: ' + e.message);
-        btn.disabled = false;
-        btn.innerHTML = origText;
-    }
+    });
 });
 </script>
 @endpush

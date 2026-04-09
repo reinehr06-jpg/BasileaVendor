@@ -318,7 +318,17 @@ class AsaasClienteSyncController extends Controller
                     'parcelas_total' => $data['parcelas_total'] ?? $cliente->parcelas_total ?? 1,
                     'parcelas_pagas' => $data['parcelas_pagas'] ?? $cliente->parcelas_pagas ?? 0,
                 ]);
+                Log::info("AsaasSync: Calculando comissão na atualização", [
+                    'cliente_id' => $cliente->id,
+                    'vendedor_id' => $vendedorId,
+                    'valor_plano' => $novoValorPlano,
+                    'is_ativo' => ($validated['diagnostico_status'] ?? $cliente->diagnostico_status) === 'ATIVO'
+                ]);
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($importSimulado, $vendedor);
+                Log::info("AsaasSync: Resultado cálculo atualização", [
+                    'vendedor' => $comissaoVendedor,
+                    'gestor' => $comissaoGestor
+                ]);
                 $data['vendedor_id'] = $vendedorId;
                 $data['comissao_vendedor_calculada'] = $comissaoVendedor;
                 $data['comissao_gestor_calculada'] = $comissaoGestor;
@@ -1087,6 +1097,16 @@ class AsaasClienteSyncController extends Controller
         $valorPlano = (float) ($import->valor_plano_mensal ?? 0);
         $parcelasTotal = (int) ($import->parcelas_total ?? 1);
         $parcelasPagas = (int) ($import->parcelas_pagas ?? 0);
+
+        Log::info("AsaasSync: Detalhes calcularComissao", [
+            'tipo' => $import->comissao_tipo ?? 'null',
+            'percIni' => $percIni,
+            'percRec' => $percRec,
+            'valorBase' => $valorBase,
+            'valorPlano' => $valorPlano,
+            'parcelasTotal' => $parcelasTotal,
+            'parcelasPagas' => $parcelasPagas
+        ]);
 
         $cv = 0.0;
         $cg = 0.0;
