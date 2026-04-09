@@ -47,27 +47,34 @@ class TwoFactorController extends Controller
             'code' => ['required', 'digits:6'],
         ]);
 
-        // Try recovery codes first
-        if ($user->recovery_codes) {
-            $codes = json_decode($user->recovery_codes, true) ?: [];
-            $key = array_search($request->code, $codes);
-            if ($key !== false) {
-                unset($codes[$key]);
-                $user->recovery_codes = json_encode(array_values($codes));
-                $user->save();
+        try {
+            // Try recovery codes first
+            if ($user->recovery_codes) {
+                $codes = json_decode($user->recovery_codes, true) ?: [];
+                $key = array_search($request->code, $codes);
+                if ($key !== false) {
+                    unset($codes[$key]);
+                    $user->recovery_codes = json_encode(array_values($codes));
+                    $user->save();
+                    Cache::forget('2fa_attempts_' . $user->id);
+                    Session::put('2fa_verified_' . $user->id, true);
+                    SecurityLogService::logTwoFactorEvent($user->id, 'recovery_code_used', 'success');
+                    return redirect()->intended(route('dashboard'));
+                }
+            }
+
+            if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
                 Cache::forget('2fa_attempts_' . $user->id);
+                Cache::forget('2fa_lock_' . $user->id);
                 Session::put('2fa_verified_' . $user->id, true);
-                SecurityLogService::logTwoFactorEvent($user->id, 'recovery_code_used', 'success');
+                SecurityLogService::logTwoFactorEvent($user->id, 'verified', 'success');
                 return redirect()->intended(route('dashboard'));
             }
-        }
-
-        if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
-            Cache::forget('2fa_attempts_' . $user->id);
-            Cache::forget('2fa_lock_' . $user->id);
-            Session::put('2fa_verified_' . $user->id, true);
-            SecurityLogService::logTwoFactorEvent($user->id, 'verified', 'success');
-            return redirect()->intended(route('dashboard'));
+        } catch (\Exception $e) {
+            Log::error('2FA_VERIFY_FATAL_ERROR', ['user_id' => $user->id, 'error' => $e->getMessage()]);
+            return back()->withErrors([
+                'code' => 'Erro interno de segurança. Se você possui códigos de recuperação, infelizmente a chave do servidor mudou. Contate o suporte para resetar o seu 2FA.',
+            ]);
         }
 
         // Track failed attempts

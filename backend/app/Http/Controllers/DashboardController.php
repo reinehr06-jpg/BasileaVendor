@@ -123,7 +123,7 @@ class DashboardController extends Controller
                 ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
                 ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
             if ($vendedorIds) $graficoRaw->whereIn('vendas.vendedor_id', $vendedorIds);
-            $graficoData = $graficoRaw->groupBy('dia')->orderBy('dia')->get()->map(function($row) {
+            $graficoData = $graficoRaw->groupByRaw($dayFormat)->orderByRaw($dayFormat)->get()->map(function($row) {
                 return ['label' => Carbon::parse($row->dia)->format('d/m'), 'total' => $row->total];
             });
         } elseif ($periodo === 'year') {
@@ -134,7 +134,7 @@ class DashboardController extends Controller
                 ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
                 ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
             if ($vendedorIds) $graficoRaw->whereIn('vendas.vendedor_id', $vendedorIds);
-            $graficoData = $graficoRaw->groupBy('mes')->orderBy('mes')->get()->map(function($row) {
+            $graficoData = $graficoRaw->groupByRaw($monthFormat)->orderByRaw($monthFormat)->get()->map(function($row) {
                 return ['label' => Carbon::parse($row->mes . '-01')->format('M/Y'), 'total' => $row->total];
             });
         } else {
@@ -145,7 +145,7 @@ class DashboardController extends Controller
                 ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
                 ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
             if ($vendedorIds) $graficoRaw->whereIn('vendas.vendedor_id', $vendedorIds);
-            $graficoData = $graficoRaw->groupBy('semana')->orderBy('semana')->get()->map(function($row) {
+            $graficoData = $graficoRaw->groupByRaw($weekFormat)->orderByRaw($weekFormat)->get()->map(function($row) {
                 return ['label' => 'Sem ' . $row->semana, 'total' => $row->total];
             });
         }
@@ -156,7 +156,7 @@ class DashboardController extends Controller
             ->whereBetween('cobrancas.updated_at', [$dataInicio, $dataFim])
             ->where('cobrancas.status', 'RECEIVED');
         if ($vendedorIds) $queryFaixa->whereIn('vendas.vendedor_id', $vendedorIds);
-        $historicoDias = $queryFaixa->groupBy('dia')->orderByDesc('total')->first();
+        $historicoDias = $queryFaixa->groupByRaw($dayFormat)->orderByDesc('total')->first();
         
         $melhorFaixa = "Sem dados";
         if ($historicoDias && $historicoDias->dia) {
