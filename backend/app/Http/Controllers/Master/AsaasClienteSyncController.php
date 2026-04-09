@@ -1075,7 +1075,7 @@ class AsaasClienteSyncController extends Controller
                     'cliente_id' => $clienteId,
                     'vendedor_id' => $import->vendedor_id,
                     'valor' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
-                    'status' => 'PAGO',
+                    'status' => 'RECEIVED',
                     'data_pagamento' => $import->ultimo_pagamento_confirmado_at ?? $import->primeiro_pagamento_at ?? now(),
                     'data_vencimento' => $import->primeiro_pagamento_at ?? now(),
                     'forma_pagamento' => $formaPgto,

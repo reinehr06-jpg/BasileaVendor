@@ -102,6 +102,7 @@ class DashboardController extends Controller
         // Integrar clientes legados ativos
         $queryLegacyAtivos = DB::table('legacy_customer_imports')
             ->where('diagnostico_status', 'ATIVO')
+            ->whereNull('local_cliente_id')
             ->whereNotNull('primeiro_pagamento_at');
         if ($vendedorIds) $queryLegacyAtivos->whereIn('vendedor_id', $vendedorIds);
         
@@ -112,6 +113,7 @@ class DashboardController extends Controller
         $totalLegacyRecebido = 0;
         $legacyRows = DB::table('legacy_customer_imports')
             ->where('diagnostico_status', 'ATIVO')
+            ->whereNull('local_cliente_id')
             ->whereNotNull('primeiro_pagamento_at');
         if ($vendedorIds) $legacyRows->whereIn('vendedor_id', $vendedorIds);
         $legacyRows = $legacyRows->get();

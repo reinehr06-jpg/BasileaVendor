@@ -53,11 +53,11 @@ class ClienteStatusService
         $statusPagamento = strtoupper($ultimoPagamento->status);
         $vencimento = $ultimoPagamento->data_vencimento;
         $jafoiPago = $cliente->vendas()
-            ->whereHas('pagamentos', fn ($q) => $q->whereIn('status', ['RECEIVED', 'CONFIRMED']))
+            ->whereHas('pagamentos', fn ($q) => $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'PAGO', 'pago']))
             ->exists();
 
         // 1. Pago e em dia → ATIVO
-        if (in_array($statusPagamento, ['RECEIVED', 'CONFIRMED'])) {
+        if (in_array($statusPagamento, ['RECEIVED', 'CONFIRMED', 'PAGO', 'pago'])) {
             return 'ativo';
         }
 
@@ -116,7 +116,7 @@ class ClienteStatusService
 
                 if ($ultimaVenda) {
                     $ultimoPagoConfirmado = $ultimaVenda->pagamentos()
-                        ->whereIn('status', ['RECEIVED', 'CONFIRMED'])
+                        ->whereIn('status', ['RECEIVED', 'CONFIRMED', 'PAGO', 'pago'])
                         ->orderByDesc('data_pagamento')
                         ->first();
 
@@ -125,7 +125,7 @@ class ClienteStatusService
                     }
 
                     $proxCobranca = $ultimaVenda->pagamentos()
-                        ->whereNotIn('status', ['RECEIVED', 'CONFIRMED', 'CANCELED', 'DELETED'])
+                        ->whereNotIn('status', ['RECEIVED', 'CONFIRMED', 'PAGO', 'pago', 'CANCELED', 'DELETED'])
                         ->orderBy('data_vencimento')
                         ->first();
 
@@ -168,7 +168,7 @@ class ClienteStatusService
 
         if ($ultimaVenda) {
             $ultimoPagoConfirmado = $ultimaVenda->pagamentos()
-                ->whereIn('status', ['RECEIVED', 'CONFIRMED'])
+                ->whereIn('status', ['RECEIVED', 'CONFIRMED', 'PAGO', 'pago'])
                 ->orderByDesc('data_pagamento')
                 ->first();
 
@@ -177,7 +177,7 @@ class ClienteStatusService
             }
 
             $proxCobranca = $ultimaVenda->pagamentos()
-                ->whereNotIn('status', ['RECEIVED', 'CONFIRMED', 'CANCELED', 'DELETED'])
+                ->whereNotIn('status', ['RECEIVED', 'CONFIRMED', 'PAGO', 'pago', 'CANCELED', 'DELETED'])
                 ->orderBy('data_vencimento')
                 ->first();
 
