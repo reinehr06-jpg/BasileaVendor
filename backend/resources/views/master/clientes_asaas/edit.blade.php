@@ -328,9 +328,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             });
             const data = await response.json();
+            console.log('Commission Debug:', data);
             if (data.success) {
                 elV.textContent = data.vendedor;
                 elG.textContent = data.gestor;
+                
+                // Exibir diagnóstico sutil se der 0
+                if (data.vendedor === 'R$ 0,00' && data.debug && data.debug.valor_base > 0) {
+                    elV.title = `Diagnóstico: Perc=${data.debug.perc_ini}%, Base=${data.debug.valor_base}`;
+                } else {
+                    elV.title = '';
+                }
             }
         } catch (e) {
             console.error('Erro ao calcular prévia:', e);

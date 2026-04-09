@@ -881,7 +881,14 @@ class AsaasClienteSyncController extends Controller
         return response()->json([
             'success' => true,
             'vendedor' => 'R$ ' . number_format($cv, 2, ',', '.'),
-            'gestor' => 'R$ ' . number_format($cg, 2, ',', '.')
+            'gestor' => 'R$ ' . number_format($cg, 2, ',', '.'),
+            'debug' => [
+                'vendedor_id' => $vendedor->id,
+                'perc_ini' => (float) ($vendedor->comissao_inicial ?? $vendedor->comissao ?? 0),
+                'perc_rec' => (float) ($vendedor->comissao_recorrencia ?? $vendedor->comissao ?? 0),
+                'valor_base' => $valorPlano,
+                'tipo_comissao' => $comissaoTipo
+            ]
         ]);
     }
 
@@ -1088,8 +1095,17 @@ class AsaasClienteSyncController extends Controller
 
     private function calcularComissao(object $import, Vendedor $vendedor): array
     {
-        $percIni    = (float) ($vendedor->comissao_inicial ?? 0);
-        $percRec    = (float) ($vendedor->comissao_recorrencia ?? 0);
+        // Fallback: se comissao_inicial for zero, tenta usar o campo comissao genérico
+        $percIni    = (float) ($vendedor->comissao_inicial ?? $vendedor->comissao ?? 0);
+        $percRec    = (float) ($vendedor->comissao_recorrencia ?? $vendedor->comissao ?? 0);
+        
+        if ($percIni <= 0 && (float)($vendedor->comissao ?? 0) > 0) {
+            $percIni = (float) $vendedor->comissao;
+        }
+        if ($percRec <= 0 && (float)($vendedor->comissao ?? 0) > 0) {
+            $percRec = (float) $vendedor->comissao;
+        }
+
         $percGstIni = (float) ($vendedor->comissao_gestor_primeira ?? 0);
         $percGstRec = (float) ($vendedor->comissao_gestor_recorrencia ?? 0);
 
@@ -1099,13 +1115,12 @@ class AsaasClienteSyncController extends Controller
         $parcelasPagas = (int) ($import->parcelas_pagas ?? 0);
 
         Log::info("AsaasSync: Detalhes calcularComissao", [
+            'vendedor_id' => $vendedor->id,
             'tipo' => $import->comissao_tipo ?? 'null',
             'percIni' => $percIni,
             'percRec' => $percRec,
             'valorBase' => $valorBase,
             'valorPlano' => $valorPlano,
-            'parcelasTotal' => $parcelasTotal,
-            'parcelasPagas' => $parcelasPagas
         ]);
 
         $cv = 0.0;
