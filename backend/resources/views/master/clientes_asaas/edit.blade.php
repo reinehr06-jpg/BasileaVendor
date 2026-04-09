@@ -226,11 +226,11 @@
                         <div style="font-size:0.75rem; font-weight:700; color:#166534; text-transform:uppercase; margin-bottom:8px;">Comissão Calculada</div>
                         <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                             <span style="font-size:0.85rem; color:#64748b;">Vendedor:</span>
-                            <span style="font-size:1rem; font-weight:800; color:#166534;">R$ {{ number_format($cliente->comissao_vendedor_calculada ?? 0, 2, ',', '.') }}</span>
+                            <span id="live-comissao-vendedor" style="font-size:1rem; font-weight:800; color:#166534;">R$ {{ number_format($cliente->comissao_vendedor_calculada ?? 0, 2, ',', '.') }}</span>
                         </div>
                         <div style="display:flex; justify-content:space-between;">
                             <span style="font-size:0.85rem; color:#64748b;">Gestor:</span>
-                            <span style="font-size:0.9rem; font-weight:800; color:#2563eb;">R$ {{ number_format($cliente->comissao_gestor_calculada ?? 0, 2, ',', '.') }}</span>
+                            <span id="live-comissao-gestor" style="font-size:0.9rem; font-weight:800; color:#2563eb;">R$ {{ number_format($cliente->comissao_gestor_calculada ?? 0, 2, ',', '.') }}</span>
                         </div>
                     </div>
                 </div>
@@ -282,9 +282,66 @@ document.getElementById('edit-form').addEventListener('submit', async function(e
         }
     }
 
-    selectTipo.addEventListener('change', updateFormVisibility);
-    inputValorTotal.addEventListener('input', calculateInstallment);
-    inputParcelasTotal.addEventListener('input', calculateInstallment);
+    selectTipo.addEventListener('change', () => {
+        updateFormVisibility();
+        updateCommissionPreview();
+    });
+    inputValorTotal.addEventListener('input', () => {
+        calculateInstallment();
+        updateCommissionPreview();
+    });
+    inputParcelasTotal.addEventListener('input', () => {
+        calculateInstallment();
+        updateCommissionPreview();
+    });
+
+    // Listeners para Atualização de Comissão
+    document.querySelector('select[name="vendedor_id"]').addEventListener('change', updateCommissionPreview);
+    document.querySelector('select[name="comissao_tipo"]').addEventListener('change', updateCommissionPreview);
+    document.querySelector('select[name="diagnostico_status"]').addEventListener('change', updateCommissionPreview);
+    inputValorMensal.addEventListener('input', updateCommissionPreview);
+
+    async function updateCommissionPreview() {
+        const veld = document.querySelector('select[name="vendedor_id"]').value;
+        const tipoCom = document.querySelector('select[name="comissao_tipo"]').value;
+        const valMensal = parseFloat(inputValorMensal.value) || 0;
+        const diagStat = document.querySelector('select[name="diagnostico_status"]').value;
+        
+        const elV = document.getElementById('live-comissao-vendedor');
+        const elG = document.getElementById('live-comissao-gestor');
+
+        if (!veld || diagStat !== 'ATIVO' || tipoCom === 'sem_comissao') {
+            elV.textContent = 'R$ 0,00';
+            elG.textContent = 'R$ 0,00';
+            return;
+        }
+
+        try {
+            const response = await fetch('{{ route("master.clientes-asaas.calculate-preview") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    vendedor_id: veld,
+                    comissao_tipo: tipoCom,
+                    valor_plano_mensal: valMensal,
+                    parcelas_total: document.querySelector('input[name="parcelas_total"]').value,
+                    parcelas_pagas: document.querySelector('input[name="parcelas_pagas"]').value,
+                    diagnostico_status: diagStat
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                elV.textContent = data.vendedor;
+                elG.textContent = data.gestor;
+            }
+        } catch (e) {
+            console.error('Erro ao calcular prévia:', e);
+        }
+    }
 
     // Run on load
     updateFormVisibility();

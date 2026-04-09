@@ -376,6 +376,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/clientes-asaas/{id}/confirmar', [AsaasClienteSyncController::class, 'confirmarCliente'])->name('clientes-asaas.confirmar');
         Route::post('/clientes-asaas/bulk-assign', [AsaasClienteSyncController::class, 'bulkAssign'])->name('clientes-asaas.bulk-assign');
         Route::post('/clientes-asaas/preview-assign', [AsaasClienteSyncController::class, 'previewAssign'])->name('clientes-asaas.preview-assign');
+        Route::post('/clientes-asaas/calculate-preview', [AsaasClienteSyncController::class, 'calculatePreview'])->name('clientes-asaas.calculate-preview');
 
 
 

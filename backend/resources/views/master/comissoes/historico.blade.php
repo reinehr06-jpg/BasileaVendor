@@ -37,9 +37,9 @@
 </style>
 
 <x-page-hero title="Histórico de Comissões" subtitle="Carregando informações do vendedor..." icon="fas fa-history" :exports="[
-    ['type' => 'excel', 'url' => route('master.comissoes.exportar-historico', ['vendedor' => $vendedorId, 'mes' => $mes, 'formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
-    ['type' => 'pdf', 'url' => route('master.comissoes.exportar-historico', ['vendedor' => $vendedorId, 'mes' => $mes, 'formato' => 'pdf']), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
-    ['type' => 'csv', 'url' => route('master.comissoes.exportar-historico', ['vendedor' => $vendedorId, 'mes' => $mes, 'formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
+    ['type' => 'excel', 'url' => route('master.comissoes.exportar-historico', ['vendedorId' => $vendedorId, 'mes' => $mes, 'formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
+    ['type' => 'pdf', 'url' => route('master.comissoes.exportar-historico', ['vendedorId' => $vendedorId, 'mes' => $mes, 'formato' => 'pdf']), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
+    ['type' => 'csv', 'url' => route('master.comissoes.exportar-historico', ['vendedorId' => $vendedorId, 'mes' => $mes, 'formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
 ]" />
 
 <!-- Filtros -->
@@ -51,6 +51,21 @@
     </div>
 </div>
 </form>
+
+<!-- Perfil do Vendedor -->
+<div class="section-card" style="margin-top: 24px;">
+    <div style="padding: 24px; display: flex; align-items: center; gap: 20px;">
+        <div id="vendedorAvatar" class="vendedor-avatar">?</div>
+        <div style="flex: 1;">
+            <h2 id="vendedorNome" style="margin: 0; font-size: 1.5rem; font-weight: 700; color: var(--text-main);">...</h2>
+            <div id="vendedorEmail" style="color: var(--text-muted); font-size: 0.9rem;">...</div>
+        </div>
+        <div style="text-align: right;">
+            <div style="font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;">Competência</div>
+            <div style="font-size: 1.1rem; font-weight: 700; color: var(--primary);">{{ Carbon\Carbon::parse($mes.'-01')->translatedFormat('F / Y') }}</div>
+        </div>
+    </div>
+</div>
 
 <!-- Resumo -->
 <div class="stats-bar">

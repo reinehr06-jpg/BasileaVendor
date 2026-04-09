@@ -309,13 +309,16 @@ class AsaasClienteSyncController extends Controller
         if ($vendedorId && ($validated['diagnostico_status'] ?? $cliente->diagnostico_status) === 'ATIVO') {
             $vendedor = Vendedor::with('user')->find($vendedorId);
             if ($vendedor) {
-                $import = (object) array_merge((array) $cliente, [
-                    'valor_marco_pago' => $cliente->valor_marco_pago ?? ($data['valor_plano_mensal'] ?? $request->input('valor_plano_mensal')),
-                    'valor_plano_mensal' => $data['valor_plano_mensal'] ?? $request->input('valor_plano_mensal'),
+                // Priorizar valor que veio do form para o cálculo da comissão atual
+                $novoValorPlano = (float) ($data['valor_plano_mensal'] ?? $cliente->valor_plano_mensal ?? 0);
+                $importSimulado = (object) array_merge((array) $cliente, [
+                    'valor_marco_pago' => $novoValorPlano, // Se estamos editando, o valor atual é o que importa
+                    'valor_plano_mensal' => $novoValorPlano,
                     'comissao_tipo' => $request->input('comissao_tipo') ?? $cliente->comissao_tipo,
-                    'valor_total_cobranca' => $data['valor_total_cobranca'] ?? $cliente->valor_total_cobranca,
+                    'parcelas_total' => $data['parcelas_total'] ?? $cliente->parcelas_total ?? 1,
+                    'parcelas_pagas' => $data['parcelas_pagas'] ?? $cliente->parcelas_pagas ?? 0,
                 ]);
-                [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
+                [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($importSimulado, $vendedor);
                 $data['vendedor_id'] = $vendedorId;
                 $data['comissao_vendedor_calculada'] = $comissaoVendedor;
                 $data['comissao_gestor_calculada'] = $comissaoGestor;
@@ -830,6 +833,45 @@ class AsaasClienteSyncController extends Controller
             'percentual_gestor' => $vendedor->comissao_gestor_primeira ?? 5,
             'comissao_vendedor' => number_format($totalComissaoVendedor, 2, ',', '.'),
             'comissao_gestor' => number_format($totalComissaoGestor, 2, ',', '.'),
+        ]);
+    }
+
+    public function calculatePreview(Request $request)
+    {
+        $vendedorId = $request->vendedor_id;
+        $comissaoTipo = $request->comissao_tipo;
+        $valorPlano = (float) $request->valor_plano_mensal;
+        $parcelasTotal = (int) $request->parcelas_total;
+        $parcelasPagas = (int) $request->parcelas_pagas;
+        $status = $request->diagnostico_status;
+
+        if (!$vendedorId || $status !== 'ATIVO' || $comissaoTipo === 'sem_comissao') {
+            return response()->json([
+                'success' => true,
+                'vendedor' => 'R$ 0,00',
+                'gestor' => 'R$ 0,00'
+            ]);
+        }
+
+        $vendedor = Vendedor::find($vendedorId);
+        if (!$vendedor) {
+            return response()->json(['success' => false, 'message' => 'Vendedor não encontrado'], 404);
+        }
+
+        $import = (object) [
+            'valor_marco_pago' => $valorPlano,
+            'valor_plano_mensal' => $valorPlano,
+            'comissao_tipo' => $comissaoTipo,
+            'parcelas_total' => $parcelasTotal,
+            'parcelas_pagas' => $parcelasPagas,
+        ];
+
+        [$cv, $cg] = $this->calcularComissao($import, $vendedor);
+
+        return response()->json([
+            'success' => true,
+            'vendedor' => 'R$ ' . number_format($cv, 2, ',', '.'),
+            'gestor' => 'R$ ' . number_format($cg, 2, ',', '.')
         ]);
     }
 

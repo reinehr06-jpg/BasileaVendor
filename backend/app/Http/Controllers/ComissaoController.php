@@ -215,211 +215,233 @@ class ComissaoController extends Controller
      */
     public function historicoVendedor(Request $request, $vendedorId)
     {
-        $vendedor = Vendedor::with('user')->findOrFail($vendedorId);
-        $mes = $request->get('mes', Carbon::now()->format('Y-m'));
+        try {
+            $vendedor = Vendedor::with('user')->findOrFail($vendedorId);
+            $mes = $request->get('mes', Carbon::now()->format('Y-m'));
 
-        // Se for requisição normal (não AJAX), retorna a view
-        if (!$request->wantsJson() && !$request->ajax()) {
-            return view('master.comissoes.historico', compact('vendedorId', 'mes'));
-        }
+            // Se for requisição normal (não AJAX), retorna a view
+            if (!$request->wantsJson() && !$request->ajax()) {
+                return view('master.comissoes.historico', compact('vendedorId', 'mes'));
+            }
 
-        // ── A partir daqui: JSON para o fetch() do front-end ──
+            // ── A partir daqui: JSON para o fetch() do front-end ──
 
-        $dataInicio = Carbon::parse($mes . '-01')->startOfMonth();
-        $dataFim    = (clone $dataInicio)->endOfMonth();
+            $dataInicio = Carbon::parse($mes . '-01')->startOfMonth();
+            $dataFim    = (clone $dataInicio)->endOfMonth();
 
-        // ── 1. Dados de Vendas (tabela vendas) ──
-        $vendas = Venda::where('vendedor_id', $vendedorId)
-            ->whereBetween('created_at', [$dataInicio, $dataFim])
-            ->get();
+            // ── 1. Dados de Vendas (tabela vendas) ──
+            $vendas = Venda::where('vendedor_id', $vendedorId)
+                ->whereBetween('created_at', [$dataInicio, $dataFim])
+                ->get();
 
-        $vendasPagas = $vendas->filter(fn($v) => in_array(strtoupper($v->status), ['PAGO', 'PAGO_ASAAS']));
-        $vendasCanceladas = $vendas->filter(fn($v) => in_array(strtoupper($v->status), ['CANCELADO', 'ESTORNADO', 'EXPIRADO', 'VENCIDO']));
+            $vendasPagas = $vendas->filter(fn($v) => in_array(strtoupper($v->status ?? ''), ['PAGO', 'PAGO_ASAAS']));
+            $vendasCanceladas = $vendas->filter(fn($v) => in_array(strtoupper($v->status ?? ''), ['CANCELADO', 'ESTORNADO', 'EXPIRADO', 'VENCIDO']));
 
-        $valorRecebido = Pagamento::whereIn('venda_id', $vendasPagas->pluck('id'))
-            ->whereIn('status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
-            ->sum('valor');
+            $valorRecebido = Pagamento::whereIn('venda_id', $vendasPagas->pluck('id'))
+                ->whereIn('status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
+                ->sum('valor');
 
-        // Clientes ativos (únicos com pagamento confirmado)
-        $clientesAtivos = $vendasPagas->pluck('cliente_id')->unique()->count();
+            // Clientes ativos (únicos com pagamento confirmado)
+            $clientesAtivos = $vendasPagas->pluck('cliente_id')->unique()->count();
 
-        // ── 2. Dados Legacy (legacy_customer_imports) ──
-        $percIni = (float) ($vendedor->comissao_inicial ?? 0);
-        $percRec = (float) ($vendedor->comissao_recorrencia ?? 0);
+            // ── 2. Dados Legacy (legacy_customer_imports) ──
+            $percIni = (float) ($vendedor->comissao_inicial ?? 0);
+            $percRec = (float) ($vendedor->comissao_recorrencia ?? 0);
 
-        $legacyClientes = DB::table('legacy_customer_imports')
-            ->where('vendedor_id', $vendedorId)
-            ->whereNotNull('primeiro_pagamento_at')
-            ->get();
+            $legacyClientes = DB::table('legacy_customer_imports')
+                ->where('vendedor_id', $vendedorId)
+                ->whereNotNull('primeiro_pagamento_at')
+                ->get();
 
-        $legacyComissoes = [];
-        $legacyValorVendido = 0;
+            $legacyComissoes = [];
+            $legacyValorVendido = 0;
 
-        foreach ($legacyClientes as $lc) {
-            $dataRef = $lc->primeiro_pagamento_at;
-            if (!$dataRef) continue;
+            foreach ($legacyClientes as $lc) {
+                $dataRef = $lc->primeiro_pagamento_at;
+                if (!$dataRef) continue;
 
-            $start = Carbon::parse($dataRef)->startOfMonth();
-            $valorPlano = (float) ($lc->valor_plano_mensal ?? 0);
-            $parcelasTotal = (int) ($lc->parcelas_total ?? 1);
+                $start = Carbon::parse($dataRef)->startOfMonth();
+                $valorPlano = (float) ($lc->valor_plano_mensal ?? 0);
+                $parcelasTotal = (int) ($lc->parcelas_total ?? 1);
 
-            // Calcular em qual "mês de vida" do cliente estamos
-            $mesAtual = $start->copy();
-            $countMeses = 0;
+                // Calcular em qual "mês de vida" do cliente estamos
+                $mesAtualCalc = $start->copy();
+                $countMeses = 0;
 
-            while ($mesAtual <= $dataFim) {
-                $countMeses++;
-                $mesStr = $mesAtual->format('Y-m');
+                while ($mesAtualCalc <= $dataFim) {
+                    $countMeses++;
+                    $mesStr = $mesAtualCalc->format('Y-m');
 
-                if ($mesStr === $mes) {
-                    $cv = 0;
-                    $tipo = 'recorrencia';
+                    if ($mesStr === $mes) {
+                        $cv = 0;
+                        $tipo = 'recorrencia';
 
-                    if ($lc->comissao_tipo === 'inicial_antecipada') {
-                        if ($countMeses === 1) {
-                            $cv = $valorPlano * ($percIni / 100);
-                            $restantes = max(0, $parcelasTotal - 1);
-                            $cv += $valorPlano * ($percRec / 100) * $restantes;
-                            $tipo = 'inicial_antecipada';
-                        }
-                    } elseif ($lc->comissao_tipo === 'inicial') {
-                        if ($countMeses === 1) {
-                            $cv = $valorPlano * ($percIni / 100);
-                            $tipo = 'inicial';
-                        } else {
-                            if ($lc->tipo_cobranca === 'installment' && $countMeses > $parcelasTotal) {
+                        $lcComissaoTipo = $lc->comissao_tipo ?? 'recorrencia';
+
+                        if ($lcComissaoTipo === 'inicial_antecipada') {
+                            if ($countMeses === 1) {
+                                $cv = $valorPlano * ($percIni / 100);
+                                $restantes = max(0, $parcelasTotal - 1);
+                                $cv += $valorPlano * ($percRec / 100) * $restantes;
+                                $tipo = 'inicial_antecipada';
+                            }
+                        } elseif ($lcComissaoTipo === 'inicial') {
+                            if ($countMeses === 1) {
+                                $cv = $valorPlano * ($percIni / 100);
+                                $tipo = 'inicial';
+                            } else {
+                                if (($lc->tipo_cobranca ?? '') === 'installment' && $countMeses > $parcelasTotal) {
+                                    $cv = 0;
+                                } else {
+                                    $cv = $valorPlano * ($percRec / 100);
+                                }
+                            }
+                        } elseif ($lcComissaoTipo === 'recorrencia') {
+                            if (($lc->tipo_cobranca ?? '') === 'installment' && $countMeses > $parcelasTotal) {
                                 $cv = 0;
                             } else {
                                 $cv = $valorPlano * ($percRec / 100);
                             }
                         }
-                    } elseif ($lc->comissao_tipo === 'recorrencia') {
-                        if ($lc->tipo_cobranca === 'installment' && $countMeses > $parcelasTotal) {
-                            $cv = 0;
-                        } else {
-                            $cv = $valorPlano * ($percRec / 100);
+
+                        if ($cv > 0) {
+                            $legacyValorVendido += $valorPlano;
+                            $legacyComissoes[] = [
+                                'cliente'        => $lc->nome ?? 'Cliente Legado',
+                                'venda_id'       => 'L-' . $lc->id,
+                                'valor_venda'    => $valorPlano,
+                                'percentual'     => $tipo === 'inicial' || $tipo === 'inicial_antecipada' ? $percIni : $percRec,
+                                'valor_comissao' => round($cv, 2),
+                                'tipo'           => $tipo,
+                                'status'         => 'confirmada',
+                                'data_pagamento' => Carbon::parse($dataRef)->format('d/m/Y'),
+                                'is_legacy'      => true,
+                            ];
                         }
+                        break; // Já achamos o mês, pode sair
                     }
 
-                    if ($cv > 0) {
-                        $legacyValorVendido += $valorPlano;
-                        $legacyComissoes[] = [
-                            'cliente'        => $lc->nome ?? 'Cliente Legado',
-                            'venda_id'       => 'L-' . $lc->id,
-                            'valor_venda'    => $valorPlano,
-                            'percentual'     => $tipo === 'inicial' || $tipo === 'inicial_antecipada' ? $percIni : $percRec,
-                            'valor_comissao' => round($cv, 2),
-                            'tipo'           => $tipo,
-                            'status'         => 'confirmada',
-                            'data_pagamento' => Carbon::parse($dataRef)->format('d/m/Y'),
-                            'is_legacy'      => true,
-                        ];
-                    }
-                    break; // Já achamos o mês, pode sair
+                    $mesAtualCalc->addMonth();
+                    if ($countMeses > 240) break; // Trava de segurança
                 }
-
-                $mesAtual->addMonth();
             }
+
+            // ── 3. Comissões reais (tabela comissoes) ──
+            $comissoesReais = Comissao::where('vendedor_id', $vendedorId)
+                ->where('competencia', $mes)
+                ->with(['cliente', 'venda'])
+                ->orderByDesc('created_at')
+                ->get();
+
+            $comissoesDetalhes = $comissoesReais->map(function ($c) {
+                return [
+                    'cliente'        => $c->cliente?->nome ?? $c->cliente?->nome_igreja ?? 'N/A',
+                    'venda_id'       => $c->venda_id,
+                    'valor_venda'    => (float) ($c->valor_venda ?? 0),
+                    'percentual'     => (float) ($c->percentual_aplicado ?? 0),
+                    'valor_comissao' => (float) ($c->valor_comissao ?? 0),
+                    'tipo'           => $c->tipo_comissao ?? 'inicial',
+                    'status'         => $c->status ?? 'pendente',
+                    'data_pagamento' => $c->created_at?->format('d/m/Y') ?? '-',
+                    'is_legacy'      => false,
+                ];
+            })->toArray();
+
+            // Merge comissões reais + legacy
+            $todosDetalhes = array_merge($comissoesDetalhes, $legacyComissoes);
+
+            $totalComissaoReal   = $comissoesReais->sum('valor_comissao');
+            $totalComissaoLegacy = collect($legacyComissoes)->sum('valor_comissao');
+            $totalComissao       = $totalComissaoReal + $totalComissaoLegacy;
+
+            // ── 4. Vendas por forma de pagamento ──
+            $porForma = $vendasPagas->groupBy('forma_pagamento')->map(function ($group, $forma) {
+                return [
+                    'forma'      => $forma ?: 'Não definido',
+                    'quantidade' => $group->count(),
+                    'valor'      => $group->sum('valor'),
+                ];
+            })->values()->toArray();
+
+            // ── 5. Vendas por tipo de negociação ──
+            $porTipo = $vendasPagas->groupBy('tipo_negociacao')->map(function ($group, $tipo) {
+                return [
+                    'tipo'       => $tipo ?: 'Não definido',
+                    'quantidade' => $group->count(),
+                    'valor'      => $group->sum('valor'),
+                ];
+            })->values()->toArray();
+
+            // ── 6. Meta do mês ──
+            $meta = Meta::where('vendedor_id', $vendedorId)
+                ->where('mes_referencia', $mes)
+                ->first();
+
+            $valorMeta = (float) ($meta?->valor_meta ?? 0);
+            $valorVendido = $vendasPagas->sum('valor') + $legacyValorVendido;
+            $percentualMeta = $valorMeta > 0 ? round(($valorVendido / $valorMeta) * 100, 1) : 0;
+
+            // ── 7. Ticket médio ──
+            $totalVendasCount = $vendasPagas->count() + count($legacyComissoes);
+            $ticketMedio = $totalVendasCount > 0 ? round($valorVendido / $totalVendasCount, 2) : 0;
+
+            return response()->json([
+                'status' => 'success',
+                'vendedor' => [
+                    'id'    => $vendedor->id,
+                    'nome'  => $vendedor->user->name ?? 'N/A',
+                    'email' => $vendedor->user->email ?? 'N/A',
+                ],
+                'meta' => [
+                    'valor'        => $valorMeta,
+                    'valor_vendido'=> $valorVendido,
+                    'percentual'   => $percentualMeta,
+                ],
+                'vendas' => [
+                    'total'              => $vendas->count() + count($legacyComissoes),
+                    'valor_total'        => $valorVendido,
+                    'valor_recebido'     => (float) $valorRecebido + $legacyValorVendido,
+                    'clientes_ativos'    => $clientesAtivos + $legacyClientes->where('diagnostico_status', 'ATIVO')->count(),
+                    'cancelamentos'      => $vendasCanceladas->count(),
+                    'valor_cancelado'    => $vendasCanceladas->sum('valor'),
+                    'ticket_medio'       => $ticketMedio,
+                    'por_forma_pagamento'  => $porForma,
+                    'por_tipo_negociacao'  => $porTipo,
+                ],
+                'comissoes' => [
+                    'total'    => round($totalComissao, 2),
+                    'detalhes' => $todosDetalhes,
+                ],
+                'notas_fiscais' => [],
+                'is_admin' => auth()->user()?->perfil === 'master',
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Erro no histórico do vendedor: ' . $e->getMessage(), [
+                'vendedor_id' => $vendedorId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'line' => $e->getLine()
+            ], 500);
         }
-
-        // ── 3. Comissões reais (tabela comissoes) ──
-        $comissoesReais = Comissao::where('vendedor_id', $vendedorId)
-            ->where('competencia', $mes)
-            ->with(['cliente', 'venda'])
-            ->orderByDesc('created_at')
-            ->get();
-
-        $comissoesDetalhes = $comissoesReais->map(function ($c) {
-            return [
-                'cliente'        => $c->cliente?->nome ?? $c->cliente?->nome_igreja ?? 'N/A',
-                'venda_id'       => $c->venda_id,
-                'valor_venda'    => (float) ($c->valor_venda ?? 0),
-                'percentual'     => (float) ($c->percentual_aplicado ?? 0),
-                'valor_comissao' => (float) ($c->valor_comissao ?? 0),
-                'tipo'           => $c->tipo_comissao ?? 'inicial',
-                'status'         => $c->status ?? 'pendente',
-                'data_pagamento' => $c->created_at?->format('d/m/Y') ?? '-',
-                'is_legacy'      => false,
-            ];
-        })->toArray();
-
-        // Merge comissões reais + legacy
-        $todosDetalhes = array_merge($comissoesDetalhes, $legacyComissoes);
-
-        $totalComissaoReal   = $comissoesReais->sum('valor_comissao');
-        $totalComissaoLegacy = collect($legacyComissoes)->sum('valor_comissao');
-        $totalComissao       = $totalComissaoReal + $totalComissaoLegacy;
-
-        // ── 4. Vendas por forma de pagamento ──
-        $porForma = $vendasPagas->groupBy('forma_pagamento')->map(function ($group, $forma) {
-            return [
-                'forma'      => $forma ?: 'Não definido',
-                'quantidade' => $group->count(),
-                'valor'      => $group->sum('valor'),
-            ];
-        })->values()->toArray();
-
-        // ── 5. Vendas por tipo de negociação ──
-        $porTipo = $vendasPagas->groupBy('tipo_negociacao')->map(function ($group, $tipo) {
-            return [
-                'tipo'       => $tipo ?: 'Não definido',
-                'quantidade' => $group->count(),
-                'valor'      => $group->sum('valor'),
-            ];
-        })->values()->toArray();
-
-        // ── 6. Meta do mês ──
-        $meta = Meta::where('vendedor_id', $vendedorId)
-            ->where('mes_referencia', $mes)
-            ->first();
-
-        $valorMeta = (float) ($meta->valor_meta ?? 0);
-        $valorVendido = $vendasPagas->sum('valor') + $legacyValorVendido;
-        $percentualMeta = $valorMeta > 0 ? round(($valorVendido / $valorMeta) * 100, 1) : 0;
-
-        // ── 7. Ticket médio ──
-        $totalVendasCount = $vendasPagas->count() + count($legacyComissoes);
-        $ticketMedio = $totalVendasCount > 0 ? round($valorVendido / $totalVendasCount, 2) : 0;
-
-        return response()->json([
-            'vendedor' => [
-                'id'    => $vendedor->id,
-                'nome'  => $vendedor->user->name ?? 'N/A',
-                'email' => $vendedor->user->email ?? 'N/A',
-            ],
-            'meta' => [
-                'valor'        => $valorMeta,
-                'valor_vendido'=> $valorVendido,
-                'percentual'   => $percentualMeta,
-            ],
-            'vendas' => [
-                'total'              => $vendas->count() + count($legacyComissoes),
-                'valor_total'        => $valorVendido,
-                'valor_recebido'     => (float) $valorRecebido + $legacyValorVendido,
-                'clientes_ativos'    => $clientesAtivos + $legacyClientes->whereIn('diagnostico_status', ['ATIVO'])->count(),
-                'cancelamentos'      => $vendasCanceladas->count(),
-                'valor_cancelado'    => $vendasCanceladas->sum('valor'),
-                'ticket_medio'       => $ticketMedio,
-                'por_forma_pagamento'  => $porForma,
-                'por_tipo_negociacao'  => $porTipo,
-            ],
-            'comissoes' => [
-                'total'    => round($totalComissao, 2),
-                'detalhes' => $todosDetalhes,
-            ],
-            'notas_fiscais' => [],
-            'is_admin' => auth()->user()?->perfil === 'master',
-        ]);
     }
 
     /**
      * Exportar Histórico Completo
      */
-    public function exportarHistorico(Request $request)
+    public function exportarHistorico(Request $request, $vendedorId)
     {
         $user = Auth::user();
-        $vendedor = $user->vendedor;
-        $vendedorId = $vendedor ? $vendedor->id : 0;
+        $mes = $request->get('mes', Carbon::now()->format('Y-m'));
+        $formato = $request->get('formato', 'csv');
+        
+        // Se for admin, usa o ID passado. Se não, usa o próprio ID do vendedor logado.
+        if ($user->perfil !== 'master') {
+            $vendedor = $user->vendedor;
+            $vendedorId = $vendedor ? $vendedor->id : 0;
+        }
 
         $filename = "historico_comissoes_" . now()->format('Y-m-d_His') . '.csv';
 

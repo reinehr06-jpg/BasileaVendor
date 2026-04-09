@@ -105,11 +105,17 @@ class DashboardController extends Controller
             ->whereNotNull('primeiro_pagamento_at');
         if ($vendedorIds) $queryLegacyAtivos->whereIn('vendedor_id', $vendedorIds);
         
-        $clientesAtivos = $queryClientes->count() + $queryLegacyAtivos->count();
+        $legacyCount = $queryLegacyAtivos->count();
+        $clientesAtivos = $queryClientes->count() + $legacyCount;
 
         // Integrar faturamento legado (Mês atual/selecionado)
         $totalLegacyRecebido = 0;
-        $legacyRows = $queryLegacyAtivos->get();
+        $legacyRows = DB::table('legacy_customer_imports')
+            ->where('diagnostico_status', 'ATIVO')
+            ->whereNotNull('primeiro_pagamento_at');
+        if ($vendedorIds) $legacyRows->whereIn('vendedor_id', $vendedorIds);
+        $legacyRows = $legacyRows->get();
+
         foreach ($legacyRows as $row) {
             $totalLegacyRecebido += (float) ($row->valor_plano_mensal ?? 0);
         }
@@ -127,8 +133,8 @@ class DashboardController extends Controller
         if ($vendedorIds) $queryRenov->whereIn('vendas.vendedor_id', $vendedorIds);
         $renovacoesMes = $queryRenov->count();
 
-        $ticketMedio = ($vendasAtivas + $queryLegacyAtivos->count()) > 0 
-            ? $totalRecebido / ($vendasAtivas + $queryLegacyAtivos->count()) 
+        $ticketMedio = ($vendasAtivas + $legacyCount) > 0 
+            ? $totalRecebido / ($vendasAtivas + $legacyCount) 
             : 0;
 
         $driver = DB::getDriverName();
