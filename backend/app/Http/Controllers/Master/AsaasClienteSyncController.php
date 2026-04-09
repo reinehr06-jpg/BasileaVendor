@@ -334,6 +334,11 @@ class AsaasClienteSyncController extends Controller
 
         DB::table('legacy_customer_imports')->where('id', $id)->update($data);
 
+        // SYNC AUTOMÁTICO: Se estiver ATIVO e tiver Vendedor, sincroniza com as tabelas oficiais agora
+        if (($validated['diagnostico_status'] ?? $cliente->diagnostico_status) === 'ATIVO' && ($vendedorId ?? $cliente->vendedor_id)) {
+            $this->confirmarCliente($request, (int) $id);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Cliente atualizado com sucesso!',
@@ -1037,22 +1042,68 @@ class AsaasClienteSyncController extends Controller
             default       => 'avulso',
         };
 
-        // Criar venda
-        $vendaId = DB::table('vendas')->insertGetId([
+        // Determinar Valor Real da Venda (Total do contrato se parcelado)
+        $valorVendaReal = (float) ($import->valor_total_cobranca ?? 0);
+        if ($valorVendaReal <= 0) {
+            $valorVendaReal = ($import->valor_plano_mensal ?? 0) * ($import->parcelas_total ?? 1);
+        }
+
+        // Criar ou atualizar venda
+        $vendaValues = [
             'cliente_id'       => $clienteId,
             'vendedor_id'      => $import->vendedor_id,
-            'valor'            => $import->valor_plano_mensal ?? 0,
+            'valor'            => $valorVendaReal,
             'comissao_gerada'  => $import->comissao_vendedor_calculada ?? 0,
             'status'           => $statusVenda,
-            'plano'            => null,
             'forma_pagamento'  => $formaPgto,
             'tipo_negociacao'  => $tipoNegociacao,
             'parcelas'         => $import->parcelas_total ?? 1,
             'origem'           => 'asaas_legado',
             'data_venda'       => $import->primeiro_pagamento_at ?? now()->toDateString(),
-            'created_at'       => now(),
             'updated_at'       => now(),
-        ]);
+        ];
+
+        $vendaId = DB::table('vendas')->updateOrInsert(
+            ['cliente_id' => $clienteId, 'origem' => 'asaas_legado'],
+            $vendaValues
+        );
+        $vendaId = $vendaId ?: DB::table('vendas')->where('cliente_id', $clienteId)->where('origem', 'asaas_legado')->value('id');
+
+        // LÓGICA DE COMISSÃO (Mês 4 / Último Pagamento)
+        $dataRef = $import->ultimo_pagamento_confirmado_at ?? $import->primeiro_pagamento_at ?? now();
+        $carbonRef = Carbon::parse($dataRef);
+        $competencia = $carbonRef->format('Y-m');
+
+        // "Ele nao pode mostrar se a comissao for antes do mes 4, mas se for uma recorrencia ele ja deve exibir o valor que vai ser pago esse mes agora"
+        $currentMonth = now()->format('Y-m');
+        if ($competencia < '2026-04' && $import->comissao_tipo === 'recorrencia') {
+            $competencia = $currentMonth;
+        }
+
+        if ($competencia >= '2026-04' && $import->vendedor_id) {
+            $vendedor = Vendedor::find($import->vendedor_id);
+            if ($vendedor) {
+                [$cv, $cg] = $this->calcularComissao($import, $vendedor);
+                
+                $comissaoData = [
+                    'vendedor_id' => $import->vendedor_id,
+                    'cliente_id'  => $clienteId,
+                    'venda_id'    => $vendaId,
+                    'tipo_comissao' => $import->comissao_tipo ?? 'recorrencia',
+                    'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
+                    'valor_venda'   => $valorVendaReal,
+                    'valor_comissao' => $cv,
+                    'valor_gerente'  => $cg,
+                    'status'         => 'confirmada',
+                    'competencia'    => $competencia,
+                ];
+
+                DB::table('comissoes')->updateOrInsert(
+                    ['vendedor_id' => $vendedor->id, 'cliente_id' => $clienteId, 'venda_id' => $vendaId, 'competencia' => $competencia],
+                    $comissaoData
+                );
+            }
+        }
 
         // Vincular import ao cliente e venda criados
         DB::table('legacy_customer_imports')->where('id', $id)->update([
