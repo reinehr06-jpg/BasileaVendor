@@ -802,28 +802,15 @@ class AsaasClienteSyncController extends Controller
             $comissaoVendedor = 0;
             $comissaoGestor = 0;
 
-            // Forçar cálculo se for ATIVO (ignorar comissao_tipo)
+            // Forçar cálculo se for ATIVO
             if ($import->diagnostico_status === 'ATIVO') {
-                // Definir tipo baseado em valor_marco_pago
-                $tipo = 'inicial';
-                if (!$import->valor_marco_pago || $import->valor_marco_pago == 0) {
-                    $tipo = 'recorrencia';
+                // Definir tipo se estiver vazio
+                if (empty($import->comissao_tipo)) {
+                    $import->comissao_tipo = (!$import->valor_marco_pago || $import->valor_marco_pago == 0) ? 'recorrencia' : 'inicial';
                 }
                 
-                // Calcular comissão
-                $percIni = (float) ($vendedor->comissao_inicial ?? 10);
-                $percRec = (float) ($vendedor->comissao_recorrencia ?? 10);
-                $percGst = (float) ($vendedor->comissao_gestor_primeira ?? 5);
-                
-                $valorBase = (float) ($import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0);
-                
-                if ($tipo === 'inicial') {
-                    $comissaoVendedor = $valorBase * ($percIni / 100);
-                    $comissaoGestor = $valorBase * ($percGst / 100);
-                } else {
-                    $comissaoVendedor = $valorBase * ($percRec / 100);
-                    $comissaoGestor = $valorBase * ($percGst / 100);
-                }
+                // Usar o método centralizado para garantir os mesmos fallbacks (operador Elvis)
+                [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
             }
 
             if ($isGestor) {
@@ -884,8 +871,8 @@ class AsaasClienteSyncController extends Controller
             'gestor' => 'R$ ' . number_format($cg, 2, ',', '.'),
             'debug' => [
                 'vendedor_id' => $vendedor->id,
-                'perc_ini' => (float) ($vendedor->comissao_inicial ?? $vendedor->comissao ?? 0),
-                'perc_rec' => (float) ($vendedor->comissao_recorrencia ?? $vendedor->comissao ?? 0),
+                'perc_ini' => (float) ($vendedor->comissao_inicial ?: $vendedor->comissao ?: 0),
+                'perc_rec' => (float) ($vendedor->comissao_recorrencia ?: $vendedor->comissao ?: 0),
                 'valor_base' => $valorPlano,
                 'tipo_comissao' => $comissaoTipo
             ]
