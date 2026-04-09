@@ -1067,6 +1067,23 @@ class AsaasClienteSyncController extends Controller
         $actualVenda = DB::table('vendas')->where('cliente_id', $clienteId)->where('origem', 'asaas_legado')->first();
         $vendaId     = $actualVenda->id;
 
+        // Criar pagamento confirmado para ativar 'Regra de Ouro' (clientes ativos = 1+ pagamentos)
+        if ($statusVenda === 'Pago') {
+            \App\Models\Pagamento::updateOrCreate(
+                ['venda_id' => $vendaId, 'asaas_payment_id' => 'legacy_' . $id],
+                [
+                    'cliente_id' => $clienteId,
+                    'vendedor_id' => $import->vendedor_id,
+                    'valor' => $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0,
+                    'status' => 'PAGO',
+                    'data_pagamento' => $import->ultimo_pagamento_confirmado_at ?? $import->primeiro_pagamento_at ?? now(),
+                    'data_vencimento' => $import->primeiro_pagamento_at ?? now(),
+                    'forma_pagamento' => $formaPgto,
+                    'billing_type' => $import->asaas_subscription_billing_type ?? 'BOLETO'
+                ]
+            );
+        }
+
         // LÓGICA DE COMISSÃO (Mês 4 / Último Pagamento)
         $dataRef = $import->ultimo_pagamento_confirmado_at ?? $import->primeiro_pagamento_at ?? now();
         $carbonRef = Carbon::parse($dataRef);
