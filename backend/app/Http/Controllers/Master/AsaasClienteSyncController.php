@@ -865,14 +865,22 @@ class AsaasClienteSyncController extends Controller
 
         [$cv, $cg] = $this->calcularComissao($import, $vendedor);
 
+        $diagnostic = null;
+        if ($cv == 0 && $valorPlano > 0) {
+            $diagnostic = "Zero detectado: PercIni=".($vendedor->comissao_inicial ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0).
+                         "%, PercRec=".($vendedor->comissao_recorrencia ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0).
+                         "%, Base=".$valorPlano.", Tipo=".$comissaoTipo;
+        }
+
         return response()->json([
             'success' => true,
             'vendedor' => 'R$ ' . number_format($cv, 2, ',', '.'),
             'gestor' => 'R$ ' . number_format($cg, 2, ',', '.'),
+            'diagnostic' => $diagnostic,
             'debug' => [
                 'vendedor_id' => $vendedor->id,
-                'perc_ini' => (float) ($vendedor->comissao_inicial ?: $vendedor->comissao ?: 0),
-                'perc_rec' => (float) ($vendedor->comissao_recorrencia ?: $vendedor->comissao ?: 0),
+                'perc_ini' => (float) ($vendedor->comissao_inicial ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0),
+                'perc_rec' => (float) ($vendedor->comissao_recorrencia ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0),
                 'valor_base' => $valorPlano,
                 'tipo_comissao' => $comissaoTipo
             ]
@@ -1082,10 +1090,9 @@ class AsaasClienteSyncController extends Controller
 
     private function calcularComissao(object $import, Vendedor $vendedor): array
     {
-        // Fallback: se comissao_inicial for zero (0.00), o operador ?: pula para o próximo (comissao)
-        // O operador ?? falhava aqui porque 0.00 não é nulo.
-        $percIni    = (float) ($vendedor->comissao_inicial ?: $vendedor->comissao ?: 0);
-        $percRec    = (float) ($vendedor->comissao_recorrencia ?: $vendedor->comissao ?: 0);
+        // Fallback: se comissao_inicial for zero (0.00), o operador ?: pula para o próximo (comissao ou percentual_comissao)
+        $percIni    = (float) ($vendedor->comissao_inicial ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0);
+        $percRec    = (float) ($vendedor->comissao_recorrencia ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0);
         
         $percGstIni = (float) ($vendedor->comissao_gestor_primeira ?? 0);
         $percGstRec = (float) ($vendedor->comissao_gestor_recorrencia ?? 0);

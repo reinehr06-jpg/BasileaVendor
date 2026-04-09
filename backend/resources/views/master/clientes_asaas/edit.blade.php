@@ -333,7 +333,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 elV.textContent = data.vendedor;
                 elG.textContent = data.gestor;
                 
-                // Exibir diagnóstico sutil se der 0
+                // Super-Diagnóstico Visível
+                if (data.vendedor === 'R$ 0,00' && data.diagnostic) {
+                    alert('AVISO: Comissão retornou R$ 0,00.\n' + data.diagnostic);
+                }
+
                 if (data.vendedor === 'R$ 0,00' && data.debug && data.debug.valor_base > 0) {
                     elV.title = `Diagnóstico: Perc=${data.debug.perc_ini}%, Base=${data.debug.valor_base}`;
                 } else {
