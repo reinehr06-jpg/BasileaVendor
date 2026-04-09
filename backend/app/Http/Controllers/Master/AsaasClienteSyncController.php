@@ -1074,31 +1074,35 @@ class AsaasClienteSyncController extends Controller
 
         // "Ele nao pode mostrar se a comissao for antes do mes 4, mas se for uma recorrencia ele ja deve exibir o valor que vai ser pago esse mes agora"
         $currentMonth = now()->format('Y-m');
-        if ($competencia < '2026-04' && $import->comissao_tipo === 'recorrencia') {
+        if ($competencia < '2026-04') {
+            // Se for importado para trabalhar agora, força a comissão para o mês atual para aparecer no dashboard
             $competencia = $currentMonth;
         }
 
-        if ($competencia >= '2026-04' && $import->vendedor_id) {
+        if ($import->vendedor_id) {
             $vendedor = Vendedor::find($import->vendedor_id);
             if ($vendedor) {
                 [$cv, $cg] = $this->calcularComissao($import, $vendedor);
                 
-                $comissaoData = [
-                    'vendedor_id' => $import->vendedor_id,
-                    'cliente_id'  => $clienteId,
-                    'venda_id'    => $vendaId,
-                    'tipo_comissao' => $import->comissao_tipo ?? 'recorrencia',
-                    'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
-                    'valor_venda'   => $valorVendaReal,
-                    'valor_comissao' => $cv,
-                    'valor_gerente'  => $cg,
-                    'status'         => 'confirmada',
-                    'competencia'    => $competencia,
-                ];
-
-                DB::table('comissoes')->updateOrInsert(
-                    ['vendedor_id' => $vendedor->id, 'cliente_id' => $clienteId, 'venda_id' => $vendaId, 'competencia' => $competencia],
-                    $comissaoData
+                $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
+                
+                Comissao::updateOrCreate(
+                    [
+                        'vendedor_id' => $vendedor->id,
+                        'cliente_id'  => $clienteId,
+                        'venda_id'    => $vendaId,
+                        'competencia' => $competencia,
+                    ],
+                    [
+                        'gerente_id'          => $gestorId,
+                        'tipo_comissao'       => $import->comissao_tipo ?? 'recorrencia',
+                        'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
+                        'percentual_gerente'  => $vendedor->comissao_gestor_primeira ?? 0,
+                        'valor_venda'         => $valorVendaReal,
+                        'valor_comissao'      => $cv,
+                        'valor_gerente'       => $cg,
+                        'status'              => 'confirmada',
+                    ]
                 );
             }
         }
