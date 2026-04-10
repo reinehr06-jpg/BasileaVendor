@@ -334,8 +334,23 @@ class AsaasClienteSyncController extends Controller
 
         DB::table('legacy_customer_imports')->where('id', $id)->update($data);
 
-        // SYNC AUTOMÁTICO: Se estiver ATIVO e tiver Vendedor, sincroniza com as tabelas oficiais agora
-        if (($validated['diagnostico_status'] ?? $cliente->diagnostico_status) === 'ATIVO' && ($vendedorId ?? $cliente->vendedor_id)) {
+        // SYNC AUTOMÁTICO: Se já tiver local_venda_id, atualiza a venda oficial também
+        if ($cliente->local_venda_id) {
+            $valorVendaReal = (float) ($data['valor_total_cobranca'] ?? $cliente->valor_total_cobranca ?? 0);
+            if ($valorVendaReal <= 0) {
+                $valorVendaReal = ($data['valor_plano_mensal'] ?? $cliente->valor_plano_mensal ?? 0) * ($data['parcelas_total'] ?? $cliente->parcelas_total ?? 1);
+            }
+
+            DB::table('vendas')->where('id', $cliente->local_venda_id)->update([
+                'valor' => $valorVendaReal,
+                'comissao_gerada' => $data['comissao_vendedor_calculada'] ?? $cliente->comissao_vendedor_calculada ?? 0,
+                'parcelas' => $data['parcelas_total'] ?? $cliente->parcelas_total ?? 1,
+                'updated_at' => now(),
+            ]);
+        }
+
+        // SYNC AUTOMÁTICO: Se estiver ATIVO e tiver Vendedor, mas não confirmado ainda, sincroniza com as tabelas oficiais agora
+        if (!$cliente->local_cliente_id && ($validated['diagnostico_status'] ?? $cliente->diagnostico_status) === 'ATIVO' && ($vendedorId ?? $cliente->vendedor_id)) {
             $this->confirmarCliente($request, (int) $id);
         }
 
