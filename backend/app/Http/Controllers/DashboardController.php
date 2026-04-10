@@ -119,7 +119,11 @@ class DashboardController extends Controller
         $legacyRows = $legacyRows->get();
 
         foreach ($legacyRows as $row) {
-            $totalLegacyRecebido += (float) ($row->valor_plano_mensal ?? 0);
+            if (($row->tipo_cobranca ?? '') === 'installment') {
+                $totalLegacyRecebido += (float) ($row->valor_total_cobranca ?? (($row->valor_plano_mensal ?? 0) * ($row->parcelas_total ?? 1)));
+            } else {
+                $totalLegacyRecebido += (float) ($row->valor_plano_mensal ?? 0);
+            }
         }
         $totalRecebido = (float) $totalRecebido + $totalLegacyRecebido;
 
