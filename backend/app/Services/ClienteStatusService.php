@@ -68,7 +68,7 @@ class ClienteStatusService
 
         // 3. Vencido no Asaas ou vencimento passou → INADIMPLENTE ou CHURN
         $isOverdue = $statusPagamento === 'OVERDUE'
-            || ($vencimento && $vencimento->isPast() && !in_array($statusPagamento, ['RECEIVED', 'CONFIRMED']));
+            || ($vencimento && $vencimento->isPast() && !in_array($statusPagamento, ['RECEIVED', 'CONFIRMED', 'PAGO', 'pago']));
 
         if ($isOverdue) {
             // Se já foi pago no passado e o atraso é > 30 dias → CHURN

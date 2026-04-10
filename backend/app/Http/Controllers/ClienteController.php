@@ -36,7 +36,11 @@ class ClienteController extends Controller
             });
         }
         
-        // Filtros
+        // Sincronizar status dos clientes CANDIDATOS (Regra de Ouro + Pertencimento ao Usuário) antes de aplicar filtros específicos
+        $clientesParaSync = (clone $query)->with('vendas.pagamentos')->get();
+        ClienteStatusService::sincronizarStatus($clientesParaSync);
+
+        // Filtros Adicionais (Status e Busca) para a exibição final
         if ($request->filled('busca')) {
             $busca = $request->get('busca');
             $query->where(function($q) use ($busca) {
@@ -45,44 +49,14 @@ class ClienteController extends Controller
                   ->orWhere('documento', 'like', "%{$busca}%");
             });
         }
-        
-        // Default: mostrar apenas clientes ativos
+
         if ($request->filled('status')) {
             $query->where('status', $request->get('status'));
         } else {
             $query->where('status', 'ativo');
         }
-        
-        // Sincronizar status dos clientes antes de listar
-        $clientesParaSync = (clone $query)->with('vendas.pagamentos')->get();
-        ClienteStatusService::sincronizarStatus($clientesParaSync);
 
-        // Re-carregar com status atualizado e filtro de pagamento
-        $clientes = Cliente::whereHas('vendas.pagamentos', function ($q) {
-            $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
-        });
-
-        if (!$isMaster) {
-            $clientes->whereHas('vendas', function ($q) use ($user) {
-                $q->whereHas('vendedor', function ($v) use ($user) {
-                    $v->where('usuario_id', $user->id);
-                });
-            });
-        }
-        if ($request->filled('busca')) {
-            $busca = $request->get('busca');
-            $clientes->where(function($q) use ($busca) {
-                $q->where('nome_igreja', 'like', "%{$busca}%")
-                  ->orWhere('nome_pastor', 'like', "%{$busca}%")
-                  ->orWhere('documento', 'like', "%{$busca}%");
-            });
-        }
-        if ($request->filled('status')) {
-            $clientes->where('status', $request->get('status'));
-        } else {
-            $clientes->where('status', 'ativo');
-        }
-        $clientes = $clientes->with('vendas')->orderBy('created_at', 'desc')->paginate(15);
+        $clientes = $query->with('vendas')->orderBy('created_at', 'desc')->paginate(15);
 
         // Cards de Resumo (baseado apenas em quem já pagou algo)
         $allClientes = Cliente::whereHas('vendas.pagamentos', function ($q) {
