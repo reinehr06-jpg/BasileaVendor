@@ -658,11 +658,13 @@ class AsaasClienteSyncController extends Controller
         ];
 
         if ($existing) {
-            // Preservar atribuição de vendedor e comissão já calculada
+            // Preservar atribuição de vendedor e comissão já calculada, MAS permitir atualizar valores
             foreach (['vendedor_id', 'comissao_vendedor_calculada', 'comissao_gestor_calculada',
                       'comissao_mes_referencia', 'comissao_resetada_em',
                       'local_cliente_id', 'local_venda_id', 'confirmado_em', 'confirmado_por'] as $campo) {
-                unset($data[$campo]);
+                if (isset($existing->$campo)) {
+                    $data[$campo] = $existing->$campo;
+                }
             }
             DB::table('legacy_customer_imports')->where('id', $existing->id)->update($data);
         } else {
