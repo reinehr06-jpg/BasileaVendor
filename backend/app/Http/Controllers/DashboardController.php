@@ -81,16 +81,42 @@ class DashboardController extends Controller
         $queryPagamentos = Pagamento::whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
             ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim])
             ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
-            ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO']);
+            ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
+            ->select('pagamentos.*', 'vendas.parcelas as venda_parcelas', 'vendas.valor as venda_valor_total');
+        
         if ($vendedorIds) $queryPagamentos->whereIn('vendas.vendedor_id', $vendedorIds);
-        $totalRecebido = $queryPagamentos->sum('pagamentos.valor');
+        
+        $pagamentosData = $queryPagamentos->get();
+        $totalRecebido = 0;
+        
+        foreach ($pagamentosData as $pag) {
+            // Se for parcelado (mais de 1 parcela), usamos o valor total da venda para o atingimento/ticket
+            if ((int)$pag->venda_parcelas > 1) {
+                $totalRecebido += (float) $pag->venda_valor_total;
+            } else {
+                // Se for mensal/avulso, usamos o valor do pagamento individual
+                $totalRecebido += (float) $pag->valor;
+            }
+        }
 
         $queryPagamentosPassado = Pagamento::whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
             ->whereBetween('pagamentos.updated_at', [$dataInicioComp, $dataFimComp])
             ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
-            ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO']);
+            ->whereRaw('UPPER(vendas.status) NOT IN (?, ?, ?)', ['ESTORNADO', 'CANCELADO', 'EXPIRADO'])
+            ->select('pagamentos.*', 'vendas.parcelas as venda_parcelas', 'vendas.valor as venda_valor_total');
+        
         if ($vendedorIds) $queryPagamentosPassado->whereIn('vendas.vendedor_id', $vendedorIds);
-        $recebidoPassado = $queryPagamentosPassado->sum('pagamentos.valor');
+        
+        $pagamentosPassadoData = $queryPagamentosPassado->get();
+        $recebidoPassado = 0;
+        foreach ($pagamentosPassadoData as $pag) {
+            if ($pag->venda_parcelas > 1) {
+                $recebidoPassado += (float) $pag->venda_valor_total;
+            } else {
+                $recebidoPassado += (float) $pag->valor;
+            }
+        }
+        
         $recebidoTrend = $recebidoPassado > 0 ? (($totalRecebido - $recebidoPassado) / $recebidoPassado) * 100 : 0;
 
         $queryClientes = Cliente::whereHas('vendas.pagamentos', function($q) use ($vendedorIds, $dataInicio, $dataFim) {
