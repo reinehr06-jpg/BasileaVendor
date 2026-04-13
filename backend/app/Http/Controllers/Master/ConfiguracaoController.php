@@ -62,6 +62,7 @@ class ConfiguracaoController extends Controller
             'emailClienteFrom' => Setting::get('email_cliente_from', ''),
             'emailSuporte' => Setting::get('email_suporte', ''),
             'whatsappSuporte' => Setting::get('whatsapp_suporte', ''),
+            'emailTeste' => Setting::get('email_teste', ''),
             'checkoutExternalUrl' => Setting::get('checkout_external_url', ''),
             'checkoutApiKey' => Setting::get('checkout_api_key', ''),
             'churchWebhookUrl' => Setting::get('basileia_church_webhook_url', ''),

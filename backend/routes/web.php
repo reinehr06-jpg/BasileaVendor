@@ -344,6 +344,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/configuracoes/integracoes', [IntegracaoController::class, 'update'])->name('configuracoes.integracoes.update');
         Route::post('/configuracoes/integracoes/split', [IntegracaoController::class, 'updateSplit'])->name('configuracoes.integracoes.split');
         Route::post('/configuracoes/integracoes/email', [IntegracaoController::class, 'updateEmail'])->name('configuracoes.integracoes.email');
+        Route::post('/configuracoes/integracoes/email/test', [IntegracaoController::class, 'testEmail'])->name('configuracoes.integracoes.email.test');
         Route::post('/configuracoes/integracoes/church', [IntegracaoController::class, 'updateChurch'])->name('configuracoes.integracoes.church');
         Route::post('/configuracoes/integracoes/google-calendar', [IntegracaoController::class, 'updateGoogleCalendar'])->name('configuracoes.integracoes.google-calendar');
         Route::post('/configuracoes/integracoes/google-gmail', [IntegracaoController::class, 'updateGoogleGmail'])->name('configuracoes.integracoes.google-gmail');

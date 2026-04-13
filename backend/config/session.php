@@ -10,7 +10,7 @@ return [
 
     'expire_on_close' => true,
 
-    'encrypt' => true,
+    'encrypt' => false,
 
     'files' => storage_path('framework/sessions'),
 
@@ -29,13 +29,13 @@ return [
 
     'path' => '/',
 
-    'domain' => env('SESSION_DOMAIN'),
+    'domain' => env('SESSION_DOMAIN', 'localhost'),
 
-    'secure' => env('SESSION_SECURE_COOKIE', true),
+    'secure' => env('SESSION_SECURE_COOKIE', false),
 
     'http_only' => true,
 
-    'same_site' => 'strict',
+    'same_site' => 'lax',
 
     'partitioned' => false,
 

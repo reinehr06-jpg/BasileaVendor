@@ -857,6 +857,30 @@
                         <button type="submit" class="materio-btn-primary">Salvar Comunicações</button>
                     </form>
                 </div>
+
+                {{-- Seção de Teste de Email --}}
+                <div class="materio-card" style="margin-top: 20px;">
+                    <div class="integ-panel-header" style="margin-bottom: 15px;">
+                        <div class="integ-panel-icon">🧪</div>
+                        <div>
+                            <div class="integ-panel-title">Teste de Integração</div>
+                            <div class="integ-panel-sub">Envie um e-mail de teste para validar sua configuração.</div>
+                        </div>
+                    </div>
+                    <form id="form-teste-email" action="{{ route('master.configuracoes.integracoes.email.test') }}" method="POST">
+                        @csrf
+                        <div class="materio-form-group">
+                            <label class="materio-label">Email para Teste</label>
+                            <input type="email" name="email_teste" class="materio-input" 
+                                   value="{{ $integracoes['emailTeste'] ?? '' }}" 
+                                   placeholder="email@exemplo.com">
+                            <small style="color: var(--text-muted);">Digite o e-mail que receberá o teste</small>
+                        </div>
+                        <button type="submit" class="materio-btn" style="background: var(--info); color: white;">
+                            <i class="fas fa-paper-plane"></i> Enviar E-mail de Teste
+                        </button>
+                    </form>
+                </div>
             </div>
 
             {{-- PAINEL: Google Calendar --}}

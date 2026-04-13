@@ -10,6 +10,7 @@ use App\Services\AsaasService;
 use App\Services\Checkout\CheckoutClient;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 
 class IntegracaoController extends Controller
 {
@@ -158,15 +159,65 @@ class IntegracaoController extends Controller
             'email_cliente_from' => 'nullable|email|max:255',
             'email_suporte' => 'nullable|email|max:255',
             'whatsapp_suporte' => 'nullable|string|max:20',
+            'email_teste' => 'nullable|email|max:255',
         ]);
 
         Setting::set('email_vendedor_from', $request->input('email_vendedor_from', ''));
         Setting::set('email_cliente_from', $request->input('email_cliente_from', ''));
         Setting::set('email_suporte', $request->input('email_suporte', ''));
         Setting::set('whatsapp_suporte', $request->input('whatsapp_suporte', ''));
+        Setting::set('email_teste', $request->input('email_teste', ''));
 
         return redirect()->route('master.configuracoes.integracoes')
                          ->with('success', 'Configurações de email atualizadas com sucesso.');
+    }
+
+    /**
+     * Test email sending.
+     */
+    public function testEmail(Request $request)
+    {
+        $request->validate([
+            'email_teste' => 'required|email|max:255',
+        ]);
+
+        $emailTeste = $request->input('email_teste');
+        
+        // Salvar o email de teste para uso futuro
+        Setting::set('email_teste', $emailTeste);
+
+        try {
+            // Criar dados fake para o e-mail de teste
+            $vendaFake = new \App\Models\Venda();
+            $vendaFake->valor = 197.00;
+            $vendaFake->plano = 'Growth';
+            $vendaFake->forma_pagamento = 'PIX';
+            
+            $clienteFake = new \App\Models\Cliente();
+            $clienteFake->nome = 'Igreja Teste';
+            $clienteFake->nome_igreja = 'Igreja Teste';
+            $clienteFake->email = $emailTeste;
+            
+            $vendaFake->cliente = $clienteFake;
+            $vendaFake->vendedor = null;
+
+            $fromEmail = Setting::get('email_vendedor_from', config('mail.from.address', 'noreply@basileiachurch.com'));
+            $fromName = config('mail.from.name', 'Basiléia Global');
+
+            \Mail::to($emailTeste)
+                ->send((new \App\Mail\VendedorPagamentoConfirmado($vendaFake))
+                    ->from($fromEmail, $fromName));
+
+            return redirect()->route('master.configuracoes.integracoes')
+                ->with('success', '✅ E-mail de teste enviado com sucesso para ' . $emailTeste);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Erro ao enviar e-mail de teste', [
+                'email' => $emailTeste,
+                'error' => $e->getMessage(),
+            ]);
+            return redirect()->route('master.configuracoes.integracoes')
+                ->with('error', '❌ Erro ao enviar e-mail de teste: ' . $e->getMessage());
+        }
     }
 
     /**
