@@ -44,29 +44,14 @@ class IntegracaoEventoController extends Controller
         ]);
 
         try {
-            // 1. Criar link no Asaas
-            $asaasResult = $asaas->createPaymentLink([
-                'name'                => $request->titulo,
-                'description'         => $request->descricao,
-                'billingType'         => $request->billing_type,
-                'chargeType'          => $request->charge_type,
-                'value'               => $request->valor > 0 ? (float) $request->valor : null,
-                'dueDateLimitDays'    => $request->due_date_limit_days,
-                'notificationEnabled' => $request->has('notification_enabled'),
-                'maxAllowedUsage'     => (int) $request->vagas_total, // Sincroniza vagas com o limite do Asaas
-                'endDate'             => $request->data_fim ?: null,
-                'isAddressRequired'   => $request->has('is_address_required'),
-                'maxInstallmentCount' => $request->charge_type === 'INSTALLMENT' ? (int) $request->max_installments : null,
-            ]);
-
-            $asaasId = $asaasResult['id'] ?? null;
-            $publicUrl = $asaasResult['url'] ?? null;
-
-            if (!$asaasId || !$publicUrl) {
-                throw new \Exception('O Asaas não retornou um ID ou URL válida.');
+            // 1. Verificar se tem checkout externo configurado (OBRIGATÓRIO)
+            $checkoutBaseUrl = Setting::get('checkout_external_url');
+            
+            if (!$checkoutBaseUrl) {
+                throw new \Exception('Checkout externo não configurado. Acesse Configurações > Integrações e configure a URL do checkout.');
             }
 
-            // 2. Criar registro local
+            // 2. Criar registro local primeiro (para gerar ID)
             $slug = $request->slug ?: Str::slug($request->titulo);
             $baseSlug = $slug;
             $i = 1;
@@ -86,8 +71,8 @@ class IntegracaoEventoController extends Controller
                 'data_inicio'          => $request->data_inicio,
                 'data_fim'             => $request->data_fim,
                 'status'               => 'ativo',
-                'checkout_url'         => $publicUrl, // URL real do Asaas
-                'asaas_payment_link_id' => $asaasId,
+                'checkout_url'         => '', // Será preenchido após criar cobrança
+                'asaas_payment_link_id' => null,
                 'billing_type'         => $request->billing_type,
                 'charge_type'          => $request->charge_type,
                 'due_date_limit_days'  => $request->due_date_limit_days,
@@ -99,11 +84,79 @@ class IntegracaoEventoController extends Controller
                 'created_by'           => auth()->id(),
             ]);
 
-            return back()->with('success', "Link de pagamento criado com sucesso no Asaas!");
+            $eventoId = $evento->id;
+
+            // 3. Criar cliente genérico no Asaas para este evento (ou buscar existente)
+            $customerEmail = 'evento-' . $eventoId . '@basileia.link';
+            $asaasCustomerId = null;
+
+            try {
+                // Tentar criar cliente no Asaas
+                $asaasCustomer = $asaas->createCustomer(
+                    $request->titulo,
+                    '00000000000', // CPF genérico para eventos públicos
+                    $request->whatsapp_vendedor,
+                    $customerEmail
+                );
+                $asaasCustomerId = $asaasCustomer['id'] ?? null;
+            } catch (\Exception $e) {
+                // Se falhar, tentamos buscar um cliente existente ou continuamos sem customer
+                \Illuminate\Support\Facades\Log::warning('Evento: falha ao criar customer Asaas', ['error' => $e->getMessage()]);
+            }
+
+            // 4. Criar cobrança no Asaas
+            $billingType = match ($request->billing_type) {
+                'PIX' => 'PIX',
+                'BOLETO' => 'BOLETO_BANCARIO',
+                'CREDIT_CARD' => 'CREDIT_CARD',
+                default => 'UNDEFINED'
+            };
+
+            // Data de vencimento: 3 dias para boleto, 15 dias para pix/cartão
+            $dueDate = now()->addDays(15)->format('Y-m-d');
+            if ($billingType === 'BOLETO_BANCARIO') {
+                $dueDate = now()->addDays(3)->format('Y-m-d');
+            }
+
+            $asaasResult = $asaas->createPayment(
+                $asaasCustomerId,
+                (float) ($request->valor ?? 0),
+                $dueDate,
+                $billingType,
+                $request->titulo . ' - Evento #' . $eventoId,
+                'evento_' . $eventoId
+            );
+
+            $asaasPaymentId = $asaasResult['id'] ?? null;
+
+            if (!$asaasPaymentId) {
+                throw new \Exception('O Asaas não retornou ID da cobrança.');
+            }
+
+            // 5. Montar URL do checkout próprio com parâmetros
+            $params = http_build_query([
+                'asaas_payment_id' => $asaasPaymentId,
+                'evento_id' => $eventoId,
+                'evento' => $evento->slug,
+                'valor' => $request->valor,
+                'titulo' => urlencode($request->titulo),
+                'vagas_total' => $request->vagas_total,
+            ]);
+
+            $separator = str_contains($checkoutBaseUrl, '?') ? '&' : '?';
+            $checkoutUrl = rtrim($checkoutBaseUrl, '/') . $separator . $params;
+
+            // 6. Atualizar evento com URL do checkout próprio
+            $evento->update([
+                'checkout_url' => $checkoutUrl,
+                'asaas_payment_link_id' => $asaasPaymentId,
+            ]);
+
+            return back()->with('success', "Link de pagamento criado com sucesso!");
 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Erro ao integrar com Asaas: ' . $e->getMessage());
-            return back()->withInput()->with('error', "Erro ao criar link no Asaas: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Erro ao criar link de pagamento: ' . $e->getMessage());
+            return back()->withInput()->with('error', "Erro ao criar link: " . $e->getMessage());
         }
     }
 
