@@ -12,25 +12,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Disable CSRF for local development
-        if (app()->environment('local')) {
-            $middleware->validateCsrfTokens(except: [
-                '*',
-            ]);
-        } else {
-            $middleware->validateCsrfTokens(except: [
-                'api/asaas/webhook',
-                'webhook/basileia-church/*',
-                'webhook/checkout',
-                'webhooks/asaas',
-                'webhooks/asaas/*',
-            ]);
-        }
+        // Always allow CSRF for Asaas webhooks
+        $middleware->validateCsrfTokens(except: [
+            'api/asaas/webhook',
+            'webhook/basileia-church/*',
+            'webhook/checkout',
+            'webhooks/asaas',
+            'webhooks/asaas/*',
+        ]);
 
-        // Security headers - only in production
-        if (!app()->environment('local')) {
-            $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
-        }
+        // Always add security headers
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
         
         // Register security middleware groups
         $middleware->group('admin.security', [
