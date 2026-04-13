@@ -29,8 +29,10 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        $email = strtolower($request->input('email'));
+        $email = $request->input('email');
         $password = $request->input('password');
+
+        Log::info('LOGIN_ATTEMPT', ['email' => $email, 'has_password' => !empty($password)]);
 
         // Check if account is locked
         $lockKey = 'login_lock_' . md5($email);
@@ -51,7 +53,7 @@ class LoginController extends Controller
                 Cache::forget('login_lock_' . md5($email));
 
                 $request->session()->regenerate();
-                Log::info('LOGIN_OK', ['email' => $email]);
+                Log::info('LOGIN_OK', ['email' => $email, 'user_id' => Auth::id()]);
 
                 $user = Auth::user();
 
@@ -74,9 +76,11 @@ class LoginController extends Controller
                 // Not configured yet - MUST set up before any access
                 // Redirect to 2fa.setup (outside 2fa middleware group)
                 return redirect()->route('2fa.setup');
+            } else {
+                Log::warning('LOGIN_FAILED_AUTH', ['email' => $email]);
             }
         } catch (\Exception $e) {
-            Log::error('LOGIN_ERRO', ['erro' => $e->getMessage()]);
+            Log::error('LOGIN_ERRO', ['erro' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         }
 
         // Track failed attempts

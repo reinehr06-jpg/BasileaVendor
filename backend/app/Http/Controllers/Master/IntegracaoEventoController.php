@@ -29,7 +29,7 @@ class IntegracaoEventoController extends Controller
             'titulo' => 'required|string|max:255',
             'descricao' => 'nullable|string|max:1000',
             'valor' => 'nullable|numeric|min:0',
-            'vagas_total' => 'required|integer|min:1|max:10000',
+            'vagas_total' => 'required|integer|min=1|max:10000',
             'whatsapp_vendedor' => 'required|string|max:20',
             'telefone_vendedor' => 'nullable|string|max:20',
             'data_inicio' => 'nullable|date',
@@ -71,7 +71,7 @@ class IntegracaoEventoController extends Controller
                 'data_inicio'          => $request->data_inicio,
                 'data_fim'             => $request->data_fim,
                 'status'               => 'ativo',
-                'checkout_url'         => '', // Será preenchido após criar cobrança
+                'checkout_url'         => '',
                 'asaas_payment_link_id' => null,
                 'billing_type'         => $request->billing_type,
                 'charge_type'          => $request->charge_type,
@@ -86,70 +86,37 @@ class IntegracaoEventoController extends Controller
 
             $eventoId = $evento->id;
 
-            // 3. Criar cliente genérico no Asaas para este evento (ou buscar existente)
-            $customerEmail = 'evento-' . $eventoId . '@basileia.link';
-            $asaasCustomerId = null;
+            // 3. Montar URL de redirect para o checkout próprio
+            $redirectUrl = rtrim($checkoutBaseUrl, '/') . '?evento_id=' . $eventoId;
 
-            try {
-                // Tentar criar cliente no Asaas
-                $asaasCustomer = $asaas->createCustomer(
-                    $request->titulo,
-                    '00000000000', // CPF genérico para eventos públicos
-                    $request->whatsapp_vendedor,
-                    $customerEmail
-                );
-                $asaasCustomerId = $asaasCustomer['id'] ?? null;
-            } catch (\Exception $e) {
-                // Se falhar, tentamos buscar um cliente existente ou continuamos sem customer
-                \Illuminate\Support\Facades\Log::warning('Evento: falha ao criar customer Asaas', ['error' => $e->getMessage()]);
-            }
-
-            // 4. Criar cobrança no Asaas
-            $billingType = match ($request->billing_type) {
-                'PIX' => 'PIX',
-                'BOLETO' => 'BOLETO_BANCARIO',
-                'CREDIT_CARD' => 'CREDIT_CARD',
-                default => 'UNDEFINED'
-            };
-
-            // Data de vencimento: 3 dias para boleto, 15 dias para pix/cartão
-            $dueDate = now()->addDays(15)->format('Y-m-d');
-            if ($billingType === 'BOLETO_BANCARIO') {
-                $dueDate = now()->addDays(3)->format('Y-m-d');
-            }
-
-            $asaasResult = $asaas->createPayment(
-                $asaasCustomerId,
-                (float) ($request->valor ?? 0),
-                $dueDate,
-                $billingType,
-                $request->titulo . ' - Evento #' . $eventoId,
-                'evento_' . $eventoId
-            );
-
-            $asaasPaymentId = $asaasResult['id'] ?? null;
-
-            if (!$asaasPaymentId) {
-                throw new \Exception('O Asaas não retornou ID da cobrança.');
-            }
-
-            // 5. Montar URL do checkout próprio com parâmetros
-            $params = http_build_query([
-                'asaas_payment_id' => $asaasPaymentId,
-                'evento_id' => $eventoId,
-                'evento' => $evento->slug,
-                'valor' => $request->valor,
-                'titulo' => urlencode($request->titulo),
-                'vagas_total' => $request->vagas_total,
+            // 4. Criar Payment Link oficial no Asaas (com redirectUrl)
+            $asaasResult = $asaas->createPaymentLink([
+                'name'                => $request->titulo,
+                'description'         => $request->descricao,
+                'billingType'         => $request->billing_type,
+                'chargeType'          => $request->charge_type,
+                'value'               => $request->valor > 0 ? (float) $request->valor : null,
+                'dueDateLimitDays'    => $request->due_date_limit_days,
+                'notificationEnabled' => $request->has('notification_enabled'),
+                'maxAllowedUsage'     => (int) $request->vagas_total,
+                'endDate'             => $request->data_fim ?: null,
+                'isAddressRequired'   => $request->has('is_address_required'),
+                'maxInstallmentCount' => $request->charge_type === 'INSTALLMENT' ? (int) $request->max_installments : null,
+                'redirectUrl'         => $redirectUrl,
             ]);
 
-            $separator = str_contains($checkoutBaseUrl, '?') ? '&' : '?';
-            $checkoutUrl = rtrim($checkoutBaseUrl, '/') . $separator . $params;
+            $asaasId = $asaasResult['id'] ?? null;
+            $asaasUrl = $asaasResult['url'] ?? null;
 
-            // 6. Atualizar evento com URL do checkout próprio
+            if (!$asaasId || !$asaasUrl) {
+                throw new \Exception('O Asaas não retornou um ID ou URL válida.');
+            }
+
+            // 5. Atualizar evento com URL do payment link do Asaas
+            // O checkout próprio será chamado via redirectUrl após o pagamento
             $evento->update([
-                'checkout_url' => $checkoutUrl,
-                'asaas_payment_link_id' => $asaasPaymentId,
+                'checkout_url' => $asaasUrl,
+                'asaas_payment_link_id' => $asaasId,
             ]);
 
             return back()->with('success', "Link de pagamento criado com sucesso!");

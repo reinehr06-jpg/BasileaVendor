@@ -486,6 +486,11 @@ class AsaasService
             $payload['isAddressRequired'] = (bool) $data['isAddressRequired'];
         }
 
+        // Adicionar URL de redirect para o checkout próprio
+        if (!empty($data['redirectUrl'])) {
+            $payload['redirectUrl'] = $data['redirectUrl'];
+        }
+
         $response = Http::withHeaders($this->headers())
             ->post("{$this->baseUrl}/paymentLinks", $payload);
 

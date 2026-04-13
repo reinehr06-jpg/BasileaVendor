@@ -12,6 +12,11 @@ class SecurityHeaders
     {
         $response = $next($request);
 
+        // Skip security headers in local environment
+        if (app()->environment('local')) {
+            return $response;
+        }
+
         // Content Security Policy
         $response->headers->set('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com; connect-src 'self' https://viacep.com.br; frame-ancestors 'none'; base-uri 'self'; form-action 'self';");
 

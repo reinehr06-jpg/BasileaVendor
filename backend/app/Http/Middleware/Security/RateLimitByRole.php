@@ -98,11 +98,13 @@ class RateLimitByRole
             'webhook/saque',
             'webhook/basileia-church/sync',
             '/up',
-            '/health'
+            '/health',
+            '/login',
+            'login',
         ];
 
         foreach ($skipPaths as $path) {
-            if ($request->is($path)) {
+            if ($request->is($path) || $request->path() === $path) {
                 return true;
             }
         }

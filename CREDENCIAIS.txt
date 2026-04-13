@@ -1,0 +1,13 @@
+# Credenciais de Acesso - Basileia Vendor Proxy
+# Gerado em: 2026-04-13
+
+## Administrador Master
+Email: SecurityBasileia@SecBasileia
+Senha: z4tf9idFEbB4YglDbRhCKiS5+lrka4@2026
+
+## Servidores
+Backend: http://127.0.0.1:8081
+Frontend: http://127.0.0.1:3000
+
+## Aviso
+Mantenha este arquivo em local seguro. Não compartilhe estas credenciais.

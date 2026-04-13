@@ -125,8 +125,8 @@ Route::get('/up', function () {
     return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);
 })->withoutMiddleware(\App\Http\Middleware\SecurityHeaders::class);
 
-// Login routes (com rate limiting)
-Route::middleware('throttle:10,1')->group(function () {
+// Login routes (com rate limiting - increased for local development)
+Route::middleware('throttle:60,1')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::get('/Login', function() { return redirect('/login'); });
     Route::post('/login', [LoginController::class, 'login'])->name('login.post');
