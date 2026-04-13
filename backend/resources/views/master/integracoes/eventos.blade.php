@@ -251,3 +251,24 @@
 </div>
 
 @endsection
+
+<script>
+function openBasileiaModal(show) {
+    const modal = document.getElementById('modalNovoLink');
+    if (show) {
+        modal.classList.add('show');
+    } else {
+        modal.classList.remove('show');
+    }
+}
+
+function toggleInstallmentField() {
+    const select = document.getElementById('charge_type_select');
+    const field = document.getElementById('installment_field_group');
+    if (select.value === 'INSTALLMENT') {
+        field.style.display = 'block';
+    } else {
+        field.style.display = 'none';
+    }
+}
+</script>
