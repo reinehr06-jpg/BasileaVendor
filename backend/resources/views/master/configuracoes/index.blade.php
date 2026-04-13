@@ -866,7 +866,7 @@
                                    value="{{ $integracoes['emailTeste'] ?? '' }}" 
                                    placeholder="email@exemplo.com">
                         </div>
-                        <button type="submit" class="materio-btn" style="background: var(--info); color: white;">
+                        <button type="submit" class="materio-btn-primary">
                             <i class="fas fa-paper-plane"></i> Enviar E-mail de Teste
                         </button>
                     </form>
@@ -921,7 +921,7 @@
                                    placeholder="email@exemplo.com">
                             <small style="color: var(--text-muted);">Digite o e-mail que receberá o teste</small>
                         </div>
-                        <button type="submit" class="materio-btn" style="background: var(--info); color: white;">
+                        <button type="submit" class="materio-btn-primary">
                             <i class="fas fa-paper-plane"></i> Enviar E-mail de Teste
                         </button>
                     </form>
