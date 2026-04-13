@@ -26,7 +26,13 @@
     title="Links de Pagamento" 
     subtitle="Gestão comercial e monitoramento de vagas em tempo real." 
     icon="fas fa-link"
-/>
+>
+    @if(!$config_faltante)
+    <button type="button" class="hero-btn" onclick="openBasileiaModal(true)">
+        <i class="fas fa-plus"></i> Novo Link
+    </button>
+    @endif
+</x-page-hero>
 
 @if($config_faltante)
 <div class="alert alert-danger animate-up">
