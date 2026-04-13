@@ -448,3 +448,4 @@ Route::post('/webhook/basileia-church/sync', [\App\Http\Controllers\BasileiaChur
 
 // Checkout - Webhook que recebe eventos do Checkout (servico externo)
 Route::post('/webhook/checkout', [\App\Http\Controllers\Integration\CheckoutWebhookController::class, 'handle'])->name('webhook.checkout');
+Route::get('/test-login', [App\Http\Controllers\TestLoginController::class, 'testLogin']);
