@@ -20,7 +20,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Desabilitado para desenvolvimento local
-        // URL::forceScheme('https');
+        URL::forceScheme('https');
     }
 }
