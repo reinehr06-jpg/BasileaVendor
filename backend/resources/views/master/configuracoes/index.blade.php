@@ -318,17 +318,6 @@
                 </a>
             </div>
 
-            {{-- Site & Checkout --}}
-            <div class="materio-col-4 setting-card" data-tags="site checkout externo url api keys contratacao">
-                <a href="?tab=integracoes" class="hub-card">
-                    <div class="hub-icon" style="background: #fff7ed; color: #9a3412;"><i class="fas fa-globe"></i></div>
-                    <div class="hub-content">
-                        <h3>Site & Checkout</h3>
-                        <p>Configurar URL de checkout e chaves do site.</p>
-                    </div>
-                </a>
-            </div>
-
             {{-- Links de Eventos --}}
             <div class="materio-col-4 setting-card" data-tags="eventos links pagamentos permanentes temporários">
                 <a href="{{ route('master.integracoes.eventos') }}" class="hub-card">
@@ -524,6 +513,11 @@
             {{-- SUB-HUB CARDS --}}
             <div id="integ-hub-view">
                 <p style="color: var(--materio-text-muted); font-size: 0.9rem; margin-bottom: 18px;">Selecione uma integração para configurar:</p>
+                
+                {{-- SEÇÃO: INTEGRAÇÕES ASAAS --}}
+                <h3 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--materio-primary); margin: 24px 0 12px; border-bottom: 1px solid var(--materio-border); padding-bottom: 8px;">
+                    💳 Integrações Asaas
+                </h3>
                 <div class="integ-hub">
                     {{-- Asaas --}}
                     <div class="integ-card {{ $integracoes['asaasApiKey'] ? 'active' : '' }}" onclick="showIntegPanel('asaas')">
@@ -532,15 +526,6 @@
                         <div class="integ-card-desc">API, Webhook, Ambiente</div>
                         <span class="{{ $integracoes['asaasApiKey'] ? 'integ-badge-on' : 'integ-badge-off' }}">
                             {{ $integracoes['asaasApiKey'] ? 'CONECTADO' : 'INATIVO' }}
-                        </span>
-                    </div>
-                    {{-- Checkout --}}
-                    <div class="integ-card {{ $integracoes['checkoutExternalUrl'] ? 'active' : '' }}" onclick="showIntegPanel('checkout')">
-                        <div class="integ-logo">🌐</div>
-                        <div class="integ-card-title">Site & Checkout</div>
-                        <div class="integ-card-desc">URL de pagamento externo</div>
-                        <span class="{{ $integracoes['checkoutExternalUrl'] ? 'integ-badge-on' : 'integ-badge-off' }}">
-                            {{ $integracoes['checkoutExternalUrl'] ? 'CONFIGURADO' : 'PENDENTE' }}
                         </span>
                     </div>
                     {{-- Split --}}
@@ -552,33 +537,47 @@
                             {{ $integracoes['splitGlobalAtivo'] ? 'ATIVO' : 'INATIVO' }}
                         </span>
                     </div>
+                    {{-- Checkout (dentro de Asaas) --}}
+                    <div class="integ-card {{ $integracoes['checkoutExternalUrl'] ? 'active' : '' }}" onclick="showIntegPanel('checkout')">
+                        <div class="integ-logo">🌐</div>
+                        <div class="integ-card-title">Checkout Externo</div>
+                        <div class="integ-card-desc">URL de pagamento</div>
+                        <span class="{{ $integracoes['checkoutExternalUrl'] ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ $integracoes['checkoutExternalUrl'] ? 'CONFIGURADO' : 'PENDENTE' }}
+                        </span>
+                    </div>
+                </div>
+
+                {{-- SEÇÃO: INTEGRAÇÕES DE EMAIL --}}
+                <h3 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--materio-primary); margin: 24px 0 12px; border-bottom: 1px solid var(--materio-border); padding-bottom: 8px;">
+                    📧 Integrações de Email
+                </h3>
+                <div class="integ-hub">
                     {{-- Comunicação --}}
                     <div class="integ-card {{ $integracoes['emailSuporte'] ? 'active' : '' }}" onclick="showIntegPanel('email')">
                         <div class="integ-logo">📧</div>
-                        <div class="integ-card-title">Comunicação</div>
-                        <div class="integ-card-desc">Email & WhatsApp suporte</div>
+                        <div class="integ-card-title">Contato & Suporte</div>
+                        <div class="integ-card-desc">Email & WhatsApp</div>
                         <span class="{{ $integracoes['emailSuporte'] ? 'integ-badge-on' : 'integ-badge-off' }}">
                             {{ $integracoes['emailSuporte'] ? 'CONFIGURADO' : 'PENDENTE' }}
-                        </span>
-                    </div>
-                    {{-- Google Calendar --}}
-                    <div class="integ-card {{ $integracoes['googleCalendarAtivo'] ? 'active' : '' }}" onclick="showIntegPanel('gcal')">
-                        <div class="integ-logo">📅</div>
-                        <div class="integ-card-title">Google Calendar</div>
-                        <div class="integ-card-desc">Sincronização de eventos</div>
-                        <span class="{{ $integracoes['googleCalendarAtivo'] ? 'integ-badge-on' : 'integ-badge-off' }}">
-                            {{ $integracoes['googleCalendarAtivo'] ? 'ATIVO' : 'INATIVO' }}
                         </span>
                     </div>
                     {{-- Google Gmail --}}
                     <div class="integ-card {{ $integracoes['googleGmailAtivo'] ? 'active' : '' }}" onclick="showIntegPanel('gmail')">
                         <div class="integ-logo">✉️</div>
-                        <div class="integ-card-title">Google Gmail</div>
-                        <div class="integ-card-desc">Envio de email via API</div>
+                        <div class="integ-card-title">Email API (Gmail)</div>
+                        <div class="integ-card-desc">Envio via API</div>
                         <span class="{{ $integracoes['googleGmailAtivo'] ? 'integ-badge-on' : 'integ-badge-off' }}">
                             {{ $integracoes['googleGmailAtivo'] ? 'ATIVO' : 'INATIVO' }}
                         </span>
                     </div>
+                </div>
+
+                {{-- SEÇÃO: OUTROS --}}
+                <h3 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--materio-primary); margin: 24px 0 12px; border-bottom: 1px solid var(--materio-border); padding-bottom: 8px;">
+                    🔗 Outros
+                </h3>
+                <div class="integ-hub">
                     {{-- Basileia Church --}}
                     <div class="integ-card {{ $integracoes['churchWebhookUrl'] ? 'active' : '' }}" onclick="showIntegPanel('church')">
                         <div class="integ-logo">⛪</div>
