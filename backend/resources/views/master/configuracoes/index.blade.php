@@ -307,13 +307,13 @@
                 </a>
             </div>
 
-            {{-- Integração Asaas --}}
+            {{-- Integrações --}}
             <div class="materio-col-4 setting-card" data-tags="asaas integração gateway pagamento split webhook">
                 <a href="?tab=integracoes" class="hub-card">
                     <div class="hub-icon" style="background: #f0fdf4; color: #166534;"><i class="fas fa-wallet"></i></div>
                     <div class="hub-content">
-                        <h3>Integração Asaas</h3>
-                        <p>API Keys, Webhooks, Ambiente e Split Global.</p>
+                        <h3>Integrações</h3>
+                        <p>Asaas, Email, Checkout e outras configurações.</p>
                     </div>
                 </a>
             </div>
@@ -553,22 +553,13 @@
                     📧 Integrações de Email
                 </h3>
                 <div class="integ-hub">
-                    {{-- Comunicação --}}
-                    <div class="integ-card {{ $integracoes['emailSuporte'] ? 'active' : '' }}" onclick="showIntegPanel('email')">
+                    {{-- Email (unificado) --}}
+                    <div class="integ-card {{ ($integracoes['emailSuporte'] || $integracoes['googleGmailAtivo']) ? 'active' : '' }}" onclick="showIntegPanel('email')">
                         <div class="integ-logo">📧</div>
-                        <div class="integ-card-title">Contato & Suporte</div>
-                        <div class="integ-card-desc">Email & WhatsApp</div>
-                        <span class="{{ $integracoes['emailSuporte'] ? 'integ-badge-on' : 'integ-badge-off' }}">
-                            {{ $integracoes['emailSuporte'] ? 'CONFIGURADO' : 'PENDENTE' }}
-                        </span>
-                    </div>
-                    {{-- Google Gmail --}}
-                    <div class="integ-card {{ $integracoes['googleGmailAtivo'] ? 'active' : '' }}" onclick="showIntegPanel('gmail')">
-                        <div class="integ-logo">✉️</div>
-                        <div class="integ-card-title">Email API (Gmail)</div>
-                        <div class="integ-card-desc">Envio via API</div>
-                        <span class="{{ $integracoes['googleGmailAtivo'] ? 'integ-badge-on' : 'integ-badge-off' }}">
-                            {{ $integracoes['googleGmailAtivo'] ? 'ATIVO' : 'INATIVO' }}
+                        <div class="integ-card-title">Email</div>
+                        <div class="integ-card-desc">Contato, SMTP e API</div>
+                        <span class="{{ ($integracoes['emailSuporte'] || $integracoes['googleGmailAtivo']) ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ ($integracoes['emailSuporte'] || $integracoes['googleGmailAtivo']) ? 'CONFIGURADO' : 'PENDENTE' }}
                         </span>
                     </div>
                 </div>
@@ -824,11 +815,16 @@
                 <div class="integ-panel-header">
                     <div class="integ-panel-icon">📧</div>
                     <div>
-                        <div class="integ-panel-title">Comunicação & Suporte</div>
-                        <div class="integ-panel-sub">Configure os canais de comunicação com clientes e time.</div>
+                        <div class="integ-panel-title">Integrações de Email</div>
+                        <div class="integ-panel-sub">Configure os canais de comunicação e API de envio.</div>
                     </div>
                 </div>
+
+                {{-- SEÇÃO 1: Contato e Suporte --}}
                 <div class="materio-card">
+                    <h4 style="font-size: 0.85rem; color: var(--materio-primary); margin-bottom: 16px; border-bottom: 1px solid var(--materio-border); padding-bottom: 8px;">
+                        📬 Contato e Suporte
+                    </h4>
                     <form action="{{ route('master.configuracoes.integracoes.email') }}" method="POST">
                         @csrf
                         <div class="materio-row">
@@ -853,17 +849,67 @@
                                 </div>
                             </div>
                         </div>
-                        <button type="submit" class="materio-btn-primary">Salvar Comunicações</button>
+                        <button type="submit" class="materio-btn-primary">Salvar Contato</button>
                     </form>
                 </div>
 
-                {{-- Seção de Teste de Email --}}
+                {{-- SEÇÃO 2: Teste de Email --}}
                 <div class="materio-card" style="margin-top: 20px;">
-                    <div class="integ-panel-header" style="margin-bottom: 15px;">
-                        <div class="integ-panel-icon">🧪</div>
-                        <div>
-                            <div class="integ-panel-title">Teste de Integração</div>
-                            <div class="integ-panel-sub">Envie um e-mail de teste para validar sua configuração.</div>
+                    <h4 style="font-size: 0.85rem; color: var(--materio-primary); margin-bottom: 16px; border-bottom: 1px solid var(--materio-border); padding-bottom: 8px;">
+                        🧪 Teste de Envio
+                    </h4>
+                    <form id="form-teste-email" action="{{ route('master.configuracoes.integracoes.email.test') }}" method="POST">
+                        @csrf
+                        <div class="materio-form-group">
+                            <label class="materio-label">Email para Teste</label>
+                            <input type="email" name="email_teste" class="materio-input" 
+                                   value="{{ $integracoes['emailTeste'] ?? '' }}" 
+                                   placeholder="email@exemplo.com">
+                        </div>
+                        <button type="submit" class="materio-btn" style="background: var(--info); color: white;">
+                            <i class="fas fa-paper-plane"></i> Enviar E-mail de Teste
+                        </button>
+                    </form>
+                </div>
+
+                {{-- SEÇÃO 3: API de Envio (Gmail) --}}
+                <div class="materio-card" style="margin-top: 20px;">
+                    <h4 style="font-size: 0.85rem; color: var(--materio-primary); margin-bottom: 16px; border-bottom: 1px solid var(--materio-border); padding-bottom: 8px;">
+                        🔐 API de Envio (Gmail)
+                    </h4>
+                    <form action="{{ route('master.configuracoes.integracoes.google-gmail') }}" method="POST">
+                        @csrf
+                        <div class="materio-row">
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Client ID</label>
+                                    <input type="text" name="google_gmail_client_id" class="materio-input" value="{{ $integracoes['googleGmailClientId'] }}">
+                                </div>
+                            </div>
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Client Secret</label>
+                                    <input type="password" name="google_gmail_client_secret" class="materio-input" value="{{ $integracoes['googleGmailClientSecret'] }}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="materio-form-group">
+                            <label class="materio-label">Email para Envios</label>
+                            <input type="email" name="google_gmail_email" class="materio-input" value="{{ $integracoes['googleGmailEmail'] }}" placeholder="contato@empresa.com">
+                        </div>
+                        <div class="materio-form-group">
+                            <label class="materio-switch">
+                                <input type="checkbox" name="google_gmail_ativo" value="1" class="switch-input" {{ $integracoes['googleGmailAtivo'] ? 'checked' : '' }}>
+                                <span class="switch-slider"></span>
+                                <span>Ativar Gmail API</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="materio-btn-primary">Salvar Gmail API</button>
+                    </form>
+                </div>
+            </div>
+
+            {{-- PAINEL: Google Calendar (REMOVER - nunca usado) --}}
                         </div>
                     </div>
                     <form id="form-teste-email" action="{{ route('master.configuracoes.integracoes.email.test') }}" method="POST">
@@ -882,79 +928,10 @@
                 </div>
             </div>
 
-            {{-- PAINEL: Google Calendar --}}
-            <div id="integ-panel-gcal" class="integ-panel">
-                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
-                <div class="integ-panel-header">
-                    <div class="integ-panel-icon">📅</div>
-                    <div>
-                        <div class="integ-panel-title">Google Calendar</div>
-                        <div class="integ-panel-sub">Sincronize eventos de vendas com o Google Calendar.</div>
-                    </div>
-                </div>
-                <div class="materio-card">
-                    <form action="{{ route('master.configuracoes.integracoes.google-calendar') }}" method="POST">
-                        @csrf
-                        <div class="materio-form-group">
-                            <label class="materio-label">Client ID</label>
-                            <input type="text" name="google_calendar_client_id" class="materio-input" value="{{ $integracoes['googleCalendarClientId'] }}">
-                        </div>
-                        <div class="materio-form-group">
-                            <label class="materio-label">Client Secret</label>
-                            <input type="password" name="google_calendar_client_secret" class="materio-input" value="{{ $integracoes['googleCalendarClientSecret'] }}">
-                        </div>
-                        <div class="materio-form-group">
-                            <label class="materio-label">Redirect URI</label>
-                            <input type="url" name="google_calendar_redirect_uri" class="materio-input" value="{{ $integracoes['googleCalendarRedirectUri'] }}" placeholder="{{ url('/auth/google/callback') }}">
-                        </div>
-                        <div class="materio-form-group">
-                            <label class="materio-switch">
-                                <input type="checkbox" name="google_calendar_ativo" value="1" class="switch-input" {{ $integracoes['googleCalendarAtivo'] ? 'checked' : '' }}>
-                                <span class="switch-slider"></span>
-                                <span>Ativar Google Calendar</span>
-                            </label>
-                        </div>
-                        <button type="submit" class="materio-btn-primary">Salvar Google Calendar</button>
-                    </form>
-                </div>
-            </div>
+            {{-- PAINEL: Google Calendar - REMOVIDO (nunca usado) --}}
 
-            {{-- PAINEL: Google Gmail --}}
-            <div id="integ-panel-gmail" class="integ-panel">
-                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
-                <div class="integ-panel-header">
-                    <div class="integ-panel-icon">✉️</div>
-                    <div>
-                        <div class="integ-panel-title">Google Gmail API</div>
-                        <div class="integ-panel-sub">Envie e-mails usando sua conta do Gmail via API.</div>
-                    </div>
-                </div>
-                <div class="materio-card">
-                    <form action="{{ route('master.configuracoes.integracoes.google-gmail') }}" method="POST">
-                        @csrf
-                        <div class="materio-form-group">
-                            <label class="materio-label">Client ID</label>
-                            <input type="text" name="google_gmail_client_id" class="materio-input" value="{{ $integracoes['googleGmailClientId'] }}">
-                        </div>
-                        <div class="materio-form-group">
-                            <label class="materio-label">Client Secret</label>
-                            <input type="password" name="google_gmail_client_secret" class="materio-input" value="{{ $integracoes['googleGmailClientSecret'] }}">
-                        </div>
-                        <div class="materio-form-group">
-                            <label class="materio-label">Email para Envios</label>
-                            <input type="email" name="google_gmail_email" class="materio-input" value="{{ $integracoes['googleGmailEmail'] }}" placeholder="contato@empresa.com">
-                        </div>
-                        <div class="materio-form-group">
-                            <label class="materio-switch">
-                                <input type="checkbox" name="google_gmail_ativo" value="1" class="switch-input" {{ $integracoes['googleGmailAtivo'] ? 'checked' : '' }}>
-                                <span class="switch-slider"></span>
-                                <span>Ativar Gmail API</span>
-                            </label>
-                        </div>
-                        <button type="submit" class="materio-btn-primary">Salvar Gmail API</button>
-                    </form>
-                </div>
-            </div>
+            {{-- PAINEL: Google Gmail - REMOVIDO (integrado ao painel de Email acima) --}}
+            {{-- Painel removido e integrado ao painel de Email unificado --}}
 
             {{-- PAINEL: Basileia Church --}}
             <div id="integ-panel-church" class="integ-panel">
