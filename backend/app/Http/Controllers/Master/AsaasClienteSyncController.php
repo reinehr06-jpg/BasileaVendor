@@ -713,14 +713,18 @@ class AsaasClienteSyncController extends Controller
         $mesRef           = $this->getMesReferencia();
         $comissaoTipo     = $import->comissao_tipo ?? 'recorrencia';
 
+        // Valor histórico total já pago (ticket médio)
+        $valorTotalHistorico = ($import->valor_plano_mensal ?? 0) * ($import->parcelas_pagas ?? 1);
+        $valorBase = $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0;
+
         if ($vendedorId && $import->diagnostico_status === 'ATIVO') {
             $vendedor = Vendedor::with('user')->find($vendedorId);
             if ($vendedor) {
                 $isGestor = $vendedor->is_gestor ?? false;
                 $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
                 
-                $valorBase = $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0;
-                
+                // Para clientes antigos, usa valor_plano_mensal como base da comissão
+                // Mesmo que já tenha sido paga antes, mostra o valor histórico
                 if ($valorBase > 0) {
                     [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
                     
@@ -731,7 +735,7 @@ class AsaasClienteSyncController extends Controller
                             'tipo_comissao' => $comissaoTipo,
                             'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
                             'percentual_gerente' => 0,
-                            'valor_venda' => $valorBase,
+                            'valor_venda' => $valorTotalHistorico,
                             'valor_comissao' => $comissaoVendedor,
                             'valor_gerente' => 0,
                             'status' => 'pendente',
@@ -744,7 +748,7 @@ class AsaasClienteSyncController extends Controller
                             'tipo_comissao' => $comissaoTipo,
                             'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
                             'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
-                            'valor_venda' => $valorBase,
+                            'valor_venda' => $valorTotalHistorico,
                             'valor_comissao' => $comissaoVendedor,
                             'valor_gerente' => $comissaoGestor,
                             'status' => 'pendente',
@@ -764,11 +768,13 @@ class AsaasClienteSyncController extends Controller
         ]);
 
         return response()->json([
-            'success'           => true,
-            'comissao_vendedor' => 'R$ ' . number_format($comissaoVendedor, 2, ',', '.'),
-            'comissao_gestor'   => 'R$ ' . number_format($comissaoGestor, 2, ',', '.'),
-            'tipo'              => $import->comissao_tipo,
-            'diagnostico'       => $import->diagnostico_status,
+            'success'             => true,
+            'comissao_vendedor'   => 'R$ ' . number_format($comissaoVendedor, 2, ',', '.'),
+            'comissao_gestor'     => 'R$ ' . number_format($comissaoGestor, 2, ',', '.'),
+            'tipo'                => $import->comissao_tipo,
+            'diagnostico'         => $import->diagnostico_status,
+            'valor_historico'     => 'R$ ' . number_format($valorTotalHistorico, 2, ',', '.'),
+            'parcelas_pagas'      => $import->parcelas_pagas ?? 0,
         ]);
     }
 
@@ -811,8 +817,11 @@ class AsaasClienteSyncController extends Controller
             $comissaoVendedor = 0;
             $comissaoGestor = 0;
 
-            // Forçar cálculo se for ATIVO e tiver valor base
-            $valorBase = $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0;
+            // Valor histórico total já pago
+            $valorTotalHistorico = ($import->valor_plano_mensal ?? 0) * ($import->parcelas_pagas ?? 1);
+            $valorBase = $import->valor_plano_mensal ?? 0;
+            
+            // Para clientes antigos, usa o valor_plano_mensal como base
             if ($import->diagnostico_status === 'ATIVO' && $valorBase > 0) {
                 // Definir tipo se estiver vazio
                 if (empty($import->comissao_tipo)) {
@@ -835,6 +844,9 @@ class AsaasClienteSyncController extends Controller
         return response()->json([
             'success' => true,
             'total_clientes' => $totalClientes,
+            'total_valor_historico' => 'R$ ' . number_format(array_sum(array_map(function($i) {
+                return ($i->valor_plano_mensal ?? 0) * ($i->parcelas_pagas ?? 1);
+            }, DB::table('legacy_customer_imports')->whereIn('id', $customerIds)->where('diagnostico_status', 'ATIVO')->get()->all())), 2, ',', '.'),
             'vendedor_nome' => $vendedor->user->name ?? 'Vendedor',
             'percentual_vendedor' => $vendedor->comissao_inicial ?? 10,
             'percentual_gestor' => $vendedor->comissao_gestor_primeira ?? 5,
@@ -938,7 +950,10 @@ class AsaasClienteSyncController extends Controller
             $comissaoVendedor = 0;
             $comissaoGestor = 0;
             $comissaoTipo = $import->comissao_tipo ?? 'recorrencia'; // Padrão para vendas antigas
-            $valorBase = $import->valor_marco_pago ?? $import->valor_plano_mensal ?? 0;
+            
+            // Valor histórico total já pago
+            $valorTotalHistorico = ($import->valor_plano_mensal ?? 0) * ($import->parcelas_pagas ?? 1);
+            $valorBase = $import->valor_plano_mensal ?? 0;
 
             if ($import->diagnostico_status === 'ATIVO' && $valorBase > 0) {
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
@@ -962,7 +977,7 @@ class AsaasClienteSyncController extends Controller
                         'tipo_comissao' => $comissaoTipo,
                         'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
                         'percentual_gerente' => 0,
-                        'valor_venda' => $valorBase,
+                        'valor_venda' => $valorTotalHistorico,
                         'valor_comissao' => $comissaoVendedor,
                         'valor_gerente' => 0,
                         'status' => 'pendente',
@@ -975,7 +990,7 @@ class AsaasClienteSyncController extends Controller
                         'tipo_comissao' => $comissaoTipo,
                         'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
                         'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
-                        'valor_venda' => $valorBase,
+                        'valor_venda' => $valorTotalHistorico,
                         'valor_comissao' => $comissaoVendedor,
                         'valor_gerente' => $comissaoGestor,
                         'status' => 'pendente',
