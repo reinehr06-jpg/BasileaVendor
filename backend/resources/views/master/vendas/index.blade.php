@@ -157,7 +157,7 @@ foreach ($vendas as $v) {
                         @endif
                     @endif
                 </td>
-                <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $venda->created_at->format('d/m/Y') }}</td>
+                <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $venda->created_at ? $venda->created_at->format('d/m/Y') : '—' }}</td>
                 <td style="text-align: right;">
                     @if(strtoupper($venda->status) === 'PAGO')
                     <button class="btn btn-ghost btn-sm" style="color: var(--warning);" onclick="openRefundModal({{ $venda->id }}, '{{ $venda->cliente->nome_igreja ?? 'N/A' }}', {{ $venda->valor }}, '{{ $venda->modo_cobranca_asaas ?? 'PAYMENT' }}', {{ $venda->parcelas ?? 1 }})" title="Estornar">

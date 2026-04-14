@@ -75,7 +75,7 @@ class AsaasClienteSyncController extends Controller
             $base->where('lci.tipo_cobranca', $request->tipo_cobranca);
         }
 
-        $clientes = $base->orderBy('lci.nome')->paginate(50)->withQueryString();
+        $clientes = $base->orderBy('lci.created_at', 'asc')->paginate(50)->withQueryString();
 
         // KPIs
         $totais = DB::table('legacy_customer_imports')->selectRaw("
