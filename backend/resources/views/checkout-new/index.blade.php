@@ -1701,27 +1701,89 @@
         };
 
         let currentStep = 1;
-        let selectedPayment = CONFIG.allowedPayments.includes('pix') ? 'pix' : 'cartao';
+        let preSelectedMethod = '{{ $pre_selected_method ?? '' }}';
+        let selectedPayment = preSelectedMethod && CONFIG.allowedPayments.includes(preSelectedMethod) ? preSelectedMethod : (CONFIG.allowedPayments.includes('pix') ? 'pix' : 'cartao');
         let customerData = {};
         let selectedInstallments = 1;
 
+        // Auto-selecionar método se vier do checkout externo
+        if (preSelectedMethod) {
+            setTimeout(() => selectPayment(selectedPayment), 100);
+        }
+
         // ═══════════════════════════════════════════════════════════════
-        // URGENCY TIMER
+        // URGENCY TIMER - Contagem regressiva do vencimento
         // ═══════════════════════════════════════════════════════════════
-        let timeLeft = 15 * 60;
+        const VENCIMENTO_DIAS = @json($vencimento_dias ?? ['pix' => 5, 'cartao' => 5, 'boleto' => 5]);
+        const SESSION_TOKEN = '{{ $session_token }}';
+        let paymentPaid = false;
+        let dueDate = null;
+
         const timerEl = document.getElementById('timer');
+        const urgencyBanner = document.querySelector('.urgency-banner');
+
+        function getDiasVencimento(paymentMethod) {
+            return VENCIMENTO_DIAS[paymentMethod] || 5;
+        }
 
         function updateTimer() {
-            const min = Math.floor(timeLeft / 60);
-            const sec = timeLeft % 60;
-            timerEl.textContent = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
-            if (timeLeft <= 0) {
-                timerEl.textContent = 'EXPIRED';
-                timerEl.style.background = 'var(--danger)';
+            if (paymentPaid) {
+                timerEl.textContent = 'PAGO';
+                urgencyBanner.style.background = 'linear-gradient(90deg, #10B981 0%, #059669 100%)';
+                urgencyBanner.style.animation = 'none';
+                return;
             }
-            timeLeft--;
+
+            if (!dueDate) return;
+
+            const now = new Date();
+            const diff = dueDate - now;
+
+            if (diff <= 0) {
+                timerEl.textContent = 'EXPIRADO';
+                timerEl.style.background = 'var(--danger)';
+                return;
+            }
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+            timerEl.textContent = days > 0 ? `${days * 24 + hours}H ${mins}Min` : `${hours}H ${mins}Min`;
+            if (days > 1) {
+                timerEl.textContent = `${days}D ${hours}H`;
+            }
         }
-        setInterval(updateTimer, 1000);
+
+        // Iniciar timer ao selecionar pagamento
+        function startDueDateTimer(paymentMethod) {
+            const dias = getDiasVencimento(paymentMethod);
+            dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + dias);
+            dueDate.setHours(23, 59, 59, 999);
+        }
+
+        // Verificar status do pagamento via polling
+        async function checkPaymentStatus() {
+            try {
+                const res = await fetch(`/co/session-status/${SESSION_TOKEN}`, {
+                    headers: { 'Accept': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.status === 'CONFIRMED' || data.is_paid) {
+                    paymentPaid = true;
+                    updateTimer();
+                } else if (data.due_date) {
+                    dueDate = new Date(data.due_date);
+                }
+            } catch (e) { }
+        }
+
+        // Polling a cada 10 segundos após selecionar pagamento
+        setInterval(checkPaymentStatus, 10000);
+
+        // Iniciar timer com default (5 dias para mensal)
+        startDueDateTimer('pix');
 
         // ═══════════════════════════════════════════════════════════════
         // INPUT MASKS & VALIDATION
@@ -2106,6 +2168,11 @@
             document.querySelectorAll('.payment-panel').forEach(p => p.classList.remove('active'));
             document.querySelector(`.pay-tab[data-method="${method}"]`).classList.add('active');
             document.getElementById(`panel-${method}`).classList.add('active');
+
+            if (!paymentPaid) {
+                startDueDateTimer(method);
+                updateTimer();
+            }
         }
 
         function selectInstallments(el, number) {

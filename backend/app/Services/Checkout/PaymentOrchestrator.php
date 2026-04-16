@@ -2,11 +2,13 @@
 
 namespace App\Services\Checkout;
 
-use App\Models\Order;
-use App\Models\Payment;
 use App\Models\CheckoutSession;
 use App\Models\Lead;
+use App\Models\Offer;
+use App\Models\Order;
+use App\Models\Payment;
 use App\Services\AsaasService;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -14,14 +16,16 @@ use Illuminate\Support\Str;
 class PaymentOrchestrator
 {
     protected AsaasService $asaasService;
+
     protected LeadService $leadService;
+
     protected TrackingService $trackingService;
 
     public function __construct()
     {
-        $this->asaasService = new AsaasService();
-        $this->leadService = new LeadService();
-        $this->trackingService = new TrackingService();
+        $this->asaasService = new AsaasService;
+        $this->leadService = new LeadService;
+        $this->trackingService = new TrackingService;
     }
 
     public function createSession(
@@ -29,14 +33,14 @@ class PaymentOrchestrator
         array $options = []
     ): CheckoutSession {
         // Buscar offer
-        $offer = \App\Models\Offer::where('slug', $offerSlug)->where('is_active', true)->firstOrFail();
+        $offer = Offer::where('slug', $offerSlug)->where('is_active', true)->firstOrFail();
 
         // Resolver moeda
         $currency = $options['currency'] ?? CurrencyResolver::resolve();
 
         // Criar ou atualizar lead se dados foram fornecidos
         $leadId = null;
-        if (!empty($options['email'])) {
+        if (! empty($options['email'])) {
             $lead = $this->leadService->createOrUpdate([
                 'name' => $options['name'] ?? null,
                 'email' => $options['email'],
@@ -53,9 +57,9 @@ class PaymentOrchestrator
         // Criar sessão de checkout (usando DB direto para SQLite compatibility)
         $now = now();
         $expiresAt = now()->addHours(24);
-        $token = \Illuminate\Support\Str::uuid();
+        $token = Str::uuid();
 
-        \Illuminate\Support\Facades\DB::table('checkout_sessions')->insert([
+        DB::table('checkout_sessions')->insert([
             'token' => $token,
             'offer_id' => $offer->id,
             'lead_id' => $leadId,
@@ -120,7 +124,7 @@ class PaymentOrchestrator
         $this->trackingService->trackIdentify($session, $lead);
 
         // Calcular preço com dados do lead
-        $pricingService = new PricingService();
+        $pricingService = new PricingService;
         $pricing = $pricingService->calculatePrice(
             $session->offer,
             $currency,
@@ -152,11 +156,11 @@ class PaymentOrchestrator
     {
         $lead = $session->lead;
 
-        if (!$lead) {
+        if (! $lead) {
             throw new \Exception('Lead não identificado');
         }
 
-        if (!$session->isActive()) {
+        if (! $session->isActive()) {
             throw new \Exception('Sessão de checkout expirada');
         }
 
@@ -214,7 +218,7 @@ class PaymentOrchestrator
                 'credit_card_brand' => $asaasPayment['creditCardBrand'] ?? null,
                 'credit_card_last_four' => $asaasPayment['creditCardNumber'] ?? null,
                 'status' => 'pending',
-                'due_date' => now()->addDays(3),
+                'due_date' => $this->calcularDataVencimento($paymentData['payment_method'], $session->offer->slug),
             ]);
 
             // Track
@@ -271,7 +275,7 @@ class PaymentOrchestrator
         ];
 
         // Adicionar dados do cartão se fornecido
-        if ($billingType === 'CREDIT_CARD' && !empty($paymentData['card'])) {
+        if ($billingType === 'CREDIT_CARD' && ! empty($paymentData['card'])) {
             $chargeData['creditCard'] = [
                 'cardNumber' => $paymentData['card']['number'],
                 'cardName' => $paymentData['card']['name'],
@@ -312,7 +316,7 @@ class PaymentOrchestrator
 
     protected function mapBillingType(string $paymentMethod): string
     {
-        return match($paymentMethod) {
+        return match ($paymentMethod) {
             'pix' => 'PIX',
             'boleto' => 'BOLETO',
             'cartao' => 'CREDIT_CARD',
@@ -329,16 +333,17 @@ class PaymentOrchestrator
     {
         $paymentId = $payload['payment']['id'] ?? null;
 
-        if (!$paymentId) {
+        if (! $paymentId) {
             return;
         }
 
         $payment = $this->getPaymentByAsaasId($paymentId);
 
-        if (!$payment) {
+        if (! $payment) {
             Log::warning('PaymentOrchestrator: Pagamento não encontrado para webhook', [
                 'asaas_payment_id' => $paymentId,
             ]);
+
             return;
         }
 
@@ -378,7 +383,7 @@ class PaymentOrchestrator
 
     protected function mapAsaasStatus(string $asaasStatus): string
     {
-        return match(strtoupper($asaasStatus)) {
+        return match (strtoupper($asaasStatus)) {
             'PENDING', 'AWAITING_RISK_ANALYSIS' => 'pending',
             'CONFIRMED' => 'confirmed',
             'RECEIVED', 'RECEIVED_IN_CASH' => 'received',
@@ -393,15 +398,15 @@ class PaymentOrchestrator
     {
         $session = CheckoutSession::with(['offer', 'lead'])->where('token', $token)->first();
 
-        if (!$session) {
+        if (! $session) {
             return null;
         }
 
-        if (!$session->isActive()) {
+        if (! $session->isActive()) {
             return null;
         }
 
-        $pricingService = new PricingService();
+        $pricingService = new PricingService;
         $pricing = $pricingService->calculatePrice(
             $session->offer,
             $session->currency
@@ -412,5 +417,26 @@ class PaymentOrchestrator
             'pricing' => $pricing,
             'lead' => $session->lead,
         ];
+    }
+
+    private function calcularDataVencimento(string $formaPagamento, ?string $offerSlug = null): Carbon
+    {
+        $isBoleto = in_array(strtoupper($formaPagamento), ['BOLETO', 'BOLETO_BANCARIO']);
+        $isPixCartao = in_array(strtoupper($formaPagamento), ['PIX', 'CREDIT_CARD']);
+
+        $isAnual = $offerSlug && (
+            strpos(strtolower($offerSlug), 'annual') !== false ||
+            strpos(strtolower($offerSlug), 'anual') !== false
+        );
+
+        if ($isAnual) {
+            if ($isBoleto) {
+                return now()->addDays(3);
+            }
+
+            return now()->addDays(15);
+        }
+
+        return now()->addDays(5);
     }
 }

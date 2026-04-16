@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\CheckoutSession;
 use App\Models\Evento;
-use App\Models\Offer;
+use App\Models\Order;
+use App\Models\Payment;
 use App\Services\AsaasService;
 use App\Services\Checkout\PaymentOrchestrator;
 use App\Services\Checkout\PricingService;
@@ -15,14 +16,16 @@ use Illuminate\Support\Facades\Log;
 class CheckoutNewController extends Controller
 {
     protected PaymentOrchestrator $orchestrator;
+
     protected PricingService $pricingService;
+
     protected TrackingService $trackingService;
 
     public function __construct()
     {
-        $this->orchestrator = new PaymentOrchestrator();
-        $this->pricingService = new PricingService();
-        $this->trackingService = new TrackingService();
+        $this->orchestrator = new PaymentOrchestrator;
+        $this->pricingService = new PricingService;
+        $this->trackingService = new TrackingService;
     }
 
     /**
@@ -61,12 +64,27 @@ class CheckoutNewController extends Controller
                 ? ['pix', 'cartao', 'boleto']
                 : ['cartao'];
 
+            // Vencimento: dias por forma + ciclo (detecta Annual no slug)
+            $offerSlug = $session->offer->slug;
+            $isAnual = stripos($offerSlug, 'annual') !== false || stripos($offerSlug, 'anual') !== false;
+
+            $vencimentoDias = $isAnual ? [
+                'pix' => 15,
+                'cartao' => 15,
+                'boleto' => 3,
+            ] : [
+                'pix' => 5,
+                'cartao' => 5,
+                'boleto' => 5,
+            ];
+
             return view('checkout-new.index', [
                 'session_token' => $session->token,
                 'pricing' => $pricing,
                 'currency' => $session->currency,
                 'language' => $session->language,
                 'seller_id' => $session->seller_id,
+                'vencimento_dias' => $vencimentoDias,
                 'campaign_id' => $session->campaign_id,
                 'availableLanguages' => $availableLanguages,
                 'currentLanguage' => $currentLanguage,
@@ -91,7 +109,7 @@ class CheckoutNewController extends Controller
     {
         $data = $this->orchestrator->resumeSession($token);
 
-        if (!$data) {
+        if (! $data) {
             return redirect()->route('checkout.new.start', ['offerSlug' => 'default'])
                 ->with('error', 'Sessão expirada. Por favor, inicie novamente.');
         }
@@ -270,7 +288,7 @@ class CheckoutNewController extends Controller
      */
     public function success(string $orderNumber)
     {
-        $order = \App\Models\Order::where('order_number', $orderNumber)
+        $order = Order::where('order_number', $orderNumber)
             ->with(['offer', 'lead', 'payment'])
             ->firstOrFail();
 
@@ -285,9 +303,9 @@ class CheckoutNewController extends Controller
      */
     public function paymentStatus(string $paymentUuid)
     {
-        $payment = \App\Models\Payment::where('uuid', $paymentUuid)->first();
+        $payment = Payment::where('uuid', $paymentUuid)->first();
 
-        if (!$payment) {
+        if (! $payment) {
             return response()->json(['error' => 'Pagamento não encontrado'], 404);
         }
 
@@ -299,6 +317,28 @@ class CheckoutNewController extends Controller
     }
 
     /**
+     * Buscar status da sessão de checkout (polling)
+     * GET /co/session-status/{token}
+     */
+    public function sessionStatus(string $token)
+    {
+        $session = CheckoutSession::where('token', $token)->first();
+
+        if (! $session) {
+            return response()->json(['error' => 'Sessão não encontrada'], 404);
+        }
+
+        $order = $session->order;
+        $payment = $order?->payment;
+
+        return response()->json([
+            'status' => $payment?->status ?? 'pending',
+            'is_paid' => $payment?->status === 'CONFIRMED',
+            'due_date' => $payment?->due_date?->toIso8601String(),
+        ]);
+    }
+
+    /**
      * Checkout de evento com vagas limitadas
      * GET /co/evento/{slug}
      */
@@ -306,7 +346,7 @@ class CheckoutNewController extends Controller
     {
         $evento = Evento::where('slug', $slug)->firstOrFail();
 
-        if (!$evento->isDisponivel()) {
+        if (! $evento->isDisponivel()) {
             return view('checkout-new.esgotado', ['evento' => $evento]);
         }
 
@@ -321,7 +361,7 @@ class CheckoutNewController extends Controller
     {
         $evento = Evento::where('slug', $slug)->firstOrFail();
 
-        if (!$evento->isDisponivel()) {
+        if (! $evento->isDisponivel()) {
             return back()->withErrors(['error' => 'Este evento não está mais disponível.'])->withInput();
         }
 
@@ -342,7 +382,7 @@ class CheckoutNewController extends Controller
             'phone' => $request->phone,
         ]);
 
-        if (!$customer || isset($customer['errors'])) {
+        if (! $customer || isset($customer['errors'])) {
             return back()->withErrors(['error' => 'Erro ao processar dados. Verifique o CPF/CNPJ.'])->withInput();
         }
 
@@ -354,7 +394,7 @@ class CheckoutNewController extends Controller
             'description' => "Evento: {$evento->titulo}",
         ]);
 
-        if (!$payment || isset($payment['errors'])) {
+        if (! $payment || isset($payment['errors'])) {
             return back()->withErrors(['error' => 'Erro ao gerar cobrança. Tente novamente.'])->withInput();
         }
 

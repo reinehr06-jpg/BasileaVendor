@@ -33,6 +33,7 @@ class OfferSeeder extends Seeder
                 'installment_value_brl' => 9.70,
                 'guarantee_text' => '7 dias',
                 'is_active' => true,
+                'ciclo' => 'mensal',
             ],
             [
                 'slug' => 'plano-igreja-profissional',
@@ -60,6 +61,7 @@ class OfferSeeder extends Seeder
                 'installment_value_brl' => 19.70,
                 'guarantee_text' => '14 dias',
                 'is_active' => true,
+                'ciclo' => 'mensal',
             ],
             [
                 'slug' => 'plano-igreja-enterprise',
@@ -88,6 +90,7 @@ class OfferSeeder extends Seeder
                 'installment_value_brl' => 49.70,
                 'guarantee_text' => '30 dias',
                 'is_active' => true,
+                'ciclo' => 'mensal',
             ],
         ];
 

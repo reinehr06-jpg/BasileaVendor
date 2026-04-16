@@ -9,12 +9,13 @@ use App\Models\Comissao;
 use App\Models\LogEvento;
 use App\Models\Notificacao;
 use App\Models\Pagamento;
+use App\Models\Setting;
 use App\Models\Venda;
 use App\Models\Vendedor;
 use App\Services\AsaasService;
-use App\Services\Checkout\CheckoutClient;
 use App\Services\ChurchProvisioningService;
 use App\Services\PagamentoService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -188,7 +189,7 @@ class VendaController extends Controller
         // Verificar whatsapp duplicado (com DDI)
         $ddi = $request->input('ddi', '55');
         $whatsappLimpo = preg_replace('/\D/', '', $request->whatsapp);
-        $whatsappCompleto = '+' . $ddi . $whatsappLimpo;
+        $whatsappCompleto = '+'.$ddi.$whatsappLimpo;
         if (Cliente::where('whatsapp', $whatsappCompleto)->exists()) {
             return back()->withErrors(['whatsapp' => 'Este WhatsApp já está cadastrado no sistema.'])->withInput();
         }
@@ -254,12 +255,12 @@ class VendaController extends Controller
             if ($clienteExistente) {
                 // Se cliente existe e pertence a outro vendedor, nao permite sobrescrever
                 $clientePertenceAVendedor = $clienteExistente->vendas()
-                    ->whereHas('vendedor', fn($q) => $q->where('usuario_id', $user->id))
+                    ->whereHas('vendedor', fn ($q) => $q->where('usuario_id', $user->id))
                     ->exists();
 
-                if (!$clientePertenceAVendedor) {
+                if (! $clientePertenceAVendedor) {
                     return back()->withErrors([
-                        'documento' => 'Este documento já está vinculado a outro vendedor. Entre em contato com o administrador.'
+                        'documento' => 'Este documento já está vinculado a outro vendedor. Entre em contato com o administrador.',
                     ])->withInput();
                 }
 
@@ -375,8 +376,6 @@ class VendaController extends Controller
             }
 
             // 9.2 — (Removido: Geração de Link de Checkout Externo via API prematura movido para o Passo 9.4)
-            
-
 
             // 9.3 — Integrar com Asaas (apenas se não requer aprovação)
             $asaasId = null;
@@ -385,7 +384,7 @@ class VendaController extends Controller
             $linhaDigitavel = null;
             $paymentData = [];
             $boletoUrlFromSub = null;
-            $dataVencimento = Carbon::now()->addDays(3)->format('Y-m-d');
+            $dataVencimento = $this->calcularDataVencimento($request->forma_pagamento, $request->plano);
 
             try {
                 $asaas = new AsaasService;
@@ -575,8 +574,8 @@ class VendaController extends Controller
             ]);
 
             // 9.4 — Gerar Link de Checkout Externo Próprio (Passo 6)
-            $checkoutBaseUrl = \App\Models\Setting::get('checkout_external_url', '');
-            if (!empty($checkoutBaseUrl) && $paymentIdSalvar) {
+            $checkoutBaseUrl = Setting::get('checkout_external_url', '');
+            if (! empty($checkoutBaseUrl) && $paymentIdSalvar) {
                 // Prepara os parâmetros para encodar
                 $cleanCpf = preg_replace('/[^0-9]/', '', $cliente->documento ?? '');
                 $cleanCep = preg_replace('/[^0-9]/', '', $cliente->cep ?? '');
@@ -600,7 +599,7 @@ class VendaController extends Controller
                 ]);
 
                 // A rota correta no CheckoutProject é /pay/asaas/{asaasPaymentId}
-                $linkCheckoutNativo = rtrim($checkoutBaseUrl, '/') . "/pay/asaas/" . $paymentIdSalvar . "?" . $queryParams;
+                $linkCheckoutNativo = rtrim($checkoutBaseUrl, '/').'/pay/asaas/'.$paymentIdSalvar.'?'.$queryParams;
 
                 $venda->update(['checkout_payment_link' => $linkCheckoutNativo]);
                 Log::info('Link de Checkout NATIVO gerado e salvo', ['venda_id' => $venda->id, 'link' => $linkCheckoutNativo]);
@@ -609,6 +608,7 @@ class VendaController extends Controller
             DB::commit();
 
             $paymentMethod = $formaMap[$request->forma_pagamento] ?? 'pix';
+
             return redirect()->route('vendedor.vendas')
                 ->with('success', 'Venda registrada com sucesso! O link do checkout agora está disponível na lista abaixo para envio ao cliente.');
 
@@ -1164,7 +1164,7 @@ class VendaController extends Controller
         try {
             $user = Auth::user();
             if ($user->perfil !== 'master') {
-                if (!$user->vendedor || $venda->vendedor_id !== $user->vendedor->id) {
+                if (! $user->vendedor || $venda->vendedor_id !== $user->vendedor->id) {
                     return response()->json(['error' => 'Você não tem permissão para gerar link desta venda.'], 403);
                 }
             }
@@ -1181,22 +1181,22 @@ class VendaController extends Controller
             // BOLETO: retorna link do boleto para copiar (validade: 72h)
             if ($paymentMethod === 'boleto') {
                 try {
-                    $asaasService = app(\App\Services\AsaasService::class);
-                    
+                    $asaasService = app(AsaasService::class);
+
                     // Verificar se link expirou (72h para boleto)
                     $linkValidoAte = $venda->link_valido_ate;
-                    $expirado = !$linkValidoAte || now()->greaterThan(Carbon::parse($linkValidoAte));
-                    
+                    $expirado = ! $linkValidoAte || now()->greaterThan(Carbon::parse($linkValidoAte));
+
                     // Buscar ou criar cobrança
                     $pagamento = $venda->pagamentos()->first();
                     $asaasId = $pagamento?->asaas_payment_id ?? $venda->asaas_payment_link_id;
 
-                    if (!$asaasId || $expirado) {
+                    if (! $asaasId || $expirado) {
                         // Criar nova cobrança se não existir ou expirou
                         $cliente = $venda->cliente;
                         $asaasCustomerId = $cliente?->asaas_customer_id;
-                        
-                        if (!$asaasCustomerId && $cliente) {
+
+                        if (! $asaasCustomerId && $cliente) {
                             $asaasCustomer = $asaasService->createCustomer(
                                 $cliente->nome_igreja ?? $cliente->nome ?? 'Cliente',
                                 preg_replace('/\D/', '', $cliente->documento ?? ''),
@@ -1217,8 +1217,8 @@ class VendaController extends Controller
                             (float) ($venda->valor_final ?? $venda->valor),
                             $dueDate,
                             'BOLETO_BANCARIO',
-                            'Plano ' . ($venda->plano ?? 'Basileia'),
-                            'venda_' . $venda->id
+                            'Plano '.($venda->plano ?? 'Basileia'),
+                            'venda_'.$venda->id
                         );
 
                         $asaasId = $asaasResult['id'] ?? null;
@@ -1228,7 +1228,7 @@ class VendaController extends Controller
                                 'asaas_payment_link_id' => $asaasId,
                                 'link_valido_ate' => now()->addDays(3),
                             ]);
-                            \App\Models\Pagamento::create([
+                            Pagamento::create([
                                 'venda_id' => $venda->id,
                                 'asaas_payment_id' => $asaasId,
                                 'asaas_customer_id' => $asaasCustomerId,
@@ -1259,21 +1259,22 @@ class VendaController extends Controller
                         'venda_id' => $venda->id,
                         'error' => $e->getMessage(),
                     ]);
+
                     return response()->json([
-                        'error' => 'Erro ao gerar link do boleto: ' . $e->getMessage(),
+                        'error' => 'Erro ao gerar link do boleto: '.$e->getMessage(),
                     ], 500);
                 }
             }
 
             $cliente = $venda->cliente;
-            if (!$cliente) {
+            if (! $cliente) {
                 return response()->json(['error' => 'Cliente não encontrado para esta venda.'], 404);
             }
 
             // USAR SEMPRE o checkout próprio configurado nas integrações
-            $checkoutBaseUrl = \App\Models\Setting::get('checkout_external_url');
+            $checkoutBaseUrl = Setting::get('checkout_external_url');
 
-            if (!$checkoutBaseUrl) {
+            if (! $checkoutBaseUrl) {
                 return response()->json([
                     'error' => 'Checkout não configurado. Configure a URL do checkout nas Integrações.',
                 ], 400);
@@ -1281,17 +1282,17 @@ class VendaController extends Controller
 
             // Verificar se link expirou (15 dias para Pix/Cartão)
             $linkValidoAte = $venda->link_valido_ate;
-            $linkExpirado = !$linkValidoAte || now()->greaterThan(Carbon::parse($linkValidoAte));
+            $linkExpirado = ! $linkValidoAte || now()->greaterThan(Carbon::parse($linkValidoAte));
 
             // Pegar dados do pagamento ou criar se não existir
             $pagamento = $venda->pagamentos()->first();
             $asaasId = $pagamento?->asaas_payment_id ?? $venda->asaas_payment_link_id;
 
             // Se não tiver ID Asaas ou link expirou, criar nova cobrança
-            if (!$asaasId || $linkExpirado) {
+            if (! $asaasId || $linkExpirado) {
                 try {
-                    $asaasService = app(\App\Services\AsaasService::class);
-                    
+                    $asaasService = app(AsaasService::class);
+
                     $billingType = match (strtoupper($venda->forma_pagamento)) {
                         'PIX' => 'PIX',
                         'BOLETO' => 'BOLETO_BANCARIO',
@@ -1300,7 +1301,7 @@ class VendaController extends Controller
 
                     // Criar cliente Asaas se não tiver
                     $asaasCustomerId = $cliente->asaas_customer_id;
-                    if (!$asaasCustomerId) {
+                    if (! $asaasCustomerId) {
                         $asaasCustomer = $asaasService->createCustomer(
                             $cliente->nome_igreja ?? $cliente->nome ?? 'Cliente',
                             preg_replace('/\D/', '', $cliente->documento ?? ''),
@@ -1314,7 +1315,7 @@ class VendaController extends Controller
                     }
 
                     // Se ainda não tiver customer ID, não pode criar cobrança
-                    if (!$asaasCustomerId) {
+                    if (! $asaasCustomerId) {
                         return response()->json([
                             'error' => 'Não foi possível identificar o cliente no Asaas. Tente novamente.',
                         ], 400);
@@ -1329,8 +1330,8 @@ class VendaController extends Controller
                         (float) ($venda->valor_final ?? $venda->valor),
                         $dueDate,
                         $billingType,
-                        'Plano ' . ($venda->plano ?? 'Basileia'),
-                        'venda_' . $venda->id
+                        'Plano '.($venda->plano ?? 'Basileia'),
+                        'venda_'.$venda->id
                     );
 
                     // Verificar se a cobrança foi criada com sucesso
@@ -1339,13 +1340,14 @@ class VendaController extends Controller
                             'venda_id' => $venda->id,
                             'response' => $asaasResult,
                         ]);
+
                         return response()->json([
                             'error' => 'Erro ao criar cobrança no gateway. Tente novamente.',
                         ], 500);
                     }
 
                     $asaasId = $asaasResult['id'];
-                    
+
                     // Salvar na venda - atualizar link válido (15 dias para Pix/Cartão)
                     $venda->update([
                         'asaas_payment_link_id' => $asaasId,
@@ -1353,7 +1355,7 @@ class VendaController extends Controller
                     ]);
 
                     // Criar registro de pagamento
-                    \App\Models\Pagamento::create([
+                    Pagamento::create([
                         'venda_id' => $venda->id,
                         'asaas_payment_id' => $asaasId,
                         'asaas_customer_id' => $asaasCustomerId,
@@ -1373,6 +1375,7 @@ class VendaController extends Controller
                         'venda_id' => $venda->id,
                         'error' => $e->getMessage(),
                     ]);
+
                     return response()->json([
                         'error' => 'Erro ao comunicar com gateway de pagamento. Tente novamente em alguns segundos.',
                     ], 500);
@@ -1380,7 +1383,7 @@ class VendaController extends Controller
             }
 
             // Verificação final - se não tiver asaasId, não pode continuar
-            if (!$asaasId) {
+            if (! $asaasId) {
                 return response()->json([
                     'error' => 'Cobrança não encontrada. Tente gerar o link novamente.',
                 ], 400);
@@ -1404,7 +1407,7 @@ class VendaController extends Controller
             ]);
 
             $separator = str_contains($checkoutBaseUrl, '?') ? '&' : '?';
-            $checkoutUrl = rtrim($checkoutBaseUrl, '/') . $separator . $params;
+            $checkoutUrl = rtrim($checkoutBaseUrl, '/').$separator.$params;
 
             Log::info('Checkout: Link gerado para checkout próprio', [
                 'venda_id' => $venda->id,
@@ -1423,8 +1426,9 @@ class VendaController extends Controller
                 'venda_id' => $venda->id ?? null,
                 'error' => $e->getMessage(),
             ]);
+
             return response()->json([
-                'error' => 'Erro interno ao gerar link de pagamento: ' . $e->getMessage(),
+                'error' => 'Erro interno ao gerar link de pagamento: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -1437,7 +1441,7 @@ class VendaController extends Controller
         $user = Auth::user();
         $vendedor = $user->vendedor;
         $formato = $request->get('formato', 'csv');
-        $filename = "vendas_" . now()->format('Y-m-d_His');
+        $filename = 'vendas_'.now()->format('Y-m-d_His');
 
         $query = Venda::with(['cliente', 'vendedor.user']);
 
@@ -1460,10 +1464,11 @@ class VendaController extends Controller
             $resumo = [
                 'total' => $vendas->sum('valor'),
                 'count' => $vendas->count(),
-                'pagas' => $vendas->filter(fn($v) => in_array(strtoupper($v->getStatusEfetivo()), ['PAGO', 'RECEIVED', 'CONFIRMED']))->count(),
+                'pagas' => $vendas->filter(fn ($v) => in_array(strtoupper($v->getStatusEfetivo()), ['PAGO', 'RECEIVED', 'CONFIRMED']))->count(),
             ];
-            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('vendedor.vendas.pdf', compact('vendas', 'resumo'));
-            return $pdf->download($filename . '.pdf');
+            $pdf = Pdf::loadView('vendedor.vendas.pdf', compact('vendas', 'resumo'));
+
+            return $pdf->download($filename.'.pdf');
         }
 
         // ==========================================
@@ -1479,11 +1484,11 @@ class VendaController extends Controller
 
         $callback = function () use ($vendas) {
             $file = fopen('php://output', 'w');
-            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
 
             fputcsv($file, [
-                'ID', 'Cliente', 'WhatsApp', 'Vendedor', 'Plano', 'Valor', 
-                'Status', 'Forma Pagamento', 'Tipo Negociação', 'Data Venda'
+                'ID', 'Cliente', 'WhatsApp', 'Vendedor', 'Plano', 'Valor',
+                'Status', 'Forma Pagamento', 'Tipo Negociação', 'Data Venda',
             ], ';');
 
             foreach ($vendas as $v) {
@@ -1493,7 +1498,7 @@ class VendaController extends Controller
                     $v->cliente?->whatsapp ?? 'N/A',
                     $v->vendedor->user->name ?? 'N/A',
                     $v->plano,
-                    number_format((float)($v->valor ?? 0), 2, ',', '.'),
+                    number_format((float) ($v->valor ?? 0), 2, ',', '.'),
                     $v->status,
                     $v->forma_pagamento,
                     $v->tipo_negociacao,
@@ -1505,5 +1510,22 @@ class VendaController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function calcularDataVencimento(string $formaPagamento, ?string $planoNome = null): string
+    {
+        $isBoleto = in_array(strtoupper($formaPagamento), ['BOLETO', 'BOLETO_BANCARIO']);
+
+        $isAnual = $planoNome && (
+            stripos($planoNome, 'annual') !== false ||
+            stripos($planoNome, 'anual') !== false ||
+            stripos($planoNome, '12x') !== false
+        );
+
+        if ($isAnual) {
+            return now()->addDays($isBoleto ? 3 : 15)->format('Y-m-d');
+        }
+
+        return now()->addDays(5)->format('Y-m-d');
     }
 }

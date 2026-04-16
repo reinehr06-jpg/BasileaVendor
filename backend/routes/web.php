@@ -1,37 +1,49 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\MasterPanelController;
-use App\Http\Controllers\VendaController;
-use App\Http\Controllers\PagamentoController;
-use App\Http\Controllers\PagamentoBoletoController;
-use App\Http\Controllers\RelatorioController;
-use App\Http\Controllers\MetaController;
-use App\Http\Controllers\ClienteController;
-use App\Http\Controllers\ComissaoController;
 use App\Http\Controllers\AprovacaoController;
-use App\Http\Controllers\NotificacaoController;
-use App\Http\Controllers\VendedorConfiguracaoController;
-use App\Http\Controllers\VendedorSettingsController;
-use App\Http\Controllers\GestorEquipeController;
-use App\Http\Controllers\EquipeController;
-use App\Http\Controllers\Master\IntegracaoController;
-use App\Http\Controllers\Master\IntegracaoVendasController;
-use App\Http\Controllers\Master\AsaasClienteSyncController;
-
-use App\Http\Controllers\Master\IntegracaoEventoController;
-
-use App\Http\Controllers\Master\ConfiguracaoController;
-use App\Http\Controllers\Master\SubscriptionController;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordChangeController;
+use App\Http\Controllers\Auth\TwoFactorController;
+use App\Http\Controllers\BasileiaChurchWebhookController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CheckoutNewController;
+use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\ComissaoController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EquipeController;
+use App\Http\Controllers\GestorEquipeController;
+use App\Http\Controllers\GitWebhookController;
+use App\Http\Controllers\Integration\CheckoutWebhookController;
+use App\Http\Controllers\Master\AsaasClienteSyncController;
+use App\Http\Controllers\Master\ConfiguracaoController;
+use App\Http\Controllers\Master\IntegracaoController;
+use App\Http\Controllers\Master\IntegracaoEventoController;
+use App\Http\Controllers\Master\IntegracaoVendasController;
+use App\Http\Controllers\Master\SubscriptionController;
+use App\Http\Controllers\MasterPanelController;
+use App\Http\Controllers\MetaController;
+use App\Http\Controllers\NotificacaoController;
+use App\Http\Controllers\PagamentoBoletoController;
+use App\Http\Controllers\PagamentoController;
+use App\Http\Controllers\RelatorioController;
+use App\Http\Controllers\TestLoginController;
+use App\Http\Controllers\VendaController;
+use App\Http\Controllers\VendedorConfiguracaoController;
+use App\Http\Controllers\VendedorSettingsController;
 use App\Http\Controllers\WebhookController;
-use App\Http\Controllers\Api\SubscriptionCardController;
 use App\Http\Middleware\CheckMaster;
 use App\Http\Middleware\CheckVendedor;
+use App\Http\Middleware\SecurityHeaders;
+use App\Models\Cliente;
+use App\Models\Setting;
+use App\Services\AsaasService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 
 Route::get('/', function () {
     // Se for uma requisição de API/json, retorna info
@@ -44,22 +56,24 @@ Route::get('/', function () {
             'timestamp' => now()->toIso8601String(),
         ]);
     }
+
     return redirect()->route('login');
 });
 
 // Fallback: se o Asaas enviar POST para a raiz, encaminha para o webhook
-Route::post('/', function (\Illuminate\Http\Request $request) {
+Route::post('/', function (Request $request) {
     $payload = $request->all();
     $event = $payload['event'] ?? '';
 
     // Só processa se parecer um webhook do Asaas
-    if (str_starts_with($event, 'PAYMENT_') || str_starts_with($event, 'ACCESS_TOKEN_') || str_starts_with($event, 'SUBSCRIPTION_') || str_starts_with($event, 'FINANCIAL_') || !empty($payload['payment'])) {
-        \Illuminate\Support\Facades\Log::info('Webhook Asaas recebido na raiz (/), encaminhando...', [
+    if (str_starts_with($event, 'PAYMENT_') || str_starts_with($event, 'ACCESS_TOKEN_') || str_starts_with($event, 'SUBSCRIPTION_') || str_starts_with($event, 'FINANCIAL_') || ! empty($payload['payment'])) {
+        Log::info('Webhook Asaas recebido na raiz (/), encaminhando...', [
             'event' => $event,
             'ip' => $request->ip(),
         ]);
 
-        $controller = new \App\Http\Controllers\WebhookController();
+        $controller = new WebhookController;
+
         return $controller->asaasWebhook($request);
     }
 
@@ -85,28 +99,32 @@ Route::post('/', function (\Illuminate\Http\Request $request) {
 // ==========================================
 // NOVO Checkout SaaS (Alta Conversão)
 // ==========================================
-// Route::prefix('co')->name('checkout.new.')->group(function () {
-//     Route::get('/evento/{slug}', [CheckoutNewController::class, 'evento'])->name('evento');
-//     Route::post('/evento/{slug}/pay', [CheckoutNewController::class, 'eventoPay'])->name('evento.pay');
-//     Route::get('/{offerSlug}', [CheckoutNewController::class, 'start'])->name('start');
-//     Route::get('/resume/{token}', [CheckoutNewController::class, 'resume'])->name('resume');
-//     Route::post('/identify', [CheckoutNewController::class, 'identify'])->name('identify');
-//     Route::post('/pricing', [CheckoutNewController::class, 'calculatePricing'])->name('pricing');
-//     Route::post('/validate-coupon', [CheckoutNewController::class, 'validateCoupon'])->name('validate-coupon');
-//     Route::post('/pay', [CheckoutNewController::class, 'pay'])->name('pay');
-//     Route::get('/success/{orderNumber}', [CheckoutNewController::class, 'success'])->name('success');
-//     Route::get('/payment-status/{paymentUuid}', [CheckoutNewController::class, 'paymentStatus'])->name('payment-status');
+Route::prefix('co')->name('checkout.new.')->group(function () {
+    Route::get('/evento/{slug}', [CheckoutNewController::class, 'evento'])->name('evento');
+    Route::post('/evento/{slug}/pay', [CheckoutNewController::class, 'eventoPay'])->name('evento.pay');
+    Route::get('/{offerSlug}', [CheckoutNewController::class, 'start'])->name('start');
+    Route::get('/resume/{token}', [CheckoutNewController::class, 'resume'])->name('resume');
+    Route::post('/identify', [CheckoutNewController::class, 'identify'])->name('identify');
+    Route::post('/pricing', [CheckoutNewController::class, 'calculatePricing'])->name('pricing');
+    Route::post('/validate-coupon', [CheckoutNewController::class, 'validateCoupon'])->name('validate-coupon');
+    Route::post('/pay', [CheckoutNewController::class, 'pay'])->name('pay');
+    Route::get('/success/{orderNumber}', [CheckoutNewController::class, 'success'])->name('success');
+    Route::get('/session-status/{token}', [CheckoutNewController::class, 'sessionStatus'])->name('session-status');
+});
 
-//     // API - Cartões salvos
-//     Route::get('/api/cards', [SubscriptionCardController::class, 'list'])->name('api.cards');
-//     Route::delete('/api/cards/{cardId}', [SubscriptionCardController::class, 'delete'])->name('api.cards.delete');
-// });
+// ==========================================
+// Checkout Externo (via Vendor)
+// ==========================================
+Route::prefix('checkout')->name('checkout.external.')->group(function () {
+    Route::get('/{uuid}', [ExternalCheckoutController::class, 'byUuid'])->name('byUuid');
+    Route::get('/asaas/{asaasPaymentId}', [ExternalCheckoutController::class, 'byAsaas'])->name('byAsaas');
+});
 
 // ==========================================
 // Webhooks e Manutenção (Deploy AWS)
 // ==========================================
 Route::match(['get', 'post'], '/webhooks/asaas', [WebhookController::class, 'asaasWebhook'])->name('webhooks.asaas');
-Route::get('/webhooks/asaas/test', function() {
+Route::get('/webhooks/asaas/test', function () {
     return response()->json([
         'status' => 'ok',
         'message' => 'Webhook Asaas está funcionando!',
@@ -118,122 +136,127 @@ Route::get('/webhooks/asaas/test', function() {
 Route::get('/webhooks/asaas/status', [WebhookController::class, 'webhookStatus'])->name('webhooks.status');
 
 // Git Auto-Deploy (protegido por HMAC signature no controller)
-Route::post('/webhooks/git-deploy', [\App\Http\Controllers\GitWebhookController::class, 'deploy'])->name('webhooks.git-deploy');
+Route::post('/webhooks/git-deploy', [GitWebhookController::class, 'deploy'])->name('webhooks.git-deploy');
 
 // Health check público (sem middleware para funcionar sempre)
 Route::get('/up', function () {
     return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);
-})->withoutMiddleware(\App\Http\Middleware\SecurityHeaders::class);
+})->withoutMiddleware(SecurityHeaders::class);
 
 // Login routes (com rate limiting - increased for local development)
 Route::middleware('throttle:60,1')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::get('/Login', function() { return redirect('/login'); });
+    Route::get('/Login', function () {
+        return redirect('/login');
+    });
     Route::post('/login', [LoginController::class, 'login'])->name('login.post');
 });
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // 2FA Routes
 Route::middleware('auth')->prefix('2fa')->name('2fa.')->group(function () {
-    Route::get('/verify', [App\Http\Controllers\Auth\TwoFactorController::class, 'showVerify'])->name('verify');
-    Route::post('/verify', [App\Http\Controllers\Auth\TwoFactorController::class, 'verify'])->name('verify.post');
-    Route::get('/setup', [App\Http\Controllers\Auth\TwoFactorController::class, 'showSetup'])->name('setup');
-    Route::post('/enable', [App\Http\Controllers\Auth\TwoFactorController::class, 'enable'])->name('enable');
-    Route::post('/disable', [App\Http\Controllers\Auth\TwoFactorController::class, 'disable'])->name('disable');
+    Route::get('/verify', [TwoFactorController::class, 'showVerify'])->name('verify');
+    Route::post('/verify', [TwoFactorController::class, 'verify'])->name('verify.post');
+    Route::get('/setup', [TwoFactorController::class, 'showSetup'])->name('setup');
+    Route::post('/enable', [TwoFactorController::class, 'enable'])->name('enable');
+    Route::post('/disable', [TwoFactorController::class, 'disable'])->name('disable');
 });
 
 // Diagnóstico Asaas (protegido por auth + master)
 Route::middleware(['auth', 'admin.security'])->get('/debug-asaas', function () {
     try {
         $result = [];
-        
+
         // 1. Descobrir IP do servidor
         try {
-            $ipResponse = \Illuminate\Support\Facades\Http::timeout(5)->get('https://api.ipify.org?format=json');
+            $ipResponse = Http::timeout(5)->get('https://api.ipify.org?format=json');
             $result['server_ip'] = $ipResponse->successful() ? $ipResponse->json()['ip'] : 'N/A';
-        } catch (\Exception $e) {
-            $result['server_ip'] = 'ERRO: ' . $e->getMessage();
+        } catch (Exception $e) {
+            $result['server_ip'] = 'ERRO: '.$e->getMessage();
         }
-        
+
         // 2. Verificar settings table
         try {
-            $hasSettings = \Illuminate\Support\Facades\Schema::hasTable('settings');
+            $hasSettings = Schema::hasTable('settings');
             $result['settings_table'] = $hasSettings ? 'EXISTS' : 'NOT FOUND';
-        } catch (\Exception $e) {
-            $result['settings_table'] = 'ERROR: ' . $e->getMessage();
+        } catch (Exception $e) {
+            $result['settings_table'] = 'ERROR: '.$e->getMessage();
         }
-        
+
         // 3. Verificar API key
         try {
-            $apiKey = \App\Models\Setting::get('asaas_api_key', '');
-            $result['api_key_configured'] = !empty($apiKey);
-            $result['api_key_prefix'] = !empty($apiKey) ? substr($apiKey, 0, 10) . '...' : 'EMPTY';
-        } catch (\Exception $e) {
+            $apiKey = Setting::get('asaas_api_key', '');
+            $result['api_key_configured'] = ! empty($apiKey);
+            $result['api_key_prefix'] = ! empty($apiKey) ? substr($apiKey, 0, 10).'...' : 'EMPTY';
+        } catch (Exception $e) {
             $result['api_key_error'] = $e->getMessage();
         }
-        
+
         // 4. Verificar ambiente
         try {
-            $env = \App\Models\Setting::get('asaas_environment', 'sandbox');
+            $env = Setting::get('asaas_environment', 'sandbox');
             $result['environment'] = $env;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $result['environment_error'] = $e->getMessage();
         }
-        
+
         // 5. Testar conexão HTTP
         try {
-            $asaas = new \App\Services\AsaasService();
+            $asaas = new AsaasService;
             $result['base_url'] = $asaas->baseUrl;
-            $response = \Illuminate\Support\Facades\Http::withHeaders(['access_token' => $asaas->getApiKey()])
+            $response = Http::withHeaders(['access_token' => $asaas->getApiKey()])
                 ->timeout(10)
                 ->get("{$asaas->baseUrl}/payments?limit=1");
             $result['http_status'] = $response->status();
             $result['http_ok'] = $response->successful();
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 $result['http_body'] = substr($response->body(), 0, 500);
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $result['http_error'] = $e->getMessage();
         }
-        
+
         return response()->json($result);
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         return response()->json(['fatal_error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
     }
 });
 
 // API pública de verificação (usada pelo formulário de nova venda)
-Route::get('/api/verificar-email', function (\Illuminate\Http\Request $request) {
+Route::get('/api/verificar-email', function (Request $request) {
     $email = $request->query('email');
     if (empty($email)) {
         return response()->json(['exists' => false]);
     }
-    $existe = \App\Models\Cliente::where('email', $email)->exists();
+    $existe = Cliente::where('email', $email)->exists();
+
     return response()->json(['exists' => $existe]);
 })->name('api.verificar-email');
 
-Route::get('/api/verificar-whatsapp', function (\Illuminate\Http\Request $request) {
+Route::get('/api/verificar-whatsapp', function (Request $request) {
     $whatsapp = $request->query('whatsapp');
     if (empty($whatsapp)) {
         return response()->json(['exists' => false]);
     }
-    $existe = \App\Models\Cliente::where('whatsapp', $whatsapp)->exists();
+    $existe = Cliente::where('whatsapp', $whatsapp)->exists();
+
     return response()->json(['exists' => $existe]);
 })->name('api.verificar-whatsapp');
 
 // Rotas de Troca de Senha Obrigatória
 Route::middleware('auth')->group(function () {
-    Route::get('/password/change', [App\Http\Controllers\Auth\PasswordChangeController::class, 'showChangeForm'])->name('password.change');
-    Route::post('/password/update', [App\Http\Controllers\Auth\PasswordChangeController::class, 'update'])->name('password.update');
+    Route::get('/password/change', [PasswordChangeController::class, 'showChangeForm'])->name('password.change');
+    Route::post('/password/update', [PasswordChangeController::class, 'update'])->name('password.update');
 });
 
 Route::middleware(['auth', '2fa'])->group(function () {
-    
+
     // Fallback inteligente: Quem acessar apenas /dashboard será jogado para seu respectivo painel
     Route::get('/dashboard', function () {
         if (Auth::user()->perfil === 'master') {
             return redirect()->route('master.dashboard');
         }
+
         // Vendedor e Gestor vão para o mesmo dashboard
         return redirect()->route('vendedor.dashboard');
     })->name('dashboard');
@@ -249,7 +272,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
     // ==========================================
     Route::middleware([CheckMaster::class, 'admin.security', 'force.password.change'])->prefix('master')->name('master.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        
+
         Route::get('/vendedores', [MasterPanelController::class, 'vendedores'])->name('vendedores');
         Route::post('/vendedores', [MasterPanelController::class, 'storeVendedor'])->name('vendedores.store');
         Route::put('/vendedores/{id}', [MasterPanelController::class, 'updateVendedor'])->name('vendedores.update');
@@ -312,8 +335,6 @@ Route::middleware(['auth', '2fa'])->group(function () {
             Route::get('/resumo', [ComissaoController::class, 'apiResumo'])->name('resumo');
         });
 
-
-
         // Assinaturas e Cartões Salvos
         Route::get('/assinaturas', [SubscriptionController::class, 'index'])->name('assinaturas');
         Route::get('/assinaturas/{id}', [SubscriptionController::class, 'show'])->name('assinaturas.show');
@@ -323,14 +344,14 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/assinaturas/{id}/card', [SubscriptionController::class, 'viewCard'])->name('assinaturas.card');
 
         // Ciclo de Assinatura — Migração e Verificação
-        Route::post('/assinaturas/migrar', [\App\Http\Controllers\Master\SubscriptionController::class, 'migrar'])->name('assinaturas.migrar');
-        Route::post('/assinaturas/verificar', [\App\Http\Controllers\Master\SubscriptionController::class, 'verificar'])->name('assinaturas.verificar');
+        Route::post('/assinaturas/migrar', [SubscriptionController::class, 'migrar'])->name('assinaturas.migrar');
+        Route::post('/assinaturas/verificar', [SubscriptionController::class, 'verificar'])->name('assinaturas.verificar');
 
         // Aprovações Comerciais
         Route::get('/aprovacoes', [AprovacaoController::class, 'index'])->name('aprovacoes');
         Route::patch('/aprovacoes/{id}/aprovar', [AprovacaoController::class, 'aprovar'])->name('aprovacoes.aprovar');
         Route::patch('/aprovacoes/{id}/rejeitar', [AprovacaoController::class, 'rejeitar'])->name('aprovacoes.rejeitar');
-        
+
         // Notificações
         Route::post('/notificacoes/{id}/marcar-lida', [NotificacaoController::class, 'marcarComoLida'])->name('notificacoes.marcar-lida');
         Route::post('/notificacoes/marcar-todas-lidas', [NotificacaoController::class, 'marcarTodasComoLidas'])->name('notificacoes.marcar-todas-lidas');
@@ -339,7 +360,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/configuracoes/{tab?}', [ConfiguracaoController::class, 'index'])->name('configuracoes');
         Route::post('/configuracoes/geral', [ConfiguracaoController::class, 'updateProfile'])->name('configuracoes.geral.update');
         Route::post('/configuracoes/seguranca', [ConfiguracaoController::class, 'updatePassword'])->name('configuracoes.seguranca.update');
-        
+
         // Mantendo as rotas de POST das integrações para não quebrar os formulários portados
         Route::post('/configuracoes/integracoes', [IntegracaoController::class, 'update'])->name('configuracoes.integracoes.update');
         Route::post('/configuracoes/integracoes/split', [IntegracaoController::class, 'updateSplit'])->name('configuracoes.integracoes.split');
@@ -352,14 +373,20 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/configuracoes/integracoes/test-checkout-api', [IntegracaoController::class, 'testarCheckoutApi'])->name('configuracoes.integracoes.test-checkout-api');
         Route::post('/configuracoes/integracoes/test-webhook', [IntegracaoController::class, 'testarWebhook'])->name('configuracoes.integracoes.test-webhook');
         Route::post('/configuracoes/integracoes/validar-wallet', [IntegracaoController::class, 'validarWallet'])->name('configuracoes.integracoes.validar-wallet');
-        
+
         // Comissões por Plano
         Route::put('/configuracoes/comissoes/{id}', [IntegracaoController::class, 'updateComissaoRule'])->name('configuracoes.comissoes.update');
 
         // Rotas legadas que serão removidas ou redirecionadas
-        Route::get('/configuracoes-gerais', function() { return redirect()->route('master.configuracoes'); });
-        Route::get('/configuracoes/integracoes', function() { return redirect()->route('master.configuracoes', ['tab' => 'integracoes']); })->name('configuracoes.integracoes');
-        Route::get('/configuracoes/comissoes', function() { return redirect()->route('master.configuracoes', ['tab' => 'comissoes']); })->name('configuracoes.comissoes');
+        Route::get('/configuracoes-gerais', function () {
+            return redirect()->route('master.configuracoes');
+        });
+        Route::get('/configuracoes/integracoes', function () {
+            return redirect()->route('master.configuracoes', ['tab' => 'integracoes']);
+        })->name('configuracoes.integracoes');
+        Route::get('/configuracoes/comissoes', function () {
+            return redirect()->route('master.configuracoes', ['tab' => 'comissoes']);
+        })->name('configuracoes.comissoes');
 
         // ==========================================
         // Integrações
@@ -379,8 +406,6 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/clientes-asaas/preview-assign', [AsaasClienteSyncController::class, 'previewAssign'])->name('clientes-asaas.preview-assign');
         Route::post('/clientes-asaas/calculate-preview', [AsaasClienteSyncController::class, 'calculatePreview'])->name('clientes-asaas.calculate-preview');
 
-
-
         Route::get('/integracoes/eventos', [IntegracaoEventoController::class, 'index'])->name('integracoes.eventos');
         Route::post('/integracoes/eventos', [IntegracaoEventoController::class, 'store'])->name('integracoes.eventos.store');
         Route::patch('/integracoes/eventos/{evento}', [IntegracaoEventoController::class, 'toggle'])->name('integracoes.eventos.toggle');
@@ -392,7 +417,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
     // ==========================================
     Route::middleware([CheckVendedor::class, 'force.password.change'])->prefix('vendedor')->name('vendedor.')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-        
+
         Route::get('/vendas', [VendaController::class, 'index'])->name('vendas');
         Route::get('/vendas/exportar', [VendaController::class, 'exportar'])->name('vendas.exportar');
         Route::get('/vendas/canceladas', [VendaController::class, 'canceladas'])->name('vendas.canceladas');
@@ -412,8 +437,10 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/clientes/{id}', [ClienteController::class, 'show'])->name('clientes.show');
         Route::get('/comissoes', [ComissaoController::class, 'index'])->name('comissoes');
         Route::get('/comissoes/exportar', [ComissaoController::class, 'exportar'])->name('comissoes.exportar');
-        Route::get('/comissao', function() { return redirect()->route('vendedor.comissoes'); })->name('comissao');
-        
+        Route::get('/comissao', function () {
+            return redirect()->route('vendedor.comissoes');
+        })->name('comissao');
+
         // Configurações do Vendedor (Perfil, Segurança, Split)
         Route::get('/configuracoes/{tab?}', [VendedorSettingsController::class, 'index'])->name('configuracoes');
         Route::post('/configuracoes/perfil', [VendedorSettingsController::class, 'updateProfile'])->name('configuracoes.perfil.update');
@@ -423,7 +450,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/configuracoes/2fa/disable', [VendedorSettingsController::class, 'disable2fa'])->name('configuracoes.2fa.disable');
         Route::post('/configuracoes/2fa/rotate', [VendedorSettingsController::class, 'rotate2fa'])->name('configuracoes.2fa.rotate');
         Route::put('/configuracoes/split', [VendedorConfiguracaoController::class, 'updateSplit'])->name('configuracoes.split.update');
-        
+
         // Equipe do Gestor
         Route::get('/equipe', [GestorEquipeController::class, 'index'])->name('equipe');
         Route::post('/equipe/adicionar-membro', [GestorEquipeController::class, 'adicionarMembro'])->name('equipe.adicionar-membro');
@@ -435,17 +462,18 @@ Route::middleware(['auth', '2fa'])->group(function () {
 });
 
 // Webhooks externos (sem CSRF, com validacao propria)
-Route::post('/webhook/asaas', [\App\Http\Controllers\BasileiaChurchWebhookController::class, 'webhookAsaas']);
+Route::post('/webhook/asaas', [BasileiaChurchWebhookController::class, 'webhookAsaas']);
 
 // Rota para limpar cache (desenvolvimento)
-Route::get('/clear-cache', function() {
-    \Illuminate\Support\Facades\Artisan::call('cache:clear');
-    \Illuminate\Support\Facades\Artisan::call('config:clear');
-    \Illuminate\Support\Facades\Artisan::call('view:clear');
+Route::get('/clear-cache', function () {
+    Artisan::call('cache:clear');
+    Artisan::call('config:clear');
+    Artisan::call('view:clear');
+
     return 'Cache limpo!';
 });
-Route::post('/webhook/basileia-church/sync', [\App\Http\Controllers\BasileiaChurchWebhookController::class, 'syncCliente']);
+Route::post('/webhook/basileia-church/sync', [BasileiaChurchWebhookController::class, 'syncCliente']);
 
 // Checkout - Webhook que recebe eventos do Checkout (servico externo)
-Route::post('/webhook/checkout', [\App\Http\Controllers\Integration\CheckoutWebhookController::class, 'handle'])->name('webhook.checkout');
-Route::get('/test-login', [App\Http\Controllers\TestLoginController::class, 'testLogin']);
+Route::post('/webhook/checkout', [CheckoutWebhookController::class, 'handle'])->name('webhook.checkout');
+Route::get('/test-login', [TestLoginController::class, 'testLogin']);
