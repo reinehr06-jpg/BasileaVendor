@@ -2376,10 +2376,7 @@
                     </div>
                     <h3 style="font-size:1.5rem;margin-bottom:8px;color:#111827;">{{ __('checkout_new.pix_generated') }}</h3>
                     <p style="color:#6B7280;margin-bottom:20px;">{{ __('checkout_new.pix_copy_info') }}</p>
-                    <div style="background:#F3F4F6;padding:16px;border-radius:12px;word-break:break-all;font-family:monospace;font-size:0.85rem;max-height:120px;overflow-y:auto;margin-bottom:20px;">
-                        ${data.pix_copy_paste || '{{ __('checkout_new.pix_waiting') }}'}
-                    </div>
-                    <button onclick="navigator.clipboard.writeText('${data.pix_copy_paste}').then(()=>this.innerHTML='<i class=fas fa-check></i> {{ __('checkout_new.copied') }}')" style="background:var(--primary);color:white;padding:16px 24px;border:none;border-radius:12px;font-weight:700;cursor:pointer;width:100%;margin-bottom:12px;font-size:1rem;">
+                    <button onclick="navigator.clipboard.writeText('${data.pix_copy_paste}').then(()=>this.innerHTML='<i class=fas fa-check></i> Link copiado com sucesso!')" style="background:var(--primary);color:white;padding:16px 24px;border:none;border-radius:12px;font-weight:700;cursor:pointer;width:100%;margin-bottom:12px;font-size:1rem;">
                         <i class="fas fa-copy"></i> {{ __('checkout_new.copy_pix_code') }}
                     </button>
                     <button onclick="window.location.href='/co/success/${data.order_number}?lang={{ $language }}'" style="background:var(--gray-100);color:var(--gray-700);padding:16px 24px;border:none;border-radius:12px;font-weight:600;cursor:pointer;width:100%;font-size:0.95rem;">
