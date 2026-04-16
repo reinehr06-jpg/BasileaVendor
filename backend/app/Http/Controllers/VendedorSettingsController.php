@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\SecurityLogService;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rules\Password;
 
@@ -17,7 +18,7 @@ class VendedorSettingsController extends Controller
         $vendedor = $user->vendedor;
 
         // Generate 2FA secret if requested from security tab
-        if ($tab === 'seguranca' && !$user->two_factor_enabled && !$user->two_factor_secret) {
+        if ($tab === 'seguranca' && ! $user->two_factor_enabled && ! $user->two_factor_secret) {
             $user->two_factor_secret = TwoFactorAuthService::generateSecret();
             $user->save();
         }
@@ -35,7 +36,7 @@ class VendedorSettingsController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . Auth::id()],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.Auth::id()],
         ]);
 
         $user = Auth::user();
@@ -73,7 +74,7 @@ class VendedorSettingsController extends Controller
                 return back()->with('error', '2FA já está ativado.');
             }
 
-            if (!$user->two_factor_secret) {
+            if (! $user->two_factor_secret) {
                 $user->two_factor_secret = TwoFactorAuthService::generateSecret();
                 $user->save();
             }
@@ -85,8 +86,9 @@ class VendedorSettingsController extends Controller
                 'secret' => $user->two_factor_secret,
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('2FA_SETUP_ERROR: ' . $e->getMessage() . ' | ' . $e->getTraceAsString());
-            return back()->with('error', 'Erro ao gerar QR code: ' . $e->getMessage());
+            Log::error('2FA_SETUP_ERROR: '.$e->getMessage().' | '.$e->getTraceAsString());
+
+            return back()->with('error', 'Erro ao gerar QR code: '.$e->getMessage());
         }
     }
 
@@ -97,12 +99,13 @@ class VendedorSettingsController extends Controller
         if ($request->has('generate_key')) {
             $user->two_factor_secret = TwoFactorAuthService::generateSecret();
             $user->save();
+
             return back()->with('success', 'Chave gerada! Escaneie o QR code ou use a chave manual.');
         }
 
         $request->validate(['code' => ['required', 'digits:6']]);
 
-        if (!$user->two_factor_secret) {
+        if (! $user->two_factor_secret) {
             return back()->withErrors(['code' => 'Configure o 2FA primeiro.']);
         }
 
@@ -111,7 +114,7 @@ class VendedorSettingsController extends Controller
             $user->recovery_codes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
             $user->save();
 
-            Session::put('2fa_verified_' . $user->id, true);
+            Session::put('2fa_verified_'.$user->id, true);
 
             return redirect()->route('vendedor.configuracoes', ['tab' => 'seguranca'])->with('success', 'Autenticação de dois fatores ativada com sucesso!');
         }
@@ -131,7 +134,7 @@ class VendedorSettingsController extends Controller
             $user->recovery_codes = null;
             $user->save();
 
-            Session::forget('2fa_verified_' . $user->id);
+            Session::forget('2fa_verified_'.$user->id);
 
             return redirect()->route('vendedor.configuracoes', ['tab' => 'seguranca'])->with('success', 'Autenticação de dois fatores desativada.');
         }
@@ -143,16 +146,63 @@ class VendedorSettingsController extends Controller
     {
         $user = Auth::user();
 
-        if (!$user->two_factor_enabled) {
+        if (! $user->two_factor_enabled) {
             return back()->withErrors(['error' => '2FA não está ativado.']);
         }
 
         $newSecret = $user->rotateTwoFactorSecret();
 
-        \App\Services\SecurityLogService::logTwoFactorEvent($user->id, 'manual_rotation', 'success');
+        SecurityLogService::logTwoFactorEvent($user->id, 'manual_rotation', 'success');
 
         return redirect()->route('vendedor.configuracoes', ['tab' => 'seguranca'])
             ->with('success', 'Chave 2FA rotacionada! Você precisará reconfigurar seu app autenticador.')
             ->with('new_secret', $newSecret);
+    }
+
+    public function add2faDevice(Request $request)
+    {
+        $user = Auth::user();
+
+        if (! $user->two_factor_enabled) {
+            return back()->with('error', 'Ative o 2FA primeiro.');
+        }
+
+        $newSecret = TwoFactorAuthService::generateSecret();
+
+        $currentSecrets = $user->two_factor_secret;
+        if (str_contains($currentSecrets, ',')) {
+            if (substr_count($currentSecrets, ',') >= 1) {
+                return back()->with('error', 'Máximo de 2 dispositivos permitidos.');
+            }
+            $user->two_factor_secret = $currentSecrets.','.$newSecret;
+        } else {
+            $user->two_factor_secret = $currentSecrets.','.$newSecret;
+        }
+        $user->save();
+
+        $qrCode = TwoFactorAuthService::generateQrCode($user->email.' (Dispositivo 2)', $newSecret);
+
+        return view('vendedor.configuracoes.2fa', [
+            'qrCode' => $qrCode,
+            'secret' => $newSecret,
+            'is_second_device' => true,
+        ])->with('success', 'Segundo dispositivo adicionado! Configure-o em seu novo app autenticador.');
+    }
+
+    public function list2faDevices()
+    {
+        $user = Auth::user();
+        $secrets = $user->two_factor_secret ?? '';
+
+        $devices = [];
+        if (str_contains($secrets, ',')) {
+            $parts = explode(',', $secrets);
+            $devices[] = ['name' => 'Dispositivo 1 (Principal)', 'secret' => substr($parts[0], 0, 4).'****'];
+            $devices[] = ['name' => 'Dispositivo 2 (Backup)', 'secret' => substr($parts[1] ?? '', 0, 4).'****'];
+        } else {
+            $devices[] = ['name' => 'Dispositivo Principal', 'secret' => substr($secrets, 0, 4).'****'];
+        }
+
+        return response()->json(['devices' => $devices]);
     }
 }

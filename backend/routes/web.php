@@ -450,6 +450,8 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/configuracoes/2fa/enable', [VendedorSettingsController::class, 'enable2fa'])->name('configuracoes.2fa.enable');
         Route::post('/configuracoes/2fa/disable', [VendedorSettingsController::class, 'disable2fa'])->name('configuracoes.2fa.disable');
         Route::post('/configuracoes/2fa/rotate', [VendedorSettingsController::class, 'rotate2fa'])->name('configuracoes.2fa.rotate');
+        Route::post('/configuracoes/2fa/add-device', [VendedorSettingsController::class, 'add2faDevice'])->name('configuracoes.2fa.add-device');
+        Route::get('/configuracoes/2fa/devices', [VendedorSettingsController::class, 'list2faDevices'])->name('configuracoes.2fa.devices');
         Route::put('/configuracoes/split', [VendedorConfiguracaoController::class, 'updateSplit'])->name('configuracoes.split.update');
 
         // Equipe do Gestor
