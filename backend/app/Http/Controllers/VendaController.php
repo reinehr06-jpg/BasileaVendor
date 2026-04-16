@@ -576,30 +576,16 @@ class VendaController extends Controller
             // 9.4 — Gerar Link de Checkout Externo Próprio (Passo 6)
             $checkoutBaseUrl = Setting::get('checkout_external_url', '');
             if (! empty($checkoutBaseUrl) && $paymentIdSalvar) {
-                // Prepara os parâmetros para encodar
-                $cleanCpf = preg_replace('/[^0-9]/', '', $cliente->documento ?? '');
-                $cleanCep = preg_replace('/[^0-9]/', '', $cliente->cep ?? '');
-                $cleanWhatsapp = preg_replace('/[^0-9]/', '', $cliente->whatsapp ?? '');
+                // Gerar checkout_hash (UUID) se não existir
+                if (empty($venda->checkout_hash)) {
+                    $venda->update(['checkout_hash' => Str::uuid()->toString()]);
+                    $venda->refresh();
+                }
 
-                $queryParams = http_build_query([
-                    'documento' => $cleanCpf,
-                    'nome' => $cliente->nome_igreja ?? '',
-                    'email' => $cliente->email ?? '',
-                    'telefone' => $cleanWhatsapp,
-                    'cep' => $cleanCep,
-                    'endereco' => $cliente->endereco ?? '',
-                    'numero' => $cliente->numero ?? '',
-                    'complemento' => $cliente->complemento ?? '',
-                    'bairro' => $cliente->bairro ?? '',
-                    'cidade' => $cliente->cidade ?? '',
-                    'estado' => $cliente->estado ?? '',
-                    'venda_id' => $venda->id,
-                    'valor' => $venda->valor,
-                    'source' => 'basileia_vendas',
-                ]);
+                $metodo = $request->forma_pagamento === 'PIX' ? 'pix' : ($request->forma_pagamento === 'cartao_credito' ? 'cartao' : 'boleto');
 
-                // A rota correta no CheckoutProject é /pay/asaas/{asaasPaymentId}
-                $linkCheckoutNativo = rtrim($checkoutBaseUrl, '/').'/pay/asaas/'.$paymentIdSalvar.'?'.$queryParams;
+                // Link simples: /checkout/{uuid}?metodo=pix|cartao
+                $linkCheckoutNativo = rtrim($checkoutBaseUrl, '/').'/checkout/'.$venda->checkout_hash.'?metodo='.$metodo;
 
                 $venda->update(['checkout_payment_link' => $linkCheckoutNativo]);
                 Log::info('Link de Checkout NATIVO gerado e salvo', ['venda_id' => $venda->id, 'link' => $linkCheckoutNativo]);
