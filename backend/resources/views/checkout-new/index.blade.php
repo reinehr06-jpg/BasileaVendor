@@ -2341,10 +2341,12 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    if (selectedPayment === 'pix' && data.pix_copy_paste) {
-                        showPixModal(data);
-                    } else if (data.bank_slip_url) {
-                        window.open(data.bank_slip_url, '_blank');
+                    if (selectedPayment === 'pix' || selectedPayment === 'cartao') {
+                        showSuccessModal(selectedPayment);
+                    } else if (selectedPayment === 'boleto') {
+                        if (data.bank_slip_url) {
+                            window.open(data.bank_slip_url, '_blank');
+                        }
                         window.location.href = `/co/success/${data.order_number}`;
                     } else if (data.invoice_url) {
                         window.location.href = data.invoice_url;
@@ -2364,7 +2366,29 @@
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // PIX MODAL
+        // SUCCESS MODAL (PIX/CARTAO)
+        // ═══════════════════════════════════════════════════════════════
+        function showSuccessModal(paymentMethod) {
+            const метodoNome = paymentMethod === 'pix' ? 'PIX' : 'Cartão de Crédito';
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);display:flex;align-items:center;justify-content:center;z-index:9999;';
+            modal.innerHTML = `
+                <div style="background:white;padding:40px;border-radius:20px;max-width:420px;width:90%;text-align:center;">
+                    <div style="width:80px;height:80px;background:#D1FAE5;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+                        <i class="fas fa-check" style="font-size:2rem;color:#10B981;"></i>
+                    </div>
+                    <h3 style="font-size:1.5rem;margin-bottom:8px;color:#111827;">Pagamento via ${метodoNome}</h3>
+                    <p style="color:#6B7280;margin-bottom:20px;">Instruções de pagamento enviadas para o email do cliente.</p>
+                    <button onclick="this.closest('.modal')?.remove(); window.location.href='/co/success/' + (window.orderNumber || '')" style="background:var(--primary);color:white;padding:16px 24px;border:none;border-radius:12px;font-weight:700;cursor:pointer;width:100%;font-size:1rem;">
+                        Ver Status do Pagamento
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // PIX MODAL (legado)
         // ═══════════════════════════════════════════════════════════════
         function showPixModal(data) {
             const modal = document.createElement('div');

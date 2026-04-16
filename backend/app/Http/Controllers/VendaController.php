@@ -1514,4 +1514,39 @@ class VendaController extends Controller
 
         return now()->addDays(5)->format('Y-m-d');
     }
+
+    public function corrigirLinksCheckout()
+    {
+        $checkoutBaseUrl = Setting::get('checkout_external_url', '');
+        if (empty($checkoutBaseUrl)) {
+            return response()->json(['error' => 'checkout_external_url não configurado'], 400);
+        }
+
+        $vendas = Venda::whereNotNull('checkout_hash')
+            ->where(function ($q) {
+                $q->whereNull('checkout_payment_link')
+                    ->orWhere('checkout_payment_link', 'NOT LIKE', '/checkout/%');
+            })
+            ->get();
+
+        $corrigidos = 0;
+        foreach ($vendas as $venda) {
+            if (empty($venda->checkout_hash)) {
+                $venda->update(['checkout_hash' => Str::uuid()->toString()]);
+            }
+
+            $forma = $venda->forma_pagamento ?? 'PIX';
+            $metodo = $forma === 'PIX' ? 'pix' : ($forma === 'CREDIT_CARD' ? 'cartao' : 'boleto');
+
+            $novoLink = rtrim($checkoutBaseUrl, '/').'/checkout/'.$venda->checkout_hash.'?metodo='.$metodo;
+            $venda->update(['checkout_payment_link' => $novoLink]);
+            $corrigidos++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'corrigidos' => $corrigidos,
+            'mensagem' => "{$corrigidos} links corrigidos",
+        ]);
+    }
 }
