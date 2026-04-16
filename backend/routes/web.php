@@ -289,6 +289,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/vendas', [VendaController::class, 'indexMaster'])->name('vendas');
         Route::get('/vendas/exportar', [VendaController::class, 'exportar'])->name('vendas.exportar');
         Route::delete('/vendas/{id}', [VendaController::class, 'cancelarMaster'])->name('vendas.cancelar');
+        Route::delete('/vendas/{id}/excluir', [VendaController::class, 'excluirVenda'])->name('vendas.excluir');
         Route::post('/vendas/{id}/estornar', [VendaController::class, 'estornarMaster'])->name('vendas.estornar');
         Route::get('/vendas/{venda}/checkout-link', [VendaController::class, 'gerarLinkCheckout'])->name('vendas.checkout-link');
         Route::get('/vendas/corrigir-links', [VendaController::class, 'corrigirLinksCheckout'])->name('vendas.corrigir-links');

@@ -749,12 +749,36 @@ class VendaController extends Controller
         $this->cancelarNoAsaas($venda);
 
         $venda->update(['status' => 'Cancelado']);
-
-        // Atualizar pagamento vinculado
         Pagamento::where('venda_id', $venda->id)->update(['status' => 'cancelado']);
 
         return redirect()->route('vendedor.vendas')
-            ->with('success', 'Venda cancelada com sucesso. O registro foi mantido no histórico.');
+            ->with('success', 'Venda cancelada com sucesso.');
+    }
+
+    // ==========================================
+    // MASTER: Excluir permanentemente venda cancelada
+    // ==========================================
+    public function excluirVenda($id)
+    {
+        $user = Auth::user();
+        if ($user->perfil !== 'master') {
+            return response()->json(['error' => 'Apenas o administrador pode excluir vendas.'], 403);
+        }
+
+        $venda = Venda::findOrFail($id);
+        $statusPermitidos = ['Cancelado', 'CANCELADO', 'Expirado', 'EXPIRADO'];
+
+        if (! in_array($venda->status, $statusPermitidos)) {
+            return response()->json(['error' => 'Apenas vendas canceladas ou expiradas podem ser excluídas.'], 400);
+        }
+
+        // Excluir pagamentos relacionados
+        Pagamento::where('venda_id', $venda->id)->delete();
+
+        // Excluir a venda
+        $venda->delete();
+
+        return response()->json(['success' => true, 'message' => 'Venda excluída com sucesso.']);
     }
 
     // ==========================================
