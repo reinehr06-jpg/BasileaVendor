@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Cliente;
-use App\Models\Venda;
 use App\Models\Pagamento;
 use App\Models\Vendedor;
 use App\Services\ClienteStatusService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class ClienteController extends Controller
@@ -19,23 +18,23 @@ class ClienteController extends Controller
     {
         $user = Auth::user();
         $isMaster = $user->perfil === 'master';
-        
+
         $query = Cliente::query();
-        
+
         // Regra de Ouro: Só é cliente se tiver pelo menos um pagamento confirmado
         $query->whereHas('vendas.pagamentos', function ($q) {
             $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
         });
 
         // Se for vendedor, filtrar apenas os clientes que tem vendas com ele
-        if (!$isMaster) {
+        if (! $isMaster) {
             $query->whereHas('vendas', function ($q) use ($user) {
                 $q->whereHas('vendedor', function ($v) use ($user) {
                     $v->where('usuario_id', $user->id);
                 });
             });
         }
-        
+
         // Sincronizar status dos clientes CANDIDATOS (Regra de Ouro + Pertencimento ao Usuário) antes de aplicar filtros específicos
         $clientesParaSync = (clone $query)->with('vendas.pagamentos')->get();
         ClienteStatusService::sincronizarStatus($clientesParaSync);
@@ -43,10 +42,10 @@ class ClienteController extends Controller
         // Filtros Adicionais (Status e Busca) para a exibição final
         if ($request->filled('busca')) {
             $busca = $request->get('busca');
-            $query->where(function($q) use ($busca) {
+            $query->where(function ($q) use ($busca) {
                 $q->where('nome_igreja', 'like', "%{$busca}%")
-                  ->orWhere('nome_pastor', 'like', "%{$busca}%")
-                  ->orWhere('documento', 'like', "%{$busca}%");
+                    ->orWhere('nome_pastor', 'like', "%{$busca}%")
+                    ->orWhere('documento', 'like', "%{$busca}%");
             });
         }
 
@@ -63,7 +62,7 @@ class ClienteController extends Controller
             $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
         });
 
-        if (!$isMaster) {
+        if (! $isMaster) {
             $allClientes->whereHas('vendas', function ($q) use ($user) {
                 $q->whereHas('vendedor', function ($v) use ($user) {
                     $v->where('usuario_id', $user->id);
@@ -78,9 +77,9 @@ class ClienteController extends Controller
             'churn' => (clone $allClientes)->where('status', 'churn')->count(),
             'cancelados' => (clone $allClientes)->where('status', 'cancelado')->count(),
         ];
-        
+
         $viewPath = $isMaster ? 'master.clientes.index' : 'vendedor.clientes.index';
-        
+
         return view($viewPath, compact('clientes', 'cards', 'isMaster'));
     }
 
@@ -91,34 +90,39 @@ class ClienteController extends Controller
     {
         $user = Auth::user();
         $isMaster = $user->perfil === 'master';
-        
+
         $cliente = Cliente::with(['vendas' => function ($q) use ($user, $isMaster) {
-            if (!$isMaster) {
+            if (! $isMaster) {
                 $q->whereHas('vendedor', function ($v) use ($user) {
                     $v->where('usuario_id', $user->id);
                 });
             }
             $q->with('vendedor.user', 'pagamentos');
         }])->findOrFail($id);
-        
+
         // Sincronizar status deste cliente
         ClienteStatusService::atualizarCliente($cliente);
         $cliente->refresh();
-        
+
         // Se for vendedor, garantir que ele tem acesso a este cliente
-        if (!$isMaster) {
+        if (! $isMaster) {
             $temAcesso = $cliente->vendas()->whereHas('vendedor', function ($q) use ($user) {
                 $q->where('usuario_id', $user->id);
             })->exists();
-            
-            if (!$temAcesso) {
+
+            if (! $temAcesso) {
                 abort(403, 'Acesso não autorizado a este cliente.');
             }
         }
-        
+
         // Buscar histórico de vendas e pagamentos do cliente
         $vendas = $cliente->vendas()->orderBy('created_at', 'desc')->get();
-        
+
+        // Calcular totais
+        $totalVendas = $vendas->count();
+        $valorTotalPago = $vendas->whereIn('status', ['Pago', 'PAGO', 'pago'])->sum('valor');
+        $ticketMedio = $totalVendas > 0 ? $valorTotalPago / $totalVendas : 0;
+
         // Obter pagamentos através das vendas
         $pagamentos = collect();
         foreach ($vendas as $venda) {
@@ -127,10 +131,10 @@ class ClienteController extends Controller
             }
         }
         $pagamentos = $pagamentos->sortByDesc('data_vencimento')->values();
-        
+
         $viewPath = $isMaster ? 'master.clientes.show' : 'vendedor.clientes.show';
-        
-        return view($viewPath, compact('cliente', 'vendas', 'pagamentos', 'isMaster'));
+
+        return view($viewPath, compact('cliente', 'vendas', 'pagamentos', 'isMaster', 'totalVendas', 'valorTotalPago', 'ticketMedio'));
     }
 
     /**
@@ -141,7 +145,7 @@ class ClienteController extends Controller
         $user = Auth::user();
 
         $request->validate([
-            'status' => 'required|in:ativo,pendente,inadimplente,cancelado,churn'
+            'status' => 'required|in:ativo,pendente,inadimplente,cancelado,churn',
         ]);
 
         $cliente = Cliente::findOrFail($id);
@@ -151,7 +155,7 @@ class ClienteController extends Controller
             $temAcesso = $cliente->vendas()->whereHas('vendedor', function ($q) use ($user) {
                 $q->where('usuario_id', $user->id);
             })->exists();
-            if (!$temAcesso) {
+            if (! $temAcesso) {
                 return response()->json(['error' => 'Acesso não autorizado.'], 403);
             }
         }
@@ -162,7 +166,7 @@ class ClienteController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Status do cliente atualizado com sucesso.',
-            'status' => $cliente->status
+            'status' => $cliente->status,
         ]);
     }
 }

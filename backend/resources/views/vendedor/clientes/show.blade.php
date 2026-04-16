@@ -58,6 +58,22 @@
 
 <x-page-hero title="{{ $cliente->nome_igreja ?? $cliente->nome }}" subtitle="Visão 360º — Histórico Comercial da Igreja/Entidade" icon="fas fa-building" />
 
+<!-- Stats Cards -->
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+    <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+        <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 8px;">TOTAL DE VENDAS</div>
+        <div style="font-size: 2rem; font-weight: 800;">{{ $totalVendas ?? 0 }}</div>
+    </div>
+    <div class="stat-card" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+        <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 8px;">VALOR TOTAL PAGO</div>
+        <div style="font-size: 2rem; font-weight: 800;">R$ {{ number_format($valorTotalPago ?? 0, 2, ',', '.') }}</div>
+    </div>
+    <div class="stat-card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
+        <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 8px;">TICKET MÉDIO</div>
+        <div style="font-size: 2rem; font-weight: 800;">R$ {{ number_format($ticketMedio ?? 0, 2, ',', '.') }}</div>
+    </div>
+</div>
+
 <div class="profile-grid">
     <!-- ===== Sidebar (Dados Cadastrais) ===== -->
     <div class="sidebar-card animate-in">

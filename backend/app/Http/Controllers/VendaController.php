@@ -253,18 +253,19 @@ class VendaController extends Controller
             $clienteExistente = Cliente::where('documento', $documento)->first();
 
             if ($clienteExistente) {
-                // Se cliente existe e pertence a outro vendedor, nao permite sobrescrever
-                $clientePertenceAVendedor = $clienteExistente->vendas()
-                    ->whereHas('vendedor', fn ($q) => $q->where('usuario_id', $user->id))
+                // Verificar se cliente tem venda de OUTRO vendedor (não do atual)
+                $temVendaDeOutro = $clienteExistente->vendas()
+                    ->whereHas('vendedor', fn ($q) => $q->where('usuario_id', '!=', $user->id))
                     ->exists();
 
-                if (! $clientePertenceAVendedor) {
+                // Permite se: não tem venda de outro OU é master
+                if ($temVendaDeOutro && $user->perfil !== 'master') {
                     return back()->withErrors([
                         'documento' => 'Este documento já está vinculado a outro vendedor. Entre em contato com o administrador.',
                     ])->withInput();
                 }
 
-                // Atualiza apenas se pertence ao vendedor atual
+                // Atualiza cliente
                 $clienteExistente->update([
                     'documento' => $documento,
                     'nome' => $request->nome_igreja,
@@ -304,6 +305,7 @@ class VendaController extends Controller
                     'bairro' => $request->bairro,
                     'cidade' => $request->cidade,
                     'estado' => $request->estado,
+                    'status' => 'Novo Lead',
                 ]);
             }
 
