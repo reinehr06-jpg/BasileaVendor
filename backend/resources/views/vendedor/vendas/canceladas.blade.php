@@ -54,6 +54,7 @@
                 <th>Tipo</th>
                 <th>Status</th>
                 <th>Data</th>
+                <th>Ações</th>
             </tr>
         </thead>
         <tbody>
@@ -70,6 +71,11 @@
                 <td style="font-size: 0.85rem; color: var(--text-secondary);">{{ ucfirst($v->tipo_negociacao ?? 'mensal') }}</td>
                 <td><span class="badge status-cancelado"><i class="fas fa-circle-xmark"></i> Cancelado</span></td>
                 <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $v->created_at->format('d/m/Y') }}</td>
+                <td>
+                    <button onclick="excluirVenda({{ $v->id }})" class="btn btn-sm" style="background: #dc2626; color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer;">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </td>
             </tr>
             @endforeach
             @foreach($vendasExpiradas as $v)
@@ -85,6 +91,11 @@
                 <td style="font-size: 0.85rem; color: var(--text-secondary);">{{ ucfirst($v->tipo_negociacao ?? 'mensal') }}</td>
                 <td><span class="badge status-expirado"><i class="fas fa-clock"></i> Expirado</span></td>
                 <td style="font-size: 0.85rem; color: var(--text-muted);">{{ $v->created_at->format('d/m/Y') }}</td>
+                <td>
+                    <button onclick="excluirVenda({{ $v->id }})" class="btn btn-sm" style="background: #dc2626; color: white; padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer;">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </td>
             </tr>
             @endforeach
         </tbody>
@@ -107,6 +118,32 @@ function filterTable() {
         const matchSearch = !search || row.dataset.search.includes(search);
         const matchStatus = !status || row.dataset.status === status;
         row.style.display = (matchSearch && matchStatus) ? '' : 'none';
+    });
+}
+
+function excluirVenda(id) {
+    if (!confirm('Tem certeza que deseja EXCLUIR PERMANENTEMENTE esta venda? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+    
+    fetch(`/vendas/${id}/excluir`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert('Venda excluída com sucesso!');
+            location.reload();
+        } else {
+            alert(data.error || 'Erro ao excluir venda');
+        }
+    })
+    .catch(err => {
+        alert('Erro ao excluir venda');
     });
 }
 </script>
