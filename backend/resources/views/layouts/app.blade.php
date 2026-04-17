@@ -286,11 +286,6 @@
                 <a href="{{ route('admin.chat.contatos') }}" class="menu-item {{ request()->routeIs('admin.chat.contatos') ? 'active' : '' }}">
                     <i class="fas fa-address-book"></i> Contatos
                 </a>
-                <a href="{{ route('admin.chat.config.status') }}" class="menu-item {{ request()->routeIs('admin.chat.config*') ? 'active' : '' }}">
-                    <i class="fas fa-cog"></i> Configurações
-                </a>
-
-
 
                 <div class="menu-section">Financeiro</div>
                 <a href="{{ route('master.pagamentos') }}" class="menu-item {{ request()->routeIs('master.pagamentos') ? 'active' : '' }}">
@@ -325,12 +320,18 @@
                 <a href="{{ route('vendedor.clientes') }}" class="menu-item {{ request()->routeIs('vendedor.clientes*') ? 'active' : '' }}">
                     <i class="fas fa-users"></i> Meus Clientes
                 </a>
-
-                <div class="menu-section">Chat</div>
-                <a href="{{ route('chat.index') }}" class="menu-item {{ request()->routeIs('chat.index') || request()->routeIs('chat.conversa') ? 'active' : '' }}">
-                    <i class="fab fa-whatsapp"></i> Minhas Conversas
+                <a href="{{ route('vendedor.pagamentos') }}" class="menu-item {{ request()->routeIs('vendedor.pagamentos') ? 'active' : '' }}">
+                    <i class="fas fa-credit-card"></i> Pagamentos Recebidos
                 </a>
-            @elseif(Auth::user()->perfil === 'gestor')
+
+                <div class="menu-section">Financeiro</div>
+                <a href="{{ route('vendedor.comissoes') }}" class="menu-item {{ request()->routeIs('vendedor.comissoes*') ? 'active' : '' }}">
+                    <i class="fas fa-hand-holding-dollar"></i> Minhas Comissões
+                </a>
+                <a href="{{ route('vendedor.configuracoes') }}" class="menu-item {{ request()->routeIs('vendedor.configuracoes*') ? 'active' : '' }}">
+                    <i class="fas fa-wallet"></i> Split e Repasse
+                </a>
+                @if(Auth::user()->perfil === 'gestor')
                 <div class="menu-section">Gestão</div>
                 <a href="{{ route('vendedor.equipe') }}" class="menu-item {{ request()->routeIs('vendedor.equipe*') ? 'active' : '' }}">
                     <i class="fas fa-people-group"></i> Minha Equipe
@@ -343,35 +344,13 @@
                 <a href="{{ route('gestor.chat.distribuicao') }}" class="menu-item {{ request()->routeIs('gestor.chat.distribuicao') ? 'active' : '' }}">
                     <i class="fas fa-list-ol"></i> Fila de Distribuição
                 </a>
-            @else
-                <div class="menu-section">Minhas Vendas</div>
-                <a href="{{ route('vendedor.vendas') }}" class="menu-item {{ request()->routeIs('vendedor.vendas*') ? 'active' : '' }}">
-                    <i class="fas fa-shopping-bag"></i> Vendas Realizadas
-                </a>
-                <a href="{{ route('vendedor.clientes') }}" class="menu-item {{ request()->routeIs('vendedor.clientes*') ? 'active' : '' }}">
-                    <i class="fas fa-users"></i> Meus Clientes
-                </a>
-                <a href="{{ route('vendedor.pagamentos') }}" class="menu-item {{ request()->routeIs('vendedor.pagamentos') ? 'active' : '' }}">
-                    <i class="fas fa-credit-card"></i> Pagamentos Recebidos
-                </a>
-
-                <div class="menu-section">Financeiro</div>
-                <a href="{{ route('vendedor.comissoes') }}" class="menu-item {{ request()->routeIs('vendedor.comissoes*') ? 'active' : '' }}">
-                    <i class="fas fa-hand-holding-dollar"></i> Minhas Comissões
-                </a>
-                <a href="{{ route('vendedor.configuracoes') }}" class="menu-item {{ request()->routeIs('vendedor.configuracoes*') ? 'active' : '' }}">
-                    <i class="fas fa-wallet"></i> Split e Repasse
-                </a>
-
-                @if(Auth::user()->perfil === 'gestor')
-                <div class="menu-section">Gestão</div>
-                <a href="{{ route('vendedor.equipe') }}" class="menu-item {{ request()->routeIs('vendedor.equipe*') ? 'active' : '' }}">
-                    <i class="fas fa-people-group"></i> Minha Equipe
-                </a>
-
+                @else
                 <div class="menu-section">Chat</div>
-                <a href="{{ route('gestor.chat.index') }}" class="menu-item {{ request()->routeIs('gestor.chat*') ? 'active' : '' }}">
-                    <i class="fab fa-whatsapp"></i> Conversas
+                <a href="{{ route('chat.index') }}" class="menu-item {{ request()->routeIs('chat.index') || request()->routeIs('chat.conversa') ? 'active' : '' }}">
+                    <i class="fab fa-whatsapp"></i> Minhas Conversas
+                </a>
+                @endif
+            @endif
                 </a>
                 <a href="{{ route('gestor.chat.distribuicao') }}" class="menu-item {{ request()->routeIs('gestor.chat.distribuicao') ? 'active' : '' }}">
                     <i class="fas fa-list-ol"></i> Fila de Distribuição
