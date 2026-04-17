@@ -1,6 +1,6 @@
 @extends('chat.layout')
 
-@section('content')
+@section('chat-content')
 <div class="chat-sidebar">
     <div class="chat-header">
         <h4><i class="fab fa-whatsapp me-2"></i>Contatos</h4>

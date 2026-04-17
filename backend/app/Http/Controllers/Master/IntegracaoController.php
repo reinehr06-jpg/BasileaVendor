@@ -237,6 +237,23 @@ class IntegracaoController extends Controller
                          ->with('success', 'Configurações do Basileia Church atualizadas com sucesso.');
     }
 
+    public function updateChatLeads(Request $request)
+    {
+        $request->validate([
+            'chat_google_ads_webhook_key' => 'required|string|max:255',
+            'meta_webhook_verify_token' => 'required|string|max:255',
+            'meta_app_secret' => 'nullable|string|max:255',
+        ]);
+
+        Setting::set('chat_google_ads_webhook_key', $request->input('chat_google_ads_webhook_key'));
+        Setting::set('google_ads_webhook_key', $request->input('chat_google_ads_webhook_key'));
+        Setting::set('meta_webhook_verify_token', $request->input('meta_webhook_verify_token'));
+        Setting::set('meta_app_secret', $request->input('meta_app_secret', ''));
+
+        return redirect()->route('master.configuracoes', ['tab' => 'integracoes'])
+                         ->with('success', 'Integrações de Chat/Leads atualizadas com sucesso.');
+    }
+
     /**
      * Test connection to Asaas API.
      */

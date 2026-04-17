@@ -1,6 +1,6 @@
 @extends('chat.layout')
 
-@section('content')
+@section('chat-content')
 <div class="chat-main" style="padding: 20px;">
     <h4><i class="fas fa-users me-2"></i>Distribuição Round Robin</h4>
     <hr>

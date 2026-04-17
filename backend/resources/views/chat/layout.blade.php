@@ -1,12 +1,8 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat - BasileaVendor</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+@extends('layouts.app')
+@section('title', 'Chat')
+
+@section('content')
+<style>
         :root {
             --primary-color: #4F46E5;
             --secondary-color: #6366F1;
@@ -395,15 +391,13 @@
         .message {
             animation: fadeIn 0.3s ease;
         }
-    </style>
-</head>
-<body>
-    <div class="chat-container">
-        @yield('content')
-    </div>
+</style>
+<div class="chat-container">
+    @yield('chat-content')
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
         function scrollToBottom() {
             const messagesContainer = document.querySelector('.chat-messages');
             if (messagesContainer) {
@@ -450,6 +444,5 @@
         }
 
         document.addEventListener('DOMContentLoaded', scrollToBottom);
-    </script>
-</body>
-</html>
+</script>
+@endsection

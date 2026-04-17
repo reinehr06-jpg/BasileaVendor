@@ -1,6 +1,6 @@
 @extends('chat.layout')
 
-@section('content')
+@section('chat-content')
 <div class="chat-main" style="padding: 20px;">
     <h4><i class="fab fa-whatsapp me-2"></i>Configurações do WhatsApp</h4>
     <hr>

@@ -77,6 +77,12 @@ class ConfiguracaoController extends Controller
             'googleGmailRedirectUri' => Setting::get('google_gmail_redirect_uri', ''),
             'googleGmailEmail' => Setting::get('google_gmail_email', ''),
             'googleGmailAtivo' => Setting::get('google_gmail_ativo', false),
+            'googleAdsWebhookKey' => Setting::get('chat_google_ads_webhook_key', Setting::get('google_ads_webhook_key', 'gads_k9x2mPqR7vLnT4wZ')),
+            'metaWebhookVerifyToken' => Setting::get('meta_webhook_verify_token', 'meta_vt_x9kP2mQrLnW5'),
+            'metaAppSecret' => Setting::get('meta_app_secret', ''),
+            'chatWhatsappWebhookUrl' => rtrim(config('app.url'), '/') . '/webhooks/chat/whatsapp',
+            'chatGoogleAdsWebhookUrl' => rtrim(config('app.url'), '/') . '/api/leads/google-ads',
+            'chatMetaWebhookUrl' => rtrim(config('app.url'), '/') . '/webhooks/chat/meta-leads',
             'vendedoresComSplit' => Vendedor::where('split_ativo', true)
                 ->whereNotNull('asaas_wallet_id')
                 ->with('user')

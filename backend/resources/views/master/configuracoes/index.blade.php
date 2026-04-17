@@ -564,6 +564,21 @@
                     </div>
                 </div>
 
+                {{-- SEÇÃO: CHAT E LEADS --}}
+                <h3 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--materio-primary); margin: 24px 0 12px; border-bottom: 1px solid var(--materio-border); padding-bottom: 8px;">
+                    💬 Chat e Leads
+                </h3>
+                <div class="integ-hub">
+                    <div class="integ-card {{ ($integracoes['googleAdsWebhookKey'] && $integracoes['metaWebhookVerifyToken']) ? 'active' : '' }}" onclick="showIntegPanel('chat-leads')">
+                        <div class="integ-logo">💬</div>
+                        <div class="integ-card-title">Meta / Google / WhatsApp</div>
+                        <div class="integ-card-desc">Webhooks e chaves de entrada de leads</div>
+                        <span class="{{ ($integracoes['googleAdsWebhookKey'] && $integracoes['metaWebhookVerifyToken']) ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ ($integracoes['googleAdsWebhookKey'] && $integracoes['metaWebhookVerifyToken']) ? 'CONFIGURADO' : 'PENDENTE' }}
+                        </span>
+                    </div>
+                </div>
+
                 {{-- SEÇÃO: OUTROS --}}
                 <h3 style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--materio-primary); margin: 24px 0 12px; border-bottom: 1px solid var(--materio-border); padding-bottom: 8px;">
                     🔗 Outros
@@ -932,6 +947,54 @@
 
             {{-- PAINEL: Google Gmail - REMOVIDO (integrado ao painel de Email acima) --}}
             {{-- Painel removido e integrado ao painel de Email unificado --}}
+
+            {{-- PAINEL: Chat e Leads (Meta/Google/WhatsApp) --}}
+            <div id="integ-panel-chat-leads" class="integ-panel">
+                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
+                <div class="integ-panel-header">
+                    <div class="integ-panel-icon">💬</div>
+                    <div>
+                        <div class="integ-panel-title">Chat e Leads Externos</div>
+                        <div class="integ-panel-sub">Configure Google Ads, Meta Leads e endpoint WhatsApp no mesmo painel.</div>
+                    </div>
+                </div>
+                <div class="materio-card">
+                    <form action="{{ route('master.configuracoes.integracoes.chat-leads') }}" method="POST">
+                        @csrf
+                        <div class="materio-row">
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Google Ads Webhook Key</label>
+                                    <input type="text" name="chat_google_ads_webhook_key" class="materio-input" value="{{ $integracoes['googleAdsWebhookKey'] }}" placeholder="gads_xxxxx">
+                                    <span class="help-text">Usada para validar POST do Google Ads Lead Form.</span>
+                                </div>
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Meta Verify Token</label>
+                                    <input type="text" name="meta_webhook_verify_token" class="materio-input" value="{{ $integracoes['metaWebhookVerifyToken'] }}" placeholder="meta_verify_token">
+                                    <span class="help-text">Token para validação do webhook de Leads da Meta.</span>
+                                </div>
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Meta App Secret</label>
+                                    <input type="password" name="meta_app_secret" class="materio-input" value="{{ $integracoes['metaAppSecret'] }}">
+                                    <span class="help-text">Assinatura HMAC do payload da Meta.</span>
+                                </div>
+                            </div>
+                            <div class="materio-col-6">
+                                <div class="materio-info-box">
+                                    <h5>📍 Endpoints para configurar</h5>
+                                    <ul>
+                                        <li><i class="fas fa-link"></i> Google Ads Verify (GET): <code>{{ $integracoes['chatGoogleAdsWebhookUrl'] }}</code></li>
+                                        <li><i class="fas fa-link"></i> Google Ads Lead (POST): <code>{{ $integracoes['chatGoogleAdsWebhookUrl'] }}</code></li>
+                                        <li><i class="fas fa-link"></i> Meta Leads (POST): <code>{{ $integracoes['chatMetaWebhookUrl'] }}</code></li>
+                                        <li><i class="fas fa-link"></i> WhatsApp Provider (POST): <code>{{ $integracoes['chatWhatsappWebhookUrl'] }}</code></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="materio-btn-primary">Salvar Integrações de Chat</button>
+                    </form>
+                </div>
+            </div>
 
             {{-- PAINEL: Basileia Church --}}
             <div id="integ-panel-church" class="integ-panel">
