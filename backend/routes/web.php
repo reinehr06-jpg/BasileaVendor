@@ -491,13 +491,15 @@ Route::middleware(['auth', '2fa'])->group(function () {
     // ==========================================
 // Módulo Chat - Admin
 // ==========================================
-Route::middleware(['auth', 'admin'])->prefix('admin/chat')->name('admin.chat.')->group(function () {
-    Route::get('/contatos', [App\Http\Controllers\Chat\ChatAdminController::class, 'contatos'])->name('contatos');
-    Route::post('/contatos/{id}/tags', [App\Http\Controllers\Chat\ChatAdminController::class, 'atualizarTags'])->name('contatos.tags');
-    Route::get('/', [App\Http\Controllers\Chat\ChatAdminController::class, 'chatIndex'])->name('index');
-    Route::get('/conversa/{id}', [App\Http\Controllers\Chat\ChatAdminController::class, 'show'])->name('conversa');
-    Route::get('/estatisticas', [App\Http\Controllers\Chat\ChatAdminController::class, 'estatisticas'])->name('estatisticas');
-    Route::get('/exportar-contatos', [App\Http\Controllers\Chat\ChatAdminController::class, 'exportarContatos'])->name('exportar');
+Route::prefix('admin/chat')->name('admin.chat.')->group(function () {
+    Route::middleware(['auth', 'admin'])->group(function () {
+        Route::get('/contatos', [App\Http\Controllers\Chat\ChatAdminController::class, 'contatos'])->name('contatos');
+        Route::post('/contatos/{id}/tags', [App\Http\Controllers\Chat\ChatAdminController::class, 'atualizarTags'])->name('contatos.tags');
+        Route::get('/', [App\Http\Controllers\Chat\ChatAdminController::class, 'chatIndex'])->name('index');
+        Route::get('/conversa/{id}', [App\Http\Controllers\Chat\ChatAdminController::class, 'show'])->name('conversa');
+        Route::get('/estatisticas', [App\Http\Controllers\Chat\ChatAdminController::class, 'estatisticas'])->name('estatisticas');
+        Route::get('/exportar-contatos', [App\Http\Controllers\Chat\ChatAdminController::class, 'exportarContatos'])->name('exportar');
+    });
 });
 
 // ==========================================
