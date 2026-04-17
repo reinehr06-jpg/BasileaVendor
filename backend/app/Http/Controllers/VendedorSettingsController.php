@@ -167,26 +167,47 @@ class VendedorSettingsController extends Controller
             return back()->with('error', 'Ative o 2FA primeiro.');
         }
 
-        $newSecret = TwoFactorAuthService::generateSecret();
+        $request->validate([
+            'device_name' => ['required', 'string', 'max:60'],
+        ]);
 
-        $currentSecrets = $user->two_factor_secret;
-        if (str_contains($currentSecrets, ',')) {
-            if (substr_count($currentSecrets, ',') >= 1) {
-                return back()->with('error', 'Máximo de 2 dispositivos permitidos.');
+        $newSecret = TwoFactorAuthService::generateSecret();
+        $currentSecrets = $user->two_factor_secret ?: '';
+
+        $pairs = [];
+        if (!empty($currentSecrets)) {
+            foreach (explode(',', $currentSecrets) as $entry) {
+                $entry = trim($entry);
+                if ($entry === '') {
+                    continue;
+                }
+                // format: NomeDoDispositivo|SECRET or legacy plain SECRET
+                if (str_contains($entry, '|')) {
+                    $pairs[] = $entry;
+                } else {
+                    $pairs[] = 'Dispositivo Principal|' . $entry;
+                }
             }
-            $user->two_factor_secret = $currentSecrets.','.$newSecret;
-        } else {
-            $user->two_factor_secret = $currentSecrets.','.$newSecret;
         }
+
+        if (count($pairs) >= 5) {
+            return back()->with('error', 'Máximo de 5 dispositivos permitidos.');
+        }
+
+        $safeName = trim($request->device_name);
+        $pairs[] = $safeName . '|' . $newSecret;
+
+        $user->two_factor_secret = implode(',', $pairs);
         $user->save();
 
-        $qrCode = TwoFactorAuthService::generateQrCode($user->email.' (Dispositivo 2)', $newSecret);
+        $qrCode = TwoFactorAuthService::generateQrCode($user->email . ' (' . $safeName . ')', $newSecret);
 
         return view('vendedor.configuracoes.2fa', [
             'qrCode' => $qrCode,
             'secret' => $newSecret,
             'is_second_device' => true,
-        ])->with('success', 'Segundo dispositivo adicionado! Configure-o em seu novo app autenticador.');
+            'device_name' => $safeName,
+        ])->with('success', 'Dispositivo adicionado! Configure-o no app autenticador.');
     }
 
     public function list2faDevices()
@@ -195,12 +216,28 @@ class VendedorSettingsController extends Controller
         $secrets = $user->two_factor_secret ?? '';
 
         $devices = [];
-        if (str_contains($secrets, ',')) {
-            $parts = explode(',', $secrets);
-            $devices[] = ['name' => 'Dispositivo 1 (Principal)', 'secret' => substr($parts[0], 0, 4).'****'];
-            $devices[] = ['name' => 'Dispositivo 2 (Backup)', 'secret' => substr($parts[1] ?? '', 0, 4).'****'];
-        } else {
-            $devices[] = ['name' => 'Dispositivo Principal', 'secret' => substr($secrets, 0, 4).'****'];
+        if (!empty($secrets)) {
+            $index = 1;
+            foreach (explode(',', $secrets) as $entry) {
+                $entry = trim($entry);
+                if ($entry === '') {
+                    continue;
+                }
+
+                if (str_contains($entry, '|')) {
+                    [$name, $secret] = explode('|', $entry, 2);
+                    $devices[] = [
+                        'name' => $name,
+                        'secret' => substr($secret, 0, 4) . '****',
+                    ];
+                } else {
+                    $devices[] = [
+                        'name' => $index === 1 ? 'Dispositivo Principal' : 'Dispositivo ' . $index,
+                        'secret' => substr($entry, 0, 4) . '****',
+                    ];
+                }
+                $index++;
+            }
         }
 
         return response()->json(['devices' => $devices]);

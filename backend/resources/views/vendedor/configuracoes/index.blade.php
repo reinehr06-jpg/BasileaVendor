@@ -142,6 +142,44 @@
     </div>
     @endif
 
+    <div class="recovery-codes" style="margin-top: 16px;">
+        <h4><i class="fas fa-mobile-screen-button" style="margin-right: 6px; color: #4C1D95;"></i> Dispositivos 2FA</h4>
+        <p style="font-size: 0.78rem; color: #a1a1b5; margin-bottom: 8px;">Adicione mais celulares/aplicativos autenticadores para não perder acesso no deploy.</p>
+        @php
+            $secretRaw = $user->two_factor_secret ?? '';
+            $deviceEntries = [];
+            if (!empty($secretRaw)) {
+                foreach (explode(',', $secretRaw) as $entry) {
+                    $entry = trim($entry);
+                    if ($entry === '') continue;
+                    if (str_contains($entry, '|')) {
+                        [$name, $sec] = explode('|', $entry, 2);
+                        $deviceEntries[] = ['name' => $name, 'mask' => substr($sec, 0, 4) . '****'];
+                    } else {
+                        $deviceEntries[] = ['name' => 'Dispositivo Principal', 'mask' => substr($entry, 0, 4) . '****'];
+                    }
+                }
+            }
+        @endphp
+
+        @if(count($deviceEntries) > 0)
+            <div style="display: grid; gap: 8px; margin-bottom: 12px;">
+                @foreach($deviceEntries as $device)
+                    <div style="display:flex; justify-content:space-between; background:#f8f7ff; border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px; font-size:0.82rem;">
+                        <span>{{ $device['name'] }}</span>
+                        <span style="color:#6b7280;">{{ $device['mask'] }}</span>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+
+        <form method="POST" action="{{ route('vendedor.configuracoes.2fa.add-device') }}" style="display:flex; gap:8px; flex-wrap:wrap;">
+            @csrf
+            <input type="text" name="device_name" maxlength="60" placeholder="Nome do celular (ex: iPhone pessoal)" required style="flex:1; min-width:220px;">
+            <button type="submit" class="btn-save"><i class="fas fa-plus"></i> Adicionar celular</button>
+        </form>
+    </div>
+
     <form method="POST" action="{{ route('vendedor.configuracoes.2fa.disable') }}" style="margin-top: 16px;">
         @csrf
         <div class="form-group">

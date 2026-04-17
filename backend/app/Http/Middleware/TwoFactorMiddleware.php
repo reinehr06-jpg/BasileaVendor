@@ -24,11 +24,10 @@ class TwoFactorMiddleware
             return $next($request);
         }
 
-        // If 2FA is not enabled, force user to set it up
-        // Redirect to 2fa.setup which is OUTSIDE the 2fa middleware group
+        // If 2FA is not enabled, allow access (do not block the system)
+        // This prevents lockouts after deploy/key rotation issues.
         if (!$user->two_factor_enabled) {
-            return redirect()->route('2fa.setup')
-                ->with('warning', '⚠️ Acesso bloqueado: Você deve configurar a autenticação em duas etapas (2FA) antes de usar o sistema.');
+            return $next($request);
         }
 
         // If 2FA is enabled but not verified this session, require verification
