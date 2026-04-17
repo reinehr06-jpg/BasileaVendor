@@ -11,6 +11,7 @@ export default function ChatPage() {
   const [newMessage, setNewMessage] = useState('');
   const [stats, setStats] = useState<ChatStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadStats();
@@ -28,11 +29,13 @@ export default function ChatPage() {
 
   const loadConversations = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const data = await getConversations({ status: 'open', atendimento: activeTab });
+      const data = await getConversations({ atendimento: activeTab });
       setConversations(data.data);
     } catch (e) {
       console.error('Failed to load conversations', e);
+      setError('Erro ao carregar conversas');
     } finally {
       setLoading(false);
     }
@@ -42,9 +45,10 @@ export default function ChatPage() {
     setSelectedConversation(conv);
     try {
       const data = await getConversation(conv.id);
-      setMessages(data.messages.data);
+      setMessages(data.messages?.data || []);
     } catch (e) {
       console.error('Failed to load messages', e);
+      setError('Erro ao carregar mensagens');
     }
   };
 
@@ -52,10 +56,12 @@ export default function ChatPage() {
     if (!newMessage.trim() || !selectedConversation) return;
     try {
       const msg = await sendMessage(selectedConversation.id, newMessage);
-      setMessages([...messages, msg]);
+      setMessages(prev => [...prev, msg]);
       setNewMessage('');
+      loadConversations();
     } catch (e) {
       console.error('Failed to send message', e);
+      setError('Erro ao enviar mensagem');
     }
   };
 
@@ -71,6 +77,26 @@ export default function ChatPage() {
     }
   };
 
+  const getContactName = (conv: ChatConversation) => {
+    return conv.contact?.name || conv.contact?.nome || conv.contact?.phone || conv.contact?.telefone || 'Contato';
+  };
+
+  const getStatusLabel = (conv: ChatConversation) => {
+    if (conv.is_atendido === false || conv.atendimento_status === 'nao_atendido') return 'Não atendido';
+    if (conv.is_atendido === true || conv.atendimento_status === 'atendido') return 'Atendido';
+    return 'Pendente';
+  };
+
+  const formatTime = (dateStr: string | null | undefined) => {
+    if (!dateStr) return 'Sem mensagens';
+    return new Date(dateStr).toLocaleString('pt-BR', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
       <div className="w-1/3 bg-white border-r">
@@ -79,10 +105,10 @@ export default function ChatPage() {
           {stats && (
             <div className="flex gap-2 mt-2 text-sm">
               <span className="px-2 py-1 bg-blue-100 rounded">
-                {stats.nao_atendido} não atendido{stats.nao_atendido !== 1 ? 's' : ''}
+                {stats.nao_atendido} não atendid{stats.nao_atendido !== 1 ? 'os' : 'o'}
               </span>
               <span className="px-2 py-1 bg-green-100 rounded">
-                {stats.atendido} atendimento{stats.atendido !== 1 ? 's' : ''}
+                {stats.atendido} atendiment{stats.atendido !== 1 ? 'os' : 'o'}
               </span>
             </div>
           )}
@@ -104,6 +130,8 @@ export default function ChatPage() {
         <div className="overflow-y-auto h-[calc(100vh-150px)]">
           {loading ? (
             <div className="p-4 text-center text-gray-500">Carregando...</div>
+          ) : error ? (
+            <div className="p-4 text-center text-red-500">{error}</div>
           ) : conversations.length === 0 ? (
             <div className="p-4 text-center text-gray-500">Nenhuma conversa</div>
           ) : (
@@ -113,22 +141,22 @@ export default function ChatPage() {
                 className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${selectedConversation?.id === conv.id ? 'bg-blue-50' : ''}`}
                 onClick={() => selectConversation(conv)}
               >
-                <div className="flex justify-between">
-                  <span className="font-semibold">{conv.contact.name || conv.contact.phone}</span>
-                  {conv.unread_count > 0 && (
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold">{getContactName(conv)}</span>
+                  {(conv.unread_count > 0) && (
                     <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
                       {conv.unread_count}
                     </span>
                   )}
                 </div>
                 <div className="text-sm text-gray-500 mt-1">
-                  {conv.last_inbound_at ? new Date(conv.last_inbound_at).toLocaleString('pt-BR') : 'Sem mensagens'}
+                  {formatTime(conv.last_message_at || conv.last_inbound_at)}
                 </div>
-                {conv.vendedor && (
-                  <div className="text-xs text-gray-400 mt-1">
-                    Atendente: {conv.vendedor.user.name}
-                  </div>
-                )}
+                <div className="text-xs mt-1">
+                  <span className={`px-2 py-0.5 rounded ${conv.is_atendido === false ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                    {getStatusLabel(conv)}
+                  </span>
+                </div>
               </div>
             ))
           )}
@@ -141,10 +169,10 @@ export default function ChatPage() {
             <div className="p-4 bg-white border-b flex justify-between items-center">
               <div>
                 <h2 className="font-bold text-lg">
-                  {selectedConversation.contact.name || selectedConversation.contact.phone}
+                  {getContactName(selectedConversation)}
                 </h2>
                 <div className="text-sm text-gray-500">
-                  {selectedConversation.contact.source} • {selectedConversation.atendimento_status === 'nao_atendido' ? 'Não atendido' : 'Atendido'}
+                  {selectedConversation.contact?.source} • {getStatusLabel(selectedConversation)}
                 </div>
               </div>
               <button
@@ -155,23 +183,27 @@ export default function ChatPage() {
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map(msg => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
-                >
+              {messages.length === 0 ? (
+                <div className="text-center text-gray-400">Sem mensagens ainda</div>
+              ) : (
+                messages.map(msg => (
                   <div
-                    className={`max-w-md px-4 py-2 rounded-lg ${
-                      msg.direction === 'outbound' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                    }`}
+                    key={msg.id}
+                    className={`flex ${msg.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
                   >
-                    {msg.content}
-                    <div className={`text-xs mt-1 ${msg.direction === 'outbound' ? 'text-blue-100' : 'text-gray-500'}`}>
-                      {new Date(msg.created_at).toLocaleTimeString('pt-BR')}
+                    <div
+                      className={`max-w-md px-4 py-2 rounded-lg ${
+                        msg.direction === 'outbound' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+                      }`}
+                    >
+                      {msg.content || msg.conteudo}
+                      <div className={`text-xs mt-1 ${msg.direction === 'outbound' ? 'text-blue-100' : 'text-gray-500'}`}>
+                        {new Date(msg.created_at).toLocaleTimeString('pt-BR')}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <div className="p-4 bg-white border-t flex gap-2">
               <input

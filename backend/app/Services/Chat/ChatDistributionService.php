@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Log;
 class ChatDistributionService
 {
     protected const MINUTOS_INATIVIDADE = 60;
+    protected const MINUTOS_PRIMEIRO_CONTATO = 30;
     protected const LOCK_TIMEOUT = 10;
 
     public function isEnabled(): bool
@@ -21,16 +22,83 @@ class ChatDistributionService
         return (bool) Setting::get('chat_enabled', false);
     }
 
+    public function isEnabledForGestor(int $gestorId): bool
+    {
+        $global = $this->isEnabled();
+        if (!$global) {
+            return false;
+        }
+
+        $gestorConfig = DB::table('chat_gestor_configs')
+            ->where('gestor_id', $gestorId)
+            ->first();
+
+        if ($gestorConfig) {
+            return (bool) $gestorConfig->chat_enabled;
+        }
+
+        return $global;
+    }
+
+    public function getSlaPrimeiroContato(?int $gestorId = null): int
+    {
+        if ($gestorId) {
+            $gestorConfig = DB::table('chat_gestor_configs')
+                ->where('gestor_id', $gestorId)
+                ->first();
+            if ($gestorConfig && $gestorConfig->sla_primeiro_contato) {
+                return (int) $gestorConfig->sla_primeiro_contato;
+            }
+        }
+
+        return (int) Setting::get('chat_sla_primeiro_contato', self::MINUTOS_PRIMEIRO_CONTATO);
+    }
+
+    public function getSlaInatividade(?int $gestorId = null): int
+    {
+        if ($gestorId) {
+            $gestorConfig = DB::table('chat_gestor_configs')
+                ->where('gestor_id', $gestorId)
+                ->first();
+            if ($gestorConfig && $gestorConfig->sla_inatividade) {
+                return (int) $gestorConfig->sla_inatividade;
+            }
+        }
+
+        return (int) Setting::get('chat_sla_inatividade', self::MINUTOS_INATIVIDADE);
+    }
+
+    public function getRetornoDias(?int $gestorId = null): int
+    {
+        if ($gestorId) {
+            $gestorConfig = DB::table('chat_gestor_configs')
+                ->where('gestor_id', $gestorId)
+                ->first();
+            if ($gestorConfig && $gestorConfig->retorno_dias) {
+                return (int) $gestorConfig->retorno_dias;
+            }
+        }
+
+        return (int) Setting::get('chat_retorno_dias', 7);
+    }
+
     public function distributeLead(ChatContact $contact): ?ChatConversa
     {
         if (!$this->isEnabled()) {
-            Log::info('ChatDistribution: Módulo desativado via feature flag');
+            Log::info('ChatDistribution: Módulo desativado via feature flag global');
             return null;
         }
 
         if (!$contact->gestor_id) {
             Log::warning('ChatDistribution: Contato sem gestor_id para distribuição', [
                 'contact_id' => $contact->id
+            ]);
+            return null;
+        }
+
+        if (!$this->isEnabledForGestor($contact->gestor_id)) {
+            Log::info('ChatDistribution: Módulo desativado para este gestor', [
+                'gestor_id' => $contact->gestor_id
             ]);
             return null;
         }
@@ -168,7 +236,9 @@ class ChatDistributionService
         $minutosSemResposta = now()->diffInMinutes($ultimaMensagem);
         
         $primeiroContato = $conversa->first_response_at === null;
-        $limiteMinutos = $primeiroContato ? 30 : 60;
+        $limiteMinutos = $primeiroContato 
+            ? $this->getSlaPrimeiroContato($conversa->gestor_id)
+            : $this->getSlaInatividade($conversa->gestor_id);
         
         Log::info('ChatInatividade: Verificando', [
             'conversa_id' => $conversa->id,

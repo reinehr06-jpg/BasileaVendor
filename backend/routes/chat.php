@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Chat\ChatController;
+use App\Http\Controllers\Chat\ChatWebhookController;
 
 Route::middleware(['auth'])->group(function () {
     Route::prefix('chat')->name('chat.')->group(function () {

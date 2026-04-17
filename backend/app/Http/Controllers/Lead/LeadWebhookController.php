@@ -251,7 +251,8 @@ class LeadWebhookController extends Controller
 
     public function verifyGoogleAds(Request $request)
     {
-        $webhookKey = \App\Models\Setting::get('google_ads_webhook_key', 'gads_k9x2mPqR7vLnT4wZ');
+        $webhookKey = \App\Models\Setting::get('chat_google_ads_webhook_key') 
+            ?? \App\Models\Setting::get('google_ads_webhook_key', 'gads_k9x2mPqR7vLnT4wZ');
         
         Log::info('[Lead] Google Ads webhook verificação', ['key' => substr($webhookKey, 0, 8) . '...']);
         
@@ -265,7 +266,8 @@ class LeadWebhookController extends Controller
         $tenantId = $this->getTenantId($request);
         
         $payload = $request->all();
-        $webhookKey = \App\Models\Setting::get('google_ads_webhook_key', 'gads_k9x2mPqR7vLnT4wZ');
+        $webhookKey = \App\Models\Setting::get('chat_google_ads_webhook_key') 
+            ?? \App\Models\Setting::get('google_ads_webhook_key', 'gads_k9x2mPqR7vLnT4wZ');
         
         Log::info('[Lead] Google Ads lead recebido', ['tenant_id' => $tenantId, 'payload' => $payload]);
 

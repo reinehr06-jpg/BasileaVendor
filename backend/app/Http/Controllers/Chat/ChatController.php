@@ -7,6 +7,7 @@ use App\Models\ChatContact;
 use App\Models\ChatConversa;
 use App\Models\ChatMensagem;
 use App\Models\ChatAtividade;
+use App\Models\Vendedor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -264,5 +265,206 @@ class ChatController extends Controller
             ->get();
 
         return response()->json(['conversas' => $conversas]);
+    }
+
+    public function contacts(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user->vendedor) {
+            return response()->json(['data' => []]);
+        }
+
+        $vendedorId = $user->vendedor->id;
+
+        $query = ChatConversa::with(['contact'])
+            ->where('vendedor_id', $vendedorId)
+            ->orderBy('last_message_at', 'desc');
+        
+        $conversas = $query->paginate(30);
+
+        return response()->json($conversas);
+    }
+
+    public function conversations(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user->vendedor) {
+            return response()->json(['data' => []]);
+        }
+
+        if (!$this->distributionService->isEnabled()) {
+            return response()->json(['data' => []]);
+        }
+
+        $vendedorId = $user->vendedor->id;
+        $atendimento = $request->get('atendimento');
+        
+        $query = ChatConversa::with(['contact', 'ultimoMensagem'])
+            ->where('vendedor_id', $vendedorId)
+            ->orderBy('pinned', 'desc')
+            ->orderBy('last_message_at', 'desc');
+
+        if ($atendimento === 'atendido') {
+            $query->where('is_atendido', true);
+        } elseif ($atendimento === 'nao_atendido') {
+            $query->where('is_atendido', false);
+        }
+
+        return response()->json($query->paginate(30));
+    }
+
+    public function conversation(Request $request, $id)
+    {
+        $user = Auth::user();
+        
+        if (!$user->vendedor) {
+            return response()->json(['error' => 'Perfil não encontrado'], 403);
+        }
+
+        $vendedorId = $user->vendedor->id;
+
+        $conversa = ChatConversa::with(['contact', 'mensagens'])
+            ->where('vendedor_id', $vendedorId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $conversa->update([
+            'unread_count' => 0,
+            'unread_at' => null
+        ]);
+
+        ChatMensagem::where('conversa_id', $conversa->id)
+            ->where('direction', 'inbound')
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'read_at' => now()]);
+
+        return response()->json([
+            'conversation' => $conversa,
+            'messages' => ['data' => $conversa->mensagens]
+        ]);
+    }
+
+    public function stats(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user->vendedor) {
+            return response()->json([
+                'total' => 0,
+                'open' => 0,
+                'closed' => 0,
+                'nao_atendido' => 0,
+                'atendido' => 0,
+                'resolved' => 0
+            ]);
+        }
+
+        $vendedorId = $user->vendedor->id;
+
+        return response()->json([
+            'total' => ChatConversa::where('vendedor_id', $vendedorId)->count(),
+            'open' => ChatConversa::where('vendedor_id', $vendedorId)->where('status', 'aberta')->count(),
+            'closed' => ChatConversa::where('vendedor_id', $vendedorId)->where('status', '!=', 'aberta')->count(),
+            'nao_atendido' => ChatConversa::where('vendedor_id', $vendedorId)->where('is_atendido', false)->count(),
+            'atendido' => ChatConversa::where('vendedor_id', $vendedorId)->where('is_atendido', true)->count(),
+            'resolved' => ChatConversa::where('vendedor_id', $vendedorId)->where('status', 'resolvida')->count()
+        ]);
+    }
+
+    public function resolve(Request $request, $id)
+    {
+        $user = Auth::user();
+        
+        if (!$user->vendedor) {
+            return response()->json(['error' => 'Perfil não encontrado'], 403);
+        }
+
+        $vendedorId = $user->vendedor->id;
+
+        $conversa = ChatConversa::where('vendedor_id', $vendedorId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $conversa->update([
+            'status' => 'resolvida',
+            'is_resolved' => true,
+            'resolved_at' => now(),
+            'resolved_by' => $vendedorId
+        ]);
+
+        ChatAtividade::create([
+            'conversa_id' => $conversa->id,
+            'vendedor_id' => $vendedorId,
+            'acao' => 'conversa_resolvida',
+            'detalhes' => 'Conversa resolvida pelo vendedor'
+        ]);
+
+        return response()->json(['success' => true, 'conversation' => $conversa]);
+    }
+
+    public function transfer(Request $request, $id)
+    {
+        $user = Auth::user();
+        
+        if (!$user->vendedor) {
+            return response()->json(['error' => 'Perfil não encontrado'], 403);
+        }
+
+        $vendedorId = $user->vendedor->id;
+
+        $request->validate([
+            'vendedor_id' => 'required|exists:vendedores,id'
+        ]);
+
+        $conversa = ChatConversa::where('vendedor_id', $vendedorId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $novoVendedor = Vendedor::find($request->vendedor_id);
+        
+        $vendedorAnteriorId = $conversa->vendedor_id;
+        
+        $conversa->update([
+            'vendedor_id' => $request->vendedor_id,
+            'assigned_at' => now()
+        ]);
+
+        ChatAtividade::create([
+            'conversa_id' => $conversa->id,
+            'vendedor_id' => $vendedorId,
+            'acao' => 'conversa_transferida',
+            'detalhes' => "Transferida para {$novoVendedor->nome}"
+        ]);
+
+        return response()->json(['success' => true, 'conversation' => $conversa]);
+    }
+
+    public function markRead(Request $request, $id)
+    {
+        $user = Auth::user();
+        
+        if (!$user->vendedor) {
+            return response()->json(['error' => 'Perfil não encontrado'], 403);
+        }
+
+        $vendedorId = $user->vendedor->id;
+
+        $conversa = ChatConversa::where('vendedor_id', $vendedorId)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $conversa->update([
+            'unread_count' => 0,
+            'unread_at' => null
+        ]);
+        
+        ChatMensagem::where('conversa_id', $conversa->id)
+            ->where('direction', 'inbound')
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'read_at' => now()]);
+
+        return response()->json(['success' => true]);
     }
 }
