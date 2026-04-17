@@ -94,17 +94,12 @@ class TwoFactorController extends Controller
         } catch (DecryptException $e) {
             Log::error('2FA_VERIFY_DECRYPT_ERROR', ['user_id' => $user->id, 'error' => $e->getMessage()]);
 
-            // Auto-heal: se ocorreu erro de decriptação, a APP_KEY mudou ou os dados estão corrompidos.
-            // Limpa o 2FA via Query Builder para não acionar os Casts do Model.
-            DB::table('users')
-                ->where('id', $user->id)
-                ->update([
-                    'two_factor_enabled' => false,
-                    'two_factor_secret' => null,
-                    'recovery_codes' => null,
-                ]);
-
-            return redirect()->route('2fa.setup')->with('warning', 'O sistema de chaves foi atualizado e seu 2FA antigo expirou. Por favor, reconfigure seu aplicativo autenticador e salve os novos códigos.');
+            // Erro de descriptografia indica APP_KEY mudou ou dados corrompidos.
+            // NÃO limpa 2FA automaticamente para evitar perda de dados em deploys.
+            // Usuário precisa acionar reset manual via suporte ou configurations.
+            return back()->withErrors([
+                'code' => 'Erro de segurança (APP_KEY alterada?). Entre em contato com suporte ou redefina seu 2FA.',
+            ]);
         } catch (\Exception $e) {
             Log::error('2FA_VERIFY_FATAL_ERROR', ['user_id' => $user->id, 'error' => $e->getMessage()]);
 
@@ -168,7 +163,6 @@ class TwoFactorController extends Controller
                 DB::table('users')
                     ->where('id', $user->id)
                     ->update(['two_factor_secret' => encrypt($newSecret, false)]);
-                $user->refresh();
                 $secret = $newSecret;
             }
 
@@ -225,7 +219,11 @@ class TwoFactorController extends Controller
             if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
                 $user->two_factor_enabled = true;
                 $user->recovery_codes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
-                $user->save();
+                // Use query builder to avoid encrypted cast issues during deploy/key rotation
+                DB::table('users')->where('id', $user->id)->update([
+                    'two_factor_enabled' => true,
+                    'recovery_codes' => $user->recovery_codes,
+                ]);
 
                 // Mark as verified since user just proved they have the authenticator
                 Session::put('2fa_verified_'.$user->id, true);
@@ -276,19 +274,21 @@ class TwoFactorController extends Controller
             'code' => ['required', 'digits:6'],
         ]);
 
-        if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
-            $user->two_factor_enabled = false;
-            $user->two_factor_secret = null;
-            $user->recovery_codes = null;
-            $user->save();
+if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
+                // Use query builder to avoid encrypted cast issues during deploy/key rotation
+                DB::table('users')->where('id', $user->id)->update([
+                    'two_factor_enabled' => false,
+                    'two_factor_secret' => null,
+                    'recovery_codes' => null,
+                ]);
 
-            Session::forget('2fa_verified_'.$user->id);
-            Cache::forget('2fa_attempts_'.$user->id);
-            Cache::forget('2fa_lock_'.$user->id);
-            SecurityLogService::logTwoFactorEvent($user->id, 'disabled', 'success');
+                Session::forget('2fa_verified_'.$user->id);
+                Cache::forget('2fa_attempts_'.$user->id);
+                Cache::forget('2fa_lock_'.$user->id);
+                SecurityLogService::logTwoFactorEvent($user->id, 'disabled', 'success');
 
-            return back()->with('success', 'Autenticação de dois fatores desativada.');
-        }
+                return back()->with('success', 'Autenticação de dois fatores desativada.');
+            }
 
         return back()->withErrors(['code' => 'Código inválido.']);
     }
