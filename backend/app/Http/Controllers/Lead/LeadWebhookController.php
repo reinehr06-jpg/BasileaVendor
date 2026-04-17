@@ -248,4 +248,130 @@ class LeadWebhookController extends Controller
 
         return hash_equals($expected, $signature);
     }
+
+    public function verifyGoogleAds(Request $request)
+    {
+        $webhookKey = \App\Models\Setting::get('google_ads_webhook_key', 'gads_k9x2mPqR7vLnT4wZ');
+        
+        Log::info('[Lead] Google Ads webhook verificação', ['key' => substr($webhookKey, 0, 8) . '...']);
+        
+        return response()->json([
+            'google_key' => $webhookKey
+        ]);
+    }
+
+    public function handleGoogleAds(Request $request)
+    {
+        $tenantId = $this->getTenantId($request);
+        
+        $payload = $request->all();
+        $webhookKey = \App\Models\Setting::get('google_ads_webhook_key', 'gads_k9x2mPqR7vLnT4wZ');
+        
+        Log::info('[Lead] Google Ads lead recebido', ['tenant_id' => $tenantId, 'payload' => $payload]);
+
+        if (!isset($payload['google_key']) || $payload['google_key'] !== $webhookKey) {
+            Log::warning('[Lead] Google Ads chave inválida', [
+                'recebida' => $payload['google_key'] ?? 'vazia',
+                'esperada' => substr($webhookKey, 0, 8) . '...'
+            ]);
+            return response()->json(['error' => 'Chave inválida'], 401);
+        }
+
+        if (isset($payload['is_test']) && $payload['is_test'] === true) {
+            Log::info('[Lead] Google Ads lead de teste ignorado');
+            return response()->json(['received' => true]);
+        }
+
+        DB::table('lead_inbound_logs')->insert([
+            'tenant_id' => $tenantId,
+            'source' => 'google_ads',
+            'raw_payload' => json_encode($payload),
+            'leadgen_id' => $payload['lead_id'] ?? null,
+            'form_id' => $payload['form_id'] ?? null,
+            'ad_id' => $payload['campaign_id'] ?? null,
+            'adgroup_id' => $payload['adgroup_id'] ?? null,
+            'campaign_id' => $payload['campaign_id'] ?? null,
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            $this->leadService->setTenant($tenantId);
+            
+            $cols = $payload['user_column_data'] ?? [];
+            $getColumn = function($columnId) use ($cols) {
+                foreach ($cols as $col) {
+                    if (($col['column_id'] ?? '') === $columnId || ($col['column_name'] ?? '') === $columnId) {
+                        return $col['string_value'] ?? null;
+                    }
+                }
+                return null;
+            };
+
+            $fullName = $getColumn('FULL_NAME');
+            if (!$fullName) {
+                $firstName = $getColumn('FIRST_NAME') ?? '';
+                $lastName = $getColumn('LAST_NAME') ?? '';
+                $fullName = trim($firstName . ' ' . $lastName);
+            }
+
+            $phone = $getColumn('PHONE_NUMBER');
+            if ($phone) {
+                $phone = $this->normalizePhone($phone);
+            }
+
+            $email = $getColumn('EMAIL');
+            $city = $getColumn('CITY');
+            $zip = $getColumn('ZIP_CODE');
+
+            $this->leadService->process([
+                'name' => $fullName,
+                'phone' => $phone,
+                'email' => $email,
+                'source' => 'google_ads',
+                'meta' => [
+                    'lead_id' => $payload['lead_id'] ?? null,
+                    'form_id' => $payload['form_id'] ?? null,
+                    'campaign_id' => $payload['campaign_id'] ?? null,
+                    'adgroup_id' => $payload['adgroup_id'] ?? null,
+                    'creative_id' => $payload['creative_id'] ?? null,
+                    'asset_group_id' => $payload['asset_group_id'] ?? null,
+                    'lead_stage' => $payload['lead_stage'] ?? null,
+                    'lead_submit_time' => $payload['lead_submit_time'] ?? null,
+                    'city' => $city,
+                    'zip_code' => $zip,
+                ],
+                'utm_source' => 'google_ads',
+                'utm_campaign' => $payload['campaign_id'] ?? null,
+            ]);
+
+            DB::table('lead_inbound_logs')
+                ->where('source', 'google_ads')
+                ->whereRaw('raw_payload::jsonb->>\'lead_id\' = ?', [$payload['lead_id'] ?? ''])
+                ->update(['status' => 'processed', 'updated_at' => now()]);
+
+        } catch (\Exception $e) {
+            Log::error('[Lead] Erro ao processar lead Google Ads', ['error' => $e->getMessage()]);
+        }
+
+        return response()->json(['received' => true]);
+    }
+
+    protected function normalizePhone(string $phone): string
+    {
+        if (!$phone) return '';
+        
+        $digits = preg_replace('/\D/', '', $phone);
+        
+        if (str_starts_with($digits, '55') && strlen($digits) >= 12) {
+            return '+' . $digits;
+        }
+        
+        if (strlen($digits) === 10 || strlen($digits) === 11) {
+            return '+55' . $digits;
+        }
+        
+        return $digits;
+    }
 }

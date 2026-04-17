@@ -142,6 +142,8 @@ Route::prefix('leads')->name('leads.')->group(function () {
     Route::post('/linkedin', [LeadWebhookController::class, 'handleLinkedIn'])->name('linkedin');
     Route::post('/tiktok', [LeadWebhookController::class, 'handleTikTok'])->name('tiktok');
     Route::post('/site', [LeadWebhookController::class, 'handleSite'])->name('site');
+    Route::get('/google-ads', [LeadWebhookController::class, 'verifyGoogleAds'])->name('google_verify');
+    Route::post('/google-ads', [LeadWebhookController::class, 'handleGoogleAds'])->name('google_ads');
 });
 
 // ==========================================
