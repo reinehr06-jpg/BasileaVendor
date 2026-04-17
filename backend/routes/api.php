@@ -8,8 +8,10 @@ use App\Http\Controllers\CobrancaController;
 use App\Http\Controllers\Api\ClienteStatusController;
 use App\Http\Controllers\Api\CheckoutSessionController;
 use App\Http\Controllers\Api\SubscriptionController;
-use App\Http\Controllers\Api\LimparBancoController;
-use App\Http\Middleware\ApiKeyAuth;
+use App\Http\Controllers\Chat\ChatController;
+use App\Http\Controllers\Chat\ChatWebhookController;
+use App\Http\Controllers\Lead\LeadWebhookController;
+use App\Http\Controllers\Lead\LeadController;
 
 // ==========================================
 // Rotas Públicas Integracoes
@@ -100,9 +102,70 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 // ==========================================
+// API Chat Module
+// ==========================================
+Route::middleware(['auth:sanctum'])->prefix('chat')->name('chat.')->group(function () {
+    Route::get('/contacts', [ChatController::class, 'contacts'])->name('contacts');
+    Route::get('/conversations', [ChatController::class, 'conversations'])->name('conversations');
+    Route::get('/conversations/{id}', [ChatController::class, 'conversation'])->name('conversation');
+    Route::post('/conversations/{id}/message', [ChatController::class, 'sendMessage'])->name('send');
+    Route::post('/conversations/{id}/resolve', [ChatController::class, 'resolve'])->name('resolve');
+    Route::post('/conversations/{id}/transfer', [ChatController::class, 'transfer'])->name('transfer');
+    Route::post('/conversations/{id}/read', [ChatController::class, 'markRead'])->name('read');
+    Route::get('/stats', [ChatController::class, 'stats'])->name('stats');
+});
+
+// ==========================================
+// Chat Webhooks (Públicos)
+// ==========================================
+Route::prefix('webhook/chat')->name('chat.webhook.')->group(function () {
+    Route::post('/whatsapp', [ChatWebhookController::class, 'handleWhatsApp'])->name('whatsapp');
+    Route::post('/meta', [ChatWebhookController::class, 'handleMeta'])->name('meta');
+    Route::post('/google', [ChatWebhookController::class, 'handleGoogle'])->name('google');
+    Route::post('/{provider}', [ChatWebhookController::class, 'handleProvider'])->name('provider');
+});
+
+// ==========================================
 // API Pública para Serviços Integrados (Site, etc)
 // ==========================================
 Route::middleware(ApiKeyAuth::class)->prefix('checkout')->group(function () {
     Route::post('/session', [CheckoutSessionController::class, 'create']);
     Route::get('/session/{id}', [CheckoutSessionController::class, 'show']);
+});
+
+// ==========================================
+// Lead Webhooks (Públicos)
+// ==========================================
+Route::prefix('leads')->name('leads.')->group(function () {
+    Route::get('/meta-verify', [LeadWebhookController::class, 'verifyMeta'])->name('meta_verify');
+    Route::post('/meta-ads', [LeadWebhookController::class, 'handleMeta'])->name('meta_ads');
+    Route::post('/linkedin', [LeadWebhookController::class, 'handleLinkedIn'])->name('linkedin');
+    Route::post('/tiktok', [LeadWebhookController::class, 'handleTikTok'])->name('tiktok');
+    Route::post('/site', [LeadWebhookController::class, 'handleSite'])->name('site');
+});
+
+// ==========================================
+// Lead Management (Autenticado)
+// ==========================================
+Route::middleware(['auth:sanctum'])->prefix('leads')->name('leads.')->group(function () {
+    Route::get('/', [LeadController::class, 'index']);
+    Route::get('/kanban', [LeadController::class, 'kanban']);
+    Route::get('/dashboard', [LeadController::class, 'dashboard']);
+    Route::get('/export', [LeadController::class, 'exportar']);
+    Route::get('/agendamentos', [LeadController::class, 'getAgendamentos']);
+    Route::get('/quick-replies', [LeadController::class, 'quickReplies']);
+    Route::get('/custom-fields', [LeadController::class, 'customFields']);
+    
+    Route::post('/{id}/etapa', [LeadController::class, 'updateEtapa']);
+    Route::post('/{id}/transferir', [LeadController::class, 'transferir']);
+    Route::post('/{id}/agendar', [LeadController::class, 'agendar']);
+    Route::post('/{id}/custom-fields', [LeadController::class, 'updateLeadCustomFields']);
+    Route::get('/{id}/historico', [LeadController::class, 'getTransferHistory']);
+    
+    Route::patch('/agendamentos/{id}/complete', [LeadController::class, 'completarAgendamento']);
+    
+    Route::post('/quick-replies', [LeadController::class, 'createQuickReply']);
+    Route::delete('/quick-replies/{id}', [LeadController::class, 'deleteQuickReply']);
+    
+    Route::post('/custom-fields', [LeadController::class, 'createCustomField']);
 });
