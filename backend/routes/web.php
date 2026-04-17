@@ -492,7 +492,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
 // Módulo Chat - Admin
 // ==========================================
 Route::prefix('admin/chat')->name('admin.chat.')->group(function () {
-    Route::middleware(['auth', 'admin'])->group(function () {
+    Route::middleware(['auth'])->group(function () {
         Route::get('/contatos', [App\Http\Controllers\Chat\ChatAdminController::class, 'contatos'])->name('contatos');
         Route::post('/contatos/{id}/tags', [App\Http\Controllers\Chat\ChatAdminController::class, 'atualizarTags'])->name('contatos.tags');
         Route::get('/', [App\Http\Controllers\Chat\ChatAdminController::class, 'chatIndex'])->name('index');
