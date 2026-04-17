@@ -18,8 +18,9 @@ class TwoFactorMiddleware
 
         $user = Auth::user();
 
-        // Allow access to 2FA setup, verify, enable, disable, logout and password routes
-        if ($request->is('2fa/*') || $request->is('logout') || $request->is('password/*')) {
+        // Allow access to 2FA setup, verify, enable, disable, logout, password routes and chat routes
+        if ($request->is('2fa/*') || $request->is('logout') || $request->is('password/*')
+            || $request->is('admin/chat*') || $request->is('chat*') || $request->is('webhook/chat*')) {
             return $next($request);
         }
 
