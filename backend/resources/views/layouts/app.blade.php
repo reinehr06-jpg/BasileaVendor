@@ -279,6 +279,17 @@
                     <i class="fas fa-check-double"></i> Aprovações Pendentes
                 </a>
 
+                <div class="menu-section">Chat</div>
+                <a href="{{ route('admin.chat.index') }}" class="menu-item {{ request()->routeIs('admin.chat*') ? 'active' : '' }}">
+                    <i class="fab fa-whatsapp"></i> Conversas
+                </a>
+                <a href="{{ route('admin.chat.contatos') }}" class="menu-item {{ request()->routeIs('admin.chat.contatos') ? 'active' : '' }}">
+                    <i class="fas fa-address-book"></i> Contatos
+                </a>
+                <a href="{{ route('admin.chat.config.status') }}" class="menu-item {{ request()->routeIs('admin.chat.config*') ? 'active' : '' }}">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
+
 
 
                 <div class="menu-section">Financeiro</div>
@@ -312,6 +323,14 @@
                     <i class="fas fa-shopping-bag"></i> Vendas Realizadas
                 </a>
                 <a href="{{ route('vendedor.clientes') }}" class="menu-item {{ request()->routeIs('vendedor.clientes*') ? 'active' : '' }}">
+                    <i class="fas fa-users"></i> Meus Clientes
+                </a>
+
+                <div class="menu-section">Chat</div>
+                <a href="{{ route('chat.index') }}" class="menu-item {{ request()->routeIs('chat.index') || request()->routeIs('chat.conversa') ? 'active' : '' }}">
+                    <i class="fab fa-whatsapp"></i> Minhas Conversas
+                </a>
+            @else
                     <i class="fas fa-building"></i> Meus Clientes
                 </a>
                 <a href="{{ route('vendedor.pagamentos') }}" class="menu-item {{ request()->routeIs('vendedor.pagamentos') ? 'active' : '' }}">
@@ -330,6 +349,17 @@
                 <div class="menu-section">Gestão</div>
                 <a href="{{ route('vendedor.equipe') }}" class="menu-item {{ request()->routeIs('vendedor.equipe*') ? 'active' : '' }}">
                     <i class="fas fa-people-group"></i> Minha Equipe
+                </a>
+
+                <div class="menu-section">Chat</div>
+                <a href="{{ route('gestor.chat.index') }}" class="menu-item {{ request()->routeIs('gestor.chat*') ? 'active' : '' }}">
+                    <i class="fab fa-whatsapp"></i> Conversas
+                </a>
+                <a href="{{ route('gestor.chat.distribuicao') }}" class="menu-item {{ request()->routeIs('gestor.chat.distribuicao') ? 'active' : '' }}">
+                    <i class="fas fa-list-ol"></i> Fila de Distribuição
+                </a>
+                <a href="{{ route('gestor.chat.config') }}" class="menu-item {{ request()->routeIs('gestor.chat.config') ? 'active' : '' }}">
+                    <i class="fas fa-cog"></i> WhatsApp
                 </a>
                 @endif
             @endif
