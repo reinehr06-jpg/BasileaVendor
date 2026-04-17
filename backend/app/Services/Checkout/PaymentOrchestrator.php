@@ -269,7 +269,7 @@ class PaymentOrchestrator
             'customer' => $customerId,
             'billingType' => $billingType,
             'value' => $order->total,
-            'dueDate' => now()->addDays(3)->format('d-m-Y'),
+            'dueDate' => $this->calcularDataVencimento($paymentData['payment_method'], $order->checkoutSession->offer->slug ?? null)->format('d-m-Y'),
             'description' => "Pedido #{$order->order_number}",
             'externalReference' => $order->order_number,
         ];
@@ -307,7 +307,7 @@ class PaymentOrchestrator
         return $this->asaasService->createPayment(
             $customerId,
             $order->total,
-            now()->addDays(3)->format('d-m-Y'),
+            $this->calcularDataVencimento($paymentData['payment_method'], $order->checkoutSession->offer->slug ?? null)->format('d-m-Y'),
             $billingType,
             "Pedido #{$order->order_number}",
             $order->order_number
@@ -431,7 +431,7 @@ class PaymentOrchestrator
 
         if ($isAnual) {
             if ($isBoleto) {
-                return now()->addDays(3);
+                return now()->addDays(5);
             }
 
             return now()->addDays(15);

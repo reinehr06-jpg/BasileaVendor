@@ -145,7 +145,9 @@ class GerarRenovacaoAnual extends Command
         ]);
 
         // Criar cobrança no Asaas
-        $dataVencimento = Carbon::now()->addDays(3)->format('Y-m-d');
+        $isBoleto = in_array(strtoupper($vendaOriginal->forma_pagamento ?? ''), ['BOLETO', 'BOLETO_BANCARIO']);
+        $diasVencimento = $isBoleto ? 5 : 15;
+        $dataVencimento = Carbon::now()->addDays($diasVencimento)->format('Y-m-d');
         $descricaoCobranca = "Basiléia - Renovação Plano {$vendaOriginal->plano} (Anual)";
 
         // Determinar split se aplicável

@@ -126,7 +126,9 @@ class AprovacaoController extends Controller
             $cliente->save();
         }
 
-        $dataVencimento = Carbon::now()->addDays(3)->format('Y-m-d');
+        $isAnual = in_array(strtolower($venda->tipo_negociacao ?? ''), ['anual', 'annual']);
+        $isBoleto = $venda->forma_pagamento === 'BOLETO';
+        $dataVencimento = Carbon::now()->addDays($isAnual && $isBoleto ? 5 : 3)->format('Y-m-d');
         $descricaoCobranca = "Basiléia - Plano {$venda->plano} ({$venda->tipo_negociacao})";
 
         // Determinar split se aplicável

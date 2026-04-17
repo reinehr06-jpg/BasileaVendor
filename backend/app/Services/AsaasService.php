@@ -133,9 +133,17 @@ class AsaasService
         };
 
         $description = "Pagamento - " . ($venda->plano ?? 'Venda #' . $venda->id);
-        $dueDate = now()->addDays(3)->format('Y-m-d'); // 3 dias de validade por padrão
         
-        // Se for cartão, a descrição pode ser mais específica
+        $isBoleto = $billingType === 'BOLETO';
+        $isAnual = $venda && in_array(strtolower($venda->tipo_negociacao ?? ''), ['anual', 'annual']);
+        
+        if ($isAnual) {
+            $dueDate = now()->addDays($isBoleto ? 5 : 15)->format('Y-m-d');
+        } else {
+            $dueDate = now()->addDays(5)->format('Y-m-d');
+        }
+        
+        // Se for cartão, usar data de hoje
         if ($billingType === 'CREDIT_CARD') {
             $dueDate = now()->format('Y-m-d');
         }

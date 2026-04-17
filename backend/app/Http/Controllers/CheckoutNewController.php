@@ -71,7 +71,7 @@ class CheckoutNewController extends Controller
             $vencimentoDias = $isAnual ? [
                 'pix' => 15,
                 'cartao' => 15,
-                'boleto' => 3,
+                'boleto' => 5,
             ] : [
                 'pix' => 5,
                 'cartao' => 5,

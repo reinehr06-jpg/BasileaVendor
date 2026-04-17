@@ -150,11 +150,15 @@ class CheckoutService
             }
         }
 
+        $isAnual = $venda && in_array(strtolower($venda->tipo_negociacao ?? ''), ['anual', 'annual']);
+        $isBoleto = in_array(strtoupper($billingType), ['BOLETO', 'BOLETO_BANCARIO']);
+        $diasVencimento = ($isAnual && !$isBoleto) ? 15 : 5;
+
         $asaasData = [
             'customer' => $asaasCustomer['id'],
             'billingType' => $billingType,
             'value' => number_format($valorConvertido, 2, '.', ''),
-            'dueDate' => now()->addDays(3)->format('Y-m-d'),
+            'dueDate' => now()->addDays($diasVencimento)->format('Y-m-d'),
             'description' => "Assinatura {$venda->plano} - {$cliente->nome}",
             'split' => $split,
             'externalReference' => "venda_{$venda->id}",

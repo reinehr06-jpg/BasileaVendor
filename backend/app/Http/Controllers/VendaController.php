@@ -1221,8 +1221,9 @@ class VendaController extends Controller
                             }
                         }
 
-                        // Boleto expira em 72h (3 dias)
-                        $dueDate = now()->addDays(3)->format('Y-m-d');
+                        // Boleto: 5 dias para anual, 3 dias para mensal
+                        $isAnual = in_array(strtolower($venda->tipo_negociacao ?? ''), ['anual', 'annual']);
+                        $dueDate = now()->addDays($isAnual ? 5 : 3)->format('Y-m-d');
 
                         $asaasResult = $asaasService->createPayment(
                             $asaasCustomerId,
@@ -1236,9 +1237,10 @@ class VendaController extends Controller
                         $asaasId = $asaasResult['id'] ?? null;
 
                         if ($asaasId) {
+                            $isAnual = in_array(strtolower($venda->tipo_negociacao ?? ''), ['anual', 'annual']);
                             $venda->update([
                                 'asaas_payment_link_id' => $asaasId,
-                                'link_valido_ate' => now()->addDays(3),
+                                'link_valido_ate' => now()->addDays($isAnual ? 5 : 3),
                             ]);
                             Pagamento::create([
                                 'venda_id' => $venda->id,
@@ -1535,7 +1537,7 @@ class VendaController extends Controller
         );
 
         if ($isAnual) {
-            return now()->addDays($isBoleto ? 3 : 15)->format('Y-m-d');
+            return now()->addDays($isBoleto ? 5 : 15)->format('Y-m-d');
         }
 
         return now()->addDays(5)->format('Y-m-d');
