@@ -19,7 +19,7 @@ class ChatDistributionService
 
     public function isEnabled(): bool
     {
-        return (bool) Setting::get('chat_enabled', false);
+        return (bool) Setting::get('chat_enabled', true);
     }
 
     public function isEnabledForGestor(int $gestorId): bool

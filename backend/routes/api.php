@@ -12,6 +12,8 @@ use App\Http\Controllers\Chat\ChatController;
 use App\Http\Controllers\Chat\ChatWebhookController;
 use App\Http\Controllers\Lead\LeadWebhookController;
 use App\Http\Controllers\Lead\LeadController;
+use App\Http\Controllers\Api\LimparBancoController;
+use App\Http\Middleware\ApiKeyAuth;
 
 // ==========================================
 // Rotas Públicas Integracoes

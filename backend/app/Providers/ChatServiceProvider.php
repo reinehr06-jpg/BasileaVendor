@@ -41,7 +41,7 @@ class ChatServiceProvider extends ServiceProvider
     protected function ensureFeatureFlags(): void
     {
         $settings = [
-            'chat_enabled' => false,
+            'chat_enabled' => true,
             'chat_sla_primeiro_contato' => 30,
             'chat_sla_inatividade' => 60,
             'chat_retorno_dias' => 7,

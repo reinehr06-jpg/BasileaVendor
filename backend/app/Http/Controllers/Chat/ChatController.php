@@ -363,6 +363,11 @@ class ChatController extends Controller
 
         $vendedorId = $user->vendedor->id;
 
+        Log::info('Chat stats requested', [
+            'user_id' => $user->id,
+            'vendedor_id' => $vendedorId
+        ]);
+
         return response()->json([
             'total' => ChatConversa::where('vendedor_id', $vendedorId)->count(),
             'open' => ChatConversa::where('vendedor_id', $vendedorId)->where('status', 'aberta')->count(),

@@ -10,7 +10,7 @@ class ChatFeatureController extends Controller
 {
     public function status()
     {
-        $enabled = (bool) Setting::get('chat_enabled', false);
+        $enabled = (bool) Setting::get('chat_enabled', true);
         
         return response()->json([
             'chat_enabled' => $enabled,

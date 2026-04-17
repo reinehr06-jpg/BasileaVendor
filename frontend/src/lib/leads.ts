@@ -24,7 +24,7 @@ export interface LeadDashboard {
   atrasados: number;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export async function getLeads(params: {
   status?: string;
