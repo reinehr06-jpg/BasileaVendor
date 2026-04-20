@@ -265,18 +265,28 @@ class TwoFactorController extends Controller
                 'code' => ['required', 'digits:6'],
             ]);
 
-            if (! $user->two_factor_secret) {
+            // Check for any valid device secret
+            $devices = $this->parseTwoFactorDevices($user->two_factor_secret);
+            if (empty($devices)) {
                 return back()->withErrors(['code' => 'Configure o 2FA primeiro.']);
             }
 
-            if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
-                $user->two_factor_enabled = true;
-                $user->recovery_codes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
-                // Use query builder to avoid encrypted cast issues during deploy/key rotation
+            // Try to verify against any registered device
+            $verified = false;
+            foreach ($devices as $device) {
+                if (TwoFactorAuthService::verifyToken($device['secret'], $request->code)) {
+                    $verified = true;
+                    break;
+                }
+            }
+
+            if ($verified) {
+                $recoveryCodes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
                 DB::table('users')->where('id', $user->id)->update([
                     'two_factor_enabled' => true,
-                    'recovery_codes' => $user->recovery_codes,
+                    'recovery_codes' => $recoveryCodes,
                 ]);
+                $user->two_factor_enabled = true;
 
                 // Mark as verified since user just proved they have the authenticator
                 Session::put('2fa_verified_'.$user->id, true);
