@@ -301,8 +301,79 @@ class ConfiguracaoController extends Controller
         $user->two_factor_secret = implode(',', $pairs);
         $user->save();
 
-        return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
-            ->with('success', "Dispositivo '{$safeName}' adicionado para {$user->name}. Chave: {$newSecret}");
+        $qrCode = TwoFactorAuthService::generateQrCode($user->email . ' (' . $safeName . ')', $newSecret);
+
+        return view('master.configuracoes.2fa', [
+            'user' => $user,
+            'secret' => $newSecret,
+            'deviceName' => $safeName,
+            'qrCode' => $qrCode,
+            'isSetup' => !$user->two_factor_enabled,
+        ]);
+    }
+
+    public function enableUser2fa(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'code' => 'required|digits:6',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        $verified = false;
+        foreach ($this->parseTwoFactorDevices($user->two_factor_secret) as $device) {
+            if (TwoFactorAuthService::verifyToken($device['secret'], $request->code)) {
+                $verified = true;
+                break;
+            }
+        }
+
+        if ($verified) {
+            if (!$user->two_factor_enabled) {
+                $user->two_factor_enabled = true;
+                $user->recovery_codes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
+                $user->save();
+            }
+
+            return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
+                ->with('success', '2FA ativado com sucesso para ' . $user->name . '!');
+        }
+
+        return back()->with('error', 'Código inválido. Tente novamente.');
+    }
+
+    private function parseTwoFactorDevices(?string $raw): array
+    {
+        if (empty($raw)) {
+            return [];
+        }
+
+        $devices = [];
+        $index = 1;
+
+        foreach (explode(',', $raw) as $entry) {
+            $entry = trim($entry);
+            if ($entry === '') {
+                continue;
+            }
+
+            if (str_contains($entry, '|')) {
+                [$name, $secret] = explode('|', $entry, 2);
+                $name = trim($name) !== '' ? trim($name) : 'Dispositivo '.$index;
+                $secret = trim($secret);
+            } else {
+                $name = $index === 1 ? 'Dispositivo Principal' : 'Dispositivo '.$index;
+                $secret = trim($entry);
+            }
+
+            if ($secret !== '') {
+                $devices[] = ['name' => $name, 'secret' => $secret];
+                $index++;
+            }
+        }
+
+        return $devices;
     }
 
     public function updateSecuritySettings(Request $request)

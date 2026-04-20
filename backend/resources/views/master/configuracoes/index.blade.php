@@ -528,12 +528,40 @@
             </div>
 
             <!-- 2.3 Gerenciar 2FA por Usuário -->
+            <div class="materio-card" id="novo-2fa-section" style="display: none; margin-bottom: 24px;">
+                <div class="section-header">
+                    <h4><i class="fas fa-mobile-alt"></i> Novo Dispositivo 2FA</h4>
+                    <button type="button" onclick="document.getElementById('novo-2fa-section').style.display='none'" style="background:none;border:none;cursor:pointer;font-size:1.2rem;color:var(--materio-text-muted);">✕</button>
+                </div>
+                <form method="POST" action="{{ route('master.configuracoes.seguranca.2fa.add-device') }}">
+                    @csrf
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; font-size: 0.85rem; color: var(--materio-text-muted); margin-bottom: 6px;">Selecione o Usuário</label>
+                            <select name="user_id" class="materio-input" required>
+                                <option value="">Selecione...</option>
+                                @foreach($usuarios2fa as $u)
+                                    <option value="{{ $u->id }}">{{ $u->name }} ({{ $u->perfil }})</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label style="display: block; font-size: 0.85rem; color: var(--materio-text-muted); margin-bottom: 6px;">Nome do Dispositivo</label>
+                            <input type="text" name="device_name" class="materio-input" placeholder="Ex: Admin iPhone" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="materio-btn-primary">
+                        <i class="fas fa-qrcode"></i> Gerar QR Code
+                    </button>
+                </form>
+            </div>
+
             <div class="materio-card">
                 <div class="section-header">
                     <h4><i class="fas fa-mobile-alt"></i> Gerenciar Autenticação 2FA</h4>
-                    <span style="font-size: 0.8rem; color: var(--materio-text-muted);">
-                        Ative ou desative 2FA para cada usuário do sistema
-                    </span>
+                    <button type="button" onclick="document.getElementById('novo-2fa-section').style.display='block'" class="materio-btn-primary" style="padding: 8px 16px; font-size: 0.85rem;">
+                        <i class="fas fa-plus"></i> Novo Dispositivo
+                    </button>
                 </div>
                 
                 <style>
