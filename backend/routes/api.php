@@ -173,3 +173,20 @@ Route::middleware(['auth:sanctum'])->prefix('leads')->name('leads.')->group(func
     
     Route::post('/custom-fields', [LeadController::class, 'createCustomField']);
 });
+
+// ==========================================
+// IA - Inteligência Artificial (rotas síncronas)
+// ==========================================
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/ia/sugestao-resposta', [\App\Http\Controllers\AIServiceController::class, 'sugestaoResposta']);
+    Route::post('/ia/proxima-acao', [\App\Http\Controllers\AIServiceController::class, 'proximaAcao']);
+    Route::post('/ia/score-lead', [\App\Http\Controllers\AIServiceController::class, 'scoreLead']);
+    Route::post('/ia/resumo-conversa', [\App\Http\Controllers\AIServiceController::class, 'resumoConversa']);
+    Route::post('/ia/observacao-contato', [\App\Http\Controllers\AIServiceController::class, 'observacaoContato']);
+});
+
+// IA - Tarefas pesadas (assíncronas via Job)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/ia/analise-vendedor', [\App\Http\Controllers\AIServiceController::class, 'analiseVendedor']);
+    Route::post('/ia/analise-campanha', [\App\Http\Controllers\AIServiceController::class, 'analiseCampanha']);
+});
