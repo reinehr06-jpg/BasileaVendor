@@ -70,6 +70,32 @@ return [
         'model'    => env('IA_LOCAL_MODEL', 'llama3.2'),
     ],
 
+    // Rate limits por tarefa (chamadas por hora)
+    'ia_rate_limits' => [
+        'sugestao_resposta'   => 100,
+        'resumo_conversa'     => 50,
+        'proxima_acao'        => 50,
+        'observacao_contato'  => 30,
+        'score_lead'          => 50,
+        'motivo_perda'        => 30,
+        'primeira_mensagem'   => 20,
+        'analise_vendedor'    => 10,
+        'analise_campanha'    => 10,
+    ],
+
+    // Timeouts por tarefa (em segundos)
+    'ia_timeouts' => [
+        'sugestao_resposta'   => 15,
+        'resumo_conversa'     => 15,
+        'proxima_acao'        => 10,
+        'observacao_contato'  => 10,
+        'score_lead'          => 15,
+        'motivo_perda'        => 15,
+        'primeira_mensagem'   => 30,
+        'analise_vendedor'    => 60,
+        'analise_campanha'    => 60,
+    ],
+
     'openai' => [
         'api_key' => env('OPENAI_API_KEY'),
         'model'   => env('OPENAI_MODEL', 'gpt-3.5-turbo'),

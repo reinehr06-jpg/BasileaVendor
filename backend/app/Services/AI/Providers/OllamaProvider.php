@@ -10,11 +10,88 @@ class OllamaProvider implements IAProviderInterface
 {
     private string $endpoint;
     private string $model;
+    private float $temperature = 0.7;
+    private int $maxTokens = 500;
 
     public function __construct()
     {
-        $this->endpoint = config('services.ia_local.endpoint', 'http://localhost:11434/api/generate');
+        $endpoint = config('services.ia_local.endpoint', 'http://localhost:11434/api/generate');
+        
+        // Detectar se é formato OpenAI-compatible (ngrok) ou antigo
+        if (str_contains($endpoint, '/v1/')) {
+            // OpenAI-compatible via ngrok
+            $this->endpoint = $endpoint . '/chat/completions';
+        } else {
+            // Formato antigo /api/generate
+            $this->endpoint = $endpoint;
+        }
+        
         $this->model = config('services.ia_local.model', 'llama3.2');
+    }
+
+    /**
+     * Método para AIService (novo formato OpenAI-compatible)
+     */
+    public function generate(string $prompt, int $timeout = 15): string
+    {
+        // Verificar formato do endpoint
+        if (str_contains($this->endpoint, '/v1/chat/completions')) {
+            return $this->generateOpenAI($prompt, $timeout);
+        }
+        
+        // Formato antigo
+        return $this->generateLegacy($prompt);
+    }
+
+    private function generateOpenAI(string $prompt, int $timeout): string
+    {
+        try {
+            $response = Http::timeout($timeout)->post($this->endpoint, [
+                'model' => $this->model,
+                'messages' => [
+                    ['role' => 'user', 'content' => $prompt]
+                ],
+                'temperature' => $this->temperature,
+                'max_tokens' => $this->maxTokens,
+                'stream' => false,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['choices'][0]['message']['content'] ?? '';
+            }
+
+            Log::warning('OllamaProvider: Falhou', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+            return '';
+
+        } catch (\Exception $e) {
+            Log::error('OllamaProvider: Erro', ['mensagem' => $e->getMessage()]);
+            return '';
+        }
+    }
+
+    private function generateLegacy(string $prompt): string
+    {
+        try {
+            $response = Http::timeout(90)->post($this->endpoint, [
+                'model' => $this->model,
+                'prompt' => $prompt,
+                'stream' => false,
+            ]);
+
+            if ($response->successful()) {
+                return $response->json('response') ?? '';
+            }
+
+            return '';
+
+        } catch (\Exception $e) {
+            Log::error('OllamaProvider: Erro legacy', ['mensagem' => $e->getMessage()]);
+            return '';
+        }
     }
 
     public function gerarSugestoes(string $contexto, int $quantidade = 5): array
