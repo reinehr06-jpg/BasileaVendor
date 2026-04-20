@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Campanha;
+use App\Models\Contato;
 use App\Models\PaymentEvent;
 use App\Services\Checkout\PaymentOrchestrator;
 use Illuminate\Http\Request;
@@ -132,5 +134,147 @@ class WebhookController extends Controller
             'status' => 'ok',
             'recent_events' => $recentEvents,
         ]);
+    }
+
+    // ─────────────────────────────────────────
+    // LEAD CAPTURE WEBHOOKS
+    // ─────────────────────────────────────────
+
+    // GET: verificação de challenge do Facebook (obrigatório)
+    public function metaVerify(Request $request)
+    {
+        $verifyToken = config('services.meta.webhook_verify_token');
+
+        if (
+            $request->get('hub_mode') === 'subscribe' &&
+            $request->get('hub_verify_token') === $verifyToken
+        ) {
+            return response($request->get('hub_challenge'), 200);
+        }
+
+        return response('Unauthorized', 403);
+    }
+
+    // POST: recebe os leads do Meta
+    public function metaLead(Request $request)
+    {
+        Log::info('META_WEBHOOK', $request->all());
+
+        $entries = $request->input('entry', []);
+
+        foreach ($entries as $entry) {
+            foreach ($entry['changes'] ?? [] as $change) {
+                if ($change['field'] !== 'leadgen') continue;
+
+                $value = $change['value'];
+                $this->criarContatoDeWebhook([
+                    'nome'          => $this->extrairCampo($value['field_data'] ?? [], 'full_name'),
+                    'email'         => $this->extrairCampo($value['field_data'] ?? [], 'email'),
+                    'telefone'      => $this->extrairCampo($value['field_data'] ?? [], 'phone_number'),
+                    'canal_origem'  => 'meta_ads',
+                    'utm_source'    => 'facebook',
+                    'utm_medium'    => 'paid',
+                    'utm_campaign'  => $value['campaign_name'] ?? null,
+                    'ref_param'     => $value['ad_name'] ?? null,
+                ]);
+            }
+        }
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    // Google Ads — via Landing Page com UTMs
+    public function googleLead(Request $request)
+    {
+        Log::info('GOOGLE_WEBHOOK', $request->all());
+
+        $this->criarContatoDeWebhook([
+            'nome'          => $request->nome ?? $request->name ?? '',
+            'email'         => $request->email ?? '',
+            'telefone'      => $request->telefone ?? $request->phone ?? '',
+            'canal_origem'  => 'google_ads',
+            'utm_source'    => $request->utm_source   ?? 'google',
+            'utm_medium'    => $request->utm_medium   ?? 'cpc',
+            'utm_campaign'  => $request->utm_campaign ?? null,
+            'utm_content'   => $request->utm_content  ?? null,
+            'utm_term'      => $request->utm_term     ?? null,
+            'ref_param'     => $request->ref          ?? null,
+        ]);
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    // WhatsApp Link com ?ref=campanha
+    public function whatsappLead(Request $request)
+    {
+        $this->criarContatoDeWebhook([
+            'nome'         => $request->nome ?? 'Lead WhatsApp',
+            'whatsapp'     => $request->whatsapp ?? $request->telefone ?? '',
+            'canal_origem' => 'whatsapp_link',
+            'ref_param'    => $request->ref ?? null,
+            'utm_campaign' => $request->utm_campaign ?? null,
+            'utm_source'   => 'whatsapp',
+            'utm_medium'   => 'social',
+        ]);
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    // Formulário Web Próprio
+    public function formLead(Request $request)
+    {
+        $this->criarContatoDeWebhook([
+            'nome'          => $request->nome ?? '',
+            'email'         => $request->email ?? '',
+            'telefone'      => $request->telefone ?? '',
+            'canal_origem'  => 'formulario_web',
+            'utm_source'    => $request->utm_source   ?? 'organico',
+            'utm_medium'    => $request->utm_medium   ?? 'web',
+            'utm_campaign'  => $request->utm_campaign ?? null,
+            'utm_content'   => $request->utm_content  ?? null,
+            'utm_term'      => $request->utm_term     ?? null,
+            'ref_param'     => $request->ref          ?? null,
+        ]);
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    // LÓGICA CENTRAL DE CRIAÇÃO DO CONTATO
+    private function criarContatoDeWebhook(array $dados): Contato
+    {
+        // Tenta encontrar a campanha pelo utm_campaign ou ref_param
+        $campanha = null;
+
+        if ($dados['utm_campaign'] ?? null) {
+            $campanha = Campanha::where('utm_campaign', $dados['utm_campaign'])
+                ->where('status', 'ativa')
+                ->first();
+        }
+
+        if (!$campanha && ($dados['ref_param'] ?? null)) {
+            $campanha = Campanha::where('ref_param', $dados['ref_param'])
+                ->where('status', 'ativa')
+                ->first();
+        }
+
+        $contato = Contato::create([
+            ...$dados,
+            'campanha_id' => $campanha?->id,
+            'status'      => 'lead',
+            'entry_date'  => now(),
+        ]);
+
+        Log::info('CONTATO_CRIADO', ['id' => $contato->id, 'campanha' => $campanha?->nome]);
+
+        return $contato;
+    }
+
+    // Helper para extrair campos do payload do Meta Lead Form
+    private function extrairCampo(array $fieldData, string $key): ?string
+    {
+        foreach ($fieldData as $field) {
+            if ($field['name'] === $key) return $field['values'][0] ?? null;
+        }
+        return null;
     }
 }
