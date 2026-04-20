@@ -21,9 +21,9 @@ import {
   Hash, 
   Clock,
   Filter,
-  CheckCircle2,
   ChevronLeft,
-  AlertCircle
+  AlertCircle,
+  MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -247,7 +247,7 @@ export default function ChatPage() {
                       {conv.vendedor && (
                         <div className="mt-2 flex items-center gap-1.5">
                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                           <span className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-tighter">Atendente: {conv.vendedor.user.name}</span>
+                           <span className="text-[10px] font-bold text-emerald-600/70 uppercase tracking-tighter">Atendente: {conv.vendedor?.user?.name}</span>
                         </div>
                       )}
                     </div>

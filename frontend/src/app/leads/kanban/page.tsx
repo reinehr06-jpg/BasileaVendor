@@ -121,7 +121,7 @@ export default function KanbanPage() {
                     <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
                       <span>{getTimeAgo(lead.created_at)}</span>
                       {lead.vendedor?.user?.name && (
-                        <span className="truncate max-w-[80px]">{lead.vendedor.user.name}</span>
+                        <span className="truncate max-w-[80px]">{lead.vendedor?.user?.name}</span>
                       )}
                     </div>
                   </div>
