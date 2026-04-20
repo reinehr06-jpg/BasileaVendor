@@ -2,87 +2,93 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Campanha;
 use App\Models\Contato;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class ImportacaoController extends Controller
 {
     public function importar(Request $request)
     {
         $request->validate([
-            'arquivo'     => 'required|file|mimes:csv,xlsx,xls|max:10240', // 10MB max
+            'arquivo' => 'required|file|mimes:csv,txt',
             'campanha_id' => 'nullable|exists:campanhas,id',
         ]);
 
-        try {
-            $path = $request->file('arquivo')->store('imports');
-            $extension = $request->file('arquivo')->getClientOriginalExtension();
+        $path = $request->file('arquivo')->store('imports');
 
-            if ($extension === 'csv') {
-                $count = $this->importarCSV(Storage::path($path), $request->campanha_id);
-            } else {
-                // Para Excel, seria necessário: composer require maatwebsite/excel
-                $count = $this->importarExcel(Storage::path($path), $request->campanha_id);
-            }
+        $this->processarCSV(storage_path("app/$path"), $request->campanha_id);
 
-            // Limpar arquivo após importação
-            Storage::delete($path);
+        return back()->with('success', 'Importação concluída!');
+    }
 
-            return back()->with('success', "{$count} contatos importados com sucesso!");
+    private function processarCSV(string $path, ?int $campanhaId): void
+    {
+        $handle = fopen($path, 'r');
+        $cabecalho = fgetcsv($handle, 0, ',');
 
-        } catch (\Exception $e) {
-            \Log::error('Erro na importação', [
-                'error' => $e->getMessage(),
-                'file' => $request->file('arquivo')->getClientOriginalName()
+        $mapeamento = $this->mapearCabecalhos($cabecalho);
+
+        while (($linha = fgetcsv($handle, 0, ',')) !== false) {
+            $dados = $this->mapearLinha($linha, $mapeamento);
+
+            Contato::create([
+                'nome' => $dados['nome'] ?? 'Sem Nome',
+                'email' => $dados['email'] ?? null,
+                'telefone' => $dados['telefone'] ?? null,
+                'whatsapp' => $dados['whatsapp'] ?? null,
+                'documento' => $dados['documento'] ?? null,
+                'campanha_id' => $campanhaId,
+                'canal_origem' => 'importacao',
+                'status' => 'lead',
+                'entry_date' => now(),
+                'nome_igreja' => $dados['nome_igreja'] ?? null,
+                'nome_pastor' => $dados['nome_pastor'] ?? null,
+                'nome_responsavel' => $dados['nome_responsavel'] ?? null,
+                'localidade' => $dados['localidade'] ?? null,
+                'cep' => $dados['cep'] ?? null,
+                'endereco' => $dados['endereco'] ?? null,
+                'cidade' => $dados['cidade'] ?? null,
+                'estado' => $dados['estado'] ?? null,
             ]);
-
-            return back()->with('error', 'Erro ao importar arquivo: ' . $e->getMessage());
-        }
-    }
-
-    private function importarCSV(string $path, ?int $campanhaId): int
-    {
-        $csv = \League\Csv\Reader::createFromPath($path, 'r');
-        $csv->setHeaderOffset(0);
-
-        $count = 0;
-        foreach ($csv->getRecords() as $record) {
-            $this->criarContatoDoImport($record, $campanhaId);
-            $count++;
         }
 
-        return $count;
+        fclose($handle);
     }
 
-    private function importarExcel(string $path, ?int $campanhaId): int
+    private function mapearCabecalhos(array $cabecalho): array
     {
-        // Para Excel, usar: composer require maatwebsite/excel
-        // Por enquanto, placeholder
-        throw new \Exception('Importação Excel ainda não implementada. Use CSV.');
+        $mapeamento = [];
+        foreach ($cabecalho as $indice => $nome) {
+            $nomeLower = strtolower(trim($nome));
+            $mapeamento[$indice] = match($nomeLower) {
+                'nome', 'name', 'cliente', 'lead' => 'nome',
+                'email', 'e-mail', 'mail' => 'email',
+                'telefone', 'phone', 'fone' => 'telefone',
+                'whatsapp', 'wa' => 'whatsapp',
+                'documento', 'cpf', 'cnpj' => 'documento',
+                'igreja', 'nome_igreja', 'church' => 'nome_igreja',
+                'pastor', 'nome_pastor' => 'nome_pastor',
+                'responsavel', 'nome_responsavel' => 'nome_responsavel',
+                'localidade', 'cidade', 'city' => 'localidade',
+                'cep', 'zipcode' => 'cep',
+                'endereco', 'address', 'rua' => 'endereco',
+                'estado', 'uf' => 'estado',
+                default => null,
+            };
+        }
+        return array_filter($mapeamento);
     }
 
-    private function criarContatoDoImport(array $data, ?int $campanhaId): void
+    private function mapearLinha(array $linha, array $mapeamento): array
     {
-        Contato::create([
-            'nome'         => $data['nome'] ?? $data['name'] ?? '',
-            'email'        => $data['email'] ?? null,
-            'telefone'     => $data['telefone'] ?? $data['phone'] ?? null,
-            'whatsapp'     => $data['whatsapp'] ?? null,
-            'documento'    => $data['documento'] ?? $data['cpf'] ?? null,
-            'status'       => 'lead',
-            'campanha_id'  => $campanhaId,
-            'canal_origem' => 'importacao',
-            'entry_date'   => now(),
-            // Campos da igreja se existirem
-            'nome_igreja'       => $data['nome_igreja'] ?? $data['igreja'] ?? null,
-            'nome_pastor'       => $data['nome_pastor'] ?? $data['pastor'] ?? null,
-            'nome_responsavel'  => $data['nome_responsavel'] ?? null,
-            'quantidade_membros' => $data['quantidade_membros'] ?? $data['membros'] ?? null,
-            'cep'               => $data['cep'] ?? null,
-            'endereco'          => $data['endereco'] ?? null,
-            'cidade'            => $data['cidade'] ?? null,
-            'estado'            => $data['estado'] ?? null,
-        ]);
+        $dados = [];
+        foreach ($linha as $indice => $valor) {
+            if (isset($mapeamento[$indice])) {
+                $dados[$mapeamento[$indice]] = trim($valor);
+            }
+        }
+        return $dados;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services\AI;
 
+use App\Models\AiPrompt;
 use App\Services\AI\Providers\OllamaProvider;
 use App\Services\AI\Providers\OpenAIProvider;
 use Illuminate\Support\Facades\Cache;
@@ -118,6 +119,11 @@ class AIService
 
     private function buildPrompt(string $tarefa, array $contexto): string
     {
+        $promptCustomizado = $this->getPromptCustomizado($tarefa);
+        if ($promptCustomizado) {
+            return $this->applyPromptCustomizado($promptCustomizado, $contexto);
+        }
+
         return match ($tarefa) {
             'primeira_mensagem' => $this->promptBuilder->primeiraMensagem($contexto),
             'sugestao_resposta' => $this->promptBuilder->sugestaoResposta($contexto),
@@ -130,6 +136,28 @@ class AIService
             'proxima_acao' => $this->promptBuilder->proximaAcao($contexto),
             default => $contexto['prompt'] ?? '',
         };
+    }
+
+    private function getPromptCustomizado(string $funcao): ?AiPrompt
+    {
+        return Cache::remember("ai_prompt_{$funcao}", 300, function () use ($funcao) {
+            return AiPrompt::where('funcao', $funcao)
+                ->where('ativo', true)
+                ->first();
+        });
+    }
+
+    private function applyPromptCustomizado(AiPrompt $prompt, array $contexto): string
+    {
+        $promptText = $prompt->prompt_personalizado;
+
+        foreach ($contexto as $key => $value) {
+            if (is_string($value) || is_numeric($value)) {
+                $promptText = str_replace("{{{$key}}}", $value, $promptText);
+            }
+        }
+
+        return $promptText;
     }
 
     private function parseOutput(string $tarefa, string $raw): mixed

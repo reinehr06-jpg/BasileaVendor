@@ -30,7 +30,12 @@ use App\Http\Controllers\TestLoginController;
 use App\Http\Controllers\VendaController;
 use App\Http\Controllers\VendedorConfiguracaoController;
 use App\Http\Controllers\VendedorSettingsController;
-use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\Onboarding\OnboardingController;
+use App\Http\Controllers\TermsController;
+use App\Http\Controllers\ImportacaoController;
+use App\Http\Controllers\PrimeiraMensagemController;
+use App\Http\Controllers\CalendarioController;
+use App\Http\Controllers\ContatoController;
 use App\Http\Middleware\CheckMaster;
 use App\Http\Middleware\CheckVendedor;
 use App\Http\Middleware\SecurityHeaders;
@@ -158,6 +163,70 @@ Route::middleware('throttle:60,1')->group(function () {
     });
 });
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+// ==========================================
+// ONBOARDING (Termos + Split)
+// ==========================================
+Route::middleware('auth')->group(function () {
+    Route::get('/onboarding/termos', [OnboardingController::class, 'verTermos'])->name('onboarding.termos');
+    Route::post('/onboarding/termos', [OnboardingController::class, 'aceitarTermos'])->name('onboarding.termos.aceitar');
+    Route::get('/onboarding/split', [OnboardingController::class, 'verSplit'])->name('onboarding.split');
+    Route::post('/onboarding/split/ativar', [OnboardingController::class, 'ativarSplit'])->name('onboarding.split.ativar');
+    Route::post('/onboarding/split/pular', [OnboardingController::class, 'pularSplit'])->name('onboarding.split.pular');
+    Route::post('/onboarding/tour/completo', function () {
+        auth()->user()->update(['tour_completo' => true]);
+        return response()->json(['ok' => true]);
+    })->name('onboarding.tour.completo');
+});
+
+// ==========================================
+// TERMOS (Admin)
+// ==========================================
+Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(function () {
+    Route::get('/termos', [TermsController::class, 'index'])->name('admin.termos.index');
+    Route::post('/termos', [TermsController::class, 'store'])->name('admin.termos.store');
+    Route::put('/termos/{termo}', [TermsController::class, 'update'])->name('admin.termos.update');
+    Route::delete('/termos/{termo}', [TermsController::class, 'destroy'])->name('admin.termos.destroy');
+    Route::get('/termos/{termo}/download', [TermsController::class, 'download'])->name('admin.termos.download');
+    Route::post('/termos/{termo}/toggle', [TermsController::class, 'toggleAtivo'])->name('admin.termos.toggle');
+});
+
+// ==========================================
+// IMPORTAÇÃO
+// ==========================================
+Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(function () {
+    Route::get('/importar', function () {
+        return view('admin.importar.index');
+    })->name('admin.importar.index');
+    Route::post('/importar', [ImportacaoController::class, 'importar'])->name('admin.importar.processar');
+});
+
+// ==========================================
+// CONTATOS
+// ==========================================
+Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(function () {
+    Route::get('/contatos', [ContatoController::class, 'index'])->name('admin.contatos.index');
+    Route::post('/contatos', [ContatoController::class, 'store'])->name('admin.contatos.store');
+    Route::get('/contatos/{contato}', [ContatoController::class, 'show'])->name('admin.contatos.show');
+    Route::put('/contatos/{contato}', [ContatoController::class, 'update'])->name('admin.contatos.update');
+    Route::get('/contatos/{contato}/drawer', [ContatoController::class, 'drawer'])->name('admin.contatos.drawer');
+    Route::post('/contatos/{contato}/status', [ContatoController::class, 'mudarStatus'])->name('admin.contatos.status');
+    Route::post('/contatos/{contato}/gerar-observacao', [ContatoController::class, 'gerarObservacao'])->name('admin.contatos.gerar-observacao');
+    Route::get('/contatos/exportar', [ContatoController::class, 'exportar'])->name('admin.contatos.exportar');
+});
+
+// ==========================================
+// IA PROMPTS (Admin)
+// ==========================================
+Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(function () {
+    Route::get('/ia/prompts', [App\Http\Controllers\Admin\AiPromptController::class, 'index'])->name('admin.ia.prompts.index');
+    Route::get('/ia/prompts/create', [App\Http\Controllers\Admin\AiPromptController::class, 'create'])->name('admin.ia.prompts.create');
+    Route::post('/ia/prompts', [App\Http\Controllers\Admin\AiPromptController::class, 'store'])->name('admin.ia.prompts.store');
+    Route::get('/ia/prompts/{prompt}/edit', [App\Http\Controllers\Admin\AiPromptController::class, 'edit'])->name('admin.ia.prompts.edit');
+    Route::put('/ia/prompts/{prompt}', [App\Http\Controllers\Admin\AiPromptController::class, 'update'])->name('admin.ia.prompts.update');
+    Route::delete('/ia/prompts/{prompt}', [App\Http\Controllers\Admin\AiPromptController::class, 'destroy'])->name('admin.ia.prompts.destroy');
+    Route::post('/ia/prompts/{prompt}/toggle', [App\Http\Controllers\Admin\AiPromptController::class, 'toggle'])->name('admin.ia.prompts.toggle');
+});
 
 // 2FA Routes
 Route::middleware('auth')->prefix('2fa')->name('2fa.')->group(function () {
@@ -587,13 +656,15 @@ Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(functio
     Route::put('/campanhas/{campanha}',       [CampanhaController::class, 'update'])->name('admin.campanhas.update');
     Route::get('/campanhas/{campanha}/metricas', [CampanhaController::class, 'metricas'])->name('admin.campanhas.metricas');
 
-    // Contatos
-    Route::get('/contatos',                   [ContatoController::class, 'index'])->name('admin.contatos.index');
-    Route::post('/contatos/importar',         [ImportacaoController::class, 'importar'])->name('admin.contatos.importar');
-    Route::get('/contatos/{contato}',         [ContatoController::class, 'show'])->name('admin.contatos.show');
-    Route::put('/contatos/{contato}',         [ContatoController::class, 'update'])->name('admin.contatos.update');
-    Route::get('/contatos/{contato}/drawer',  [ContatoController::class, 'drawer'])->name('admin.contatos.drawer');
+// Contatos
+    Route::get('/contatos', [ContatoController::class, 'index'])->name('admin.contatos.index');
+    Route::post('/contatos/importar', [ImportacaoController::class, 'importar'])->name('admin.contatos.importar');
+    Route::post('/contatos', [ContatoController::class, 'store'])->name('admin.contatos.store');
+    Route::get('/contatos/{contato}', [ContatoController::class, 'show'])->name('admin.contatos.show');
+    Route::put('/contatos/{contato}', [ContatoController::class, 'update'])->name('admin.contatos.update');
+    Route::get('/contatos/{contato}/drawer', [ContatoController::class, 'drawer'])->name('admin.contatos.drawer');
     Route::post('/contatos/{contato}/status', [ContatoController::class, 'mudarStatus'])->name('admin.contatos.status');
+    Route::post('/contatos/{contato}/gerar-observacao', [ContatoController::class, 'gerarObservacao'])->name('admin.contatos.gerar-observacao');
 
     // Calendário Admin
     Route::get('/calendario', [CalendarioController::class, 'adminIndex'])->name('admin.calendario.index');
@@ -603,9 +674,23 @@ Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(functio
 // GESTOR
 // ──────────────────────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:gestor'])->prefix('gestor')->group(function () {
-    Route::get('/calendario',                                    [CalendarioController::class, 'gestorIndex'])->name('gestor.calendario.index');
-    Route::get('/configuracoes/aprovar-mensagem',                [PrimeiraMensagemController::class, 'pendentes'])->name('gestor.aprovar-mensagem');
-    Route::post('/configuracoes/aprovar-mensagem/{mensagem}/aprovar',  [PrimeiraMensagemController::class, 'aprovar'])->name('gestor.aprovar-mensagem.aprovar');
+    // Campanhas (visualização)
+    Route::get('/campanhas', [CampanhaController::class, 'index'])->name('gestor.campanhas.index');
+    Route::get('/campanhas/{campanha}', [CampanhaController::class, 'show'])->name('gestor.campanhas.show');
+    
+    // Contatos
+    Route::get('/contatos', [ContatoController::class, 'index'])->name('gestor.contatos.index');
+    Route::get('/contatos/{contato}', [ContatoController::class, 'show'])->name('gestor.contatos.show');
+    Route::put('/contatos/{contato}', [ContatoController::class, 'update'])->name('gestor.contatos.update');
+    Route::post('/contatos/{contato}/status', [ContatoController::class, 'mudarStatus'])->name('gestor.contatos.status');
+    Route::post('/contatos/{contato}/gerar-observacao', [ContatoController::class, 'gerarObservacao'])->name('gestor.contatos.gerar-observacao');
+    
+    // Calendário
+    Route::get('/calendario', [CalendarioController::class, 'gestorIndex'])->name('gestor.calendario.index');
+    
+    // Primeira Mensagem - Aprovação
+    Route::get('/configuracoes/aprovar-mensagem', [PrimeiraMensagemController::class, 'pendentes'])->name('gestor.aprovar-mensagem');
+    Route::post('/configuracoes/aprovar-mensagem/{mensagem}/aprovar', [PrimeiraMensagemController::class, 'aprovar'])->name('gestor.aprovar-mensagem.aprovar');
     Route::post('/configuracoes/aprovar-mensagem/{mensagem}/rejeitar', [PrimeiraMensagemController::class, 'rejeitar'])->name('gestor.aprovar-mensagem.rejeitar');
 });
 
@@ -613,11 +698,21 @@ Route::middleware(['auth', 'role:gestor'])->prefix('gestor')->group(function () 
 // VENDEDOR
 // ──────────────────────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:vendedor'])->prefix('vendedor')->group(function () {
-    Route::get('/calendario',                            [CalendarioController::class, 'vendedorIndex'])->name('vendedor.calendario.index');
-    Route::get('/configuracoes/primeira-mensagem',       [PrimeiraMensagemController::class, 'index'])->name('configuracoes.primeira-mensagem');
-    Route::post('/configuracoes/primeira-mensagem',      [PrimeiraMensagemController::class, 'store']);
+    // Contatos (seus leads)
+    Route::get('/contatos', [ContatoController::class, 'index'])->name('vendedor.contatos.index');
+    Route::get('/contatos/{contato}', [ContatoController::class, 'show'])->name('vendedor.contatos.show');
+    Route::put('/contatos/{contato}', [ContatoController::class, 'update'])->name('vendedor.contatos.update');
+    Route::post('/contatos/{contato}/status', [ContatoController::class, 'mudarStatus'])->name('vendedor.contatos.status');
+    Route::post('/contatos/{contato}/gerar-observacao', [ContatoController::class, 'gerarObservacao'])->name('vendedor.contatos.gerar-observacao');
+    
+    // Calendário
+    Route::get('/calendario', [CalendarioController::class, 'vendedorIndex'])->name('vendedor.calendario.index');
+    
+    // Primeira Mensagem
+    Route::get('/configuracoes/primeira-mensagem', [PrimeiraMensagemController::class, 'index'])->name('configuracoes.primeira-mensagem');
+    Route::post('/configuracoes/primeira-mensagem', [PrimeiraMensagemController::class, 'store']);
     Route::post('/configuracoes/primeira-mensagem/{mensagem}/enviar', [PrimeiraMensagemController::class, 'enviarParaAprovacao'])->name('configuracoes.primeira-mensagem.enviar');
-    Route::post('/configuracoes/primeira-mensagem/gerar-ia',          [PrimeiraMensagemController::class, 'gerarComIA'])->name('configuracoes.primeira-mensagem.ia');
+    Route::post('/configuracoes/primeira-mensagem/gerar-ia', [PrimeiraMensagemController::class, 'gerarComIA'])->name('configuracoes.primeira-mensagem.ia');
 });
 
 // ──────────────────────────────────────────────────────────────────────────────

@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Always add security headers
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->append(\App\Http\Middleware\EnsureFluxoOnboarding::class);
         
         // Register security middleware groups
         $middleware->group('admin.security', [
@@ -38,6 +39,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'force.password.change' => \App\Http\Middleware\ForcePasswordChange::class,
             'api.key' => \App\Http\Middleware\ApiKeyAuth::class,
             '2fa' => \App\Http\Middleware\TwoFactorMiddleware::class,
+            'gestor' => \App\Http\Middleware\CheckGestor::class,
+            'vendedor' => \App\Http\Middleware\CheckVendedor::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

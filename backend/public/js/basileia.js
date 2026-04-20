@@ -241,6 +241,32 @@ function switchTab(tabId, clickedBtn) {
     clickedBtn.classList.add('active');
 }
 
+// === MENU DROPDOWN TOGGLE ===
+function toggleMenuDropdown(id) {
+    const content = document.getElementById(id);
+    const header = content?.previousElementSibling;
+    if (!content || !header) return;
+
+    const wasOpen = content.classList.contains('show');
+    document.querySelectorAll('.menu-dropdown-content.show').forEach(el => el.classList.remove('show'));
+    document.querySelectorAll('.menu-dropdown-header').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.menu-dropdown-icon').forEach(el => el.classList.remove('rotated'));
+
+    if (!wasOpen) {
+        content.classList.add('show');
+        header.classList.add('active');
+        header.querySelector('.menu-dropdown-icon')?.classList.add('rotated');
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.menu-dropdown')) {
+        document.querySelectorAll('.menu-dropdown-content.show').forEach(el => el.classList.remove('show'));
+        document.querySelectorAll('.menu-dropdown-header.active').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.menu-dropdown-icon.rotated').forEach(el => el.classList.remove('rotated'));
+    }
+});
+
 // === AUTO INITIALIZE ===
 document.addEventListener('DOMContentLoaded', function() {
     BasileiaToast.init();
