@@ -874,6 +874,15 @@
                         <div class="integ-card-desc">Status dos vendedores</div>
                         <span class="integ-badge-on">VER</span>
                     </div>
+                    {{-- IA --}}
+                    <div class="integ-card {{ ($integracoes['iaAtivo'] ?? false) ? 'active' : '' }}" onclick="showIntegPanel('ia')">
+                        <div class="integ-logo">🤖</div>
+                        <div class="integ-card-title">Inteligência Artificial</div>
+                        <div class="integ-card-desc">IA, Machine Learning e Automação</div>
+                        <span class="{{ ($integracoes['iaAtivo'] ?? false) ? 'integ-badge-on' : 'integ-badge-off' }}">
+                            {{ ($integracoes['iaAtivo'] ?? false) ? 'ATIVO' : 'INATIVO' }}
+                        </span>
+                    </div>
                 </div>
             </div>
 
@@ -1349,13 +1358,117 @@
                                 @endforelse
                             </tbody>
                         </table>
+</div>
+                </div>
+            </div>
+
+            {{-- PAINEL: IA --}}
+            <div id="integ-panel-ia" class="integ-panel">
+                <button class="back-to-integ-hub" onclick="hideIntegPanels()"><i class="fas fa-arrow-left"></i> Voltar às Integrações</button>
+                <div class="integ-panel-header">
+                    <div class="integ-panel-icon">🤖</div>
+                    <div>
+                        <div class="integ-panel-title">Inteligência Artificial</div>
+                        <div class="integ-panel-sub">Configure a IA local (Ollama) ou OpenAI para automação.</div>
+                    </div>
+                </div>
+                <div class="materio-card">
+                    <form action="{{ route('master.configuracoes.integracoes.ia') }}" method="POST">
+                        @csrf
+                        <div class="materio-row">
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Provider de IA</label>
+                                    <select name="ia_provider" class="materio-select">
+                                        <option value="ollama" {{ ($integracoes['iaProvider'] ?? 'ollama') === 'ollama' ? 'selected' : '' }}>Ollama (Local)</option>
+                                        <option value="openai" {{ ($integracoes['iaProvider'] ?? '') === 'openai' ? 'selected' : '' }}>OpenAI (Cloud)</option>
+                                    </select>
+                                    <small class="help-text">Escolha entre Ollama (local) ou OpenAI (cloud).</small>
+                                </div>
+                            </div>
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Ativar IA</label>
+                                    <label class="materio-switch">
+                                        <input type="checkbox" name="ia_ativo" class="switch-input"
+                                            {{ ($integracoes['iaAtivo'] ?? false) ? 'checked' : '' }}>
+                                        <span class="switch-slider"></span>
+                                    </label>
+                                    <small class="help-text">Ative ou desative a IA no sistema.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="materio-row">
+                            <div class="materio-col-12">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Endpoint (Ollama via ngrok)</label>
+                                    <input type="url" name="ia_local_endpoint" class="materio-input"
+                                        value="{{ $integracoes['iaLocalEndpoint'] ?? '' }}"
+                                        placeholder="https://xxxx.ngrok-free.dev/v1">
+                                    <small class="help-text">URL do Ollama com /v1/chat/completions</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="materio-row">
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Modelo</label>
+                                    <input type="text" name="ia_local_model" class="materio-input"
+                                        value="{{ $integracoes['iaLocalModel'] ?? 'gemma4:e4b' }}"
+                                        placeholder="gemma4:e4b, llama3.2">
+                                    <small class="help-text">Modelo a ser usado (ex: gemma4:e4b, llama3.2)</small>
+                                </div>
+                            </div>
+                            <div class="materio-col-6">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">Rate Limit (chamadas/hora)</label>
+                                    <input type="number" name="ia_rate_limit" class="materio-input"
+                                        value="{{ $integracoes['iaRateLimit'] ?? 100 }}"
+                                        placeholder="100">
+                                    <small class="help-text">Limite de chamadas por hora.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="materio-row" id="openai-config" style="display: none;">
+                            <div class="materio-col-12">
+                                <div class="materio-form-group">
+                                    <label class="materio-label">OpenAI API Key</label>
+                                    <input type="password" name="openai_api_key" class="materio-input"
+                                        value="{{ $integracoes['openaiApiKey'] ?? '' }}"
+                                        placeholder="sk-...">
+                                    <small class="help-text">API Key da OpenAI (se provider = openai)</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="materio-form-group" style="margin-top: 20px;">
+                            <button type="submit" class="materio-btn-primary">Salvar Configurações da IA</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="materio-card" style="margin-top: 16px;">
+                    <div class="section-header">
+                        <h4><i class="fas fa-brain"></i> Status da IA</h4>
+                    </div>
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <span class="status-label">Provider</span>
+                            <span class="status-value">{{ $integracoes['iaProvider'] ?? 'ollama' }}</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Modelo</span>
+                            <span class="status-value">{{ $integracoes['iaLocalModel'] ?? '-' }}</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Status</span>
+                            <span class="status-value {{ ($integracoes['iaAtivo'] ?? false) ? 'status-val-active' : 'status-val-inactive' }}">
+                                {{ ($integracoes['iaAtivo'] ?? false) ? 'ATIVO' : 'INATIVO' }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
         </div>
-
-
 
         <!-- 5. COMISSÕES -->
         <div id="tab-comissoes" class="tab-pane" style="display: {{ $activeTab === 'comissoes' ? 'block' : 'none' }} !important;">
@@ -1619,6 +1732,14 @@
         const hub = document.getElementById('integ-hub-view');
         if (hub) hub.style.display = 'block';
     }
+
+    // Mostrar/esconder config OpenAI baseada no provider
+    document.querySelector('select[name="ia_provider"]')?.addEventListener('change', function() {
+        const openaiConfig = document.getElementById('openai-config');
+        if (openaiConfig) {
+            openaiConfig.style.display = this.value === 'openai' ? 'block' : 'none';
+        }
+    });
 
     // Inicialização
     window.addEventListener('DOMContentLoaded', () => {

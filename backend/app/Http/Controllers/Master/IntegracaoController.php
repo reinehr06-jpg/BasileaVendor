@@ -51,6 +51,14 @@ class IntegracaoController extends Controller
         $googleGmailEmail = Setting::get('google_gmail_email', '');
         $googleGmailAtivo = Setting::get('google_gmail_ativo', false);
 
+        // Configurações de IA
+        $iaProvider = Setting::get('ia_provider', 'ollama');
+        $iaAtivo = Setting::get('ia_ativo', false);
+        $iaLocalEndpoint = Setting::get('ia_local_endpoint', '');
+        $iaLocalModel = Setting::get('ia_local_model', 'gemma4:e4b');
+        $iaRateLimit = Setting::get('ia_rate_limit', 100);
+        $openaiApiKey = Setting::get('openai_api_key', '');
+
         $vendedoresComSplit = Vendedor::where('split_ativo', true)
             ->whereNotNull('asaas_wallet_id')
             ->with('user')
@@ -80,6 +88,12 @@ class IntegracaoController extends Controller
             'googleGmailRedirectUri',
             'googleGmailEmail',
             'googleGmailAtivo',
+            'iaProvider',
+            'iaAtivo',
+            'iaLocalEndpoint',
+            'iaLocalModel',
+            'iaRateLimit',
+            'openaiApiKey',
             'vendedoresComSplit'
         ));
     }
@@ -483,5 +497,65 @@ class IntegracaoController extends Controller
                 'detail' => $e->getMessage(),
             ]);
         }
+    }
+    
+    /**
+     * Update IA settings
+     */
+    public function updateIA(Request $request)
+    {
+        $request->validate([
+            'ia_provider' => 'required|in:ollama,openai',
+            'ia_local_endpoint' => 'nullable|url|max:500',
+            'ia_local_model' => 'nullable|string|max:100',
+            'ia_rate_limit' => 'nullable|integer|min:1|max:1000',
+            'openai_api_key' => 'nullable|string|max:255',
+        ]);
+        
+        Setting::set('ia_provider', $request->input('ia_provider'));
+        Setting::set('ia_ativo', $request->boolean('ia_ativo'));
+        Setting::set('ia_local_endpoint', $request->input('ia_local_endpoint'));
+        Setting::set('ia_local_model', $request->input('ia_local_model', 'gemma4:e4b'));
+        Setting::set('ia_rate_limit', $request->input('ia_rate_limit', 100));
+        
+        if ($request->filled('openai_api_key')) {
+            Setting::set('openai_api_key', $request->input('openai_api_key'));
+        }
+        
+        // Atualizar .env se necessário
+        $this->atualizarEnvIA([
+            'IA_PROVIDER' => $request->input('ia_provider'),
+            'IA_LOCAL_ENDPOINT' => $request->input('ia_local_endpoint'),
+            'IA_LOCAL_MODEL' => $request->input('ia_local_model'),
+            'IA_RATE_LIMIT' => $request->input('ia_rate_limit'),
+        ]);
+        
+        return redirect()->route('master.configuracoes', ['tab' => 'integracoes'])
+            ->with('success', 'Configurações da IA salvas com sucesso!');
+    }
+    
+    /**
+     * Atualiza variáveis no arquivo .env
+     */
+    private function atualizarEnvIA(array $values): void
+    {
+        $envPath = base_path('.env');
+        
+        if (!file_exists($envPath)) return;
+        
+        $envContent = file_get_contents($envPath);
+        
+        foreach ($values as $key => $value) {
+            $pattern = "/^{$key}=.*$/m";
+            $replacement = "{$key}=" . ($value ?? '');
+            
+            if (preg_match($pattern, $envContent)) {
+                $envContent = preg_replace($pattern, $replacement, $envContent);
+            } else {
+                $envContent .= "\n{$key}=" . ($value ?? '');
+            }
+        }
+        
+        file_put_contents($envPath, $envContent);
     }
 }

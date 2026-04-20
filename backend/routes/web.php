@@ -385,6 +385,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/configuracoes/integracoes/chat-leads', [IntegracaoController::class, 'updateChatLeads'])->name('configuracoes.integracoes.chat-leads');
         Route::post('/configuracoes/integracoes/google-calendar', [IntegracaoController::class, 'updateGoogleCalendar'])->name('configuracoes.integracoes.google-calendar');
         Route::post('/configuracoes/integracoes/google-gmail', [IntegracaoController::class, 'updateGoogleGmail'])->name('configuracoes.integracoes.google-gmail');
+        Route::post('/configuracoes/integracoes/ia', [IntegracaoController::class, 'updateIA'])->name('configuracoes.integracoes.ia');
         Route::post('/configuracoes/integracoes/testar', [IntegracaoController::class, 'testarConexao'])->name('configuracoes.integracoes.testar');
         Route::post('/configuracoes/integracoes/test-checkout-api', [IntegracaoController::class, 'testarCheckoutApi'])->name('configuracoes.integracoes.test-checkout-api');
         Route::post('/configuracoes/integracoes/test-webhook', [IntegracaoController::class, 'testarWebhook'])->name('configuracoes.integracoes.test-webhook');
