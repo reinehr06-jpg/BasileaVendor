@@ -307,7 +307,7 @@
                 <a href="{{ route('master.configuracoes') }}" class="menu-item {{ request()->is('master/configuracoes*') ? 'active' : '' }}">
                     <i class="fas fa-gear"></i> Configurações
                 </a>
-                <a href="{{ route('ia') }}" class="menu-item {{ request()->is('master/ia*') || request()->is('ia*') ? 'active' : '' }}">
+                <a href="{{ route('master.ia') }}" class="menu-item {{ request()->is('master/ia*') || request()->is('ia*') ? 'active' : '' }}">
                     <i class="fas fa-brain"></i> IA & Logs
                 </a>
 
