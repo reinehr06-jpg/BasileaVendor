@@ -15,7 +15,12 @@ class OllamaProvider implements IAProviderInterface
 
     public function __construct()
     {
-        $endpoint = config('services.ia_local.endpoint', 'http://localhost:11434/api/generate');
+        // Primeiro tenta ler do banco de dados (Settings), depois do config
+        $endpoint = \App\Models\Setting::get('ia_local_endpoint', '');
+        
+        if (empty($endpoint)) {
+            $endpoint = config('services.ia_local.endpoint', 'http://localhost:11434/api/generate');
+        }
         
         // Detectar se é formato OpenAI-compatible (ngrok) ou antigo
         if (str_contains($endpoint, '/v1/')) {
@@ -26,7 +31,10 @@ class OllamaProvider implements IAProviderInterface
             $this->endpoint = $endpoint;
         }
         
-        $this->model = config('services.ia_local.model', 'llama3.2');
+        $this->model = \App\Models\Setting::get('ia_local_model', 'gemma4:e4b');
+        if (empty($this->model)) {
+            $this->model = config('services.ia_local.model', 'gemma4:e4b');
+        }
     }
 
     /**
@@ -34,6 +42,11 @@ class OllamaProvider implements IAProviderInterface
      */
     public function generate(string $prompt, int $timeout = 15): string
     {
+        // Verificar se endpoint está configurado
+        if (empty($this->endpoint) || $this->endpoint === 'http://localhost:11434/api/generate') {
+            throw new \Exception('Endpoint da IA não configurado');
+        }
+        
         // Verificar formato do endpoint
         if (str_contains($this->endpoint, '/v1/chat/completions')) {
             return $this->generateOpenAI($prompt, $timeout);

@@ -58,6 +58,16 @@ class AIService
 
     public function executar(string $tarefa, array $contexto, ?int $userId = null): array
     {
+        // Verificar se IA está ativa
+        $iaAtivo = \App\Models\Setting::get('ia_ativo', false);
+        if (!$iaAtivo) {
+            return [
+                'success' => false,
+                'error' => 'IA está desativada',
+                'tarefa' => $tarefa,
+            ];
+        }
+        
         $startTime = microtime(true);
 
         // Verificar rate limit
