@@ -366,6 +366,9 @@ Route::middleware(['auth', '2fa'])->group(function () {
 
         // Configurações Unificadas (Estilo Materio)
         Route::get('/configuracoes/{tab?}', [ConfiguracaoController::class, 'index'])->name('configuracoes');
+
+        // IA - Logs e Métricas
+        Route::get('/ia', [IAController::class, 'index'])->name('ia');
         Route::post('/configuracoes/geral', [ConfiguracaoController::class, 'updateProfile'])->name('configuracoes.geral.update');
         Route::post('/configuracoes/seguranca', [ConfiguracaoController::class, 'updatePassword'])->name('configuracoes.seguranca.update');
         Route::post('/configuracoes/seguranca/2fa/toggle', [ConfiguracaoController::class, 'toggleUser2fa'])->name('configuracoes.seguranca.2fa.toggle');
