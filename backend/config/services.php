@@ -61,4 +61,9 @@ return [
         'deploy_secret' => env('GIT_DEPLOY_SECRET'),
     ],
 
+    'ia_local' => [
+        'endpoint' => env('IA_LOCAL_ENDPOINT', 'http://localhost:11434/api/generate'),
+        'model'    => env('IA_LOCAL_MODEL', 'llama3.2'),
+    ],
+
 ];
