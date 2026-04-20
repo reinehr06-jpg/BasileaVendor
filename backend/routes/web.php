@@ -16,6 +16,7 @@ use App\Http\Controllers\GitWebhookController;
 use App\Http\Controllers\Integration\CheckoutWebhookController;
 use App\Http\Controllers\Master\AsaasClienteSyncController;
 use App\Http\Controllers\Master\ConfiguracaoController;
+use App\Http\Controllers\Master\IAController;
 use App\Http\Controllers\Master\IntegracaoController;
 use App\Http\Controllers\Master\IntegracaoEventoController;
 use App\Http\Controllers\Master\IntegracaoVendasController;
@@ -437,7 +438,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::get('/configuracoes/{tab?}', [ConfiguracaoController::class, 'index'])->name('configuracoes');
 
         // IA - Logs e Métricas
-        Route::get('/ia', [IAController::class, 'index'])->name('ia');
+        Route::get('/ia', [\App\Http\Controllers\Master\IAController::class, 'index'])->name('ia');
         Route::post('/configuracoes/geral', [ConfiguracaoController::class, 'updateProfile'])->name('configuracoes.geral.update');
         Route::post('/configuracoes/seguranca', [ConfiguracaoController::class, 'updatePassword'])->name('configuracoes.seguranca.update');
         Route::post('/configuracoes/seguranca/2fa/toggle', [ConfiguracaoController::class, 'toggleUser2fa'])->name('configuracoes.seguranca.2fa.toggle');

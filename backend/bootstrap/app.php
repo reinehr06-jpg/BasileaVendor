@@ -42,6 +42,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'gestor' => \App\Http\Middleware\CheckGestor::class,
             'vendedor' => \App\Http\Middleware\CheckVendedor::class,
             'role' => \App\Http\Middleware\CheckRole::class,
+            'master' => \App\Http\Middleware\CheckMaster::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -323,8 +323,7 @@
                     </div>
                     <div class="menu-dropdown-content" id="ia-automatizacao">
                         <a href="{{ route('admin.ia.prompts.index') }}" class="menu-item {{ request()->routeIs('admin.ia.prompts*') ? 'active' : '' }}">📝 Configurar Prompts</a>
-                        <a href="{{ route('master.ia') }}" class="menu-item {{ request()->routeIs('master.ia*') ? 'active' : '' }}">📊 Logs de IA</a>
-                        <a href="{{ route('master.configuracoes', 'ia') }}" class="menu-item {{ request()->routeIs('master.configuracoes*') && request('tab') == 'ia' ? 'active' : '' }}">⚙️ Configurações Gerais</a>
+                        <a href="{{ route('master.ia') }}" class="menu-item {{ request()->routeIs('master.ia') ? 'active' : '' }}">📊 Logs de IA</a>
                     </div>
                 </div>
 
