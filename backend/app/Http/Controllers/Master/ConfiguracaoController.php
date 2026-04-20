@@ -49,7 +49,7 @@ class ConfiguracaoController extends Controller
         // No additional data needed
 
         // 2. Aba Segurança - Dados de 2FA e logs
-        $data['usuarios2fa'] = User::select('id', 'name', 'email', 'perfil', 'status', 'two_factor_enabled', 'two_factor_rotated_at', 'last_login_at', 'login_ip')
+        $data['usuarios2fa'] = User::select('id', 'name', 'email', 'perfil', 'status', 'two_factor_enabled', 'two_factor_secret', 'two_factor_rotated_at', 'last_login_at', 'login_ip')
             ->orderBy('name')
             ->get();
 
