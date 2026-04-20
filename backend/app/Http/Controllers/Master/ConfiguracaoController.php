@@ -259,17 +259,15 @@ class ConfiguracaoController extends Controller
     public function updateSecuritySettings(Request $request)
     {
         $request->validate([
-            '2fa_mandatory_master' => 'boolean',
-            '2fa_mandatory_gestor' => 'boolean',
-            '2fa_mandatory_vendedor' => 'boolean',
             'max_login_attempts' => 'integer|min:3|max:10',
             'lockout_minutes' => 'integer|min:1|max:60',
             'session_timeout' => 'integer|min:30|max:1440',
         ]);
 
-        Setting::set('2fa_mandatory_master', $request->boolean('2fa_mandatory_master'));
-        Setting::set('2fa_mandatory_gestor', $request->boolean('2fa_mandatory_gestor'));
-        Setting::set('2fa_mandatory_vendedor', $request->boolean('2fa_mandatory_vendedor'));
+        // 2FA is mandatory for all profiles by policy.
+        Setting::set('2fa_mandatory_master', true);
+        Setting::set('2fa_mandatory_gestor', true);
+        Setting::set('2fa_mandatory_vendedor', true);
         Setting::set('max_login_attempts', $request->max_login_attempts);
         Setting::set('lockout_minutes', $request->lockout_minutes);
         Setting::set('session_timeout_minutes', $request->session_timeout);

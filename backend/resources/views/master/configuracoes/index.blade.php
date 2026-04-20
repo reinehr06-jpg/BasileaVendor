@@ -449,23 +449,23 @@
                         <div class="materio-col-6">
                             <div class="materio-form-group">
                                 <label class="materio-label">2FA Obrigatório - Master</label>
-                                <label class="materio-switch">
-                                    <input type="checkbox" name="2fa_mandatory_master" class="switch-input" 
-                                        {{ $securitySettings['2faMandatoryMaster'] ? 'checked' : '' }}>
+                                <label class="materio-switch" style="opacity: 0.6; pointer-events: none;">
+                                    <input type="checkbox" class="switch-input" checked disabled>
                                     <span class="switch-slider"></span>
                                 </label>
-                                <span class="help-text">Força 2FA para usuários com perfil Master</span>
+                                <input type="hidden" name="2fa_mandatory_master" value="1">
+                                <span class="help-text">Sempre ativo por política de segurança</span>
                             </div>
                         </div>
                         <div class="materio-col-6">
                             <div class="materio-form-group">
                                 <label class="materio-label">2FA Obrigatório - Gestor</label>
-                                <label class="materio-switch">
-                                    <input type="checkbox" name="2fa_mandatory_gestor" class="switch-input"
-                                        {{ $securitySettings['2faMandatoryGestor'] ? 'checked' : '' }}>
+                                <label class="materio-switch" style="opacity: 0.6; pointer-events: none;">
+                                    <input type="checkbox" class="switch-input" checked disabled>
                                     <span class="switch-slider"></span>
                                 </label>
-                                <span class="help-text">Força 2FA para usuários com perfil Gestor</span>
+                                <input type="hidden" name="2fa_mandatory_gestor" value="1">
+                                <span class="help-text">Sempre ativo por política de segurança</span>
                             </div>
                         </div>
                     </div>
@@ -473,12 +473,12 @@
                         <div class="materio-col-6">
                             <div class="materio-form-group">
                                 <label class="materio-label">2FA Obrigatório - Vendedor</label>
-                                <label class="materio-switch">
-                                    <input type="checkbox" name="2fa_mandatory_vendedor" class="switch-input"
-                                        {{ $securitySettings['2faMandatoryVendedor'] ? 'checked' : '' }}>
+                                <label class="materio-switch" style="opacity: 0.6; pointer-events: none;">
+                                    <input type="checkbox" class="switch-input" checked disabled>
                                     <span class="switch-slider"></span>
                                 </label>
-                                <span class="help-text">Força 2FA para usuários com perfil Vendedor</span>
+                                <input type="hidden" name="2fa_mandatory_vendedor" value="1">
+                                <span class="help-text">Sempre ativo por política de segurança</span>
                             </div>
                         </div>
                         <div class="materio-col-6">

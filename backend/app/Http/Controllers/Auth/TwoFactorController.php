@@ -82,30 +82,15 @@ class TwoFactorController extends Controller
                 }
             }
 
-            if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
-                Cache::forget('2fa_attempts_'.$user->id);
-                Cache::forget('2fa_lock_'.$user->id);
-                Session::put('2fa_verified_'.$user->id, true);
-                $request->session()->forget('login_2fa_user_id');
-                SecurityLogService::logTwoFactorEvent($user->id, 'verified', 'success');
+            foreach ($this->parseTwoFactorDevices($user->two_factor_secret) as $device) {
+                if (TwoFactorAuthService::verifyToken($device['secret'], $request->code)) {
+                    Cache::forget('2fa_attempts_'.$user->id);
+                    Cache::forget('2fa_lock_'.$user->id);
+                    Session::put('2fa_verified_'.$user->id, true);
+                    $request->session()->forget('login_2fa_user_id');
+                    SecurityLogService::logTwoFactorEvent($user->id, 'verified:'.$device['name'], 'success');
 
-                return redirect()->intended(route('dashboard'));
-            }
-
-            // Try multiple secrets (comma-separated or JSON array)
-            $secrets = $user->two_factor_secret;
-            if (str_contains($secrets, ',')) {
-                foreach (explode(',', $secrets) as $secret) {
-                    $secret = trim($secret);
-                    if (! empty($secret) && TwoFactorAuthService::verifyToken($secret, $request->code)) {
-                        Cache::forget('2fa_attempts_'.$user->id);
-                        Cache::forget('2fa_lock_'.$user->id);
-                        Session::put('2fa_verified_'.$user->id, true);
-                        $request->session()->forget('login_2fa_user_id');
-                        SecurityLogService::logTwoFactorEvent($user->id, 'verified', 'success');
-
-                        return redirect()->intended(route('dashboard'));
-                    }
+                    return redirect()->intended(route('dashboard'));
                 }
             }
 
@@ -205,15 +190,21 @@ class TwoFactorController extends Controller
                 $secret = null;
             }
 
-            if (! $secret) {
+            $devices = $this->parseTwoFactorDevices($secret);
+
+            if (empty($devices)) {
                 $newSecret = TwoFactorAuthService::generateSecret();
-                // Use query builder to bypass the encrypted cast when the old value is corrupt.
-                // Pass false to encrypt() so it matches Eloquent's un-serialized behavior.
+                $devices = [[
+                    'name' => 'Dispositivo Principal',
+                    'secret' => $newSecret,
+                ]];
                 DB::table('users')
                     ->where('id', $user->id)
-                    ->update(['two_factor_secret' => encrypt($newSecret, false)]);
-                $secret = $newSecret;
+                    ->update(['two_factor_secret' => encrypt('Dispositivo Principal|'.$newSecret, false)]);
             }
+
+            $primary = $devices[0];
+            $secret = $primary['secret'];
 
             // Check if this is a rotation (secret was rotated within last 24h)
             $isRotation = false;
@@ -231,6 +222,7 @@ class TwoFactorController extends Controller
                 'enableRoute' => '2fa.enable',
                 'isRotation' => $isRotation,
                 'qrCode' => $qrCode,
+                'devices' => $devices,
             ]);
         } catch (\Exception $e) {
             Log::error('2FA_SETUP_ERROR', [
@@ -356,6 +348,39 @@ class TwoFactorController extends Controller
     private function isAuthorizedFor2faFlow(Request $request, int $userId): bool
     {
         return (int) $request->session()->get('login_2fa_user_id') === $userId;
+    }
+
+    private function parseTwoFactorDevices(?string $raw): array
+    {
+        if (empty($raw)) {
+            return [];
+        }
+
+        $devices = [];
+        $index = 1;
+
+        foreach (explode(',', $raw) as $entry) {
+            $entry = trim($entry);
+            if ($entry === '') {
+                continue;
+            }
+
+            if (str_contains($entry, '|')) {
+                [$name, $secret] = explode('|', $entry, 2);
+                $name = trim($name) !== '' ? trim($name) : 'Dispositivo '.$index;
+                $secret = trim($secret);
+            } else {
+                $name = $index === 1 ? 'Dispositivo Principal' : 'Dispositivo '.$index;
+                $secret = trim($entry);
+            }
+
+            if ($secret !== '') {
+                $devices[] = ['name' => $name, 'secret' => $secret];
+                $index++;
+            }
+        }
+
+        return $devices;
     }
 }
 

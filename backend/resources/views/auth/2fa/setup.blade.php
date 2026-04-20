@@ -121,6 +121,17 @@
                 <p style="text-align: center; color: #a1a1b5; font-size: 0.78rem; margin: 8px 0;">Ou use a chave manual abaixo:</p>
                 <div class="secret-box">{{ $secret }}</div>
                 <span style="color: #a1a1b5; font-size: 0.78rem;">Copie esta chave e cole no app como "entrada manual"</span>
+
+                @if(!empty($devices) && count($devices) > 1)
+                    <div style="margin-top: 12px; font-size: 0.8rem; color: #6b7280; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px;">
+                        <strong>Dispositivos vinculados:</strong>
+                        <ul style="margin: 6px 0 0 18px; text-align: left;">
+                            @foreach($devices as $device)
+                                <li>{{ $device['name'] }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
             </div>
         </div>
 
