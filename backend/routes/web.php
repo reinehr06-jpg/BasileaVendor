@@ -623,6 +623,17 @@ Route::get('/clear-cache', function () {
 
     return 'Cache limpo!';
 });
+
+// Rota para executar migrations (APENAS MASTER - usar com cuidado!)
+Route::middleware(['auth', 'master'])->get('/run-migrations', function () {
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        $output = Artisan::output();
+        return response('Migrations executadas:<br><pre>'.$output.'</pre>');
+    } catch (\Exception $e) {
+        return response('Erro: '.$e->getMessage(), 500);
+    }
+});
 Route::post('/webhook/basileia-church/sync', [BasileiaChurchWebhookController::class, 'syncCliente']);
 
 // Checkout - Webhook que recebe eventos do Checkout (servico externo)
