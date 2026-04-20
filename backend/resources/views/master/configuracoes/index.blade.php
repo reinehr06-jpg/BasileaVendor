@@ -581,8 +581,9 @@
                                 </span>
                             </td>
                             <td>
-                                @if($usuario->last_login_at)
-                                    {{ $usuario->last_login_at->format('d/m/Y H:i') }}
+                                @php $loginAt = $usuario->last_login_at; @endphp
+                                @if($loginAt)
+                                    {{ is_string($loginAt) ? \Carbon\Carbon::parse($loginAt)->format('d/m/Y H:i') : $loginAt->format('d/m/Y H:i') }}
                                     @if($usuario->login_ip)
                                         <br><small style="color: var(--materio-text-muted);">IP: {{ $usuario->login_ip }}</small>
                                     @endif
