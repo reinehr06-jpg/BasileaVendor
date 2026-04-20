@@ -307,6 +307,9 @@
                 <a href="{{ route('master.configuracoes') }}" class="menu-item {{ request()->is('master/configuracoes*') ? 'active' : '' }}">
                     <i class="fas fa-gear"></i> Configurações
                 </a>
+                <a href="{{ route('ia') }}" class="menu-item {{ request()->is('master/ia*') || request()->is('ia*') ? 'active' : '' }}">
+                    <i class="fas fa-brain"></i> IA & Logs
+                </a>
 
             @elseif(Auth::user()->perfil === 'gestor')
                 <div class="menu-section">Visão Geral</div>

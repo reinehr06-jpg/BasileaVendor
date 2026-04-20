@@ -506,6 +506,7 @@ class IntegracaoController extends Controller
     {
         $request->validate([
             'ia_provider' => 'required|in:ollama,openai',
+            'ia_ativo' => 'nullable|boolean',
             'ia_local_endpoint' => 'nullable|url|max:500',
             'ia_local_model' => 'nullable|string|max:100',
             'ia_rate_limit' => 'nullable|integer|min:1|max:1000',
@@ -523,12 +524,16 @@ class IntegracaoController extends Controller
         }
         
         // Atualizar .env se necessário
-        $this->atualizarEnvIA([
-            'IA_PROVIDER' => $request->input('ia_provider'),
-            'IA_LOCAL_ENDPOINT' => $request->input('ia_local_endpoint'),
-            'IA_LOCAL_MODEL' => $request->input('ia_local_model'),
-            'IA_RATE_LIMIT' => $request->input('ia_rate_limit'),
-        ]);
+        try {
+            $this->atualizarEnvIA([
+                'IA_PROVIDER' => $request->input('ia_provider'),
+                'IA_LOCAL_ENDPOINT' => $request->input('ia_local_endpoint'),
+                'IA_LOCAL_MODEL' => $request->input('ia_local_model'),
+                'IA_RATE_LIMIT' => $request->input('ia_rate_limit'),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao atualizar .env com config de IA: ' . $e->getMessage());
+        }
         
         return redirect()->route('master.configuracoes', ['tab' => 'integracoes'])
             ->with('success', 'Configurações da IA salvas com sucesso!');

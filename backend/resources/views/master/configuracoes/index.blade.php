@@ -1373,7 +1373,7 @@
                     </div>
                 </div>
                 <div class="materio-card">
-                    <form action="{{ route('master.configuracoes.integracoes.ia') }}" method="POST">
+                    <form id="ia-config-form" action="{{ route('master.configuracoes.integracoes.ia') }}" method="POST">
                         @csrf
                         <div class="materio-row">
                             <div class="materio-col-6">
@@ -1441,7 +1441,7 @@
                             </div>
                         </div>
                         <div class="materio-form-group" style="margin-top: 20px;">
-                            <button type="submit" class="materio-btn-primary">Salvar Configurações da IA</button>
+                            <button type="button" class="materio-btn-primary" onclick="salvarIA()">Salvar Configurações da IA</button>
                         </div>
                     </form>
                 </div>
@@ -1740,6 +1740,38 @@
             openaiConfig.style.display = this.value === 'openai' ? 'block' : 'none';
         }
     });
+
+    // Submissão do formulário de IA
+    function salvarIA() {
+        const form = document.getElementById('ia-config-form');
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        btn.disabled = true;
+
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(r => {
+            if (!r.ok) {
+                return r.text().then(text => { throw new Error('Erro no servidor ou validação: ' + r.status); });
+            }
+            alert('Configurações salvas com sucesso!');
+            window.location.href = '{{ route("master.configuracoes", ["tab" => "integracoes"]) }}';
+        })
+        .catch(e => {
+            console.error('Erro ao salvar IA:', e);
+            alert('Erro ao salvar: ' + e.message);
+        })
+        .finally(() => {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    }
 
     // Inicialização
     window.addEventListener('DOMContentLoaded', () => {
