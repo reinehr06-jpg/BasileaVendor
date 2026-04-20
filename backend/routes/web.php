@@ -370,6 +370,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/configuracoes/seguranca', [ConfiguracaoController::class, 'updatePassword'])->name('configuracoes.seguranca.update');
         Route::post('/configuracoes/seguranca/2fa/toggle', [ConfiguracaoController::class, 'toggleUser2fa'])->name('configuracoes.seguranca.2fa.toggle');
         Route::post('/configuracoes/seguranca/2fa/reset', [ConfiguracaoController::class, 'resetUser2fa'])->name('configuracoes.seguranca.2fa.reset');
+        Route::post('/configuracoes/seguranca/2fa/add-device', [ConfiguracaoController::class, 'addUser2faDevice'])->name('configuracoes.seguranca.2fa.add-device');
         Route::post('/configuracoes/seguranca/settings', [ConfiguracaoController::class, 'updateSecuritySettings'])->name('configuracoes.seguranca.settings.update');
         Route::get('/configuracoes/seguranca/logs', [ConfiguracaoController::class, 'getLoginLogs'])->name('configuracoes.seguranca.logs');
 

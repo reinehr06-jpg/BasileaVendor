@@ -15,6 +15,7 @@ use App\Models\LoginLog;
 use App\Services\AsaasService;
 use App\Services\LegacyImportService;
 use App\Services\LegacyCommissionService;
+use App\Services\TwoFactorAuthService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -254,6 +255,54 @@ class ConfiguracaoController extends Controller
 
         return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
                          ->with('success', "2FA redefinido para {$user->name}. O usuário precisará configurar novamente.");
+    }
+
+    public function addUser2faDevice(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'device_name' => ['required', 'string', 'max:60'],
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        if (! $user->two_factor_enabled) {
+            return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
+                ->with('error', 'Ative o 2FA do usuário antes de adicionar dispositivos.');
+        }
+
+        $pairs = [];
+        $current = $user->two_factor_secret ?: '';
+
+        if (! empty($current)) {
+            foreach (explode(',', $current) as $entry) {
+                $entry = trim($entry);
+                if ($entry === '') {
+                    continue;
+                }
+
+                if (str_contains($entry, '|')) {
+                    $pairs[] = $entry;
+                } else {
+                    $pairs[] = 'Dispositivo Principal|'.$entry;
+                }
+            }
+        }
+
+        if (count($pairs) >= 5) {
+            return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
+                ->with('error', 'Máximo de 5 dispositivos por usuário.');
+        }
+
+        $safeName = trim($request->device_name);
+        $newSecret = TwoFactorAuthService::generateSecret();
+        $pairs[] = $safeName.'|'.$newSecret;
+
+        $user->two_factor_secret = implode(',', $pairs);
+        $user->save();
+
+        return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
+            ->with('success', "Dispositivo '{$safeName}' adicionado para {$user->name}. Chave: {$newSecret}");
     }
 
     public function updateSecuritySettings(Request $request)

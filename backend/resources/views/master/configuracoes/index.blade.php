@@ -607,6 +607,15 @@
                                         Reset
                                     </button>
                                 </form>
+
+                                <form action="{{ route('master.configuracoes.seguranca.2fa.add-device') }}" method="POST" style="display: inline-flex; gap: 6px; margin-left: 8px; align-items: center;">
+                                    @csrf
+                                    <input type="hidden" name="user_id" value="{{ $usuario->id }}">
+                                    <input type="text" name="device_name" placeholder="Nome dispositivo" style="padding: 6px 8px; border: 1px solid var(--materio-border); border-radius: 6px; font-size: 0.8rem; width: 130px;" required>
+                                    <button type="submit" class="btn-toggle-2fa off" style="padding: 6px 10px;">
+                                        + Dispositivo
+                                    </button>
+                                </form>
                                 @endif
                             </td>
                         </tr>
