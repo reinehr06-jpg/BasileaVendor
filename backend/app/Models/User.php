@@ -51,10 +51,46 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'two_factor_secret' => 'encrypted',
-            'recovery_codes' => 'encrypted',
             'two_factor_rotated_at' => 'datetime',
         ];
+    }
+
+    protected function twoFactorSecret(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: function ($value) {
+                if ($value === null) {
+                    return null;
+                }
+                try {
+                    return decrypt($value);
+                } catch (\Exception $e) {
+                    return null;
+                }
+            },
+            set: function ($value) {
+                return $value ? encrypt($value, false) : null;
+            },
+        );
+    }
+
+    protected function recoveryCodes(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: function ($value) {
+                if ($value === null) {
+                    return null;
+                }
+                try {
+                    return decrypt($value);
+                } catch (\Exception $e) {
+                    return null;
+                }
+            },
+            set: function ($value) {
+                return $value ? encrypt($value, false) : null;
+            },
+        );
     }
 
     /**

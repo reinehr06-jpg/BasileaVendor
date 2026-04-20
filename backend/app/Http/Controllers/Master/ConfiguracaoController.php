@@ -53,16 +53,31 @@ class ConfiguracaoController extends Controller
             ->get();
 
         $data['loginLogs'] = [
-            'recent' => LoginLog::with('user:id,name,email')
-                ->orderBy('created_at', 'desc')
-                ->limit(50)
-                ->get(),
+            'recent' => [],
             'stats' => [
-                'totalToday' => LoginLog::whereDate('created_at', today())->count(),
-                'successToday' => LoginLog::whereDate('created_at', today())->where('status', 'success')->count(),
-                'failedToday' => LoginLog::whereDate('created_at', today())->where('status', 'failed')->count(),
+                'totalToday' => 0,
+                'successToday' => 0,
+                'failedToday' => 0,
             ],
         ];
+
+        try {
+            if (DB::getSchemaBuilder()->hasTable('login_logs')) {
+                $data['loginLogs'] = [
+                    'recent' => LoginLog::with('user:id,name,email')
+                        ->orderBy('created_at', 'desc')
+                        ->limit(50)
+                        ->get(),
+                    'stats' => [
+                        'totalToday' => LoginLog::whereDate('created_at', today())->count(),
+                        'successToday' => LoginLog::whereDate('created_at', today())->where('status', 'success')->count(),
+                        'failedToday' => LoginLog::whereDate('created_at', today())->where('status', 'failed')->count(),
+                    ],
+                ];
+            }
+        } catch (\Exception $e) {
+            // Table doesn't exist yet
+        }
 
         $data['securitySettings'] = [
             '2faMandatoryMaster' => Setting::get('2fa_mandatory_master', true),
