@@ -67,7 +67,7 @@ export async function getChatStats(): Promise<ChatStats> {
 export async function getConversations(params: {
   status?: string;
   atendimento?: string;
-}): Promise<{ data: ChatConversation[]; data?: ChatConversation[] }> {
+}): Promise<{ data: ChatConversation[] }> {
   const query = new URLSearchParams(params as Record<string, string>);
   const res = await fetch(`${API_URL}/chat/conversations?${query}`, { credentials: 'include' });
   if (!res.ok) throw new Error('Failed to fetch conversations');
