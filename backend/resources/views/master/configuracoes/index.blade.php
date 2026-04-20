@@ -583,96 +583,85 @@
                     .btn-reset-2fa:hover { background: #fef2f2; }
                 </style>
 
-                <table class="user-2fa-table">
-                    <thead>
-                        <tr>
-                            <th>Usuário</th>
-                            <th>Perfil</th>
-                            <th>Status 2FA</th>
-                            <th>Último Login</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($usuarios2fa as $usuario)
-                        <tr>
-                            <td>
-                                <strong>{{ $usuario->name }}</strong><br>
-                                <small style="color: var(--materio-text-muted);">{{ $usuario->email }}</small>
-                            </td>
-                            <td>
-                                <span class="badge-perfil badge-{{ $usuario->perfil }}">{{ $usuario->perfil }}</span>
-                            </td>
-                            <td>
-                                @php
-                                    $secret = $usuario->two_factor_secret;
-                                    $devices = [];
-                                    if (!empty($secret)) {
-                                        $index = 1;
-                                        foreach (explode(',', $secret) as $entry) {
-                                            $entry = trim($entry);
-                                            if ($entry === '') continue;
-                                            if (str_contains($entry, '|')) {
-                                                [$name, $s] = explode('|', $entry, 2);
-                                                $devices[] = trim($name) ?: 'Dispositivo '.$index;
-                                            } else {
-                                                $devices[] = $index === 1 ? 'Dispositivo Principal' : 'Dispositivo '.$index;
-                                            }
-                                            $index++;
-                                        }
+@php
+                        $devicesList = [];
+                        foreach ($usuarios2fa as $u) {
+                            $secret = $u->two_factor_secret;
+                            if (!empty($secret)) {
+                                $idx = 1;
+                                foreach (explode(',', $secret) as $entry) {
+                                    $entry = trim($entry);
+                                    if ($entry === '') continue;
+                                    if (str_contains($entry, '|')) {
+                                        [$name, $s] = explode('|', $entry, 2);
+                                        $deviceName = trim($name) ?: 'Dispositivo '.$idx;
+                                    } else {
+                                        $deviceName = $idx === 1 ? 'Dispositivo Principal' : 'Dispositivo '.$idx;
                                     }
-                                @endphp
-                                @if($usuario->two_factor_enabled && count($devices) > 0)
-                                    <span class="badge-perfil badge-2fa-on">✓ ATIVO</span>
-                                    <div style="margin-top: 6px; font-size: 0.75rem; color: var(--materio-text-muted);">
-                                        @foreach($devices as $d)<i class="fas fa-mobile-alt"></i> {{ $d }}<br>@endforeach
-                                    </div>
-                                @else
-                                    <span class="badge-perfil badge-2fa-off">✗ INATIVO</span>
-                                @endif
-                            </td>
-                            <td>
-                                @php $loginAt = $usuario->last_login_at; @endphp
-                                @if($loginAt)
-                                    {{ is_string($loginAt) ? \Carbon\Carbon::parse($loginAt)->format('d/m/Y H:i') : $loginAt->format('d/m/Y H:i') }}
-                                    @if($usuario->login_ip)
-                                        <br><small style="color: var(--materio-text-muted);">IP: {{ $usuario->login_ip }}</small>
-                                    @endif
-                                @else
-                                    <span style="color: var(--materio-text-muted);">Nunca</span>
-                                @endif
-                            </td>
-                            <td>
-                                <form action="{{ route('master.configuracoes.seguranca.2fa.toggle') }}" method="POST" style="display: inline;">
-                                    @csrf
-                                    <input type="hidden" name="user_id" value="{{ $usuario->id }}">
-                                    <button type="submit" class="btn-toggle-2fa {{ $usuario->two_factor_enabled ? 'on' : 'off' }}">
-                                        {{ $usuario->two_factor_enabled ? 'Desativar' : 'Ativar' }}
-                                    </button>
-                                </form>
-                                @if($usuario->two_factor_enabled)
-                                <form action="{{ route('master.configuracoes.seguranca.2fa.reset') }}" method="POST" style="display: inline; margin-left: 8px;">
-                                    @csrf
-                                    <input type="hidden" name="user_id" value="{{ $usuario->id }}">
-                                    <button type="submit" class="btn-reset-2fa" onclick="return confirm('Tem certeza que deseja redefinir 2FA deste usuário?')">
-                                        Reset
-                                    </button>
-                                </form>
+                                    $devicesList[] = [
+                                        'user_id' => $u->id,
+                                        'user_name' => $u->name,
+                                        'user_email' => $u->email,
+                                        'perfil' => $u->perfil,
+                                        'device_name' => $deviceName,
+                                        'last_login_at' => $u->last_login_at,
+                                        'login_ip' => $u->login_ip,
+                                    ];
+                                    $idx++;
+                                }
+                            }
+                        }
+                    @endphp
 
-                                <form action="{{ route('master.configuracoes.seguranca.2fa.add-device') }}" method="POST" style="display: inline-flex; gap: 6px; margin-left: 8px; align-items: center;">
-                                    @csrf
-                                    <input type="hidden" name="user_id" value="{{ $usuario->id }}">
-                                    <input type="text" name="device_name" placeholder="Nome dispositivo" style="padding: 6px 8px; border: 1px solid var(--materio-border); border-radius: 6px; font-size: 0.8rem; width: 130px;" required>
-                                    <button type="submit" class="btn-toggle-2fa off" style="padding: 6px 10px;">
-                                        + Dispositivo
-                                    </button>
-                                </form>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                    <table class="user-2fa-table">
+                        <thead>
+                            <tr>
+                                <th>Dispositivo</th>
+                                <th>Usuário</th>
+                                <th>Perfil</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($devicesList as $device)
+                            <tr>
+                                <td>
+                                    <i class="fas fa-mobile-alt" style="color: #7c3aed;"></i>
+                                    <strong>{{ $device['device_name'] }}</strong>
+                                </td>
+                                <td>
+                                    <strong>{{ $device['user_name'] }}</strong><br>
+                                    <small style="color: var(--materio-text-muted);">{{ $device['user_email'] }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge-perfil badge-{{ $device['perfil'] }}">{{ $device['perfil'] }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge-perfil badge-2fa-on">✓ Ativo</span>
+                                </td>
+                                <td>
+                                    <form action="{{ route('master.configuracoes.seguranca.2fa.remove-device') }}" method="POST" style="display: inline;">
+                                        @csrf
+                                        <input type="hidden" name="user_id" value="{{ $device['user_id'] }}">
+                                        <input type="hidden" name="device_name" value="{{ $device['device_name'] }}">
+                                        <button type="submit" class="btn-reset-2fa" onclick="return confirm('Remover este dispositivo? O usuário precisará adicionar novamente.')">
+                                            <i class="fas fa-trash"></i> Remover
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 30px; color: var(--materio-text-muted);">
+                                    <i class="fas fa-shield-alt" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                                    Nenhum dispositivo 2FA cadastrado.<br>
+                                    Clique em "+ Novo Dispositivo" acima para adicionar.
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
             </div>
 
             <!-- 2.4 Histórico de Logins -->

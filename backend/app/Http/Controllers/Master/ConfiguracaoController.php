@@ -312,6 +312,46 @@ class ConfiguracaoController extends Controller
         ]);
     }
 
+    public function removeUser2faDevice(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'device_name' => 'required|string',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+        $deviceToRemove = trim($request->device_name);
+
+        $pairs = [];
+        $current = $user->two_factor_secret ?: '';
+
+        if (!empty($current)) {
+            foreach (explode(',', $current) as $entry) {
+                $entry = trim($entry);
+                if ($entry === '') continue;
+
+                if (str_contains($entry, '|')) {
+                    [$name, $secret] = explode('|', $entry, 2);
+                    if (trim($name) !== $deviceToRemove) {
+                        $pairs[] = $entry;
+                    }
+                }
+            }
+        }
+
+        if (empty($pairs)) {
+            $user->two_factor_secret = null;
+            $user->two_factor_enabled = false;
+            $user->recovery_codes = null;
+        } else {
+            $user->two_factor_secret = implode(',', $pairs);
+        }
+        $user->save();
+
+        return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
+            ->with('success', "Dispositivo '{$deviceToRemove}' removido.");
+    }
+
     public function enableUser2fa(Request $request)
     {
         $request->validate([
