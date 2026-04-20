@@ -172,6 +172,13 @@ Route::middleware(['auth:sanctum'])->prefix('leads')->name('leads.')->group(func
     Route::delete('/quick-replies/{id}', [LeadController::class, 'deleteQuickReply']);
     
     Route::post('/custom-fields', [LeadController::class, 'createCustomField']);
+    // IA Lab Routes
+    Route::prefix('ia-lab')->group(function () {
+        Route::get('/providers', [IAController::class, 'providers']);
+        Route::post('/test', [IAController::class, 'test']);
+        Route::post('/evaluate', [IAController::class, 'evaluate']);
+        Route::get('/history', [IAController::class, 'history']);
+    });
 });
 
 // ==========================================
@@ -190,3 +197,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/ia/analise-vendedor', [\App\Http\Controllers\AIServiceController::class, 'analiseVendedor']);
     Route::post('/ia/analise-campanha', [\App\Http\Controllers\AIServiceController::class, 'analiseCampanha']);
 });
+

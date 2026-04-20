@@ -81,6 +81,14 @@ class ClienteController extends Controller
 
         $viewPath = $isMaster ? 'master.clientes.index' : 'vendedor.clientes.index';
 
+        if ($request->expectsJson()) {
+            return response()->json([
+                'clientes' => $clientes,
+                'cards' => $cards,
+                'isMaster' => $isMaster
+            ]);
+        }
+
         return view($viewPath, compact('clientes', 'cards', 'isMaster'));
     }
 
@@ -134,6 +142,20 @@ class ClienteController extends Controller
         $pagamentos = $pagamentos->sortByDesc('data_vencimento')->values();
 
         $viewPath = $isMaster ? 'master.clientes.show' : 'vendedor.clientes.show';
+
+        if (request()->expectsJson()) {
+            return response()->json([
+                'cliente' => $cliente,
+                'vendas' => $vendas,
+                'pagamentos' => $pagamentos,
+                'isMaster' => $isMaster,
+                'metrics' => [
+                    'totalVendas' => $totalVendas,
+                    'valorTotalPago' => $valorTotalPago,
+                    'ticketMedio' => $ticketMedio
+                ]
+            ]);
+        }
 
         return view($viewPath, compact('cliente', 'vendas', 'pagamentos', 'isMaster', 'totalVendas', 'valorTotalPago', 'ticketMedio'));
     }

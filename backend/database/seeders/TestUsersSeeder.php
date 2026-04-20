@@ -15,14 +15,14 @@ class TestUsersSeeder extends Seeder
         echo "Criando usuários de teste...\n";
 
         $admin = \App\Models\User::create([
-            'name' => 'Admin Teste',
+            'name' => 'Master Teste',
             'email' => 'admin@teste.com',
             'password' => Hash::make('123456'),
-            'perfil' => 'admin',
+            'perfil' => 'master',
             'status' => 'active',
             'require_password_change' => false,
         ]);
-        echo "Admin criado: admin@teste.com / 123456\n";
+        echo "Master criado: admin@teste.com / 123456\n";
 
         $gestor = \App\Models\User::create([
             'name' => 'Gestor Teste',
