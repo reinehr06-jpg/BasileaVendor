@@ -176,6 +176,16 @@ class TwoFactorController extends Controller
             //     return response()->view('auth.2fa.denied', [], 403);
             // }
 
+            $existingDevices = $this->parseTwoFactorDevices($user->two_factor_secret);
+
+            if ($user->two_factor_enabled && empty($existingDevices)) {
+                DB::table('users')->where('id', $user->id)->update([
+                    'two_factor_enabled' => false,
+                    'recovery_codes' => null,
+                ]);
+                $user->two_factor_enabled = false;
+            }
+
             if ($user->two_factor_enabled) {
                 if (Session::get('2fa_verified_'.$user->id)) {
                     return redirect()->route('dashboard');

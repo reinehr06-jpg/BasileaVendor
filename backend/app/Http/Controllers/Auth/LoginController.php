@@ -92,10 +92,6 @@ class LoginController extends Controller
                 $user = Auth::user();
                 $request->session()->put('login_2fa_user_id', $user->id);
 
-                if ($user->perfil === 'master' && ! $user->two_factor_enabled) {
-                    $user->two_factor_enabled = true;
-                    $user->save();
-                }
 
                 LoginLog::logLogin([
                     'user_id' => $user->id,
