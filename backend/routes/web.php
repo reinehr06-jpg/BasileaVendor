@@ -553,3 +553,74 @@ Route::post('/webhook/basileia-church/sync', [BasileiaChurchWebhookController::c
 // Checkout - Webhook que recebe eventos do Checkout (servico externo)
 Route::post('/webhook/checkout', [CheckoutWebhookController::class, 'handle'])->name('webhook.checkout');
 Route::get('/test-login', [TestLoginController::class, 'testLogin']);
+
+// ──────────────────────────────────────────────────────────────────────────────
+// LEAD CAPTURE WEBHOOKS (Sem CSRF, sem auth)
+// ──────────────────────────────────────────────────────────────────────────────
+Route::prefix('webhook')->group(function () {
+    // Meta Ads Lead Ads
+    Route::get('/meta',       [WebhookController::class, 'metaVerify']);  // Verificação Facebook
+    Route::post('/meta',      [WebhookController::class, 'metaLead']);    // Leads Meta
+
+    // Google Ads
+    Route::post('/google',    [WebhookController::class, 'googleLead']);
+
+    // WhatsApp Links
+    Route::post('/whatsapp',  [WebhookController::class, 'whatsappLead']);
+
+    // Formulários Web
+    Route::post('/form',      [WebhookController::class, 'formLead']);
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// ADMIN / MASTER - CAMPANHAS E CONTATOS
+// ──────────────────────────────────────────────────────────────────────────────
+Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(function () {
+    // Campanhas
+    Route::get('/campanhas',                  [CampanhaController::class, 'index'])->name('admin.campanhas.index');
+    Route::post('/campanhas',                 [CampanhaController::class, 'store'])->name('admin.campanhas.store');
+    Route::get('/campanhas/{campanha}',       [CampanhaController::class, 'show'])->name('admin.campanhas.show');
+    Route::put('/campanhas/{campanha}',       [CampanhaController::class, 'update'])->name('admin.campanhas.update');
+    Route::get('/campanhas/{campanha}/metricas', [CampanhaController::class, 'metricas'])->name('admin.campanhas.metricas');
+
+    // Contatos
+    Route::get('/contatos',                   [ContatoController::class, 'index'])->name('admin.contatos.index');
+    Route::get('/contatos/{contato}',         [ContatoController::class, 'show'])->name('admin.contatos.show');
+    Route::put('/contatos/{contato}',         [ContatoController::class, 'update'])->name('admin.contatos.update');
+    Route::get('/contatos/{contato}/drawer',  [ContatoController::class, 'drawer'])->name('admin.contatos.drawer');
+    Route::post('/contatos/{contato}/status', [ContatoController::class, 'mudarStatus'])->name('admin.contatos.status');
+
+    // Calendário Admin
+    Route::get('/calendario', [CalendarioController::class, 'adminIndex'])->name('admin.calendario.index');
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// GESTOR
+// ──────────────────────────────────────────────────────────────────────────────
+Route::middleware(['auth', 'role:gestor'])->prefix('gestor')->group(function () {
+    Route::get('/calendario',                                    [CalendarioController::class, 'gestorIndex'])->name('gestor.calendario.index');
+    Route::get('/configuracoes/aprovar-mensagem',                [PrimeiraMensagemController::class, 'pendentes'])->name('gestor.aprovar-mensagem');
+    Route::post('/configuracoes/aprovar-mensagem/{mensagem}/aprovar',  [PrimeiraMensagemController::class, 'aprovar'])->name('gestor.aprovar-mensagem.aprovar');
+    Route::post('/configuracoes/aprovar-mensagem/{mensagem}/rejeitar', [PrimeiraMensagemController::class, 'rejeitar'])->name('gestor.aprovar-mensagem.rejeitar');
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// VENDEDOR
+// ──────────────────────────────────────────────────────────────────────────────
+Route::middleware(['auth', 'role:vendedor'])->prefix('vendedor')->group(function () {
+    Route::get('/calendario',                            [CalendarioController::class, 'vendedorIndex'])->name('vendedor.calendario.index');
+    Route::get('/configuracoes/primeira-mensagem',       [PrimeiraMensagemController::class, 'index'])->name('configuracoes.primeira-mensagem');
+    Route::post('/configuracoes/primeira-mensagem',      [PrimeiraMensagemController::class, 'store']);
+    Route::post('/configuracoes/primeira-mensagem/{mensagem}/enviar', [PrimeiraMensagemController::class, 'enviarParaAprovacao'])->name('configuracoes.primeira-mensagem.enviar');
+    Route::post('/configuracoes/primeira-mensagem/gerar-ia',          [PrimeiraMensagemController::class, 'gerarComIA'])->name('configuracoes.primeira-mensagem.ia');
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// CALENDÁRIO (Compartilhado - criação e ações)
+// ──────────────────────────────────────────────────────────────────────────────
+Route::middleware(['auth'])->group(function () {
+    Route::post('/calendario',                    [CalendarioController::class, 'store'])->name('calendario.store');
+    Route::post('/calendario/{evento}/concluir',  [CalendarioController::class, 'concluir'])->name('calendario.concluir');
+    Route::post('/calendario/{evento}/faltou',    [CalendarioController::class, 'marcarFaltou'])->name('calendario.faltou');
+    Route::post('/calendario/sincronizar',        [CalendarioController::class, 'sincronizar'])->name('calendario.sincronizar');
+});
