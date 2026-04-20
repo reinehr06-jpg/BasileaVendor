@@ -53,41 +53,10 @@ export interface ChatStats {
   open: number;
   closed: number;
   nao_atendido: number;
-  atendimento: number;
-  resolved: number;
-}
-
-export interface ChatConversation {
-  id: number;
-  contact_id: number;
-  vendedor_id: number | null;
-  status: 'open' | 'closed';
-  atendimento_status: 'nao_atendido' | 'atendido';
-  is_resolved: boolean;
-  last_inbound_at: string | null;
-  last_outbound_at: string | null;
-  unread_count: number;
-  contact: ChatContact;
-  vendedor: { id: number; user: { name: string } } | null;
-}
-
-export interface ChatMessage {
-  id: number;
-  conversation_id: number;
-  direction: 'inbound' | 'outbound';
-  content: string;
-  type: 'text' | 'media';
-  created_at: string;
-}
-
-export interface ChatStats {
-  total: number;
-  open: number;
-  closed: number;
-  nao_atendido: number;
   atendido: number;
   resolved: number;
 }
+
 
 export async function getChatStats(): Promise<ChatStats> {
   const res = await fetch(`${API_URL}/chat/stats`, { credentials: 'include' });
