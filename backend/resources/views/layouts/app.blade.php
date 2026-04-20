@@ -253,10 +253,11 @@
         </div>
         <div class="sidebar-user">
             <h3>{{ Auth::user()->name }}</h3>
-            <span>{{ Auth::user()->perfil === 'master' ? 'Administrador' : (Auth::user()->perfil === 'gestor' ? 'Gestor' : 'Vendedor') }}</span>
+            <span>{{ $perfil === 'master' ? 'Administrador' : ($perfil === 'gestor' ? 'Gestor' : 'Vendedor') }}</span>
         </div>
         <nav class="sidebar-menu">
-            @if(Auth::user()->perfil === 'master')
+            @php $perfil = Auth::user()->perfil; @endphp
+            @if($perfil === 'master' || $perfil === 'admin')
                 {{-- ADMIN MASTER --}}
                 <a href="{{ route('master.dashboard') }}" class="menu-item {{ request()->routeIs('master.dashboard') ? 'active' : '' }}">
                     <i class="fas fa-chart-pie"></i> Painel Principal

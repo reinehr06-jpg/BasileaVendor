@@ -183,7 +183,7 @@ Route::middleware('auth')->group(function () {
 // ==========================================
 // TERMOS (Admin)
 // ==========================================
-Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
     Route::get('/termos', [TermsController::class, 'index'])->name('admin.termos.index');
     Route::post('/termos', [TermsController::class, 'store'])->name('admin.termos.store');
     Route::put('/termos/{termo}', [TermsController::class, 'update'])->name('admin.termos.update');
@@ -195,7 +195,7 @@ Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(functio
 // ==========================================
 // IMPORTAÇÃO
 // ==========================================
-Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
     Route::get('/importar', function () {
         return view('admin.importar.index');
     })->name('admin.importar.index');
@@ -205,7 +205,7 @@ Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(functio
 // ==========================================
 // CONTATOS
 // ==========================================
-Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
     Route::get('/contatos', [ContatoController::class, 'index'])->name('admin.contatos.index');
     Route::post('/contatos', [ContatoController::class, 'store'])->name('admin.contatos.store');
     Route::get('/contatos/{contato}', [ContatoController::class, 'show'])->name('admin.contatos.show');
@@ -219,7 +219,7 @@ Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(functio
 // ==========================================
 // IA PROMPTS (Admin)
 // ==========================================
-Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
     Route::get('/ia/prompts', [App\Http\Controllers\Admin\AiPromptController::class, 'index'])->name('admin.ia.prompts.index');
     Route::get('/ia/prompts/create', [App\Http\Controllers\Admin\AiPromptController::class, 'create'])->name('admin.ia.prompts.create');
     Route::post('/ia/prompts', [App\Http\Controllers\Admin\AiPromptController::class, 'store'])->name('admin.ia.prompts.store');
@@ -649,7 +649,7 @@ Route::prefix('webhook')->group(function () {
 // ──────────────────────────────────────────────────────────────────────────────
 // ADMIN / MASTER - CAMPANHAS E CONTATOS
 // ──────────────────────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
     // Campanhas
     Route::get('/campanhas',                  [CampanhaController::class, 'index'])->name('admin.campanhas.index');
     Route::post('/campanhas',                 [CampanhaController::class, 'store'])->name('admin.campanhas.store');
@@ -674,7 +674,7 @@ Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(functio
 // ──────────────────────────────────────────────────────────────────────────────
 // GESTOR
 // ──────────────────────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'role:gestor'])->prefix('gestor')->group(function () {
+Route::middleware(['auth', 'gestor'])->prefix('gestor')->group(function () {
     // Campanhas (visualização)
     Route::get('/campanhas', [CampanhaController::class, 'index'])->name('gestor.campanhas.index');
     Route::get('/campanhas/{campanha}', [CampanhaController::class, 'show'])->name('gestor.campanhas.show');
@@ -698,7 +698,7 @@ Route::middleware(['auth', 'role:gestor'])->prefix('gestor')->group(function () 
 // ──────────────────────────────────────────────────────────────────────────────
 // VENDEDOR
 // ──────────────────────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'role:vendedor'])->prefix('vendedor')->group(function () {
+Route::middleware(['auth', 'vendedor'])->prefix('vendedor')->group(function () {
     // Contatos (seus leads)
     Route::get('/contatos', [ContatoController::class, 'index'])->name('vendedor.contatos.index');
     Route::get('/contatos/{contato}', [ContatoController::class, 'show'])->name('vendedor.contatos.show');
