@@ -108,15 +108,42 @@ class TwoFactorController extends Controller
                     }
                 }
             }
+
+            // If we get here, code was invalid
+            $attemptsKey = '2fa_attempts_'.$user->id;
+            $attempts = Cache::get($attemptsKey, 0) + 1;
+            Cache::put($attemptsKey, $attempts, now()->addMinutes(self::LOCKOUT_MINUTES));
+
+            $remaining = self::MAX_2FA_ATTEMPTS - $attempts;
+
+            if ($remaining <= 0) {
+                Cache::put($lockKey, true, now()->addMinutes(self::LOCKOUT_MINUTES));
+                SecurityLogService::logTwoFactorEvent($user->id, 'locked', 'failed');
+                Log::warning('2FA_CONTA_BLOQUEADA', ['user_id' => $user->id, 'email' => $user->email]);
+
+                return view('auth.2fa.locked', ['minutes' => self::LOCKOUT_MINUTES]);
+            }
+
+            SecurityLogService::logTwoFactorEvent($user->id, 'verify_failed', 'failed');
+
+            return back()->withErrors([
+                'code' => "Codigo invalido. Tentativa {$attempts} de ".self::MAX_2FA_ATTEMPTS.'.',
+            ]);
         } catch (DecryptException $e) {
             Log::error('2FA_VERIFY_DECRYPT_ERROR', ['user_id' => $user->id, 'error' => $e->getMessage()]);
 
-            // Erro de descriptografia indica APP_KEY mudou ou dados corrompidos.
-            // NÃO limpa 2FA automaticamente para evitar perda de dados em deploys.
-            // Usuário precisa acionar reset manual via suporte ou configurations.
-            return back()->withErrors([
-                'code' => 'Erro de segurança (APP_KEY alterada?). Entre em contato com suporte ou redefina seu 2FA.',
+            // Auto-reset 2FA when decryption fails - user can set up again
+            DB::table('users')->where('id', $user->id)->update([
+                'two_factor_enabled' => false,
+                'two_factor_secret' => null,
+                'recovery_codes' => null,
+                'two_factor_rotated_at' => null,
             ]);
+
+            SecurityLogService::logTwoFactorEvent($user->id, 'auto_reset_decrypt_failed', 'success');
+
+            // Redirect to setup so user can configure 2FA again
+            return redirect()->route('2fa.setup')->with('warning', '2FA foi resetado devido a erro de descriptografia. Por favor, configure novamente.');
         } catch (\Exception $e) {
             Log::error('2FA_VERIFY_FATAL_ERROR', ['user_id' => $user->id, 'error' => $e->getMessage()]);
 
