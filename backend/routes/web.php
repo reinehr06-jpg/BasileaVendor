@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PasswordChangeController;
 use App\Http\Controllers\Auth\TwoFactorController;
 use App\Http\Controllers\BasileiaChurchWebhookController;
+use App\Http\Controllers\CampanhaController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CheckoutNewController;
 use App\Http\Controllers\ClienteController;
