@@ -28,8 +28,9 @@ class TwoFactorController extends Controller
         //     return response()->view('auth.2fa.denied', [], 403);
         // }
 
-        // If 2FA is not enabled, redirect to setup
-        if (! $user->two_factor_enabled) {
+        // If 2FA is not enabled OR no secret exists, redirect to setup
+        $secrets = $user->two_factor_secret;
+        if (! $user->two_factor_enabled || empty($secrets)) {
             return redirect()->route('2fa.setup');
         }
 
@@ -82,7 +83,13 @@ class TwoFactorController extends Controller
                 }
             }
 
-            foreach ($this->parseTwoFactorDevices($user->two_factor_secret) as $device) {
+            // No devices/secret = redirect to setup
+            $devices = $this->parseTwoFactorDevices($user->two_factor_secret);
+            if (empty($devices)) {
+                return redirect()->route('2fa.setup')->with('warning', 'Nenhum dispositivo 2FA configurado. Por favor, configure novamente.');
+            }
+
+            foreach ($devices as $device) {
                 if (TwoFactorAuthService::verifyToken($device['secret'], $request->code)) {
                     Cache::forget('2fa_attempts_'.$user->id);
                     Cache::forget('2fa_lock_'.$user->id);
