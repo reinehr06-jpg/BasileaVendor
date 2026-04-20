@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PrimeiraMensagem;
 use App\Models\Vendedor;
-use App\Services\IA\PrimeiraMensagemIAService;
+use App\Services\AI\PrimeiraMensagemIAService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
