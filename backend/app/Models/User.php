@@ -63,7 +63,7 @@ class User extends Authenticatable
                     return null;
                 }
                 try {
-                    return decrypt($value);
+                    return decrypt($value, false);
                 } catch (\Exception $e) {
                     return null;
                 }
@@ -82,7 +82,7 @@ class User extends Authenticatable
                     return null;
                 }
                 try {
-                    return decrypt($value);
+                    return decrypt($value, false);
                 } catch (\Exception $e) {
                     return null;
                 }
