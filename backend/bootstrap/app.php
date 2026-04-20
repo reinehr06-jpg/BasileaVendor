@@ -41,6 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
             '2fa' => \App\Http\Middleware\TwoFactorMiddleware::class,
             'gestor' => \App\Http\Middleware\CheckGestor::class,
             'vendedor' => \App\Http\Middleware\CheckVendedor::class,
+            'role' => \App\Http\Middleware\CheckRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
