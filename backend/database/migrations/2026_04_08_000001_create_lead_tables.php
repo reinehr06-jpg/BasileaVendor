@@ -8,13 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('lead_inbound_logs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('set null');
-            $table->string('source', 50);
-            $table->json('raw_payload');
-            $table->string('leadgen_id')->nullable()->index();
-            $table->string('form_id')->nullable();
             $table->string('ad_id')->nullable();
             $table->string('adgroup_id')->nullable();
             $table->string('campaign_id')->nullable();

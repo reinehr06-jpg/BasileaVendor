@@ -8,7 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('chat_contacts', function (Blueprint $table) {
+        if (!Schema::hasTable('chat_contacts')) {
+            Schema::create('chat_contacts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->string('phone', 20)->index();
@@ -20,10 +21,12 @@ return new class extends Migration
             $table->boolean('is_contact_admin')->default(false)->index();
             $table->timestamps();
             
-            $table->unique(['tenant_id', 'phone']);
-        });
+                $table->unique(['tenant_id', 'phone']);
+            });
+        }
 
-        Schema::create('chat_conversations', function (Blueprint $table) {
+        if (!Schema::hasTable('chat_conversations')) {
+            Schema::create('chat_conversations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->foreignId('contact_id')->constrained('chat_contacts')->onDelete('cascade');
@@ -39,10 +42,12 @@ return new class extends Migration
 
             $table->index(['tenant_id', 'status']);
             $table->index(['tenant_id', 'vendedor_id', 'status']);
-            $table->index(['tenant_id', 'atendimento_status']);
-        });
+                $table->index(['tenant_id', 'atendimento_status']);
+            });
+        }
 
-        Schema::create('chat_messages', function (Blueprint $table) {
+        if (!Schema::hasTable('chat_messages')) {
+            Schema::create('chat_messages', function (Blueprint $table) {
             $table->id();
             $table->foreignId('conversation_id')->constrained('chat_conversations')->onDelete('cascade');
             $table->foreignId('contact_id')->constrained('chat_contacts')->onDelete('cascade');
@@ -62,8 +67,9 @@ return new class extends Migration
 
             $table->unique(['external_message_id'], 'chat_messages_external_unique');
             $table->unique(['source_id'], 'chat_messages_source_unique');
-            $table->index(['conversation_id', 'created_at']);
-        });
+                $table->index(['conversation_id', 'created_at']);
+            });
+        }
 
         Schema::create('chat_message_reads', function (Blueprint $table) {
             $table->id();

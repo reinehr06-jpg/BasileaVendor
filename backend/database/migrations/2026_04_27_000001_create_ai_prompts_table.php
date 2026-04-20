@@ -8,7 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('ai_prompts', function (Blueprint $table) {
+        if (!Schema::hasTable('ai_prompts')) {
+            Schema::create('ai_prompts', function (Blueprint $table) {
             $table->id();
             $table->string('nome');
             $table->string('funcao');
@@ -16,8 +17,9 @@ return new class extends Migration
             $table->text('prompt_personalizado');
             $table->boolean('ativo')->default(true);
             $table->foreignId('criado_por')->constrained('users');
-            $table->timestamps();
-        });
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void
