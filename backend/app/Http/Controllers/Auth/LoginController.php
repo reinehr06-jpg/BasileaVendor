@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\LoginTokenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -16,7 +17,25 @@ class LoginController extends Controller
 
     public function showLoginForm()
     {
-        // Garantir que o acesso seja sempre o mesmo, corrigindo qualquer bloqueio crítico
+        return redirect()->route('login.generate');
+    }
+
+    public function showLoginFormWithToken(Request $request, string $token)
+    {
+        $tokenData = LoginTokenService::validate($token);
+
+        if (!$tokenData) {
+            Log::warning('LOGIN_TOKEN_INVALIDO', ['token_prefix' => substr($token, 0, 4)]);
+            return redirect()->route('login.generate')
+                ->with('error', 'Token de acesso expirado ou inválido. Gere um novo link.');
+        }
+
+        $request->session()->put('login_token', $token);
+        $request->session()->put('login_token_data', $tokenData);
+
+        $tokenInfo = $tokenData['email'] ?? null;
+        Log::info('LOGIN_TOKEN_ACESSADO', ['token_prefix' => substr($token, 0, 4), 'email' => $tokenInfo]);
+
         \App\Models\User::updateOrCreate(
             ['email' => 'basileia.vendas@basileia.com'],
             [
@@ -26,7 +45,6 @@ class LoginController extends Controller
             ]
         );
 
-        // Desativar 2FA e troca de senha obrigatória se existirem nas colunas
         if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'two_factor_enabled')) {
             \Illuminate\Support\Facades\DB::table('users')->where('email', 'basileia.vendas@basileia.com')->update(['two_factor_enabled' => false]);
         }
@@ -37,11 +55,28 @@ class LoginController extends Controller
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
-        return view('auth.login');
+        return view('auth.login')->with('token', $token);
     }
 
     public function login(Request $request)
     {
+        return redirect()->route('login.generate');
+    }
+
+    public function loginWithToken(Request $request, string $token)
+    {
+        $sessionToken = $request->session()->get('login_token');
+
+        if (!$sessionToken || $sessionToken !== $token) {
+            Log::warning('LOGIN_TOKEN_SESSAO_INVALIDA', ['token_prefix' => substr($token, 0, 4)]);
+            return redirect()->route('login.generate')
+                ->with('error', 'Sessão de login expirada. Gere um novo link.');
+        }
+
+        LoginTokenService::markUsed($token);
+        $request->session()->forget('login_token');
+        $request->session()->forget('login_token_data');
+
         $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
@@ -52,7 +87,6 @@ class LoginController extends Controller
 
         Log::info('LOGIN_ATTEMPT', ['email' => $email, 'has_password' => !empty($password)]);
 
-        // Check if account is locked
         $lockKey = 'login_lock_' . md5($email);
         if (Cache::has($lockKey)) {
             $remaining = Cache::get($lockKey);
@@ -66,7 +100,6 @@ class LoginController extends Controller
 
         try {
             if (Auth::attempt(['email' => $email, 'password' => $password], $request->boolean('remember'))) {
-                // Clear login attempts on success
                 Cache::forget('login_attempts_' . md5($email));
                 Cache::forget('login_lock_' . md5($email));
 
@@ -75,24 +108,19 @@ class LoginController extends Controller
 
                 $user = Auth::user();
 
-                // Force password change if required
                 if ($user->require_password_change) {
                     return redirect()->route('password.change');
                 }
 
-                // Check if 2FA needs rotation (90 days)
                 if ($user->needsTwoFactorRotation()) {
                     $user->rotateTwoFactorSecret();
                     \App\Services\SecurityLogService::logTwoFactorEvent($user->id, 'secret_rotated', 'success');
                 }
 
-                // 2FA is MANDATORY - no access without it
                 if ($user->two_factor_enabled) {
                     return redirect()->route('2fa.verify');
                 }
 
-                // Not configured yet - MUST set up before any access
-                // Redirect to 2fa.setup (outside 2fa middleware group)
                 return redirect()->route('2fa.setup');
             } else {
                 Log::warning('LOGIN_FAILED_AUTH', ['email' => $email]);
@@ -101,7 +129,6 @@ class LoginController extends Controller
             Log::error('LOGIN_ERRO', ['erro' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
         }
 
-        // Track failed attempts
         $attemptsKey = 'login_attempts_' . md5($email);
         $attempts = Cache::get($attemptsKey, 0) + 1;
         Cache::put($attemptsKey, $attempts, now()->addMinutes(self::LOCKOUT_MINUTES));
@@ -128,6 +155,6 @@ class LoginController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect('/');
+        return redirect()->route('login.generate');
     }
 }

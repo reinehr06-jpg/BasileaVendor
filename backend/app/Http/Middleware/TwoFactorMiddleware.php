@@ -18,16 +18,15 @@ class TwoFactorMiddleware
 
         $user = Auth::user();
 
-        // Allow access to 2FA setup, verify, enable, disable, logout, password routes and chat routes
-        if ($request->is('2fa/*') || $request->is('logout') || $request->is('password/*')
-            || $request->is('admin/chat*') || $request->is('chat*') || $request->is('webhook/chat*')) {
+        // Allow only auth-management routes before full 2FA gate
+        if ($request->is('2fa/*') || $request->is('logout') || $request->is('password/*')) {
             return $next($request);
         }
 
-        // If 2FA is not enabled, allow access (do not block the system)
-        // This prevents lockouts after deploy/key rotation issues.
+        // If 2FA is not enabled, force setup
         if (!$user->two_factor_enabled) {
-            return $next($request);
+            return redirect()->route('2fa.setup')
+                ->with('warning', '⚠️ Acesso bloqueado: Você deve configurar autenticação em duas etapas (2FA).');
         }
 
         // If 2FA is enabled but not verified this session, require verification

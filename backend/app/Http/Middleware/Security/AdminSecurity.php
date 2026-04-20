@@ -23,7 +23,7 @@ class AdminSecurity
     {
         // Check if user is authenticated
         if (!Auth::check()) {
-            return redirect('/login')->with('error', 'Você precisa estar logado para acessar esta página.');
+            return redirect()->route('login.generate')->with('error', 'Você precisa estar logado para acessar esta página.');
         }
 
         $user = Auth::user();

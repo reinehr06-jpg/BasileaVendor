@@ -57,7 +57,7 @@ Route::get('/', function () {
         ]);
     }
 
-    return redirect()->route('login');
+    return redirect()->route('login.generate');
 });
 
 // Fallback: se o Asaas enviar POST para a raiz, encaminha para o webhook
@@ -65,7 +65,6 @@ Route::post('/', function (Request $request) {
     $payload = $request->all();
     $event = $payload['event'] ?? '';
 
-    // Só processa se parecer um webhook do Asaas
     if (str_starts_with($event, 'PAYMENT_') || str_starts_with($event, 'ACCESS_TOKEN_') || str_starts_with($event, 'SUBSCRIPTION_') || str_starts_with($event, 'FINANCIAL_') || ! empty($payload['payment'])) {
         Log::info('Webhook Asaas recebido na raiz (/), encaminhando...', [
             'event' => $event,
@@ -77,7 +76,7 @@ Route::post('/', function (Request $request) {
         return $controller->asaasWebhook($request);
     }
 
-    return redirect()->route('login');
+    return redirect()->route('login.generate');
 });
 
 // ==========================================
@@ -143,13 +142,20 @@ Route::get('/up', function () {
     return response()->json(['status' => 'ok', 'timestamp' => now()->toIso8601String()]);
 })->withoutMiddleware(SecurityHeaders::class);
 
-// Login routes (com rate limiting - increased for local development)
+Route::get('/login/gerar', function () {
+    return redirect(\App\Services\LoginTokenService::getLoginUrl());
+})->name('login.generate');
+
 Route::middleware('throttle:60,1')->group(function () {
-    Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
-    Route::get('/Login', function () {
-        return redirect('/login');
+    Route::get('/login/{token}', [LoginController::class, 'showLoginFormWithToken'])->name('login.token');
+    Route::get('/Login/{token}', [LoginController::class, 'showLoginFormWithToken']);
+    Route::post('/login/{token}', [LoginController::class, 'loginWithToken'])->name('login.post');
+    Route::get('/login', function () {
+        return redirect()->route('login.generate');
     });
-    Route::post('/login', [LoginController::class, 'login'])->name('login.post');
+    Route::get('/Login', function () {
+        return redirect()->route('login.generate');
+    });
 });
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 

@@ -192,12 +192,33 @@
         </div>
         
         <div class="login-form-container">
-            <div class="login-header">
+<div class="login-header">
                 <h2>Acesso Restrito</h2>
                 <p>Insira suas credenciais Master para continuar.</p>
             </div>
 
-            <form method="POST" action="{{ route('login.post') }}">
+            @php
+            $token = session('login_token') ?? ($token ?? null);
+            if (!$token) {
+                header('Location: ' . route('login.generate'));
+                exit;
+            }
+            @endphp
+
+            @if(session('error'))
+                <div class="error-message" style="background: #fef2f2; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            @if(session('warning'))
+                <div class="error-message" style="background: #fefce8; padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                    {{ session('warning') }}
+                </div>
+            @endif
+
+            @if($token)
+            <form method="POST" action="{{ route('login.post', ['token' => $token]) }}">
                 @csrf
                 
                 <div class="form-group">
@@ -220,6 +241,7 @@
                     Entrar no Sistema
                 </button>
             </form>
+            @endif
         </div>
     </div>
 
