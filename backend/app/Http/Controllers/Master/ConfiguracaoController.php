@@ -308,7 +308,7 @@ class ConfiguracaoController extends Controller
             'secret' => $newSecret,
             'deviceName' => $safeName,
             'qrCode' => $qrCode,
-            'isSetup' => !$user->two_factor_enabled,
+            'isSetup' => true, // Always show form when adding new device
         ]);
     }
 
