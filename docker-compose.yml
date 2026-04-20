@@ -31,6 +31,18 @@ services:
     depends_on:
       - postgres
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=https://vendor.basileia.global/api
+    depends_on:
+      - backend
+
 volumes:
   basileia_pgdata:
   basileia_storage:
