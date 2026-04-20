@@ -604,9 +604,32 @@
                                 <span class="badge-perfil badge-{{ $usuario->perfil }}">{{ $usuario->perfil }}</span>
                             </td>
                             <td>
-                                <span class="badge-perfil {{ $usuario->two_factor_enabled ? 'badge-2fa-on' : 'badge-2fa-off' }}">
-                                    {{ $usuario->two_factor_enabled ? '✓ ATIVO' : '✗ INATIVO' }}
-                                </span>
+                                @php
+                                    $secret = $usuario->two_factor_secret;
+                                    $devices = [];
+                                    if (!empty($secret)) {
+                                        $index = 1;
+                                        foreach (explode(',', $secret) as $entry) {
+                                            $entry = trim($entry);
+                                            if ($entry === '') continue;
+                                            if (str_contains($entry, '|')) {
+                                                [$name, $s] = explode('|', $entry, 2);
+                                                $devices[] = trim($name) ?: 'Dispositivo '.$index;
+                                            } else {
+                                                $devices[] = $index === 1 ? 'Dispositivo Principal' : 'Dispositivo '.$index;
+                                            }
+                                            $index++;
+                                        }
+                                    }
+                                @endphp
+                                @if($usuario->two_factor_enabled && count($devices) > 0)
+                                    <span class="badge-perfil badge-2fa-on">✓ ATIVO</span>
+                                    <div style="margin-top: 6px; font-size: 0.75rem; color: var(--materio-text-muted);">
+                                        @foreach($devices as $d)<i class="fas fa-mobile-alt"></i> {{ $d }}<br>@endforeach
+                                    </div>
+                                @else
+                                    <span class="badge-perfil badge-2fa-off">✗ INATIVO</span>
+                                @endif
                             </td>
                             <td>
                                 @php $loginAt = $usuario->last_login_at; @endphp
