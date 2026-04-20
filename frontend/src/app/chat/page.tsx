@@ -23,7 +23,8 @@ import {
   Filter,
   ChevronLeft,
   AlertCircle,
-  MessageSquare
+  MessageSquare,
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { motion, AnimatePresence } from 'framer-motion';
