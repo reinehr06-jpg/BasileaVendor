@@ -14,14 +14,14 @@ return new class extends Migration
             $table->boolean('chat_round_robin_enabled')->default(true)->after('chat_sla_minutes');
         });
 
-        Schema::table('vendedors', function (Blueprint $table) {
+        Schema::table('vendedores', function (Blueprint $table) {
             $table->boolean('chat_enabled')->default(true)->after('meta_mensal');
         });
     }
 
     public function down(): void
     {
-        Schema::table('vendedors', function (Blueprint $table) {
+        Schema::table('vendedores', function (Blueprint $table) {
             $table->dropColumn('chat_enabled');
         });
 

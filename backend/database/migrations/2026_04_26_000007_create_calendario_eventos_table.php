@@ -18,7 +18,7 @@ return new class extends Migration
             $table->dateTime('data_hora_fim')->nullable();
             $table->foreignId('cliente_id')->nullable()->constrained('clientes')->nullOnDelete();
             $table->foreignId('contato_id')->nullable()->constrained('contatos')->nullOnDelete();
-            $table->foreignId('vendedor_id')->nullable()->constrained('vendedors')->nullOnDelete();
+            $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->nullOnDelete();
             $table->json('recorrencia')->nullable();
             $table->string('google_event_id')->nullable()->unique();
             $table->enum('status', ['agendado', 'concluido', 'cancelado', 'faltou'])->default('agendado');

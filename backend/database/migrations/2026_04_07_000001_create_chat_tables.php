@@ -27,7 +27,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->foreignId('contact_id')->constrained('chat_contacts')->onDelete('cascade');
-            $table->foreignId('vendedor_id')->nullable()->constrained('vendedors')->onDelete('set null');
+            $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->onDelete('set null');
             $table->string('status', 20)->default('open')->index();
             $table->string('atendimento_status', 20)->default('nao_atendido')->index();
             $table->boolean('is_resolved')->default(false)->index();
@@ -46,7 +46,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('conversation_id')->constrained('chat_conversations')->onDelete('cascade');
             $table->foreignId('contact_id')->constrained('chat_contacts')->onDelete('cascade');
-            $table->foreignId('vendedor_id')->nullable()->constrained('vendedors')->onDelete('set null');
+            $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->onDelete('set null');
             $table->string('direction', 10)->index();
             $table->text('content');
             $table->string('type', 20)->default('text');
@@ -68,7 +68,7 @@ return new class extends Migration
         Schema::create('chat_message_reads', function (Blueprint $table) {
             $table->id();
             $table->foreignId('message_id')->constrained('chat_messages')->onDelete('cascade');
-            $table->foreignId('vendedor_id')->constrained('vendedors')->onDelete('cascade');
+            $table->foreignId('vendedor_id')->constrained('vendedores')->onDelete('cascade');
             $table->timestamp('read_at');
             $table->timestamps();
 

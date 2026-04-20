@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('nome');
             $table->string('email')->nullable();
-            $table->string('telefone')->nullable();
+            $table->string('phone')->nullable();
             $table->string('whatsapp')->nullable();
             $table->string('documento')->nullable();
 
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->timestamp('entry_date');
 
             $table->foreignId('agente_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('vendedor_id')->nullable()->constrained('vendedors')->nullOnDelete();
+            $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->nullOnDelete();
             $table->foreignId('gestor_id')->nullable()->constrained('users')->nullOnDelete();
 
             $table->string('nome_igreja')->nullable();

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('vendedors', function (Blueprint $table) {
+        Schema::table('vendedores', function (Blueprint $table) {
             $table->text('ia_ultima_analise')->nullable()->after('comissao');
             $table->timestamp('ia_analise_em')->nullable()->after('ia_ultima_analise');
         });
@@ -16,7 +16,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('vendedors', function (Blueprint $table) {
+        Schema::table('vendedores', function (Blueprint $table) {
             $table->dropColumn(['ia_ultima_analise', 'ia_analise_em']);
         });
     }

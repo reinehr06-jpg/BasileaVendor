@@ -23,8 +23,8 @@ return new class extends Migration
             if (!Schema::hasColumn('clientes', 'nome_responsavel')) {
                 $table->string('nome_responsavel')->nullable()->after('nome_pastor');
             }
-            if (!Schema::hasColumn('clientes', 'telefone')) {
-                $table->string('telefone')->nullable()->after('whatsapp');
+            if (!Schema::hasColumn('clientes', 'phone')) {
+                $table->string('phone')->nullable()->after('whatsapp');
             }
             if (!Schema::hasColumn('clientes', 'status')) {
                 $table->string('status')->default('ativo')->after('quantidade_membros');
@@ -61,7 +61,7 @@ return new class extends Migration
         });
 
         Schema::table('clientes', function (Blueprint $table) {
-            $table->dropColumn(['nome_responsavel', 'telefone', 'status']);
+            $table->dropColumn(['nome_responsavel', 'phone', 'status']);
         });
 
         Schema::table('vendas', function (Blueprint $table) {

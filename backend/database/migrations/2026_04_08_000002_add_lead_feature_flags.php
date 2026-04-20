@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('vendedors', function (Blueprint $table) {
+        Schema::table('vendedores', function (Blueprint $table) {
             $table->boolean('lead_enabled')->default(true)->after('chat_enabled');
         });
 
@@ -26,7 +26,7 @@ return new class extends Migration
             $table->dropColumn(['lead_round_robin_enabled', 'lead_default_equipe_id', 'lead_rate_limit', 'lead_rate_window']);
         });
 
-        Schema::table('vendedors', function (Blueprint $table) {
+        Schema::table('vendedores', function (Blueprint $table) {
             $table->dropColumn('lead_enabled');
         });
     }

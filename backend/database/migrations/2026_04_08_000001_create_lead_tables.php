@@ -29,7 +29,7 @@ return new class extends Migration
         Schema::create('leads', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('set null');
-            $table->foreignId('vendedor_id')->nullable()->constrained('vendedors')->onDelete('set null');
+            $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->onDelete('set null');
             $table->foreignId('chat_contact_id')->nullable()->constrained('chat_contacts')->onDelete('set null');
             $table->foreignId('cliente_id')->nullable()->constrained('clientes')->onDelete('set null');
             $table->string('name');

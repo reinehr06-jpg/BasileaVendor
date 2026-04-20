@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedInteger('vagas_total');
             $table->unsignedInteger('vagas_ocupadas')->default(0);
             $table->string('whatsapp_vendedor')->nullable();
-            $table->string('telefone_vendedor')->nullable();
+            $table->string('phone_vendedor')->nullable();
             $table->timestamp('data_inicio')->nullable();
             $table->timestamp('data_fim')->nullable();
             $table->enum('status', ['ativo', 'esgotado', 'expirado'])->default('ativo');

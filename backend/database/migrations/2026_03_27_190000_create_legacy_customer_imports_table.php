@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('nome')->nullable();
             $table->string('documento')->nullable();
             $table->string('email')->nullable();
-            $table->string('telefone')->nullable();
+            $table->string('phone')->nullable();
             $table->unsignedBigInteger('vendedor_id')->nullable();
             $table->unsignedBigInteger('gestor_id')->nullable();
             $table->unsignedBigInteger('plano_id')->nullable();

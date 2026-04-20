@@ -21,7 +21,7 @@ return new class extends Migration
         Schema::create('chat_contacts', function (Blueprint $table) {
             $table->id();
             $table->string('nome')->nullable();
-            $table->string('telefone')->nullable();
+            $table->string('phone')->nullable();
             $table->string('email')->nullable();
             $table->string('avatar_url')->nullable();
             $table->text('tags')->nullable();
@@ -30,13 +30,13 @@ return new class extends Migration
             $table->foreignId('gestor_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
             
-            $table->index('telefone');
+            $table->index('phone');
             $table->index('email');
             $table->index('source');
         });
 
         // Conversas
-        Schema::create('chat_conversas', function (Blueprint $table) {
+        Schema::create('chat_conversations', function (Blueprint $table) {
             $table->id();
             $table->foreignId('contact_id')->constrained('chat_contacts')->onDelete('cascade');
             $table->foreignId('gestor_id')->nullable()->constrained('users')->onDelete('set null');
@@ -62,9 +62,9 @@ return new class extends Migration
         });
 
         // Mensagens
-        Schema::create('chat_mensagens', function (Blueprint $table) {
+        Schema::create('chat_messages', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('conversa_id')->constrained('chat_conversas')->onDelete('cascade');
+            $table->foreignId('conversa_id')->constrained('chat_conversations')->onDelete('cascade');
             $table->foreignId('sender_id')->nullable();
             $table->string('sender_type')->nullable();
             $table->enum('direction', ['inbound', 'outbound'])->default('inbound');
@@ -89,7 +89,7 @@ return new class extends Migration
         Schema::create('chat_whatsapp_configs', function (Blueprint $table) {
             $table->id();
             $table->foreignId('gestor_id')->nullable()->constrained('users')->onDelete('cascade');
-            $table->string('numero_telefone')->nullable();
+            $table->string('numero_phone')->nullable();
             $table->string('numero_id')->nullable();
             $table->string('api_token')->nullable();
             $table->string('webhook_verify_token')->nullable();
@@ -115,7 +115,7 @@ return new class extends Migration
         // Log de atividades do chat
         Schema::create('chat_atividades', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('conversa_id')->nullable()->constrained('chat_conversas')->onDelete('set null');
+            $table->foreignId('conversa_id')->nullable()->constrained('chat_conversations')->onDelete('set null');
             $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->onDelete('set null');
             $table->string('acao');
             $table->text('detalhes')->nullable();
@@ -140,8 +140,8 @@ return new class extends Migration
         Schema::dropIfExists('chat_atividades');
         Schema::dropIfExists('chat_distribuicao_fila');
         Schema::dropIfExists('chat_whatsapp_configs');
-        Schema::dropIfExists('chat_mensagens');
-        Schema::dropIfExists('chat_conversas');
+        Schema::dropIfExists('chat_messages');
+        Schema::dropIfExists('chat_conversations');
         Schema::dropIfExists('chat_contacts');
     }
 };

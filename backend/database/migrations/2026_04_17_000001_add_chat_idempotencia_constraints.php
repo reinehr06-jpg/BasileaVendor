@@ -9,10 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('chat_mensagens', function (Blueprint $table) {
-            $table->unique(['external_message_id'], 'chat_mensagens_external_unique');
+        Schema::table('chat_messages', function (Blueprint $table) {
+            $table->unique(['external_message_id'], 'chat_messages_external_unique');
             $table->string('source_id')->nullable()->index();
-            $table->unique(['source_id'], 'chat_mensagens_source_unique');
+            $table->unique(['source_id'], 'chat_messages_source_unique');
         });
 
         Schema::table('settings', function (Blueprint $table) {
@@ -23,10 +23,10 @@ return new class extends Migration
         });
 
         Schema::table('chat_contacts', function (Blueprint $table) {
-            $table->unique(['telefone'], 'chat_contacts_telefone_unique');
+            $table->unique(['phone'], 'chat_contacts_phone_unique');
         });
 
-        Schema::table('chat_conversas', function (Blueprint $table) {
+        Schema::table('chat_conversations', function (Blueprint $table) {
             $table->index(['gestor_id', 'status', 'is_atendido']);
             $table->index(['gestor_id', 'vendedor_id', 'status']);
         });
@@ -34,9 +34,9 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('chat_mensagens', function (Blueprint $table) {
-            $table->dropUnique('chat_mensagens_external_unique');
-            $table->dropUnique('chat_mensagens_source_unique');
+        Schema::table('chat_messages', function (Blueprint $table) {
+            $table->dropUnique('chat_messages_external_unique');
+            $table->dropUnique('chat_messages_source_unique');
             $table->dropColumn('source_id');
         });
 

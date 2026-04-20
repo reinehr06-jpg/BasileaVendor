@@ -19,7 +19,7 @@ return new class extends Migration
         Schema::create('lead_schedules', function (Blueprint $table) {
             $table->id();
             $table->foreignId('lead_id')->constrained('leads')->onDelete('cascade');
-            $table->foreignId('vendedor_id')->constrained('vendedors')->onDelete('cascade');
+            $table->foreignId('vendedor_id')->constrained('vendedores')->onDelete('cascade');
             $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('set null');
             $table->datetime('scheduled_at');
             $table->string('status', 20)->default('pending');
@@ -54,8 +54,8 @@ return new class extends Migration
         Schema::create('lead_transfer_history', function (Blueprint $table) {
             $table->id();
             $table->foreignId('lead_id')->constrained('leads')->onDelete('cascade');
-            $table->foreignId('from_vendedor_id')->nullable()->constrained('vendedors')->onDelete('set null');
-            $table->foreignId('to_vendedor_id')->nullable()->constrained('vendedors')->onDelete('set null');
+            $table->foreignId('from_vendedor_id')->nullable()->constrained('vendedores')->onDelete('set null');
+            $table->foreignId('to_vendedor_id')->nullable()->constrained('vendedores')->onDelete('set null');
             $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('set null');
             $table->string('motivo')->nullable();
             $table->string('type')->default('manual');
@@ -66,7 +66,7 @@ return new class extends Migration
         Schema::create('quick_replies', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('cascade');
-            $table->foreignId('vendedor_id')->nullable()->constrained('vendedors')->onDelete('cascade');
+            $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->onDelete('cascade');
             $table->string('shortcut')->unique();
             $table->text('content');
             $table->string('category')->nullable();
