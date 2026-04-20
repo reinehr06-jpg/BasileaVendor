@@ -47,12 +47,20 @@ class PrimeiraMensagemController extends Controller
     // Gestor — ver pendentes
     public function pendentes()
     {
-        $ids = Vendedor::where('gestor_id', Auth::id())->pluck('user_id');
+        try {
+            $ids = Vendedor::where('gestor_id', Auth::id())->pluck('id');
 
-        $pendentes = PrimeiraMensagem::whereIn('user_id', $ids)
-            ->where('status', 'pendente_aprovacao')
-            ->with('usuario')
-            ->get();
+            if ($ids->isEmpty()) {
+                $pendentes = collect([]);
+            } else {
+                $pendentes = PrimeiraMensagem::whereIn('user_id', $ids)
+                    ->where('status', 'pendente_aprovacao')
+                    ->with('usuario')
+                    ->get();
+            }
+        } catch (\Exception $e) {
+            $pendentes = collect([]);
+        }
 
         return view('gestor.aprovar-mensagem', compact('pendentes'));
     }

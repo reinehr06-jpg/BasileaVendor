@@ -17,38 +17,55 @@ class ContatoController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $query = Contato::with('campanha', 'agente', 'vendedor')->orderByDesc('entry_date');
 
-        if ($user->perfil === 'vendedor') {
-            $vendedor = Vendedor::where('user_id', $user->id)->first();
-            if ($vendedor) {
-                $query->where('vendedor_id', $vendedor->id);
+        try {
+            $query = Contato::with('campanha', 'agente', 'vendedor')->orderByDesc('entry_date');
+
+            if ($user->perfil === 'vendedor') {
+                $vendedor = Vendedor::where('user_id', $user->id)->first();
+                if ($vendedor) {
+                    $query->where('vendedor_id', $vendedor->id);
+                }
+            } elseif ($user->perfil === 'gestor') {
+                $vendedoresIds = Vendedor::where('gestor_id', $user->id)->pluck('id');
+                if ($vendedoresIds->isNotEmpty()) {
+                    $query->whereIn('vendedor_id', $vendedoresIds);
+                }
             }
-        } elseif ($user->perfil === 'gestor') {
-            $vendedoresIds = Vendedor::where('gestor_id', $user->id)->pluck('id');
-            $query->whereIn('vendedor_id', $vendedoresIds);
+
+            if ($request->campanha_id) $query->porCampanha($request->campanha_id);
+            if ($request->canal) $query->porCanal($request->canal);
+            if ($request->status) $query->porStatus($request->status);
+            if ($request->agente_id) $query->porAgente($request->agente_id);
+            if ($request->data_inicio && $request->data_fim) {
+                $query->porPeriodo($request->data_inicio, $request->data_fim);
+            }
+            if ($request->busca) {
+                $busca = $request->busca;
+                $query->where(function ($q) use ($busca) {
+                    $q->where('nome', 'like', "%$busca%")
+                      ->orWhere('telefone', 'like', "%$busca%")
+                      ->orWhere('whatsapp', 'like', "%$busca%")
+                      ->orWhere('email', 'like', "%$busca%");
+                });
+            }
+
+            $contatos = $query->paginate(50)->withQueryString();
+        } catch (\Exception $e) {
+            $contatos = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 50);
         }
 
-        if ($request->campanha_id) $query->porCampanha($request->campanha_id);
-        if ($request->canal) $query->porCanal($request->canal);
-        if ($request->status) $query->porStatus($request->status);
-        if ($request->agente_id) $query->porAgente($request->agente_id);
-        if ($request->data_inicio && $request->data_fim) {
-            $query->porPeriodo($request->data_inicio, $request->data_fim);
-        }
-        if ($request->busca) {
-            $busca = $request->busca;
-            $query->where(function ($q) use ($busca) {
-                $q->where('nome', 'like', "%$busca%")
-                  ->orWhere('telefone', 'like', "%$busca%")
-                  ->orWhere('whatsapp', 'like', "%$busca%")
-                  ->orWhere('email', 'like', "%$busca%");
-            });
+        try {
+            $campanhas = Campanha::orderBy('nome')->get();
+        } catch (\Exception $e) {
+            $campanhas = collect([]);
         }
 
-        $contatos = $query->paginate(50)->withQueryString();
-        $campanhas = Campanha::orderBy('nome')->get();
-        $agentes = User::orderBy('name')->get();
+        try {
+            $agentes = User::orderBy('name')->get();
+        } catch (\Exception $e) {
+            $agentes = collect([]);
+        }
 
         return view('admin.contatos.index', compact('contatos', 'campanhas', 'agentes'));
     }

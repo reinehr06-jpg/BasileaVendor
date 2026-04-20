@@ -20,22 +20,36 @@ class CalendarioController extends Controller
 
     public function gestorIndex()
     {
-        $meusEventos = CalendarioEvento::where('user_id', Auth::id())
-            ->agendados()->orderBy('data_hora_inicio')->get();
+        try {
+            $meusEventos = CalendarioEvento::where('user_id', Auth::id())
+                ->agendados()->orderBy('data_hora_inicio')->get();
 
-        $ids = Vendedor::where('gestor_id', Auth::id())->pluck('user_id');
-        $eventosEquipe = CalendarioEvento::whereIn('user_id', $ids)
-            ->agendados()->with('usuario', 'contato')->orderBy('data_hora_inicio')->get();
+            $ids = Vendedor::where('gestor_id', Auth::id())->pluck('id');
+            if ($ids->isNotEmpty()) {
+                $eventosEquipe = CalendarioEvento::whereIn('user_id', $ids)
+                    ->agendados()->with('usuario', 'contato')->orderBy('data_hora_inicio')->get();
+            } else {
+                $eventosEquipe = collect([]);
+            }
 
-        $vendedores = Vendedor::where('gestor_id', Auth::id())->with('user')->get();
+            $vendedores = Vendedor::where('gestor_id', Auth::id())->with('user')->get();
+        } catch (\Exception $e) {
+            $meusEventos = collect([]);
+            $eventosEquipe = collect([]);
+            $vendedores = collect([]);
+        }
 
         return view('gestor.calendario.index', compact('meusEventos', 'eventosEquipe', 'vendedores'));
     }
 
     public function vendedorIndex()
     {
-        $eventos = CalendarioEvento::where('user_id', Auth::id())
-            ->with('cliente', 'contato')->orderBy('data_hora_inicio')->get();
+        try {
+            $eventos = CalendarioEvento::where('user_id', Auth::id())
+                ->with('cliente', 'contato')->orderBy('data_hora_inicio')->get();
+        } catch (\Exception $e) {
+            $eventos = collect([]);
+        }
         return view('vendedor.calendario.index', compact('eventos'));
     }
 
