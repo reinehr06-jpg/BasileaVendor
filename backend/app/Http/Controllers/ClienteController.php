@@ -21,13 +21,13 @@ class ClienteController extends Controller
 
         $query = Cliente::query();
 
-        // Regra de Ouro: Só é cliente se tiver pelo menos um pagamento confirmado
-        $query->whereHas('vendas.pagamentos', function ($q) {
-            $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
-        });
-
-        // Se for vendedor, filtrar apenas os clientes que tem vendas com ele
-        if (! $isMaster) {
+        if ($isMaster) {
+            // Master mantém regra financeira: cliente com ao menos 1 pagamento confirmado
+            $query->whereHas('vendas.pagamentos', function ($q) {
+                $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
+            });
+        } else {
+            // Vendedor deve enxergar todos os clientes atribuídos, mesmo sem comissão/pagamento no mês
             $query->whereHas('vendas', function ($q) use ($user) {
                 $q->whereHas('vendedor', function ($v) use ($user) {
                     $v->where('usuario_id', $user->id);
@@ -57,13 +57,14 @@ class ClienteController extends Controller
 
         $clientes = $query->with('vendas')->orderBy('created_at', 'desc')->paginate(15);
 
-        // Cards de Resumo (baseado apenas em quem já pagou algo)
-        $allClientes = Cliente::whereHas('vendas.pagamentos', function ($q) {
-            $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
-        });
-
-        if (! $isMaster) {
-            $allClientes->whereHas('vendas', function ($q) use ($user) {
+        // Cards de Resumo
+        if ($isMaster) {
+            $allClientes = Cliente::whereHas('vendas.pagamentos', function ($q) {
+                $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
+            });
+        } else {
+            // Para vendedor, resumo deve refletir clientes atribuídos (com ou sem pagamento)
+            $allClientes = Cliente::whereHas('vendas', function ($q) use ($user) {
                 $q->whereHas('vendedor', function ($v) use ($user) {
                     $v->where('usuario_id', $user->id);
                 });
