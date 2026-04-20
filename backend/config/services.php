@@ -61,9 +61,18 @@ return [
         'deploy_secret' => env('GIT_DEPLOY_SECRET'),
     ],
 
+    'ia' => [
+        'provider' => env('IA_PROVIDER', 'ollama'), // ollama, openai
+    ],
+
     'ia_local' => [
         'endpoint' => env('IA_LOCAL_ENDPOINT', 'http://localhost:11434/api/generate'),
         'model'    => env('IA_LOCAL_MODEL', 'llama3.2'),
+    ],
+
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model'   => env('OPENAI_MODEL', 'gpt-3.5-turbo'),
     ],
 
 ];

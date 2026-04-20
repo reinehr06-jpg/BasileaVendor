@@ -585,6 +585,7 @@ Route::middleware(['auth', 'role:admin,master'])->prefix('admin')->group(functio
 
     // Contatos
     Route::get('/contatos',                   [ContatoController::class, 'index'])->name('admin.contatos.index');
+    Route::post('/contatos/importar',         [ImportacaoController::class, 'importar'])->name('admin.contatos.importar');
     Route::get('/contatos/{contato}',         [ContatoController::class, 'show'])->name('admin.contatos.show');
     Route::put('/contatos/{contato}',         [ContatoController::class, 'update'])->name('admin.contatos.update');
     Route::get('/contatos/{contato}/drawer',  [ContatoController::class, 'drawer'])->name('admin.contatos.drawer');
