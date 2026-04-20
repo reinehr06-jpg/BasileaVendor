@@ -11,6 +11,7 @@ use App\Models\LegacyCustomerImport;
 use App\Models\LegacyCommission;
 use App\Models\Plano;
 use App\Models\CommissionRule;
+use App\Models\LoginLog;
 use App\Services\AsaasService;
 use App\Services\LegacyImportService;
 use App\Services\LegacyCommissionService;
@@ -46,8 +47,31 @@ class ConfiguracaoController extends Controller
         // 1. Aba Geral (Conta)
         // No additional data needed
 
-        // 2. Aba Segurança
-        // No additional data needed
+        // 2. Aba Segurança - Dados de 2FA e logs
+        $data['usuarios2fa'] = User::select('id', 'name', 'email', 'perfil', 'status', 'two_factor_enabled', 'two_factor_rotated_at', 'last_login_at', 'login_ip')
+            ->orderBy('name')
+            ->get();
+
+        $data['loginLogs'] = [
+            'recent' => LoginLog::with('user:id,name,email')
+                ->orderBy('created_at', 'desc')
+                ->limit(50)
+                ->get(),
+            'stats' => [
+                'totalToday' => LoginLog::whereDate('created_at', today())->count(),
+                'successToday' => LoginLog::whereDate('created_at', today())->where('status', 'success')->count(),
+                'failedToday' => LoginLog::whereDate('created_at', today())->where('status', 'failed')->count(),
+            ],
+        ];
+
+        $data['securitySettings'] = [
+            '2faMandatoryMaster' => Setting::get('2fa_mandatory_master', true),
+            '2faMandatoryGestor' => Setting::get('2fa_mandatory_gestor', false),
+            '2faMandatoryVendedor' => Setting::get('2fa_mandatory_vendedor', false),
+            'maxLoginAttempts' => Setting::get('max_login_attempts', 5),
+            'lockoutMinutes' => Setting::get('lockout_minutes', 15),
+            'sessionTimeout' => Setting::get('session_timeout_minutes', 480),
+        ];
 
         // 3. Aba Integrações
         $data['integracoes'] = [
@@ -176,5 +200,76 @@ class ConfiguracaoController extends Controller
 
         return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
                          ->with('success', 'Senha alterada com sucesso!');
+    }
+
+    public function toggleUser2fa(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+        $user->two_factor_enabled = !$user->two_factor_enabled;
+        
+        if (!$user->two_factor_enabled) {
+            $user->two_factor_secret = null;
+            $user->recovery_codes = null;
+        }
+        
+        $user->save();
+
+        $status = $user->two_factor_enabled ? 'ativado' : 'desativado';
+        
+        return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
+                         ->with('success', "2FA {$status} para {$user->name}!");
+    }
+
+    public function resetUser2fa(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+        $user->two_factor_enabled = false;
+        $user->two_factor_secret = null;
+        $user->recovery_codes = null;
+        $user->two_factor_rotated_at = null;
+        $user->save();
+
+        return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
+                         ->with('success', "2FA redefinido para {$user->name}. O usuário precisará configurar novamente.");
+    }
+
+    public function updateSecuritySettings(Request $request)
+    {
+        $request->validate([
+            '2fa_mandatory_master' => 'boolean',
+            '2fa_mandatory_gestor' => 'boolean',
+            '2fa_mandatory_vendedor' => 'boolean',
+            'max_login_attempts' => 'integer|min:3|max:10',
+            'lockout_minutes' => 'integer|min:1|max:60',
+            'session_timeout' => 'integer|min:30|max:1440',
+        ]);
+
+        Setting::set('2fa_mandatory_master', $request->boolean('2fa_mandatory_master'));
+        Setting::set('2fa_mandatory_gestor', $request->boolean('2fa_mandatory_gestor'));
+        Setting::set('2fa_mandatory_vendedor', $request->boolean('2fa_mandatory_vendedor'));
+        Setting::set('max_login_attempts', $request->max_login_attempts);
+        Setting::set('lockout_minutes', $request->lockout_minutes);
+        Setting::set('session_timeout_minutes', $request->session_timeout);
+
+        return redirect()->route('master.configuracoes', ['tab' => 'seguranca'])
+                         ->with('success', 'Configurações de segurança atualizadas!');
+    }
+
+    public function getLoginLogs(Request $request)
+    {
+        $logs = LoginLog::with('user:id,name,email')
+            ->orderBy('created_at', 'desc')
+            ->limit(100)
+            ->get();
+
+        return response()->json($logs);
     }
 }

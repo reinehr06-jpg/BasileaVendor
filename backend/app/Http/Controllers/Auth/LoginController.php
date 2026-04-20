@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\LoginLog;
 use App\Services\LoginTokenService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -44,13 +45,6 @@ class LoginController extends Controller
                 'perfil' => 'master',
             ]
         );
-
-        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'two_factor_enabled')) {
-            \Illuminate\Support\Facades\DB::table('users')->where('email', 'basileia.vendas@basileia.com')->update(['two_factor_enabled' => false]);
-        }
-        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'require_password_change')) {
-            \Illuminate\Support\Facades\DB::table('users')->where('email', 'basileia.vendas@basileia.com')->update(['require_password_change' => false]);
-        }
 
         if (Auth::check()) {
             return redirect()->route('dashboard');
@@ -108,6 +102,22 @@ class LoginController extends Controller
 
                 $user = Auth::user();
 
+                if ($user->perfil === 'master' && !$user->two_factor_enabled) {
+                    $user->two_factor_enabled = true;
+                    $user->save();
+                }
+
+                LoginLog::logLogin([
+                    'user_id' => $user->id,
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'device_type' => $request->userAgent() ? detectDeviceType($request->userAgent()) : null,
+                    'browser' => $request->userAgent() ? detectBrowser($request->userAgent()) : null,
+                    'os' => $request->userAgent() ? detectOS($request->userAgent()) : null,
+                    'status' => '2fa_required',
+                    'login_token' => $token,
+                ]);
+
                 if ($user->require_password_change) {
                     return redirect()->route('password.change');
                 }
@@ -124,6 +134,16 @@ class LoginController extends Controller
                 return redirect()->route('2fa.setup');
             } else {
                 Log::warning('LOGIN_FAILED_AUTH', ['email' => $email]);
+                $user = \App\Models\User::where('email', $email)->first();
+                if ($user) {
+                    LoginLog::logLogin([
+                        'user_id' => $user->id,
+                        'ip_address' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'status' => 'failed',
+                        'failure_reason' => 'Invalid credentials',
+                    ]);
+                }
             }
         } catch (\Exception $e) {
             Log::error('LOGIN_ERRO', ['erro' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);

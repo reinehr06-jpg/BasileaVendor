@@ -437,9 +437,67 @@
 
         <!-- 2. SEGURANÇA -->
         <div id="tab-seguranca" class="tab-pane" style="display: {{ $activeTab === 'seguranca' ? 'block' : 'none' }} !important;">
+            
+            <!-- 2.1 Configurações de Segurança Global -->
             <div class="materio-card">
                 <div class="section-header">
-                    <h4><i class="fas fa-shield-alt"></i> Alterar Senha</h4>
+                    <h4><i class="fas fa-cogs"></i> Configurações de Segurança</h4>
+                </div>
+                <form action="{{ route('master.configuracoes.seguranca.settings.update') }}" method="POST">
+                    @csrf
+                    <div class="materio-row">
+                        <div class="materio-col-6">
+                            <div class="materio-form-group">
+                                <label class="materio-label">2FA Obrigatório - Master</label>
+                                <label class="materio-switch">
+                                    <input type="checkbox" name="2fa_mandatory_master" class="switch-input" 
+                                        {{ $securitySettings['2faMandatoryMaster'] ? 'checked' : '' }}>
+                                    <span class="switch-slider"></span>
+                                </label>
+                                <span class="help-text">Força 2FA para usuários com perfil Master</span>
+                            </div>
+                        </div>
+                        <div class="materio-col-6">
+                            <div class="materio-form-group">
+                                <label class="materio-label">2FA Obrigatório - Gestor</label>
+                                <label class="materio-switch">
+                                    <input type="checkbox" name="2fa_mandatory_gestor" class="switch-input"
+                                        {{ $securitySettings['2faMandatoryGestor'] ? 'checked' : '' }}>
+                                    <span class="switch-slider"></span>
+                                </label>
+                                <span class="help-text">Força 2FA para usuários com perfil Gestor</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="materio-row">
+                        <div class="materio-col-6">
+                            <div class="materio-form-group">
+                                <label class="materio-label">2FA Obrigatório - Vendedor</label>
+                                <label class="materio-switch">
+                                    <input type="checkbox" name="2fa_mandatory_vendedor" class="switch-input"
+                                        {{ $securitySettings['2faMandatoryVendedor'] ? 'checked' : '' }}>
+                                    <span class="switch-slider"></span>
+                                </label>
+                                <span class="help-text">Força 2FA para usuários com perfil Vendedor</span>
+                            </div>
+                        </div>
+                        <div class="materio-col-6">
+                            <div class="materio-form-group">
+                                <label class="materio-label">TentativasMáx de Login</label>
+                                <input type="number" name="max_login_attempts" class="materio-input" 
+                                    value="{{ $securitySettings['maxLoginAttempts'] }}" min="3" max="10">
+                                <span class="help-text">Após exceder, conta é bloqueada</span>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="materio-btn-primary">Salvar Configurações</button>
+                </form>
+            </div>
+
+            <!-- 2.2 Alterar Senha -->
+            <div class="materio-card">
+                <div class="section-header">
+                    <h4><i class="fas fa-key"></i> Alterar Minha Senha</h4>
                 </div>
                 <form action="{{ route('master.configuracoes.seguranca.update') }}" method="POST">
                     @csrf
@@ -468,6 +526,172 @@
                     <button type="submit" class="materio-btn-primary">Salvar Nova Senha</button>
                 </form>
             </div>
+
+            <!-- 2.3 Gerenciar 2FA por Usuário -->
+            <div class="materio-card">
+                <div class="section-header">
+                    <h4><i class="fas fa-mobile-alt"></i> Gerenciar Autenticação 2FA</h4>
+                    <span style="font-size: 0.8rem; color: var(--materio-text-muted);">
+                        Ative ou desative 2FA para cada usuário do sistema
+                    </span>
+                </div>
+                
+                <style>
+                    .user-2fa-table { width: 100%; border-collapse: collapse; }
+                    .user-2fa-table th { text-align: left; padding: 12px; background: var(--materio-bg); border-bottom: 2px solid var(--materio-border); font-size: 0.8rem; text-transform: uppercase; color: var(--materio-text-muted); }
+                    .user-2fa-table td { padding: 12px; border-bottom: 1px solid var(--materio-border); font-size: 0.9rem; }
+                    .user-2fa-table tr:hover { background: rgba(145,85,253,0.03); }
+                    .badge-perfil { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+                    .badge-master { background: #ede9fe; color: #6d28d9; }
+                    .badge-gestor { background: #dbeafe; color: #1d4ed8; }
+                    .badge-vendedor { background: #dcfce7; color: #15803d; }
+                    .badge-2fa-on { background: #dcfce7; color: #15803d; }
+                    .badge-2fa-off { background: #f1f5f9; color: #64748b; }
+                    .btn-toggle-2fa { padding: 6px 12px; border-radius: 6px; border: none; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s; }
+                    .btn-toggle-2fa.on { background: #fef3c7; color: #b45309; }
+                    .btn-toggle-2fa.off { background: #dcfce7; color: #15803d; }
+                    .btn-toggle-2fa:hover { transform: translateY(-1px); }
+                    .btn-reset-2fa { padding: 6px 12px; border-radius: 6px; border: 1px solid #ef4444; background: transparent; color: #ef4444; cursor: pointer; font-size: 0.8rem; }
+                    .btn-reset-2fa:hover { background: #fef2f2; }
+                </style>
+
+                <table class="user-2fa-table">
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Perfil</th>
+                            <th>Status 2FA</th>
+                            <th>Último Login</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($usuarios2fa as $usuario)
+                        <tr>
+                            <td>
+                                <strong>{{ $usuario->name }}</strong><br>
+                                <small style="color: var(--materio-text-muted);">{{ $usuario->email }}</small>
+                            </td>
+                            <td>
+                                <span class="badge-perfil badge-{{ $usuario->perfil }}">{{ $usuario->perfil }}</span>
+                            </td>
+                            <td>
+                                <span class="badge-perfil {{ $usuario->two_factor_enabled ? 'badge-2fa-on' : 'badge-2fa-off' }}">
+                                    {{ $usuario->two_factor_enabled ? '✓ ATIVO' : '✗ INATIVO' }}
+                                </span>
+                            </td>
+                            <td>
+                                @if($usuario->last_login_at)
+                                    {{ $usuario->last_login_at->format('d/m/Y H:i') }}
+                                    @if($usuario->login_ip)
+                                        <br><small style="color: var(--materio-text-muted);">IP: {{ $usuario->login_ip }}</small>
+                                    @endif
+                                @else
+                                    <span style="color: var(--materio-text-muted);">Nunca</span>
+                                @endif
+                            </td>
+                            <td>
+                                <form action="{{ route('master.configuracoes.seguranca.2fa.toggle') }}" method="POST" style="display: inline;">
+                                    @csrf
+                                    <input type="hidden" name="user_id" value="{{ $usuario->id }}">
+                                    <button type="submit" class="btn-toggle-2fa {{ $usuario->two_factor_enabled ? 'on' : 'off' }}">
+                                        {{ $usuario->two_factor_enabled ? 'Desativar' : 'Ativar' }}
+                                    </button>
+                                </form>
+                                @if($usuario->two_factor_enabled)
+                                <form action="{{ route('master.configuracoes.seguranca.2fa.reset') }}" method="POST" style="display: inline; margin-left: 8px;">
+                                    @csrf
+                                    <input type="hidden" name="user_id" value="{{ $usuario->id }}">
+                                    <button type="submit" class="btn-reset-2fa" onclick="return confirm('Tem certeza que deseja redefinir 2FA deste usuário?')">
+                                        Reset
+                                    </button>
+                                </form>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 2.4 Histórico de Logins -->
+            <div class="materio-card">
+                <div class="section-header">
+                    <h4><i class="fas fa-history"></i> Histórico de Acessos</h4>
+                    <div style="display: flex; gap: 16px;">
+                        <span style="font-size: 0.85rem; color: var(--materio-success);">
+                            ✓ {{ $loginLogs['stats']['successToday'] }} Hoje
+                        </span>
+                        <span style="font-size: 0.85rem; color: var(--materio-error);">
+                            ✗ {{ $loginLogs['stats']['failedToday'] }} Falhas
+                        </span>
+                    </div>
+                </div>
+
+                <table class="user-2fa-table">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Usuário</th>
+                            <th>IP</th>
+                            <th>Dispositivo</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($loginLogs['recent'] as $log)
+                        <tr>
+                            <td>{{ $log->created_at->format('d/m/Y H:i:s') }}</td>
+                            <td>
+                                @if($log->user)
+                                    {{ $log->user->name }}<br>
+                                    <small style="color: var(--materio-text-muted);">{{ $log->user->email }}</small>
+                                @else
+                                    <span style="color: var(--materio-text-muted);">-</span>
+                                @endif
+                            </td>
+                            <td>{{ $log->ip_address ?? '-' }}</td>
+                            <td>
+                                @if($log->browser || $log->os)
+                                    {{ $log->browser ?? '-' }} / {{ $log->os ?? '-' }}
+                                @elseif($log->user_agent)
+                                    <span style="font-size: 0.75rem; color: var(--materio-text-muted);" title="{{ $log->user_agent }}">
+                                        {{ Str::limit($log->user_agent, 30) }}
+                                    </span>
+                                @else
+                                    -
+                                @endif
+                            </td>
+                            <td>
+                                @switch($log->status)
+                                    @case('success')
+                                        <span style="color: var(--materio-success); font-weight: 600;">✓ Sucesso</span>
+                                        @break
+                                    @case('failed')
+                                        <span style="color: var(--materio-error); font-weight: 600;">✗ Falha</span>
+                                        @break
+                                    @case('2fa_required')
+                                        <span style="color: var(--materio-warning); font-weight: 600;">⏳ 2FA Pendente</span>
+                                        @break
+                                    @case('locked')
+                                        <span style="color: var(--materio-error); font-weight: 600;">🔒 Bloqueado</span>
+                                        @break
+                                    @default
+                                        {{ $log->status }}
+                                @endswitch
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 30px; color: var(--materio-text-muted);">
+                                Nenhum registro de login encontrado.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
         </div>
 
         <!-- 3. INTEGRAÇÕES - SUB-HUB PROFISSIONAL -->
