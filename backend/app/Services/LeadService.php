@@ -8,6 +8,7 @@ use App\Models\Chat\ChatConversation;
 use App\Models\Vendedor;
 use App\Models\Setting;
 use App\Models\SystemLog;
+use App\Services\AI\AIService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -78,7 +79,68 @@ class LeadService
             'data' => ['lead_id' => $lead->id, 'source' => $source],
         ]);
 
+        // Avaliar lead com IA
+        $this->avaliarLeadComIA($lead);
+
         return $lead;
+    }
+
+    protected function avaliarLeadComIA(LeadInbound $lead): void
+    {
+        try {
+            $ai = app(AIService::class);
+            
+            $result = $ai->executar('score_lead', [
+                'nome' => $lead->name,
+                'email' => $lead->email,
+                'telefone' => $lead->phone,
+                'church_name' => $lead->meta['church_name'] ?? null,
+                'members_count' => $lead->meta['members_count'] ?? null,
+                'source' => $lead->source,
+                'campanha' => $lead->utm_campaign,
+            ]);
+
+            if ($result['success'] && isset($result['output']['score'])) {
+                $lead->update([
+                    'ai_score' => $result['output']['score'],
+                    'ai_score_motivo' => $result['output']['motivo'] ?? null,
+                    'ai_avaliado_em' => now(),
+                ]);
+                
+                Log::info('Lead avaliado com IA', [
+                    'lead_id' => $lead->id,
+                    'score' => $result['output']['score'],
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Falha ao avaliar lead com IA', [
+                'lead_id' => $lead->id,
+                'erro' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    protected function classificarMotivoPerda(LeadInbound $lead, string $historico): void
+    {
+        try {
+            $ai = app(AIService::class);
+            
+            $result = $ai->executar('motivo_perda', [
+                'interacoes' => $lead->message ?? '',
+                'mensagens' => $historico,
+            ]);
+
+            if ($result['success'] && isset($result['output'])) {
+                $lead->update([
+                    'motivo_perda' => $result['output'],
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Falha ao classificar motivo de perda', [
+                'lead_id' => $lead->id,
+                'erro' => $e->getMessage(),
+            ]);
+        }
     }
 
     protected function assignVendedor(string $source): ?int

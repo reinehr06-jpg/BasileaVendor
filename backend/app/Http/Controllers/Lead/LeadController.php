@@ -9,6 +9,7 @@ use App\Models\LeadField;
 use App\Models\LeadFieldValue;
 use App\Models\LeadTransferHistory;
 use App\Models\QuickReply;
+use App\Services\AI\AIService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -123,7 +124,14 @@ class LeadController extends Controller
             $lead->converted_at = now();
         } elseif ($request->etapa === 'perdido') {
             $lead->status = 'perdido';
-            $lead->motivo_perda = $request->motivo_perda;
+            
+            // Se não tem motivo manual, usar IA para classificar
+            $motivo = $request->motivo_perda;
+            if (!$motivo) {
+                $aiResult = $this->classificarMotivoPerdaIA($lead);
+                $motivo = $aiResult['motivo'] ?? 'NECESSIDADE';
+            }
+            $lead->motivo_perda = $motivo;
         } elseif ($request->etapa === 'contato' && !$lead->first_contact_at) {
             $lead->first_contact_at = now();
         }
@@ -445,5 +453,28 @@ class LeadController extends Controller
         }
 
         return response()->json($lead->fresh(['fieldValues']));
+    }
+
+    private function classificarMotivoPerdaIA(LeadInbound $lead): array
+    {
+        try {
+            $ai = app(AIService::class);
+            
+            $result = $ai->executar('motivo_perda', [
+                'interacoes' => $lead->message ?? '',
+                'mensagens' => $lead->message ?? '',
+            ], Auth::id());
+
+            if ($result['success']) {
+                return ['motivo' => $result['output']];
+            }
+        } catch (\Exception $e) {
+            Log::warning('LeadController: Falha ao classificar motivo de perda via IA', [
+                'lead_id' => $lead->id,
+                'erro' => $e->getMessage(),
+            ]);
+        }
+
+        return ['motivo' => 'NECESSIDADE'];
     }
 }
