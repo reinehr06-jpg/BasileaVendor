@@ -8,8 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('campanhas')) {
-            Schema::create('campanhas', function (Blueprint $table) {
+        Schema::create('campanhas', function (Blueprint $table) {
             $table->id();
             $table->string('nome');
             $table->string('descricao')->nullable();
@@ -43,8 +42,7 @@ return new class extends Migration
             $table->index(['utm_campaign']);
             $table->index(['ref_param']);
                 $table->index(['canal']);
-            });
-        }
+        });
     }
 
     public function down(): void
