@@ -22,6 +22,8 @@ use App\Http\Middleware\ApiKeyAuth;
 
 // Asaas Webhook — Receber eventos de pagamento
 Route::post('/asaas/webhook', [AsaasWebhookController::class, 'handle']);
+Route::post('/webhook/asaas', [AsaasWebhookController::class, 'handle']); // Alias
+Route::post('/webhook/assas', [AsaasWebhookController::class, 'handle']); // Alias para erro de digitação comum
 
 // Rotas protegidas por API Key
 Route::middleware('api.key')->group(function () {
