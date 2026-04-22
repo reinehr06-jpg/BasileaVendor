@@ -1006,6 +1006,7 @@ class AsaasClienteSyncController extends Controller
 
     public function confirmarCliente(Request $request, int $id)
     {
+        try {
         $import = DB::table('legacy_customer_imports')->where('id', $id)->first();
         if (!$import) {
             return response()->json(['success' => false, 'message' => 'Registro não encontrado'], 404);
@@ -1076,7 +1077,12 @@ class AsaasClienteSyncController extends Controller
             $vendaValues
         );
         $actualVenda = DB::table('vendas')->where('cliente_id', $clienteId)->where('origem', 'asaas_legado')->first();
-        $vendaId     = $actualVenda->id;
+        
+        if (!$actualVenda) {
+            throw new \Exception("Falha ao criar/localizar registro de venda para o cliente ID {$clienteId}.");
+        }
+        
+        $vendaId = $actualVenda->id;
 
         // Criar pagamento confirmado para ativar 'Regra de Ouro' (clientes ativos = 1+ pagamentos)
         if ($statusVenda === 'Pago') {
@@ -1153,6 +1159,18 @@ class AsaasClienteSyncController extends Controller
             'cliente_id' => $clienteId,
             'venda_id'   => $vendaId,
         ]);
+        } catch (\Exception $e) {
+            Log::error('ERRO_CONFIRMAR_CLIENTE', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno ao confirmar: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────
