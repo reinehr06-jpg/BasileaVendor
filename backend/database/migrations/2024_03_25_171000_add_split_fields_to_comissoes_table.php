@@ -15,11 +15,18 @@ return new class extends Migration
             return;
         }
         Schema::table('comissoes', function (Blueprint $table) {
-            // Campos para rastreamento de split
-            $table->string('asaas_split_status')->nullable()->after('competencia'); // enviado, processado, erro, divergencia
-            $table->json('asaas_split_payload')->nullable()->after('asaas_split_status');
-            $table->string('asaas_wallet_id')->nullable()->after('asaas_split_payload');
-            $table->decimal('split_valor_recebido', 12, 2)->nullable()->after('asaas_wallet_id');
+            if (!Schema::hasColumn('comissoes', 'asaas_split_status')) {
+                $table->string('asaas_split_status')->nullable()->after('competencia');
+            }
+            if (!Schema::hasColumn('comissoes', 'asaas_split_payload')) {
+                $table->json('asaas_split_payload')->nullable()->after('asaas_split_status');
+            }
+            if (!Schema::hasColumn('comissoes', 'asaas_wallet_id')) {
+                $table->string('asaas_wallet_id')->nullable()->after('asaas_split_payload');
+            }
+            if (!Schema::hasColumn('comissoes', 'split_valor_recebido')) {
+                $table->decimal('split_valor_recebido', 12, 2)->nullable()->after('asaas_wallet_id');
+            }
         });
     }
 

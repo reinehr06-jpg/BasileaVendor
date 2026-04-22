@@ -12,18 +12,33 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendedores', function (Blueprint $table) {
-            // Campos para Split Asaas
-            $table->string('asaas_wallet_id')->nullable()->after('meta_mensal');
-            $table->boolean('split_ativo')->default(false)->after('asaas_wallet_id');
-            $table->enum('tipo_split', ['percentual', 'fixo'])->default('percentual')->after('split_ativo');
-            $table->decimal('valor_split_inicial', 10, 2)->default(0)->after('tipo_split');
-            $table->decimal('valor_split_recorrencia', 10, 2)->default(0)->after('valor_split_inicial');
-            $table->timestamp('wallet_validado_em')->nullable()->after('valor_split_recorrencia');
-            $table->string('wallet_status')->default('pendente')->after('wallet_validado_em'); // pendente, validado, erro
-            
-            // Campos de comissão expandidos
-            $table->decimal('comissao_inicial', 5, 2)->default(10)->after('wallet_status');
-            $table->decimal('comissao_recorrencia', 5, 2)->default(10)->after('comissao_inicial');
+            if (!Schema::hasColumn('vendedores', 'asaas_wallet_id')) {
+                $table->string('asaas_wallet_id')->nullable()->after('meta_mensal');
+            }
+            if (!Schema::hasColumn('vendedores', 'split_ativo')) {
+                $table->boolean('split_ativo')->default(false)->after('asaas_wallet_id');
+            }
+            if (!Schema::hasColumn('vendedores', 'tipo_split')) {
+                $table->enum('tipo_split', ['percentual', 'fixo'])->default('percentual')->after('split_ativo');
+            }
+            if (!Schema::hasColumn('vendedores', 'valor_split_inicial')) {
+                $table->decimal('valor_split_inicial', 10, 2)->default(0)->after('tipo_split');
+            }
+            if (!Schema::hasColumn('vendedores', 'valor_split_recorrencia')) {
+                $table->decimal('valor_split_recorrencia', 10, 2)->default(0)->after('valor_split_inicial');
+            }
+            if (!Schema::hasColumn('vendedores', 'wallet_validado_em')) {
+                $table->timestamp('wallet_validado_em')->nullable()->after('valor_split_recorrencia');
+            }
+            if (!Schema::hasColumn('vendedores', 'wallet_status')) {
+                $table->string('wallet_status')->default('pendente')->after('wallet_validado_em');
+            }
+            if (!Schema::hasColumn('vendedores', 'comissao_inicial')) {
+                $table->decimal('comissao_inicial', 5, 2)->default(10)->after('wallet_status');
+            }
+            if (!Schema::hasColumn('vendedores', 'comissao_recorrencia')) {
+                $table->decimal('comissao_recorrencia', 5, 2)->default(10)->after('comissao_inicial');
+            }
         });
     }
 

@@ -9,7 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendas', function (Blueprint $table) {
-            $table->string('asaas_installment_id')->nullable()->after('asaas_subscription_id');
+            if (!Schema::hasColumn('vendas', 'asaas_installment_id')) {
+                $table->string('asaas_installment_id')->nullable()->after('asaas_subscription_id');
+            }
         });
     }
 

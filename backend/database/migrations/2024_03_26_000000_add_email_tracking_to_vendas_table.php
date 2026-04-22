@@ -9,8 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendas', function (Blueprint $table) {
-            $table->boolean('email_vendedor_enviado')->default(false)->after('asaas_subscription_id');
-            $table->boolean('email_cliente_enviado')->default(false)->after('email_vendedor_enviado');
+            if (!Schema::hasColumn('vendas', 'email_vendedor_enviado')) {
+                $table->boolean('email_vendedor_enviado')->default(false)->after('asaas_subscription_id');
+            }
+            if (!Schema::hasColumn('vendas', 'email_cliente_enviado')) {
+                $table->boolean('email_cliente_enviado')->default(false)->after('email_vendedor_enviado');
+            }
         });
     }
 
