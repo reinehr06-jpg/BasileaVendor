@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendedores', function (Blueprint $table) {
-            $table->decimal('meta_mensal', 10, 2)->default(0)->after('comissao')->nullable();
+            if (!Schema::hasColumn('vendedores', 'meta_mensal')) {
+                $table->decimal('meta_mensal', 10, 2)->default(0)->after('comissao')->nullable();
+            }
         });
     }
 

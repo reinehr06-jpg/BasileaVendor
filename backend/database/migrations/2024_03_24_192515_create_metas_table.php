@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('metas', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('vendedor_id')->constrained('vendedores')->onDelete('cascade');
-            $table->string('mes_referencia', 7); // Ex: '2026-03'
-            $table->decimal('valor_meta', 12, 2);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('metas')) {
+            Schema::create('metas', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('vendedor_id')->constrained('vendedores')->onDelete('cascade');
+                $table->string('mes_referencia', 7); // Ex: '2026-03'
+                $table->decimal('valor_meta', 12, 2);
+                $table->timestamps();
+            });
+        }
     }
 
     /**

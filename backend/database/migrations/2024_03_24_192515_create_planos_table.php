@@ -11,16 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('planos', function (Blueprint $table) {
-            $table->id();
-            $table->string('nome');
-            $table->integer('faixa_min_membros');
-            $table->integer('faixa_max_membros');
-            $table->decimal('valor_mensal', 10, 2);
-            $table->decimal('valor_anual', 10, 2);
-            $table->boolean('status')->default(true);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('planos')) {
+            Schema::create('planos', function (Blueprint $table) {
+                $table->id();
+                $table->string('nome');
+                $table->integer('faixa_min_membros');
+                $table->integer('faixa_max_membros');
+                $table->decimal('valor_mensal', 10, 2);
+                $table->decimal('valor_anual', 10, 2);
+                $table->boolean('status')->default(true);
+                $table->timestamps();
+            });
+        }
     }
 
     /**

@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('log_eventos', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('usuario_id')->constrained('users')->onDelete('cascade');
-            $table->string('entidade'); // Ex: 'Venda', 'Cliente'
-            $table->unsignedBigInteger('entidade_id');
-            $table->string('acao'); // Ex: 'Criou', 'Atualizou', 'Cancelou'
-            $table->text('descricao');
-            $table->timestamp('created_at')->useCurrent();
-        });
+        if (!Schema::hasTable('log_eventos')) {
+            Schema::create('log_eventos', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('usuario_id')->constrained('users')->onDelete('cascade');
+                $table->string('entidade'); // Ex: 'Venda', 'Cliente'
+                $table->unsignedBigInteger('entidade_id');
+                $table->string('acao'); // Ex: 'Criou', 'Atualizou', 'Cancelou'
+                $table->text('descricao');
+                $table->timestamp('created_at')->useCurrent();
+            });
+        }
     }
 
     /**
