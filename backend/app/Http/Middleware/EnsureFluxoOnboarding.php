@@ -16,6 +16,8 @@ class EnsureFluxoOnboarding
         'logout',
         'termos/download*',
         'api/*',
+        '2fa*',
+        'login*',
     ];
 
     public function handle(Request $request, Closure $next): Response
