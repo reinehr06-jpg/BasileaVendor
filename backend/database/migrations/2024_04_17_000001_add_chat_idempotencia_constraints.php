@@ -49,8 +49,12 @@ return new class extends Migration
         }
 
         if (Schema::hasTable('chat_conversations')) {
-            DB::statement('CREATE INDEX IF NOT EXISTS chat_conversations_gestor_status_atendido_idx ON chat_conversations (gestor_id, status, is_atendido)');
-            DB::statement('CREATE INDEX IF NOT EXISTS chat_conversations_gestor_vendedor_status_idx ON chat_conversations (gestor_id, vendedor_id, status)');
+            if (Schema::hasColumn('chat_conversations', 'gestor_id') && Schema::hasColumn('chat_conversations', 'status') && Schema::hasColumn('chat_conversations', 'is_atendido')) {
+                DB::statement('CREATE INDEX IF NOT EXISTS chat_conversations_gestor_status_atendido_idx ON chat_conversations (gestor_id, status, is_atendido)');
+            }
+            if (Schema::hasColumn('chat_conversations', 'gestor_id') && Schema::hasColumn('chat_conversations', 'vendedor_id') && Schema::hasColumn('chat_conversations', 'status')) {
+                DB::statement('CREATE INDEX IF NOT EXISTS chat_conversations_gestor_vendedor_status_idx ON chat_conversations (gestor_id, vendedor_id, status)');
+            }
         }
     }
 
