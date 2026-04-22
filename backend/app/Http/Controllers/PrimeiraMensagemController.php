@@ -4,13 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Models\PrimeiraMensagem;
 use App\Models\Vendedor;
+use App\Models\Setting;
 use App\Services\AI\PrimeiraMensagemIAService;
+use App\Services\AI\StrictPromptValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class PrimeiraMensagemController extends Controller
 {
-    // Vendedor — listagem e formulário
+    private StrictPromptValidator $aiValidator;
+
+    public function __construct(StrictPromptValidator $aiValidator)
+    {
+        $this->aiValidator = $aiValidator;
+    }
+
     public function index()
     {
         $mensagens = PrimeiraMensagem::where('user_id', Auth::id())
@@ -44,20 +52,14 @@ class PrimeiraMensagemController extends Controller
         return back()->with('success', 'Enviada para aprovação!');
     }
 
-    // Gestor — ver pendentes
     public function pendentes()
     {
         try {
             $ids = Vendedor::where('gestor_id', Auth::id())->pluck('id');
-
-            if ($ids->isEmpty()) {
-                $pendentes = collect([]);
-            } else {
-                $pendentes = PrimeiraMensagem::whereIn('user_id', $ids)
-                    ->where('status', 'pendente_aprovacao')
-                    ->with('usuario')
-                    ->get();
-            }
+            $pendentes = $ids->isEmpty() ? collect([]) : PrimeiraMensagem::whereIn('user_id', $ids)
+                ->where('status', 'pendente_aprovacao')
+                ->with('usuario')
+                ->get();
         } catch (\Exception $e) {
             $pendentes = collect([]);
         }
@@ -65,17 +67,15 @@ class PrimeiraMensagemController extends Controller
         return view('gestor.aprovar-mensagem', compact('pendentes'));
     }
 
-    // Gestor — aprovar
     public function aprovar(PrimeiraMensagem $mensagem)
     {
         $mensagem->aprovada_por = Auth::id();
         $mensagem->save();
-        $mensagem->ativar(); // desativa as outras e ativa esta
+        $mensagem->ativar();
 
         return back()->with('success', 'Mensagem aprovada e ativada!');
     }
 
-    // Gestor — rejeitar
     public function rejeitar(Request $request, PrimeiraMensagem $mensagem)
     {
         $request->validate(['motivo' => 'required|string']);
@@ -89,12 +89,35 @@ class PrimeiraMensagemController extends Controller
         return back()->with('success', 'Mensagem rejeitada!');
     }
 
-    // IA local — gerar sugestões
+    /**
+     * IA local — gerar sugestões COM VALIDAÇÃO DE PROMPT
+     */
     public function gerarComIA(Request $request)
     {
-        $iaService = new PrimeiraMensagemIAService();
-        $sugestoes = $iaService->gerarSugestoes($request->contexto ?? '', 5);
+        $request->validate([
+            'contexto' => 'nullable|string',
+            'lead_id' => 'nullable|exists:contatos,id'
+        ]);
 
-        return response()->json(['sugestoes' => $sugestoes]);
+        // VALIDAR PROMPT ANTES DE TUDO
+        $prompt = Setting::get('ia_prompt_primeira_mensagem');
+        
+        try {
+            $this->aiValidator->assertPromptExists($prompt, 'primeira_mensagem', [
+                'contexto' => $request->input('contexto'),
+                'lead_id' => $request->input('lead_id'),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 403);
+        }
+
+        // Se Prompt válido, chamar o serviço de IA
+        $iaService = new PrimeiraMensagemIAService();
+        $sugestoes = $iaService->gerarSugestoes($request->input('contexto') ?? '', 5);
+
+        return response()->json(['sugestoes' => $sugestoes, 'success' => true]);
     }
 }

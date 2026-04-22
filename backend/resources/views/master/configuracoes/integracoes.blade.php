@@ -63,6 +63,17 @@
                 <button type="submit" class="btn btn-primary">💾 Salvar Configurações da API</button>
             </div>
         </form>
+
+        <!-- Teste Asaas -->
+        <div class="mt-4 pt-3 border-t border-border/20 text-center">
+            <button type="button" 
+                    id="test-asaas-btn"
+                    onclick="testIntegration('asaas')" 
+                    class="btn btn-outline-primary btn-sm">
+                🧪 Testar Conexão Asaas
+            </button>
+            <span id="asaas-test-result" class="ml-2 text-sm"></span>
+        </div>
     </div>
 
     <!-- Card 2: Configurações de Split -->
@@ -145,13 +156,26 @@
                 <button type="submit" class="btn btn-primary">💾 Salvar Configurações de Email</button>
             </div>
         </form>
+
+        <!-- Teste Email -->
+        <div class="mt-4 pt-3 border-t border-border/20">
+            <div class="flex gap-2 items-center">
+                <input type="email" id="test_email" class="form-control input-sm" placeholder="email@teste.com" style="width: 200px;">
+                <button type="button" 
+                        onclick="testEmailIntegration()" 
+                        class="btn btn-outline-primary btn-sm">
+                    🧪 Testar Email
+                </button>
+            </div>
+            <span id="email-test-result" class="ml-2 text-sm"></span>
+        </div>
     </div>
 
     <!-- Card 4: Integração Basileia Church -->
     <div class="card settings-card" style="margin-top: 24px;">
         <div class="card-header">
-            <h2>⛪ Integração Basileia Church</h2>
-            <p class="text-muted">Configure a comunicação com o sistema Basileia Church.</p>
+            <h2>⛪ Basileia Church Webhook</h2>
+            <p class="text-muted">Configure o webhook para sincronização com Basileia Church.</p>
         </div>
 
         <form action="{{ route('master.configuracoes.integracoes.church') }}" method="POST" class="settings-form">
@@ -159,37 +183,40 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="basileia_church_webhook_url">URL Webhook do Church</label>
-                    <input type="url" name="basileia_church_webhook_url" id="basileia_church_webhook_url" class="form-control" value="{{ $churchWebhookUrl }}" placeholder="https://church.basileia.com/api/webhook">
-                    <small class="help-text">URL para onde enviaremos os dados de cadastro e status do cliente.</small>
+                    <label for="basileia_church_webhook_url">Webhook URL</label>
+                    <input type="url" name="basileia_church_webhook_url" id="basileia_church_webhook_url" class="form-control" value="{{ $churchWebhookUrl }}" placeholder="https://basileia.global/webhook">
+                    <small class="help-text">URL do webhook Basileia Church.</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="basileia_church_webhook_token">Token de Segurança</label>
-                    <input type="text" name="basileia_church_webhook_token" id="basileia_church_webhook_token" class="form-control" value="{{ $churchWebhookToken }}" placeholder="Token de segurança para autenticação">
-                    <small class="help-text">Token usado para autenticar requisições do Church.</small>
+                    <label for="basileia_church_webhook_token">Webhook Token</label>
+                    <input type="password" name="basileia_church_webhook_token" id="basileia_church_webhook_token" class="form-control" value="{{ $churchWebhookToken }}" placeholder="Token de segurança">
+                    <small class="help-text">Token para validar requisições.</small>
                 </div>
             </div>
 
-            <div class="info-box" style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin-top: 10px;">
-                <h4 style="font-size: 0.9rem; color: #0369a1; margin-bottom: 8px;">🔗 Endpoints disponíveis:</h4>
-                <ul style="margin: 0; padding-left: 20px; color: #0c4a6e; font-size: 0.85rem;">
-                    <li><strong>GET/POST</strong> <code>/webhook/basileia-church/sync</code> - Verificar status do cliente</li>
-                    <li><strong>POST</strong> <code>/webhook/asaas</code> - Receber notificações do Asaas</li>
-                </ul>
-            </div>
-
             <div class="form-actions border-top">
-                <button type="submit" class="btn btn-primary">💾 Salvar Configurações do Church</button>
+                <button type="submit" class="btn btn-primary">💾 Salvar Webhook</button>
             </div>
         </form>
+
+        <!-- Teste Church Webhook -->
+        <div class="mt-4 pt-3 border-t border-border/20 text-center">
+            <button type="button" 
+                    id="test-church-btn"
+                    onclick="testIntegration('church')" 
+                    class="btn btn-outline-primary btn-sm">
+                🧪 Testar Webhook Church
+            </button>
+            <span id="church-test-result" class="ml-2 text-sm"></span>
+        </div>
     </div>
 
     <!-- Card 5: Google Calendar -->
     <div class="card settings-card" style="margin-top: 24px;">
         <div class="card-header">
             <h2>📅 Google Calendar</h2>
-            <p class="text-muted">Configure a integração com Google Calendar para sincronização de eventos de vendas.</p>
+            <p class="text-muted">Configure integração com Google Calendar para agendamentos.</p>
         </div>
 
         <form action="{{ route('master.configuracoes.integracoes.google-calendar') }}" method="POST" class="settings-form">
@@ -197,483 +224,252 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="google_calendar_client_id">Client ID <span class="required">*</span></label>
-                    <input type="text" name="google_calendar_client_id" id="google_calendar_client_id" class="form-control" value="{{ $googleCalendarClientId }}" placeholder="xxxx.apps.googleusercontent.com">
-                    <small class="help-text">Client ID obtido no Google Cloud Console.</small>
+                    <label for="google_calendar_client_id">Client ID</label>
+                    <input type="text" name="google_calendar_client_id" id="google_calendar_client_id" class="form-control" value="{{ $googleCalendarClientId }}" placeholder="seu-client-id.apps.googleusercontent.com">
                 </div>
 
                 <div class="form-group">
-                    <label for="google_calendar_client_secret">Client Secret <span class="required">*</span></label>
-                    <input type="password" name="google_calendar_client_secret" id="google_calendar_client_secret" class="form-control" value="{{ $googleCalendarClientSecret }}" placeholder="GOCSPX-xxxx">
-                    <small class="help-text">Client Secret obtido no Google Cloud Console.</small>
+                    <label for="google_calendar_client_secret">Client Secret</label>
+                    <input type="password" name="google_calendar_client_secret" id="google_calendar_client_secret" class="form-control" value="{{ $googleCalendarClientSecret }}">
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label for="google_calendar_redirect_uri">Redirect URI</label>
-                    <input type="url" name="google_calendar_redirect_uri" id="google_calendar_redirect_uri" class="form-control" value="{{ $googleCalendarRedirectUri }}" placeholder="{{ url('/auth/google/callback') }}">
-                    <small class="help-text">URL de callback para OAuth2. Use: {{ url('/auth/google/callback') }}</small>
+                    <input type="url" name="google_calendar_redirect_uri" id="google_calendar_redirect_uri" class="form-control" value="{{ $googleCalendarRedirectUri }}">
                 </div>
 
                 <div class="form-group">
                     <label for="google_calendar_id">Calendar ID</label>
                     <input type="text" name="google_calendar_id" id="google_calendar_id" class="form-control" value="{{ $googleCalendarId }}" placeholder="primary">
-                    <small class="help-text">ID do calendário. Use "primary" para o principal.</small>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="google_calendar_ativo" value="1" {{ $googleCalendarAtivo ? 'checked' : '' }}>
-                    <span>Ativar Integração com Google Calendar</span>
-                </label>
-                <small class="help-text">Quando ativado, eventos de vendas serão sincronizados automaticamente.</small>
             </div>
 
             <div class="form-actions border-top">
                 <button type="submit" class="btn btn-primary">💾 Salvar Google Calendar</button>
             </div>
         </form>
+
+        <!-- Teste Google Calendar -->
+        <div class="mt-4 pt-3 border-t border-border/20 text-center">
+            <button type="button" 
+                    id="test-calendar-btn"
+                    onclick="testIntegration('calendar')" 
+                    class="btn btn-outline-primary btn-sm">
+                🧪 Testar Google Calendar
+            </button>
+            <span id="calendar-test-result" class="ml-2 text-sm"></span>
+        </div>
     </div>
 
-    <!-- Card 6: Google Gmail -->
+    <!-- Card 6: OpenAI -->
     <div class="card settings-card" style="margin-top: 24px;">
         <div class="card-header">
-            <h2>✉️ Google Gmail</h2>
-            <p class="text-muted">Configure o envio de emails via API do Gmail para notificações.</p>
+            <h2>🤖 OpenAI (IA Cloud)</h2>
+            <p class="text-muted">Configure a API da OpenAI para inteligência artificial.</p>
         </div>
 
-        <form action="{{ route('master.configuracoes.integracoes.google-gmail') }}" method="POST" class="settings-form">
+        <form action="{{ route('master.configuracoes.integracoes.ia') }}" method="POST" class="settings-form">
             @csrf
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="google_gmail_client_id">Client ID <span class="required">*</span></label>
-                    <input type="text" name="google_gmail_client_id" id="google_gmail_client_id" class="form-control" value="{{ $googleGmailClientId }}" placeholder="xxxx.apps.googleusercontent.com">
-                    <small class="help-text">Pode ser o mesmo Client ID do Calendar se estiver no mesmo projeto.</small>
+                    <label for="openai_api_key">OpenAI API Key</label>
+                    <input type="password" name="openai_api_key" id="openai_api_key" class="form-control" value="{{ $openaiApiKey }}" placeholder="sk-...">
                 </div>
 
                 <div class="form-group">
-                    <label for="google_gmail_client_secret">Client Secret <span class="required">*</span></label>
-                    <input type="password" name="google_gmail_client_secret" id="google_gmail_client_secret" class="form-control" value="{{ $googleGmailClientSecret }}" placeholder="GOCSPX-xxxx">
-                    <small class="help-text">Client Secret para autenticação OAuth2 do Gmail.</small>
+                    <label for="ia_provider">Provedor de IA</label>
+                    <select name="ia_provider" id="ia_provider" class="form-control">
+                        <option value="ollama" {{ $iaProvider === 'ollama' ? 'selected' : '' }}>Ollama (Local)</option>
+                        <option value="openai" {{ $iaProvider === 'openai' ? 'selected' : '' }}>OpenAI (Cloud)</option>
+                    </select>
                 </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="google_gmail_redirect_uri">Redirect URI</label>
-                    <input type="url" name="google_gmail_redirect_uri" id="google_gmail_redirect_uri" class="form-control" value="{{ $googleGmailRedirectUri }}" placeholder="{{ url('/auth/google-gmail/callback') }}">
-                    <small class="help-text">URL de callback para OAuth2 do Gmail.</small>
-                </div>
-
-                <div class="form-group">
-                    <label for="google_gmail_email">Email Remetente</label>
-                    <input type="email" name="google_gmail_email" id="google_gmail_email" class="form-control" value="{{ $googleGmailEmail }}" placeholder="envios@seudominio.com">
-                    <small class="help-text">Email que será usado como remetente das notificações.</small>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label class="checkbox-label">
-                    <input type="checkbox" name="google_gmail_ativo" value="1" {{ $googleGmailAtivo ? 'checked' : '' }}>
-                    <span>Ativar Integração com Google Gmail</span>
-                </label>
-                <small class="help-text">Quando ativado, emails serão enviados via API do Gmail em vez do SMTP padrão.</small>
             </div>
 
             <div class="form-actions border-top">
-                <button type="submit" class="btn btn-primary">💾 Salvar Google Gmail</button>
+                <button type="submit" class="btn btn-primary">💾 Salvar Configurações IA</button>
             </div>
         </form>
-    </div>
 
-    <!-- Card 7: Status da Integração -->
-    <div class="card settings-card" style="margin-top: 24px;">
-        <div class="card-header">
-            <h2>📊 Status da Integração</h2>
-            <p class="text-muted">Verifique se a integração está funcionando corretamente.</p>
-        </div>
-
-        <div class="settings-form">
-            <div class="status-grid">
-                <div class="status-item">
-                    <span class="status-label">Ambiente</span>
-                    <span class="status-value {{ $asaasEnvironment === 'production' ? 'status-production' : 'status-sandbox' }}">
-                        {{ $asaasEnvironment === 'production' ? '🚀 Produção' : '🧪 Sandbox' }}
-                    </span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">API Key</span>
-                    <span class="status-value {{ !empty($asaasApiKey) ? 'status-active' : 'status-inactive' }}">
-                        {{ !empty($asaasApiKey) ? '✅ Configurada' : '❌ Não configurada' }}
-                    </span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Webhook</span>
-                    <span class="status-value {{ !empty($asaasWebhookToken) ? 'status-active' : 'status-inactive' }}">
-                        {{ !empty($asaasWebhookToken) ? '✅ Configurado' : '❌ Não configurado' }}
-                    </span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">Split Global</span>
-                    <span class="status-value {{ $splitGlobalAtivo ? 'status-active' : 'status-inactive' }}">
-                        {{ $splitGlobalAtivo ? '✅ Ativo' : '⏸️ Inativo' }}
-                    </span>
-                </div>
-            </div>
-
-            <div class="form-actions border-top" style="margin-top: 20px;">
-                <button type="button" class="btn btn-secondary" onclick="testarConexao()">
-                    🔍 Testar Conexão
-                </button>
-            </div>
+        <!-- Teste OpenAI -->
+        <div class="mt-4 pt-3 border-t border-border/20 text-center">
+            <button type="button" 
+                    id="test-openai-btn"
+                    onclick="testIntegration('openai')" 
+                    class="btn btn-outline-primary btn-sm">
+                🧪 Testar OpenAI
+            </button>
+            <span id="openai-test-result" class="ml-2 text-sm"></span>
         </div>
     </div>
 
-    <!-- Card 4: Vendedores com Split -->
+    <!-- Card 7: Ollama (IA Local) -->
     <div class="card settings-card" style="margin-top: 24px;">
         <div class="card-header">
-            <h2>👥 Vendedores com Split Configurado</h2>
-            <p class="text-muted">Lista de vendedores que possuem walletId e split ativo.</p>
+            <h2>🦙 Ollama (IA Local)</h2>
+            <p class="text-muted">Configure endpoint para IA local (Ollama).</p>
         </div>
 
-        <div class="settings-form">
-            @if($vendedoresComSplit->count() > 0)
-            <div class="table-responsive">
-                <table class="report-table">
-                    <thead>
-                        <tr>
-                            <th>Vendedor</th>
-                            <th>Wallet ID</th>
-                            <th>Status</th>
-                            <th>Tipo Split</th>
-                            <th>Comissão Inicial</th>
-                            <th>Comissão Recorrência</th>
-                            <th>Última Validação</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($vendedoresComSplit as $v)
-                        <tr>
-                            <td class="font-bold">{{ $v->user->name ?? 'N/A' }}</td>
-                            <td><code>{{ substr($v->asaas_wallet_id, 0, 20) }}...</code></td>
-                            <td>
-                                <span class="badge badge-{{ $v->wallet_status === 'validado' ? 'success' : ($v->wallet_status === 'erro' ? 'danger' : 'warning') }}">
-                                    {{ $v->wallet_status }}
-                                </span>
-                            </td>
-                            <td>{{ ucfirst($v->tipo_split) }}</td>
-                            <td>{{ $v->comissao_inicial }}%</td>
-                            <td>{{ $v->comissao_recorrencia }}%</td>
-                            <td>{{ $v->wallet_validado_em ? $v->wallet_validado_em->format('d/m/Y H:i') : 'Nunca' }}</td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="ia_local_endpoint">Endpoint URL</label>
+                <input type="url" name="ia_local_endpoint" id="ia_local_endpoint" class="form-control" value="{{ $iaLocalEndpoint }}" placeholder="http://localhost:11434/api/generate">
             </div>
-            @else
-            <div class="empty-state">
-                <p>Nenhum vendedor com split configurado.</p>
-                <small class="text-muted">Configure o walletId dos vendedores na aba "Comissões e Repasse" do cadastro de cada vendedor.</small>
+
+            <div class="form-group">
+                <label for="ia_local_model">Modelo</label>
+                <input type="text" name="ia_local_model" id="ia_local_model" class="form-control" value="{{ $iaLocalModel }}" placeholder="llama3.2">
             </div>
-            @endif
+        </div>
+
+        <!-- Teste Ollama -->
+        <div class="mt-4 pt-3 border-t border-border/20 text-center">
+            <button type="button" 
+                    id="test-ollama-btn"
+                    onclick="testIntegration('ollama')" 
+                    class="btn btn-outline-primary btn-sm">
+                🧪 Testar Ollama
+            </button>
+            <span id="ollama-test-result" class="ml-2 text-sm"></span>
+        </div>
+    </div>
+
+    <!-- Card 8: Teste Completo -->
+    <div class="card settings-card mt-4">
+        <div class="card-header">
+            <h2>🔬 Teste Completo das Integrações</h2>
+            <p class="text-muted">Execute todos os testes de uma vez para verificar o status geral.</p>
+        </div>
+        <div class="card-body text-center">
+            <button type="button" 
+                    id="test-all-btn"
+                    onclick="testAllIntegrations()" 
+                    class="btn btn-primary btn-lg">
+                🚀 Testar Todas as Integrações
+            </button>
+            <div id="all-tests-results" class="mt-4 text-left"></div>
         </div>
     </div>
 </div>
 
-<style>
-    .integracoes-container {
-        max-width: 900px;
-        margin: 0 auto;
-    }
-    
-    .settings-card {
-        padding: 0;
-        overflow: hidden;
-    }
-
-    .card-header {
-        background: #fafafa;
-        padding: 24px 30px;
-        border-bottom: 1px solid var(--border);
-    }
-    
-    .card-header h2 {
-        font-size: 1.25rem;
-        color: var(--primary);
-        margin-bottom: 8px;
-    }
-
-    .settings-form {
-        padding: 30px;
-    }
-
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-    }
-
-    @media (max-width: 768px) {
-        .form-row {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    .form-group {
-        margin-bottom: 24px;
-    }
-
-    .form-group label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 8px;
-        font-size: 0.95rem;
-    }
-
-    .required {
-        color: #ef4444;
-    }
-
-    .form-control {
-        width: 100%;
-        padding: 12px 16px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        font-size: 1rem;
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(88, 28, 135, 0.1);
-    }
-
-    .help-text {
-        display: block;
-        margin-top: 6px;
-        font-size: 0.85rem;
-        color: var(--text-muted);
-    }
-
-    .form-actions {
-        margin-top: 32px;
-        padding-top: 24px;
-        display: flex;
-        justify-content: flex-end;
-    }
-
-    .btn {
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-weight: 600;
-        cursor: pointer;
-        border: none;
-        transition: 0.2s;
-        font-size: 1rem;
-    }
-
-    .btn-primary {
-        background: var(--primary);
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background: var(--primary-hover);
-        transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-        background: #f1f5f9;
-        color: var(--text-main);
-    }
-
-    .btn-secondary:hover {
-        background: #e2e8f0;
-    }
-
-    .checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        cursor: pointer;
-        font-weight: 600;
-    }
-
-    .checkbox-label input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        accent-color: var(--primary);
-    }
-
-    .alert {
-        padding: 16px;
-        border-radius: 8px;
-        margin-bottom: 24px;
-        font-weight: 500;
-    }
-
-    .alert-success {
-        background: #dcfce7;
-        color: #166534;
-        border: 1px solid #bbf7d0;
-    }
-
-    .alert-danger {
-        background: #fee2e2;
-        color: #991b1b;
-        border: 1px solid #fecaca;
-    }
-    
-    .border-top {
-        border-top: 1px solid var(--border);
-    }
-
-    /* Status Grid */
-    .status-grid {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 16px;
-    }
-
-    @media (max-width: 768px) {
-        .status-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
-    }
-
-    .status-item {
-        background: #f8fafc;
-        padding: 16px;
-        border-radius: 8px;
-        text-align: center;
-    }
-
-    .status-label {
-        display: block;
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-    }
-
-    .status-value {
-        display: block;
-        font-weight: 700;
-        font-size: 0.9rem;
-    }
-
-    .status-active { color: #16a34a; }
-    .status-inactive { color: #dc2626; }
-    .status-production { color: #2563eb; }
-    .status-sandbox { color: #ca8a04; }
-
-    /* Table */
-    .table-responsive {
-        overflow-x: auto;
-    }
-
-    .report-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.88rem;
-    }
-
-    .report-table th {
-        background: #f8fafc;
-        padding: 12px 16px;
-        text-align: left;
-        font-weight: 600;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-        font-size: 0.75rem;
-        border-bottom: 1px solid var(--border);
-    }
-
-    .report-table td {
-        padding: 12px 16px;
-        border-bottom: 1px solid #f1f5f9;
-    }
-
-    .report-table tr:hover td {
-        background: #f8fafc;
-    }
-
-    .font-bold {
-        font-weight: 700;
-    }
-
-    .badge {
-        padding: 4px 10px;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: capitalize;
-    }
-
-    .badge-success {
-        background: #dcfce7;
-        color: #166534;
-    }
-
-    .badge-warning {
-        background: #fef3c7;
-        color: #b45309;
-    }
-
-    .badge-danger {
-        background: #fee2e2;
-        color: #b91c1c;
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 40px 20px;
-        color: var(--text-muted);
-    }
-
-    code {
-        background: #f1f5f9;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 0.85rem;
-    }
-</style>
-
+@push('scripts')
 <script>
-function testarConexao() {
-    const btn = event.target;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '⏳ Testando...';
+async function testIntegration(service) {
+    const btn = document.getElementById(`test-${service}-btn`);
+    const resultSpan = document.getElementById(`${service}-test-result`);
+    
+    if (!btn || !resultSpan) return;
+    
     btn.disabled = true;
-
-    fetch('{{ route("master.configuracoes.integracoes.testar") }}', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
+    btn.innerHTML = '🔄 Testando...';
+    resultSpan.innerHTML = '';
+    
+    try {
+        const response = await fetch(`/master/configuracoes/integracoes/test/${service}`, {
+            method: 'GET',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        
+        const data = await response.json();
+        
         if (data.success) {
-            alert('✅ Conexão bem-sucedida!\n\n' + data.message);
+            resultSpan.innerHTML = `<span class="text-emerald-600 font-bold">✅ ${data.message}</span>`;
         } else {
-            alert('❌ Falha na conexão!\n\n' + data.message);
+            resultSpan.innerHTML = `<span class="text-red-600 font-bold">❌ ${data.message}</span>`;
         }
-    })
-    .catch(error => {
-        alert('❌ Erro ao testar conexão: ' + error.message);
-    })
-    .finally(() => {
-        btn.innerHTML = originalText;
+    } catch (error) {
+        resultSpan.innerHTML = `<span class="text-red-600 font-bold">❌ Erro: ${error.message}</span>`;
+    } finally {
         btn.disabled = false;
-    });
+        btn.innerHTML = `🧪 Testar ${service.toUpperCase()}`;
+    }
+}
+
+async function testEmailIntegration() {
+    const email = document.getElementById('test_email')?.value;
+    const btn = document.getElementById('test-email-btn');
+    const resultSpan = document.getElementById('email-test-result');
+    
+    if (!email) {
+        resultSpan.innerHTML = '<span class="text-red-600">⚠️ Informe um email</span>';
+        return;
+    }
+    
+    if (btn) btn.disabled = true;
+    if (btn) btn.innerHTML = '🔄 Enviando...';
+    resultSpan.innerHTML = '';
+    
+    try {
+        const response = await fetch('/master/configuracoes/integracoes/test/email', {
+            method: 'POST',
+            headers: { 
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email_teste: email })
+        });
+        
+        const data = await response.json();
+        resultSpan.innerHTML = data.success 
+            ? `<span class="text-emerald-600 font-bold">✅ ${data.message}</span>`
+            : `<span class="text-red-600 font-bold">❌ ${data.message}</span>`;
+    } catch (error) {
+        resultSpan.innerHTML = `<span class="text-red-600 font-bold">❌ ${error.message}</span>`;
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '🧪 Testar Email';
+        }
+    }
+}
+
+async function testAllIntegrations() {
+    const btn = document.getElementById('test-all-btn');
+    btn.disabled = true;
+    btn.innerHTML = '🔄 Testando Tudo...';
+    
+    try {
+        const response = await fetch('/master/configuracoes/integracoes/test/all', {
+            method: 'GET',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        
+        const data = await response.json();
+        const results = document.getElementById('all-tests-results');
+        
+        let html = '<div class="space-y-2">';
+        html += '<h4 class="font-bold mb-2">Resumo dos Testes</h4>';
+        
+        for (const [service, result] of Object.entries(data.tests)) {
+            const icon = result.success ? '✅' : '❌';
+            const bgClass = result.success ? 'bg-emerald-50' : 'bg-red-50';
+            const textClass = result.success ? 'text-emerald-700' : 'text-red-700';
+            html += `<div class="p-3 rounded ${bgClass} border">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold uppercase">${service}</span>
+                    <span class="${textClass}">${icon} ${result.message}</span>
+                </div>
+            </div>`;
+        }
+        
+        html += `<div class="mt-3 p-3 rounded bg-blue-50 border border-blue-200">
+            <strong>Total:</strong> ${data.summary.success}/${data.summary.total} sucessos
+        </div>`;
+        html += '</div>';
+        
+        results.innerHTML = html;
+    } catch (error) {
+        document.getElementById('all-tests-results').innerHTML = 
+            `<div class="text-red-600">Erro ao executar testes: ${error.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '🚀 Testar Todas as Integrações';
+    }
 }
 </script>
+@endpush
+
 @endsection

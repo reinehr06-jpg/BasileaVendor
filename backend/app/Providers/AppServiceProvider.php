@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Http\View\Composers\AdminComposer;
 use App\Services\AI\AIService;
+use App\Services\AI\StrictPromptValidator;
 use App\Services\CampanhaMetricsService;
+use App\Services\Integration\IntegrationTestService;
 use App\Services\VersionCheckService;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -17,18 +19,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Registrar AIService como singleton
         $this->app->singleton(AIService::class);
-
-        // Registrar CampanhaMetricsService
-        $this->app->singleton(CampanhaMetricsService::class, function ($app) {
-            return new CampanhaMetricsService();
-        });
-
-        // Registrar VersionCheckService
-        $this->app->singleton(VersionCheckService::class, function ($app) {
-            return new VersionCheckService();
-        });
+        $this->app->singleton(CampanhaMetricsService::class);
+        $this->app->singleton(VersionCheckService::class);
+        $this->app->singleton(IntegrationTestService::class);
+        $this->app->singleton(StrictPromptValidator::class);
     }
 
     /**

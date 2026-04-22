@@ -19,6 +19,7 @@ use App\Http\Controllers\Integration\CheckoutWebhookController;
 use App\Http\Controllers\Master\AsaasClienteSyncController;
 use App\Http\Controllers\Master\ConfiguracaoController;
 use App\Http\Controllers\Master\IAController;
+use App\Http\Controllers\Master\StrictAIController;
 use App\Http\Controllers\Master\IntegracaoController;
 use App\Http\Controllers\Master\IntegracaoEventoController;
 use App\Http\Controllers\Master\IntegracaoVendasController;
@@ -437,10 +438,16 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/notificacoes/marcar-todas-lidas', [NotificacaoController::class, 'marcarTodasComoLidas'])->name('notificacoes.marcar-todas-lidas');
 
         // Configurações Unificadas (Estilo Materio)
-        Route::get('/configuracoes/{tab?}', [ConfiguracaoController::class, 'index'])->name('master.configuracoes');
+        Route::get('/configuracoes/{tab?}', [ConfiguracaoController::class, 'index'])->name('configuracoes');
 
         // IA - Logs e Métricas
         Route::get('/ia', [\App\Http\Controllers\Master\IAController::class, 'index'])->name('ia');
+
+        // IA Strict Endpoints (com validação de prompt)
+        Route::post('/ia/generate-first-message', [StrictAIController::class, 'generateFirstMessage'])->name('ia.generate.first');
+        Route::post('/ia/qualify-lead', [StrictAIController::class, 'qualifyLead'])->name('ia.qualify.lead');
+        Route::post('/ia/summarize', [StrictAIController::class, 'summarize'])->name('ia.summarize');
+        Route::post('/ia/suggest-action', [StrictAIController::class, 'suggestAction'])->name('ia.suggest.action');
         Route::post('/configuracoes/geral', [ConfiguracaoController::class, 'updateProfile'])->name('configuracoes.geral.update');
         Route::post('/configuracoes/seguranca', [ConfiguracaoController::class, 'updatePassword'])->name('configuracoes.seguranca.update');
         Route::post('/configuracoes/seguranca/2fa/toggle', [ConfiguracaoController::class, 'toggleUser2fa'])->name('configuracoes.seguranca.2fa.toggle');
@@ -461,6 +468,16 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/configuracoes/integracoes/google-calendar', [IntegracaoController::class, 'updateGoogleCalendar'])->name('configuracoes.integracoes.google-calendar');
         Route::post('/configuracoes/integracoes/google-gmail', [IntegracaoController::class, 'updateGoogleGmail'])->name('configuracoes.integracoes.google-gmail');
         Route::post('/configuracoes/integracoes/ia', [IntegracaoController::class, 'updateIA'])->name('configuracoes.integracoes.ia');
+
+        // Testes de Integração (AJAX)
+        Route::get('/configuracoes/integracoes/test/asaas', [IntegracaoController::class, 'testAsaas'])->name('configuracoes.integracoes.test.asaas');
+        Route::get('/configuracoes/integracoes/test/checkout', [IntegracaoController::class, 'testCheckout'])->name('configuracoes.integracoes.test.checkout');
+        Route::get('/configuracoes/integracoes/test/church', [IntegracaoController::class, 'testBasileiaChurch'])->name('configuracoes.integracoes.test.church');
+        Route::get('/configuracoes/integracoes/test/calendar', [IntegracaoController::class, 'testGoogleCalendar'])->name('configuracoes.integracoes.test.calendar');
+        Route::get('/configuracoes/integracoes/test/openai', [IntegracaoController::class, 'testOpenAI'])->name('configuracoes.integracoes.test.openai');
+        Route::get('/configuracoes/integracoes/test/ollama', [IntegracaoController::class, 'testOllama'])->name('configuracoes.integracoes.test.ollama');
+        Route::post('/configuracoes/integracoes/test/email', [IntegracaoController::class, 'testEmail'])->name('configuracoes.integracoes.test.email');
+        Route::get('/configuracoes/integracoes/test/all', [IntegracaoController::class, 'testAll'])->name('configuracoes.integracoes.test.all');
         Route::post('/configuracoes/integracoes/testar', [IntegracaoController::class, 'testarConexao'])->name('configuracoes.integracoes.testar');
         Route::post('/configuracoes/integracoes/test-checkout-api', [IntegracaoController::class, 'testarCheckoutApi'])->name('configuracoes.integracoes.test-checkout-api');
         Route::post('/configuracoes/integracoes/test-webhook', [IntegracaoController::class, 'testarWebhook'])->name('configuracoes.integracoes.test-webhook');
@@ -671,7 +688,7 @@ Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
 // ──────────────────────────────────────────────────────────────────────────────
 // GESTOR
 // ──────────────────────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'gestor'])->prefix('gestor')->name('gestor.')->group(function () {
+Route::middleware(['auth', 'gestor'])->prefix('gestor')->group(function () {
     // Campanhas (visualização)
     Route::get('/campanhas', [CampanhaController::class, 'index'])->name('gestor.campanhas.index');
     Route::get('/campanhas/{campanha}', [CampanhaController::class, 'show'])->name('gestor.campanhas.show');
@@ -686,19 +703,7 @@ Route::middleware(['auth', 'gestor'])->prefix('gestor')->name('gestor.')->group(
     // Calendário
     Route::get('/calendario', [CalendarioController::class, 'gestorIndex'])->name('gestor.calendario.index');
     
-    // Configurações Consolidadas (Novo)
-    Route::get('/configuracoes/{tab?}', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'index'])->name('configuracoes');
-    Route::post('/configuracoes/perfil', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateProfile'])->name('configuracoes.perfil.update');
-    Route::post('/configuracoes/senha', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updatePassword'])->name('configuracoes.senha.update');
-    Route::post('/configuracoes/whatsapp', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateWhatsapp'])->name('configuracoes.whatsapp.update');
-    Route::post('/configuracoes/split', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateSplit'])->name('configuracoes.split.update');
-
-    // 2FA (Gestor)
-    Route::post('/configuracoes/2fa/enable', [VendedorSettingsController::class, 'enable2fa'])->name('configuracoes.2fa.enable');
-    Route::post('/configuracoes/2fa/disable', [VendedorSettingsController::class, 'disable2fa'])->name('configuracoes.2fa.disable');
-    Route::post('/configuracoes/2fa/add-device', [VendedorSettingsController::class, 'add2faDevice'])->name('configuracoes.2fa.add-device');
-
-    // Primeira Mensagem - Aprovação (Antigas rotas mantidas por compatibilidade de ação)
+    // Primeira Mensagem - Aprovação
     Route::get('/configuracoes/aprovar-mensagem', [PrimeiraMensagemController::class, 'pendentes'])->name('gestor.aprovar-mensagem');
     Route::post('/configuracoes/aprovar-mensagem/{mensagem}/aprovar', [PrimeiraMensagemController::class, 'aprovar'])->name('gestor.aprovar-mensagem.aprovar');
     Route::post('/configuracoes/aprovar-mensagem/{mensagem}/rejeitar', [PrimeiraMensagemController::class, 'rejeitar'])->name('gestor.aprovar-mensagem.rejeitar');
