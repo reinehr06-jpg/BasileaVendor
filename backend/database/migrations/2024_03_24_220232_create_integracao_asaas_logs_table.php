@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('integracao_asaas_logs', function (Blueprint $table) {
-            $table->id();
-            $table->string('entidade')->nullable();
-            $table->unsignedBigInteger('entidade_id')->nullable();
-            $table->string('acao')->nullable();
-            $table->json('request_payload')->nullable();
-            $table->json('response_payload')->nullable();
-            $table->integer('status_http')->nullable();
-            $table->string('status_integracao')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('integracao_asaas_logs')) {
+            Schema::create('integracao_asaas_logs', function (Blueprint $table) {
+                $table->id();
+                $table->string('entidade')->nullable();
+                $table->unsignedBigInteger('entidade_id')->nullable();
+                $table->string('acao')->nullable();
+                $table->json('request_payload')->nullable();
+                $table->json('response_payload')->nullable();
+                $table->integer('status_http')->nullable();
+                $table->string('status_integracao')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

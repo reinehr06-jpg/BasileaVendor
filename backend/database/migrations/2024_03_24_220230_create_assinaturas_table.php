@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('assinaturas', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('venda_id')->constrained('vendas')->onDelete('cascade');
-            $table->string('asaas_subscription_id')->nullable();
-            $table->string('cycle')->nullable();
-            $table->date('next_due_date')->nullable();
-            $table->string('status')->default('ACTIVE');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('assinaturas')) {
+            Schema::create('assinaturas', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('venda_id')->constrained('vendas')->onDelete('cascade');
+                $table->string('asaas_subscription_id')->nullable();
+                $table->string('cycle')->nullable();
+                $table->date('next_due_date')->nullable();
+                $table->string('status')->default('ACTIVE');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
