@@ -8,20 +8,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('equipes', function (Blueprint $table) {
-            $table->id();
-            $table->string('nome');
-            $table->foreignId('gestor_id')->constrained('users')->onDelete('cascade');
-            $table->decimal('meta_mensal', 12, 2)->default(0);
-            $table->string('cor', 7)->default('#4C1D95');
-            $table->enum('status', ['ativa', 'inativa'])->default('ativa');
-            $table->timestamps();
+        if (!Schema::hasTable('equipes')) {
+            Schema::create('equipes', function (Blueprint $table) {
+                $table->id();
+                $table->string('nome');
+                $table->foreignId('gestor_id')->constrained('users')->onDelete('cascade');
+                $table->decimal('meta_mensal', 12, 2)->default(0);
+                $table->string('cor', 7)->default('#4C1D95');
+                $table->enum('status', ['ativa', 'inativa'])->default('ativa');
+                $table->timestamps();
 
-            $table->unique(['gestor_id']);
-        });
+                $table->unique(['gestor_id']);
+            });
+        }
 
         Schema::table('vendedores', function (Blueprint $table) {
-            $table->foreignId('equipe_id')->nullable()->after('gestor_id')->constrained('equipes')->onDelete('set null');
+            if (!Schema::hasColumn('vendedores', 'equipe_id')) {
+                $table->foreignId('equipe_id')->nullable()->after('gestor_id')->constrained('equipes')->onDelete('set null');
+            }
         });
     }
 

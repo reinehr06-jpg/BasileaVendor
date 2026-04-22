@@ -12,18 +12,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('commission_rules', function (Blueprint $table) {
-            $table->id();
-            $table->string('plano_nome'); // Nome do plano (Essential, Growth, etc)
-            $table->decimal('seller_fixed_value_first_payment', 12, 2)->default(0);
-            $table->decimal('seller_fixed_value_recurring', 12, 2)->default(0);
-            $table->decimal('manager_fixed_value_first_payment', 12, 2)->default(0);
-            $table->decimal('manager_fixed_value_recurring', 12, 2)->default(0);
-            $table->boolean('active')->default(true);
-            $table->timestamps();
-            
-            $table->unique(['plano_nome']);
-        });
+        if (!Schema::hasTable('commission_rules')) {
+            Schema::create('commission_rules', function (Blueprint $table) {
+                $table->id();
+                $table->string('plano_nome'); // Nome do plano (Essential, Growth, etc)
+                $table->decimal('seller_fixed_value_first_payment', 12, 2)->default(0);
+                $table->decimal('seller_fixed_value_recurring', 12, 2)->default(0);
+                $table->decimal('manager_fixed_value_first_payment', 12, 2)->default(0);
+                $table->decimal('manager_fixed_value_recurring', 12, 2)->default(0);
+                $table->boolean('active')->default(true);
+                $table->timestamps();
+                
+                $table->unique(['plano_nome']);
+            });
+        }
     }
 
     public function down(): void

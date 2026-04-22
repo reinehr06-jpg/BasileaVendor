@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('metas', function (Blueprint $table) {
-            $table->text('observacao')->nullable()->after('valor_meta');
-            $table->enum('status', ['não iniciada', 'em andamento', 'atingida', 'não atingida', 'superada'])->default('não iniciada')->after('observacao');
+            if (!Schema::hasColumn('metas', 'observacao')) {
+                $table->text('observacao')->nullable()->after('valor_meta');
+            }
+            if (!Schema::hasColumn('metas', 'status')) {
+                $table->enum('status', ['não iniciada', 'em andamento', 'atingida', 'não atingida', 'superada'])->default('não iniciada')->after('observacao');
+            }
         });
     }
 

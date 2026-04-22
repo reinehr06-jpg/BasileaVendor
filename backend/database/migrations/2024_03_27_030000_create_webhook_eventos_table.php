@@ -12,12 +12,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('webhook_eventos', function (Blueprint $table) {
-            $table->id();
-            $table->string('asaas_payment_id')->unique(); // bloqueia duplicata no banco
-            $table->string('evento', 50);
-            $table->timestamp('processado_em');
-        });
+        if (!Schema::hasTable('webhook_eventos')) {
+            Schema::create('webhook_eventos', function (Blueprint $table) {
+                $table->id();
+                $table->string('asaas_payment_id')->unique(); // bloqueia duplicata no banco
+                $table->string('evento', 50);
+                $table->timestamp('processado_em');
+            });
+        }
     }
 
     public function down(): void
