@@ -125,6 +125,22 @@ class IntegracaoController extends Controller
     }
 
     /**
+     * Testar integração (Geral/Asaas)
+     */
+    public function testarConexao()
+    {
+        try {
+            $result = $this->testService->testAsaas();
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro interno: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Testar integração Asaas
      */
     public function testAsaas()
