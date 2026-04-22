@@ -84,13 +84,16 @@ class User extends Authenticatable
                     return null;
                 }
                 try {
-                    return decrypt($value, false);
+                    $decrypted = decrypt($value, false);
+                    return json_decode($decrypted, true) ?? $decrypted;
                 } catch (\Exception $e) {
                     return null;
                 }
             },
             set: function ($value) {
-                return $value ? encrypt($value, false) : null;
+                if ($value === null) return null;
+                $val = is_array($value) ? json_encode($value) : $value;
+                return encrypt($val, false);
             },
         );
     }
