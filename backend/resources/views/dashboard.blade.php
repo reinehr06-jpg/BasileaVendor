@@ -200,7 +200,7 @@
             <a href="{{ route('master.ia') }}" class="insight-mini" style="text-decoration: none; border: 1px solid var(--primary); background: rgba(145, 85, 253, 0.05);">
                 <div class="insight-mini-icon" style="background: var(--primary); color: white;"><i class="fas fa-microchip"></i></div>
                 <div style="flex: 1;">
-                    <div class="stat-label" style="font-size: 0.65rem; color: var(--primary);">IA Lab Lab Insights</div>
+                    <div class="stat-label" style="font-size: 0.65rem; color: var(--primary);">IA Lab Insights</div>
                     <div style="font-weight: 800; font-size: 0.85rem; color: var(--primary);">Ver Operação <i class="fas fa-arrow-right ms-1"></i></div>
                 </div>
             </a>

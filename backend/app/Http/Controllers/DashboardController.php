@@ -212,6 +212,11 @@ class DashboardController extends Controller
                 return ['label' => 'Sem ' . $row->semana, 'total' => $row->total];
             });
         }
+        
+        $graficoData = [
+            'labels' => $graficoData->pluck('label')->toArray(),
+            'valores' => $graficoData->pluck('total')->toArray()
+        ];
 
         $dayFormat = $driver === 'pgsql' ? "TO_CHAR(cobrancas.updated_at, 'DD')" : "strftime('%d', cobrancas.updated_at)";
         $queryFaixa = Cobranca::selectRaw("$dayFormat as dia, count(*) as total")
