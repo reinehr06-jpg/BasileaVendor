@@ -32,6 +32,10 @@ class EnsureFluxoOnboarding
             }
         }
 
+        if (!\Illuminate\Support\Facades\Schema::hasTable('terms_documents')) {
+            return $next($request);
+        }
+
         $termoAtivo = TermsDocument::ativoPorTipo('uso');
         
         if ($termoAtivo) {
@@ -42,6 +46,10 @@ class EnsureFluxoOnboarding
             if (!$temAceite || !$user->termos_aceitos) {
                 return redirect()->route('onboarding.termos');
             }
+        }
+
+        if (!\Illuminate\Support\Facades\Schema::hasTable('settings')) {
+            return $next($request);
         }
 
         $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);

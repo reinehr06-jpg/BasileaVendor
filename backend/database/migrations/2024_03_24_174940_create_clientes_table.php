@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('clientes', function (Blueprint $table) {
-            $table->id();
-            $table->string('nome');
-            $table->string('documento')->unique(); // CPF/CNPJ
-            $table->string('contato')->nullable(); // WhatsApp/Telefone
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('clientes')) {
+            Schema::create('clientes', function (Blueprint $table) {
+                $table->id();
+                $table->string('nome');
+                $table->string('documento')->unique(); // CPF/CNPJ
+                $table->string('contato')->nullable(); // WhatsApp/Telefone
+                $table->timestamps();
+            });
+        }
     }
 
     /**

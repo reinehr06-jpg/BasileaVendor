@@ -11,15 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('vendas', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('cliente_id')->constrained('clientes')->onDelete('cascade');
-            $table->foreignId('vendedor_id')->constrained('vendedores')->onDelete('cascade');
-            $table->decimal('valor', 10, 2);
-            $table->decimal('comissao_gerada', 10, 2)->default(0);
-            $table->string('status')->default('Aguardando pagamento');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('vendas')) {
+            Schema::create('vendas', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('cliente_id')->constrained('clientes')->onDelete('cascade');
+                $table->foreignId('vendedor_id')->constrained('vendedores')->onDelete('cascade');
+                $table->decimal('valor', 10, 2);
+                $table->decimal('comissao_gerada', 10, 2)->default(0);
+                $table->string('status')->default('Aguardando pagamento');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

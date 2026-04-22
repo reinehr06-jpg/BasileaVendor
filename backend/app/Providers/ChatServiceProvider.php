@@ -20,7 +20,7 @@ class ChatServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->initializeChatModule();
+        // $this->initializeChatModule();
     }
 
     protected function initializeChatModule(): void
