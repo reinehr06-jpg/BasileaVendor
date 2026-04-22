@@ -11,13 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('integracoes', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('venda_id')->constrained('vendas')->onDelete('cascade');
-            $table->string('status')->default('pendente');
-            $table->json('retorno_asaas')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('integracoes')) {
+            Schema::create('integracoes', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('venda_id')->constrained('vendas')->onDelete('cascade');
+                $table->string('status')->default('pendente');
+                $table->json('retorno_asaas')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

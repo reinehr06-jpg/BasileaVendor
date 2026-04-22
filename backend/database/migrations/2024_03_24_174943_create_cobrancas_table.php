@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('cobrancas', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('venda_id')->constrained('vendas')->onDelete('cascade');
-            $table->string('asaas_id')->nullable();
-            $table->string('status')->default('PENDING');
-            $table->string('link')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('cobrancas')) {
+            Schema::create('cobrancas', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('venda_id')->constrained('vendas')->onDelete('cascade');
+                $table->string('asaas_id')->nullable();
+                $table->string('status')->default('PENDING');
+                $table->string('link')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**
