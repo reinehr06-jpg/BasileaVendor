@@ -63,7 +63,7 @@ class LoginController extends Controller
             'password' => ['required'],
         ]);
 
-        $email = $request->input('email');
+        $email = strtolower(trim($request->input('email')));
         $password = $request->input('password');
 
         Log::info('LOGIN_ATTEMPT', ['email' => $email, 'has_password' => ! empty($password)]);
@@ -78,7 +78,10 @@ class LoginController extends Controller
         }
 
         try {
-            if (Auth::attempt(['email' => $email, 'password' => $password], $request->boolean('remember'))) {
+            // Pesquisa usuário ignorando case-sensitive, pois email já é salvo como lowercase
+            $user = \App\Models\User::whereRaw('LOWER(email) = ?', [strtolower($email)])->first();
+            
+            if ($user && Auth::attempt(['email' => $user->email, 'password' => $password], $request->boolean('remember'))) {
                 LoginTokenService::markUsed($token);
                 $request->session()->forget('login_token');
                 $request->session()->forget('login_token_data');

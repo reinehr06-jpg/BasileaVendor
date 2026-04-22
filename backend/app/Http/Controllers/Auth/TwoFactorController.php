@@ -383,6 +383,15 @@ class TwoFactorController extends Controller
             return [];
         }
 
+        try {
+            // Tentativa de descriptografar (compatibilidade com versões antigas)
+            if (str_starts_with($raw, 'ey') || str_starts_with($raw, 's:')) {
+                $raw = decrypt($raw, false);
+            }
+        } catch (\Exception $e) {
+            // Ignore erros de descriptografia - provavelmente já está descriptografado
+        }
+
         $devices = [];
         $index = 1;
 
