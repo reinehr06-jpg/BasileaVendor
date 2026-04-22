@@ -5,7 +5,7 @@
 <div class="welcome-banner" style="margin-bottom: 30px; padding: 35px; border-radius: 20px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(124, 58, 237, 0.2);">
     <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h2 style="font-size: 2.2rem; font-weight: 800; margin: 0;">Olá, {{ explode(' ', Auth::user()->name)[0] }}! 👋</h2>
+            <h2 style="font-size: 2.2rem; font-weight: 800; margin: 0; color: #ffffff !important;">Olá, {{ explode(' ', Auth::user()->name)[0] }}! 👋</h2>
             <p style="margin: 8px 0 0; opacity: 0.9; font-size: 1.1rem; font-weight: 500;">
                 Seja bem-vindo ao seu Command Center. Tudo pronto para as vendas de hoje?
             </p>
@@ -143,20 +143,10 @@
 </style>
 
 <div class="dashboard-viewport">
-    <div class="dashboard-header">
-        <div>
-            <h2>{{ $tituloSessao }}</h2>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">{{ $periodoLabel }} • Atualizado em tempo real</p>
-        </div>
-        <select class="filter-select" style="height: 34px; border-radius: 10px;" onchange="window.location.href='?periodo='+this.value">
-            <option value="month" {{ $periodo === 'month' ? 'selected' : '' }}>Este Mês</option>
-            <option value="week" {{ $periodo === 'week' ? 'selected' : '' }}>Esta Semana</option>
-            <option value="year" {{ $periodo === 'year' ? 'selected' : '' }}>Este Ano</option>
-        </select>
-    </div>
+    <!-- Removida a dashboard-header poluída que estava aqui -->
 
     <!-- Mini KPIs Row -->
-    <div class="kpi-row">
+    <div class="kpi-row" style="margin-top: 10px;">
         <div class="stat-card mini glass-card">
             <div class="stat-icon success"><i class="fas fa-dollar-sign"></i></div>
             <div class="stat-value">R$ {{ number_format($totalRecebido, 0, ',', '.') }}</div>
@@ -192,11 +182,20 @@
     <!-- Main Analysis Area -->
     <div class="main-area">
         <div class="chart-box glass-card">
-            <div class="card-header d-flex justify-between" style="padding: 10px 15px; border-bottom: 1px solid var(--border-light);">
-                <div style="font-weight: 800; font-size: 0.9rem;"><i class="fas fa-chart-area text-primary me-2"></i>Desempenho Comercial</div>
-                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">{{ $periodoLabel }}</div>
+            <div class="card-header d-flex justify-between align-center" style="padding: 12px 20px; border-bottom: 1px solid var(--border-light); background: #fafafa; border-radius: 12px 12px 0 0;">
+                <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary);">
+                    <i class="fas fa-chart-area text-primary me-2"></i>Desempenho Comercial
+                </div>
+                <div class="d-flex align-center gap-3">
+                    <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Período:</span>
+                    <select class="filter-select" style="height: 28px; font-size: 0.75rem; border-radius: 8px; border: 1px solid var(--border-light); padding: 0 10px; background: white; cursor: pointer; font-weight: 600;" onchange="window.location.href='?periodo='+this.value">
+                        <option value="month" {{ $periodo === 'month' ? 'selected' : '' }}>Este Mês</option>
+                        <option value="week" {{ $periodo === 'week' ? 'selected' : '' }}>Esta Semana</option>
+                        <option value="year" {{ $periodo === 'year' ? 'selected' : '' }}>Este Ano</option>
+                    </select>
+                </div>
             </div>
-            <div style="flex: 1; padding: 15px; position: relative;">
+            <div style="flex: 1; padding: 20px; position: relative;">
                 <canvas id="mainChart"></canvas>
             </div>
         </div>

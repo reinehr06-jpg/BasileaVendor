@@ -472,7 +472,7 @@
                 </a>
 
                 <div class="menu-section">Sistema</div>
-                <a href="{{ route('configuracoes') }}" class="menu-item {{ request()->routeIs('configuracoes') ? 'active' : '' }}">
+                <a href="{{ route('gestor.configuracoes') }}" class="menu-item {{ request()->routeIs('gestor.configuracoes*') ? 'active' : '' }}">
                     <i class="fas fa-cog"></i> Configurações
                 </a>
 

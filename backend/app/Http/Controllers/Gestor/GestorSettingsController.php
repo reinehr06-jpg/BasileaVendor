@@ -9,6 +9,7 @@ use App\Models\Vendedor;
 use App\Services\TwoFactorAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -99,6 +100,20 @@ class GestorSettingsController extends Controller
         ]);
 
         return back()->with('success', 'Perfil atualizado com sucesso!');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|current_password',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        Auth::user()->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return back()->with('success', 'Senha atualizada com sucesso!');
     }
 
     public function updateWhatsapp(Request $request)

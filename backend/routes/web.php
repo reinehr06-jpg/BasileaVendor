@@ -437,7 +437,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/notificacoes/marcar-todas-lidas', [NotificacaoController::class, 'marcarTodasComoLidas'])->name('notificacoes.marcar-todas-lidas');
 
         // Configurações Unificadas (Estilo Materio)
-        Route::get('/configuracoes/{tab?}', [ConfiguracaoController::class, 'index'])->name('configuracoes');
+        Route::get('/configuracoes/{tab?}', [ConfiguracaoController::class, 'index'])->name('master.configuracoes');
 
         // IA - Logs e Métricas
         Route::get('/ia', [\App\Http\Controllers\Master\IAController::class, 'index'])->name('ia');
@@ -671,7 +671,7 @@ Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
 // ──────────────────────────────────────────────────────────────────────────────
 // GESTOR
 // ──────────────────────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'gestor'])->prefix('gestor')->group(function () {
+Route::middleware(['auth', 'gestor'])->prefix('gestor')->name('gestor.')->group(function () {
     // Campanhas (visualização)
     Route::get('/campanhas', [CampanhaController::class, 'index'])->name('gestor.campanhas.index');
     Route::get('/campanhas/{campanha}', [CampanhaController::class, 'show'])->name('gestor.campanhas.show');
@@ -689,8 +689,14 @@ Route::middleware(['auth', 'gestor'])->prefix('gestor')->group(function () {
     // Configurações Consolidadas (Novo)
     Route::get('/configuracoes/{tab?}', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'index'])->name('configuracoes');
     Route::post('/configuracoes/perfil', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateProfile'])->name('configuracoes.perfil.update');
+    Route::post('/configuracoes/senha', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updatePassword'])->name('configuracoes.senha.update');
     Route::post('/configuracoes/whatsapp', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateWhatsapp'])->name('configuracoes.whatsapp.update');
-    Route::put('/configuracoes/split', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateSplit'])->name('configuracoes.split.update');
+    Route::post('/configuracoes/split', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateSplit'])->name('configuracoes.split.update');
+
+    // 2FA (Gestor)
+    Route::post('/configuracoes/2fa/enable', [VendedorSettingsController::class, 'enable2fa'])->name('configuracoes.2fa.enable');
+    Route::post('/configuracoes/2fa/disable', [VendedorSettingsController::class, 'disable2fa'])->name('configuracoes.2fa.disable');
+    Route::post('/configuracoes/2fa/add-device', [VendedorSettingsController::class, 'add2faDevice'])->name('configuracoes.2fa.add-device');
 
     // Primeira Mensagem - Aprovação (Antigas rotas mantidas por compatibilidade de ação)
     Route::get('/configuracoes/aprovar-mensagem', [PrimeiraMensagemController::class, 'pendentes'])->name('gestor.aprovar-mensagem');

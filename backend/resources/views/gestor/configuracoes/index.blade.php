@@ -226,7 +226,7 @@
             <div class="section-header">
                 <h4><i class="fas fa-key"></i> Alterar Senha</h4>
             </div>
-            <form action="{{ route('vendedor.configuracoes.senha.update') }}" method="POST">
+            <form action="{{ route('gestor.configuracoes.senha.update') }}" method="POST">
                 @csrf
                 <div class="materio-form-group">
                     <label class="materio-label">Senha Atual</label>
@@ -269,7 +269,7 @@
                                 <i class="fas fa-circle-check" style="color: var(--materio-success);"></i>
                             </div>
                         @endforeach
-                        <form action="{{ route('vendedor.configuracoes.2fa.add-device') }}" method="POST" style="margin-top: 20px;">
+                        <form action="{{ route('gestor.configuracoes.2fa.add-device') }}" method="POST" style="margin-top: 20px;">
                             @csrf
                             <div class="materio-form-group">
                                 <input type="text" name="device_name" class="materio-input" placeholder="Ex: Meu iPhone 15" required>
@@ -289,7 +289,7 @@
                                 @endforeach
                             @endif
                         </div>
-                        <form action="{{ route('vendedor.configuracoes.2fa.disable') }}" method="POST" style="padding-top: 25px; border-top: 1px solid var(--materio-border);">
+                        <form action="{{ route('gestor.configuracoes.2fa.disable') }}" method="POST" style="padding-top: 25px; border-top: 1px solid var(--materio-border);">
                             @csrf
                             <label class="materio-label">Desativar 2FA (Digite o código do app)</label>
                             <div style="display: flex; gap: 10px;">
@@ -311,7 +311,7 @@
                             2. Escaneie este QR Code exclusivo.<br>
                             3. Digite o código de 6 dígitos gerado no app.
                         </p>
-                        <form action="{{ route('vendedor.configuracoes.2fa.enable') }}" method="POST">
+                        <form action="{{ route('gestor.configuracoes.2fa.enable') }}" method="POST">
                             @csrf
                             <div class="materio-form-group">
                                 <input type="text" name="code" class="materio-input" style="font-size: 1.5rem; text-align: center; letter-spacing: 10px; font-weight: 900;" placeholder="000000" required>
