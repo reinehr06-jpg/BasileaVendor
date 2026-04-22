@@ -38,27 +38,33 @@ class TermsController extends Controller
         if ($request->hasFile('arquivo_termo')) {
             try {
                 $file = $request->file('arquivo_termo');
-                $extension = $file->getClientOriginalExtension();
+                $extension = strtolower($file->getClientOriginalExtension());
                 $filePath = $file->getRealPath();
                 
+                Log::info('TermsController: processando arquivo', ['ext' => $extension]);
+
                 if ($extension === 'txt') {
                     $data['conteudo_html'] = nl2br(e(file_get_contents($filePath)));
                 } elseif ($extension === 'pdf') {
-                    $parser = new Parser();
+                    if (!class_exists('\Smalot\PdfParser\Parser')) {
+                        throw new \Exception('Biblioteca de PDF não instalada. Por favor, cole o HTML manualmente.');
+                    }
+                    $parser = new \Smalot\PdfParser\Parser();
                     $pdf = $parser->parseFile($filePath);
                     $text = $pdf->getText();
                     $data['conteudo_html'] = nl2br(e($text));
                 } elseif (in_array($extension, ['docx', 'doc'])) {
-                    $phpWord = IOFactory::load($filePath);
-                    $htmlWriter = IOFactory::createWriter($phpWord, 'HTML');
+                    if (!class_exists('\PhpOffice\PhpWord\IOFactory')) {
+                        throw new \Exception('Biblioteca de Word não instalada. Por favor, cole o HTML manualmente.');
+                    }
+                    $phpWord = \PhpOffice\PhpWord\IOFactory::load($filePath);
+                    $htmlWriter = \PhpOffice\PhpWord\IOFactory::createWriter($phpWord, 'HTML');
                     
-                    // Salvar temporariamente o HTML gerado pelo PHPWord
                     $tempFile = tempnam(sys_get_temp_dir(), 'word_html');
                     $htmlWriter->save($tempFile);
                     $htmlContent = file_get_contents($tempFile);
-                    unlink($tempFile);
+                    @unlink($tempFile);
 
-                    // Pegar apenas o corpo do HTML gerado
                     if (preg_match('/<body[^>]*>(.*?)<\/body>/is', $htmlContent, $matches)) {
                         $data['conteudo_html'] = $matches[1];
                     } else {
@@ -67,11 +73,25 @@ class TermsController extends Controller
                 }
             } catch (\Exception $e) {
                 Log::error('Erro ao extrair texto do arquivo: ' . $e->getMessage());
-                return back()->with('error', 'Erro ao processar o arquivo: ' . $e->getMessage());
+                // Se der erro no arquivo, mas ele preencheu o HTML, continua. Senão para.
+                if (empty($data['conteudo_html'])) {
+                    return back()->withInput()->with('error', 'Erro ao processar o arquivo: ' . $e->getMessage());
+                }
             }
         }
 
-        TermsDocument::create($data);
+        try {
+            TermsDocument::create([
+                'tipo' => $data['tipo'],
+                'titulo' => $data['titulo'],
+                'versao' => $data['versao'],
+                'conteudo_html' => $data['conteudo_html'] ?? '',
+                'ativo' => true
+            ]);
+        } catch (\Exception $e) {
+            Log::error('TermsController: erro ao salvar no banco', ['error' => $e->getMessage()]);
+            return back()->withInput()->with('error', 'Erro ao salvar termo no banco de dados: ' . $e->getMessage());
+        }
 
         return back()->with('success', 'Termo criado com sucesso!');
     }
