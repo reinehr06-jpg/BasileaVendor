@@ -113,7 +113,8 @@ class User extends Authenticatable
     public function rotateTwoFactorSecret(): string
     {
         $newSecret = \App\Services\TwoFactorAuthService::generateSecret();
-        $this->two_factor_secret = $newSecret;
+        // Salvar no formato esperado pelo parseTwoFactorDevices: "nome|secret"
+        $this->two_factor_secret = 'Dispositivo Principal|'.$newSecret;
         $this->two_factor_enabled = false;
         $this->two_factor_rotated_at = now();
         $this->recovery_codes = null;

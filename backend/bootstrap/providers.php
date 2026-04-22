@@ -1,11 +1,11 @@
 <?php
 
-use App\Providers\AppKeyFixProvider;
+use App\Providers\FixEncryptionServiceProvider;
 use App\Providers\AppServiceProvider;
-use App\Providers\ChatServiceProvider;
 
 return [
-    AppKeyFixProvider::class,
+    FixEncryptionServiceProvider::class,
     AppServiceProvider::class,
-    ChatServiceProvider::class,
+    // ChatServiceProvider DESATIVADO TEMPORARIAMENTE - causa erro 500 durante boot
+    // ChatServiceProvider::class,
 ];

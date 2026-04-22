@@ -144,26 +144,7 @@ class TwoFactorController extends Controller
             ]);
         }
 
-        // Track failed attempts
-        $attemptsKey = '2fa_attempts_'.$user->id;
-        $attempts = Cache::get($attemptsKey, 0) + 1;
-        Cache::put($attemptsKey, $attempts, now()->addMinutes(self::LOCKOUT_MINUTES));
-
-        $remaining = self::MAX_2FA_ATTEMPTS - $attempts;
-
-        if ($remaining <= 0) {
-            Cache::put($lockKey, true, now()->addMinutes(self::LOCKOUT_MINUTES));
-            SecurityLogService::logTwoFactorEvent($user->id, 'locked', 'failed');
-            Log::warning('2FA_CONTA_BLOQUEADA', ['user_id' => $user->id, 'email' => $user->email]);
-
-            return view('auth.2fa.locked', ['minutes' => self::LOCKOUT_MINUTES]);
-        }
-
-        SecurityLogService::logTwoFactorEvent($user->id, 'verify_failed', 'failed');
-
-        return back()->withErrors([
-            'code' => "Código inválido. Tentativa {$attempts} de ".self::MAX_2FA_ATTEMPTS.'.',
-        ]);
+        // Código duplicado removido - já tratado no catch e no loop acima
     }
 
     public function showSetup(Request $request)
@@ -215,9 +196,10 @@ class TwoFactorController extends Controller
                     'name' => 'Dispositivo Principal',
                     'secret' => $newSecret,
                 ]];
+                // Não encrypt manualmente - o mutator do model já faz isso automaticamente
                 DB::table('users')
                     ->where('id', $user->id)
-                    ->update(['two_factor_secret' => encrypt('Dispositivo Principal|'.$newSecret, false)]);
+                    ->update(['two_factor_secret' => 'Dispositivo Principal|'.$newSecret]);
             }
 
             $primary = $devices[0];
@@ -353,7 +335,17 @@ class TwoFactorController extends Controller
             'code' => ['required', 'digits:6'],
         ]);
 
-        if (TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code)) {
+        // Verificar em todos os dispositivos (não apenas o primeiro)
+        $devices = $this->parseTwoFactorDevices($user->two_factor_secret);
+        $verified = false;
+        foreach ($devices as $device) {
+            if (TwoFactorAuthService::verifyToken($device['secret'], $request->code)) {
+                $verified = true;
+                break;
+            }
+        }
+
+        if ($verified) {
             // Use query builder to avoid encrypted cast issues during deploy/key rotation
             DB::table('users')->where('id', $user->id)->update([
                 'two_factor_enabled' => false,
@@ -383,14 +375,8 @@ class TwoFactorController extends Controller
             return [];
         }
 
-        try {
-            // Tentativa de descriptografar (compatibilidade com versões antigas)
-            if (str_starts_with($raw, 'ey') || str_starts_with($raw, 's:')) {
-                $raw = decrypt($raw, false);
-            }
-        } catch (\Exception $e) {
-            // Ignore erros de descriptografia - provavelmente já está descriptografado
-        }
+        // NÃO descriptografar aqui! O accessor do model User já faz isso automaticamente.
+        // Apenas se for string bruta do DB (como em migrations/seeders) precisaria descriptografar.
 
         $devices = [];
         $index = 1;
