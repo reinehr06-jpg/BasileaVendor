@@ -19,6 +19,7 @@ services:
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
+      - APP_KEY=base64:nlLQ85gujQx+RhDcoo/D22uAI8yy01HIlmul8mH8YUU=
       - APP_URL=https://vendor.basileia.global
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
