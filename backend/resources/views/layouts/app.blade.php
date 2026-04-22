@@ -127,25 +127,30 @@
             transform: scale(1.15);
         }
 
-        .sidebar-user {
-            padding: 18px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.12);
-            text-align: center;
+        .sidebar-user { display: none; }
+
+        .sidebar-brand-logo.mini {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            margin-top: auto;
         }
-        .sidebar-user h3 {
-            font-size: 0.95rem;
-            margin-bottom: 6px;
-            font-weight: 600;
-            color: white;
+        .sidebar-brand-logo.mini .brand-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            font-size: 1rem;
         }
-        .sidebar-user span {
-            font-size: 0.68rem;
-            background: rgba(255,255,255,0.15);
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .sidebar-brand-logo.mini .brand-name {
+            font-size: 1rem;
+        }
+        .sidebar-brand-logo.mini .brand-subtext {
+            font-size: 0.6rem;
+            letter-spacing: 3px;
+            gap: 10px;
+        }
+        .sidebar-brand-logo.mini .brand-subtext::before,
+        .sidebar-brand-logo.mini .brand-subtext::after {
+            width: 20px;
         }
 
         .sidebar-menu {
@@ -348,23 +353,7 @@
 </head>
 <body>
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-brand-logo">
-            <div style="display:flex;flex-direction:column;align-items:center;width:100%;overflow:hidden;padding: 10px 0;">
-                <div style="display:flex;align-items:center;gap:4px;">
-                    <div class="brand-icon">B</div>
-                    <span class="brand-name">Basiléia</span>
-                </div>
-                <div class="brand-subtext">Sales</div>
-            </div>
-            <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" onclick="toggleSidebar()" title="Recolher menu">
-                <i class="fas fa-circle" style="font-size:0.5rem;"></i>
-            </button>
-        </div>
         @php $perfil = Auth::user()->perfil; @endphp
-        <div class="sidebar-user">
-            <h3>{{ Auth::user()->name }}</h3>
-            <span>{{ $perfil === 'master' ? 'Administrador' : ($perfil === 'gestor' ? 'Gestor' : 'Vendedor') }}</span>
-        </div>
         <nav class="sidebar-menu">
             @if($perfil === 'master' || $perfil === 'admin')
                 {{-- ADMIN MASTER --}}
@@ -535,6 +524,15 @@
             @endif
         </nav>
         <div class="sidebar-footer">
+            <div class="sidebar-brand-logo mini">
+                <div style="display:flex;flex-direction:column;align-items:center;width:100%;">
+                    <div style="display:flex;align-items:center;gap:4px;">
+                        <div class="brand-icon">B</div>
+                        <span class="brand-name">Basiléia</span>
+                    </div>
+                    <div class="brand-subtext">Sales</div>
+                </div>
+            </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="btn-logout">

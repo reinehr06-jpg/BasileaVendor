@@ -7,19 +7,20 @@
         height: calc(100vh - 100px);
         display: flex;
         flex-direction: column;
-        gap: 15px;
-        overflow: hidden;
+        gap: 12px;
+        overflow-y: auto;
+        padding-bottom: 20px;
     }
 
     .dashboard-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 0 10px;
+        padding: 0 5px;
     }
 
     .dashboard-header h2 {
-        font-size: 1.3rem;
+        font-size: 1.35rem;
         font-weight: 800;
         letter-spacing: -0.5px;
         margin: 0;
@@ -37,80 +38,86 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
+        transition: transform 0.2s;
     }
+    .stat-card.mini:hover { transform: translateY(-3px); }
 
     .stat-card.mini .stat-icon {
-        width: 28px;
-        height: 28px;
-        font-size: 0.8rem;
-        margin-bottom: 6px;
+        width: 32px;
+        height: 32px;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
     }
 
     .stat-card.mini .stat-value {
-        font-size: 1.1rem;
+        font-size: 1.15rem;
         font-weight: 800;
     }
 
     .stat-card.mini .stat-label {
-        font-size: 0.65rem;
-        margin-top: 1px;
+        font-size: 0.68rem;
         text-transform: uppercase;
-        letter-spacing: 0.3px;
+        letter-spacing: 0.5px;
+        opacity: 0.7;
     }
 
-    .main-area {
-        flex: 1;
-        display: grid;
-        grid-template-columns: 2.2fr 1fr;
-        gap: 15px;
-        min-height: 0;
-    }
-
-    .chart-box {
-        display: flex;
-        flex-direction: column;
+    .chart-container-box {
         background: white;
-    }
-
-    .chart-box .card-body {
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-light);
+        padding: 15px;
         flex: 1;
-        position: relative;
-        padding: 10px;
-    }
-
-    .insights-box {
+        min-height: 300px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        overflow-y: auto;
     }
 
-    .insight-mini {
-        padding: 12px;
-        background: rgba(255,255,255,0.7);
+    .secondary-metrics-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+
+    .insight-card {
+        padding: 15px;
+        background: white;
         border: 1px solid var(--border-light);
         border-radius: var(--radius-lg);
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 15px;
         transition: var(--transition);
+        text-decoration: none !important;
     }
 
-    .insight-mini:hover {
-        background: white;
-        transform: translateX(4px);
+    .insight-card:hover {
+        border-color: var(--primary);
         box-shadow: var(--shadow-sm);
     }
 
-    .insight-mini-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+    .insight-card-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.9rem;
+        font-size: 1.1rem;
         flex-shrink: 0;
+    }
+
+    .insight-card-info .label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-muted);
+        margin-bottom: 2px;
+    }
+
+    .insight-card-info .value {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: var(--text-primary);
     }
 </style>
 
@@ -121,7 +128,7 @@
             <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">{{ $periodoLabel }} • Atualizado em tempo real</p>
         </div>
         <div class="d-flex gap-2">
-            <select class="filter-select" style="height: 32px; font-size: 0.8rem;" onchange="window.location.href='?periodo='+this.value">
+            <select class="filter-select" style="height: 36px; border-radius: 10px;" onchange="window.location.href='?periodo='+this.value">
                 <option value="month" {{ $periodo === 'month' ? 'selected' : '' }}>Este Mês</option>
                 <option value="week" {{ $periodo === 'week' ? 'selected' : '' }}>Esta Semana</option>
                 <option value="year" {{ $periodo === 'year' ? 'selected' : '' }}>Este Ano</option>
@@ -129,7 +136,7 @@
         </div>
     </div>
 
-    <!-- KPIs Estratégicos -->
+    <!-- Mini KPIs Row -->
     <div class="kpi-row">
         <div class="stat-card mini glass-card">
             <div class="stat-icon success"><i class="fas fa-dollar-sign"></i></div>
@@ -163,48 +170,49 @@
         </div>
     </div>
 
-    <!-- Área de Análise -->
-    <div class="main-area">
-        <div class="card glass-card chart-box">
-            <div class="card-header justify-between" style="padding: 10px 15px;">
-                <div style="font-weight: 700; font-size: 0.9rem;"><i class="fas fa-chart-area text-primary me-2"></i>Desempenho Comercial</div>
-                <div style="font-size: 0.7rem; color: var(--text-muted);">{{ $periodoLabel }}</div>
+    <!-- Main Chart Box -->
+    <div class="chart-container-box glass-card">
+        <div class="d-flex justify-between align-center mb-3">
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary);">
+                <i class="fas fa-chart-area text-primary me-2"></i>Desempenho Comercial
             </div>
-            <div class="card-body">
-                <canvas id="mainChart"></canvas>
-            </div>
+            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">{{ $periodoLabel }}</div>
         </div>
+        <div style="flex: 1; position: relative; min-height: 250px;">
+            <canvas id="mainChart"></canvas>
+        </div>
+    </div>
 
-        <div class="insights-box">
-            <div class="insight-mini">
-                <div class="insight-mini-icon" style="background: #e0f2fe; color: #0284c7;"><i class="fas fa-tag"></i></div>
-                <div>
-                    <div class="stat-label" style="font-size: 0.65rem;">Ticket Médio</div>
-                    <div style="font-weight: 800; font-size: 1rem;">R$ {{ number_format($ticketMedio, 2, ',', '.') }}</div>
-                </div>
+    <!-- Secondary Metrics Row -->
+    <div class="secondary-metrics-row">
+        <div class="insight-card glass-card">
+            <div class="insight-card-icon" style="background: #e0f2fe; color: #0284c7;"><i class="fas fa-tag"></i></div>
+            <div class="insight-card-info">
+                <div class="label">Ticket Médio</div>
+                <div class="value">R$ {{ number_format($ticketMedio, 2, ',', '.') }}</div>
             </div>
-            <div class="insight-mini">
-                <div class="insight-mini-icon" style="background: #fef3c7; color: #d97706;"><i class="fas fa-sync"></i></div>
-                <div>
-                    <div class="stat-label" style="font-size: 0.65rem;">Renovações</div>
-                    <div style="font-weight: 800; font-size: 1rem;">{{ $renovacoesMes }} <small class="text-muted" style="font-weight: 400; font-size: 0.6rem;">unidades</small></div>
-                </div>
-            </div>
-            <div class="insight-mini">
-                <div class="insight-mini-icon" style="background: #fee2e2; color: #dc2626;"><i class="fas fa-user-minus"></i></div>
-                <div>
-                    <div class="stat-label" style="font-size: 0.65rem;">Churn Rate</div>
-                    <div style="font-weight: 800; font-size: 1rem;">{{ number_format($churnMes, 1) }}%</div>
-                </div>
-            </div>
-            <a href="{{ route('master.ia') }}" class="insight-mini" style="text-decoration: none; border: 1px solid var(--primary); background: rgba(145, 85, 253, 0.05);">
-                <div class="insight-mini-icon" style="background: var(--primary); color: white;"><i class="fas fa-microchip"></i></div>
-                <div style="flex: 1;">
-                    <div class="stat-label" style="font-size: 0.65rem; color: var(--primary);">IA Lab Insights</div>
-                    <div style="font-weight: 800; font-size: 0.85rem; color: var(--primary);">Ver Operação <i class="fas fa-arrow-right ms-1"></i></div>
-                </div>
-            </a>
         </div>
+        <div class="insight-card glass-card">
+            <div class="insight-card-icon" style="background: #fef3c7; color: #d97706;"><i class="fas fa-sync"></i></div>
+            <div class="insight-card-info">
+                <div class="label">Renovações</div>
+                <div class="value">{{ $renovacoesMes }} <small style="font-size: 0.6rem; opacity: 0.6;">UND</small></div>
+            </div>
+        </div>
+        <div class="insight-card glass-card">
+            <div class="insight-card-icon" style="background: #fee2e2; color: #dc2626;"><i class="fas fa-user-minus"></i></div>
+            <div class="insight-card-info">
+                <div class="label">Churn Rate</div>
+                <div class="value">{{ number_format($churnMes, 1) }}%</div>
+            </div>
+        </div>
+        <a href="{{ route('master.ia') }}" class="insight-card glass-card" style="background: rgba(145, 85, 253, 0.04); border-color: rgba(145, 85, 253, 0.3);">
+            <div class="insight-card-icon" style="background: #9155FD; color: white;"><i class="fas fa-brain"></i></div>
+            <div class="insight-card-info">
+                <div class="label">IA Insights</div>
+                <div class="value" style="color: #9155FD;">Ver Operação <i class="fas fa-arrow-right ms-1" style="font-size: 0.7rem;"></i></div>
+            </div>
+        </a>
     </div>
 </div>
 
@@ -212,8 +220,8 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const ctx = document.getElementById('mainChart').getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(145, 85, 253, 0.2)');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, 'rgba(145, 85, 253, 0.15)');
         gradient.addColorStop(1, 'rgba(145, 85, 253, 0.0)');
 
         new Chart(ctx, {
@@ -225,14 +233,14 @@
                     data: {!! json_encode($graficoData['valores']) !!},
                     borderColor: '#9155FD',
                     borderWidth: 3,
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
                     pointBackgroundColor: '#9155FD',
                     pointBorderColor: '#fff',
                     pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6,
-                    fill: true,
-                    backgroundColor: gradient,
-                    tension: 0.4
+                    pointHoverRadius: 6
                 }]
             },
             options: {
@@ -243,29 +251,26 @@
                     tooltip: {
                         mode: 'index',
                         intersect: false,
-                        backgroundColor: '#fff',
-                        titleColor: '#333',
-                        bodyColor: '#666',
-                        borderColor: '#e2e8f0',
-                        borderWidth: 1,
-                        padding: 10,
-                        displayColors: false,
-                        callbacks: {
-                            label: function(context) {
-                                return 'R$ ' + context.parsed.y.toLocaleString('pt-BR');
-                            }
-                        }
+                        backgroundColor: '#1e293b',
+                        padding: 12,
+                        titleFont: { size: 13, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        cornerRadius: 8
                     }
                 },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { borderDash: [5, 5], color: '#f1f5f9', drawBorder: false },
-                        ticks: { color: '#64748b', font: { size: 10, weight: '600' }, callback: function(v) { return 'R$ ' + v.toLocaleString('pt-BR'); } }
-                    },
                     x: {
                         grid: { display: false },
-                        ticks: { color: '#64748b', font: { size: 10, weight: '600' } }
+                        ticks: { color: '#94a3b8', font: { size: 11 } }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(226, 232, 240, 0.5)', drawBorder: false },
+                        ticks: { 
+                            color: '#94a3b8', 
+                            font: { size: 11 },
+                            callback: function(value) { return 'R$ ' + value.toLocaleString(); }
+                        }
                     }
                 }
             }
