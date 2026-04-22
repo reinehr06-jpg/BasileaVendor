@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class TermsDocument extends Model
 {
     protected $fillable = [
-        'tipo', 'titulo', 'versao', 'conteudo_html', 'ativo',
+        'tipo', 'titulo', 'versao', 'conteudo_html', 'conteudo', 'ativo',
     ];
 
     protected $casts = [
