@@ -9,11 +9,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendas', function (Blueprint $table) {
-            $table->date('inicio_assinatura')->nullable()->after('data_venda');
-            $table->date('proximo_vencimento')->nullable()->after('inicio_assinatura');
-            $table->string('status_assinatura')->default('ativa')->after('proximo_vencimento');
-            $table->boolean('renovacao_ativa')->default(true)->after('status_assinatura');
-            $table->integer('ciclo_meses')->default(12)->after('renovacao_ativa');
+            if (!Schema::hasColumn('vendas', 'inicio_assinatura')) {
+                $table->date('inicio_assinatura')->nullable()->after('data_venda');
+            }
+            if (!Schema::hasColumn('vendas', 'proximo_vencimento')) {
+                $table->date('proximo_vencimento')->nullable()->after('inicio_assinatura');
+            }
+            if (!Schema::hasColumn('vendas', 'status_assinatura')) {
+                $table->string('status_assinatura')->default('ativa')->after('proximo_vencimento');
+            }
+            if (!Schema::hasColumn('vendas', 'renovacao_ativa')) {
+                $table->boolean('renovacao_ativa')->default(true)->after('status_assinatura');
+            }
+            if (!Schema::hasColumn('vendas', 'ciclo_meses')) {
+                $table->integer('ciclo_meses')->default(12)->after('renovacao_ativa');
+            }
         });
     }
 

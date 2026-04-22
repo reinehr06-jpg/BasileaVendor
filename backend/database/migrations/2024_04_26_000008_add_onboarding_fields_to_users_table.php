@@ -9,10 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('termos_aceitos')->default(false)->after('email');
-            $table->timestamp('termos_aceitos_em')->nullable()->after('termos_aceitos');
-            $table->boolean('split_configurado')->default(false)->after('termos_aceitos_em');
-            $table->boolean('tour_completo')->default(false)->after('split_configurado');
+            if (!Schema::hasColumn('users', 'termos_aceitos')) {
+                $table->boolean('termos_aceitos')->default(false)->after('email');
+            }
+            if (!Schema::hasColumn('users', 'termos_aceitos_em')) {
+                $table->timestamp('termos_aceitos_em')->nullable()->after('termos_aceitos');
+            }
+            if (!Schema::hasColumn('users', 'split_configurado')) {
+                $table->boolean('split_configurado')->default(false)->after('termos_aceitos_em');
+            }
+            if (!Schema::hasColumn('users', 'tour_completo')) {
+                $table->boolean('tour_completo')->default(false)->after('split_configurado');
+            }
         });
     }
 

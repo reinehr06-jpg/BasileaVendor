@@ -9,13 +9,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('settings', function (Blueprint $table) {
-            $table->boolean('chat_enabled')->default(false)->after('value');
-            $table->string('chat_sla_minutes')->default('60')->after('chat_enabled');
-            $table->boolean('chat_round_robin_enabled')->default(true)->after('chat_sla_minutes');
+            if (!Schema::hasColumn('settings', 'chat_enabled')) {
+                $table->boolean('chat_enabled')->default(false)->after('value');
+            }
+            if (!Schema::hasColumn('settings', 'chat_sla_minutes')) {
+                $table->string('chat_sla_minutes')->default('60')->after('chat_enabled');
+            }
+            if (!Schema::hasColumn('settings', 'chat_round_robin_enabled')) {
+                $table->boolean('chat_round_robin_enabled')->default(true)->after('chat_sla_minutes');
+            }
         });
 
         Schema::table('vendedores', function (Blueprint $table) {
-            $table->boolean('chat_enabled')->default(true)->after('meta_mensal');
+            if (!Schema::hasColumn('vendedores', 'chat_enabled')) {
+                $table->boolean('chat_enabled')->default(true)->after('meta_mensal');
+            }
         });
     }
 

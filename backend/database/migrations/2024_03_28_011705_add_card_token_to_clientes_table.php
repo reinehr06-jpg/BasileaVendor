@@ -12,9 +12,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('clientes', function (Blueprint $table) {
-            $table->string('credit_card_token')->nullable()->after('email');
-            $table->string('card_brand')->nullable()->after('credit_card_token');
-            $table->string('card_last_digits')->nullable()->after('card_brand');
+            if (!Schema::hasColumn('clientes', 'credit_card_token')) {
+                $table->string('credit_card_token')->nullable()->after('email');
+            }
+            if (!Schema::hasColumn('clientes', 'card_brand')) {
+                $table->string('card_brand')->nullable()->after('credit_card_token');
+            }
+            if (!Schema::hasColumn('clientes', 'card_last_digits')) {
+                $table->string('card_last_digits')->nullable()->after('card_brand');
+            }
         });
     }
 

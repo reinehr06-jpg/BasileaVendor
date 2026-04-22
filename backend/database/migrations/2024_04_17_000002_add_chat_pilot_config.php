@@ -8,37 +8,59 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('chat_gestor_configs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('gestor_id')->constrained('users')->onDelete('cascade');
-            $table->boolean('chat_enabled')->default(false);
-            $table->string('numero_whatsapp')->nullable();
-            $table->string('whatsapp_provider')->nullable();
-            $table->string('whatsapp_api_token')->nullable();
-            $table->integer('max_conversas_simultaneas')->nullable()->default(0);
-            $table->integer('sla_primeiro_contato')->default(30);
-            $table->integer('sla_inatividade')->default(60);
-            $table->integer('retorno_dias')->default(7);
-            $table->timestamps();
+        if (!Schema::hasTable('chat_gestor_configs')) {
+            Schema::create('chat_gestor_configs', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('gestor_id')->constrained('users')->onDelete('cascade');
+                $table->boolean('chat_enabled')->default(false);
+                $table->string('numero_whatsapp')->nullable();
+                $table->string('whatsapp_provider')->nullable();
+                $table->string('whatsapp_api_token')->nullable();
+                $table->integer('max_conversas_simultaneas')->nullable()->default(0);
+                $table->integer('sla_primeiro_contato')->default(30);
+                $table->integer('sla_inatividade')->default(60);
+                $table->integer('retorno_dias')->default(7);
+                $table->timestamps();
 
-            $table->unique(['gestor_id'], 'chat_gestor_configs_gestor_unique');
-        });
+                $table->unique(['gestor_id'], 'chat_gestor_configs_gestor_unique');
+            });
+        }
 
-        Schema::table('vendedores', function (Blueprint $table) {
-            $table->integer('max_conversas')->default(0)->nullable()->after('chat_enabled');
-            $table->boolean('chat_disabled')->default(false)->after('max_conversas');
-        });
+        if (Schema::hasTable('vendedores')) {
+            Schema::table('vendedores', function (Blueprint $table) {
+                if (!Schema::hasColumn('vendedores', 'max_conversas')) {
+                    $table->integer('max_conversas')->default(0)->nullable()->after('chat_enabled');
+                }
+                if (!Schema::hasColumn('vendedores', 'chat_disabled')) {
+                    $table->boolean('chat_disabled')->default(false)->after('max_conversas');
+                }
+            });
+        }
 
-        Schema::table('chat_conversations', function (Blueprint $table) {
-            $table->text('motivo_perda')->nullable()->after('status');
-            $table->string('resolved_by')->nullable()->after('motivo_perda');
-            $table->timestamp('resolved_at')->nullable()->after('resolved_by');
-        });
+        if (Schema::hasTable('chat_conversations')) {
+            Schema::table('chat_conversations', function (Blueprint $table) {
+                if (!Schema::hasColumn('chat_conversations', 'motivo_perda')) {
+                    $table->text('motivo_perda')->nullable()->after('status');
+                }
+                if (!Schema::hasColumn('chat_conversations', 'resolved_by')) {
+                    $table->string('resolved_by')->nullable()->after('motivo_perda');
+                }
+                if (!Schema::hasColumn('chat_conversations', 'resolved_at')) {
+                    $table->timestamp('resolved_at')->nullable()->after('resolved_by');
+                }
+            });
+        }
 
-        Schema::table('lead_inbound_logs', function (Blueprint $table) {
-            $table->foreignId('contact_id')->nullable()->constrained('chat_contacts')->onDelete('set null');
-            $table->foreignId('conversa_id')->nullable()->constrained('chat_conversations')->onDelete('set null');
-        });
+        if (Schema::hasTable('lead_inbound_logs')) {
+            Schema::table('lead_inbound_logs', function (Blueprint $table) {
+                if (!Schema::hasColumn('lead_inbound_logs', 'contact_id')) {
+                    $table->foreignId('contact_id')->nullable()->constrained('chat_contacts')->onDelete('set null');
+                }
+                if (!Schema::hasColumn('lead_inbound_logs', 'conversa_id')) {
+                    $table->foreignId('conversa_id')->nullable()->constrained('chat_conversations')->onDelete('set null');
+                }
+            });
+        }
     }
 
     public function down(): void

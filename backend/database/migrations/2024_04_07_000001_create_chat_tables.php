@@ -71,42 +71,48 @@ return new class extends Migration
             });
         }
 
-        Schema::create('chat_message_reads', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('message_id')->constrained('chat_messages')->onDelete('cascade');
-            $table->foreignId('vendedor_id')->constrained('vendedores')->onDelete('cascade');
-            $table->timestamp('read_at');
-            $table->timestamps();
+        if (!Schema::hasTable('chat_message_reads')) {
+            Schema::create('chat_message_reads', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('message_id')->constrained('chat_messages')->onDelete('cascade');
+                $table->foreignId('vendedor_id')->constrained('vendedores')->onDelete('cascade');
+                $table->timestamp('read_at');
+                $table->timestamps();
 
-            $table->unique(['message_id', 'vendedor_id']);
-        });
+                $table->unique(['message_id', 'vendedor_id']);
+            });
+        }
 
-        Schema::create('chat_provider_configs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
-            $table->string('provider', 50);
-            $table->string('name');
-            $table->text('config_json');
-            $table->boolean('is_active')->default(true);
-            $table->boolean('is_default')->default(false);
-            $table->timestamps();
+        if (!Schema::hasTable('chat_provider_configs')) {
+            Schema::create('chat_provider_configs', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
+                $table->string('provider', 50);
+                $table->string('name');
+                $table->text('config_json');
+                $table->boolean('is_active')->default(true);
+                $table->boolean('is_default')->default(false);
+                $table->timestamps();
 
-            $table->unique(['tenant_id', 'provider', 'name']);
-        });
+                $table->unique(['tenant_id', 'provider', 'name']);
+            });
+        }
 
-        Schema::create('chat_webhook_logs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
-            $table->string('provider', 50);
-            $table->string('event_type', 50);
-            $table->string('external_id')->nullable();
-            $table->json('payload');
-            $table->string('status', 20)->default('pending');
-            $table->text('error')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('chat_webhook_logs')) {
+            Schema::create('chat_webhook_logs', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
+                $table->string('provider', 50);
+                $table->string('event_type', 50);
+                $table->string('external_id')->nullable();
+                $table->json('payload');
+                $table->string('status', 20)->default('pending');
+                $table->text('error')->nullable();
+                $table->timestamps();
 
-            $table->index(['tenant_id', 'created_at']);
-        });
+                $table->index(['tenant_id', 'created_at']);
+            });
+        }
     }
 
     public function down(): void

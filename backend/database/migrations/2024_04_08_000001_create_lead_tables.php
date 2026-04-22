@@ -8,20 +8,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('lead_inbound_logs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('set null');
-            $table->string('source', 50);
-            $table->string('ad_id')->nullable();
-            $table->string('adgroup_id')->nullable();
-            $table->string('campaign_id')->nullable();
-            $table->string('status', 20)->default('pending');
-            $table->text('error_message')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('lead_inbound_logs')) {
+            Schema::create('lead_inbound_logs', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('set null');
+                $table->string('source', 50);
+                $table->string('ad_id')->nullable();
+                $table->string('adgroup_id')->nullable();
+                $table->string('campaign_id')->nullable();
+                $table->string('status', 20)->default('pending');
+                $table->text('error_message')->nullable();
+                $table->timestamps();
 
-            $table->index(['tenant_id', 'source', 'created_at']);
-            $table->index(['tenant_id', 'status']);
-        });
+                $table->index(['tenant_id', 'source', 'created_at']);
+                $table->index(['tenant_id', 'status']);
+            });
+        }
 
         if (!Schema::hasTable('leads')) {
             Schema::create('leads', function (Blueprint $table) {

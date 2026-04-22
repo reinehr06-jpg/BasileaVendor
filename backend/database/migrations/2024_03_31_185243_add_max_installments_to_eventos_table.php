@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('eventos', function (Blueprint $table) {
-            $table->integer('max_installments')->default(1)->after('charge_type');
+            if (!Schema::hasColumn('eventos', 'max_installments')) {
+                $table->integer('max_installments')->default(1)->after('charge_type');
+            }
         });
     }
 

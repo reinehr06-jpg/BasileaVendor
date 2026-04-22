@@ -9,7 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendas', function (Blueprint $table) {
-            $table->timestamp('link_valido_ate')->nullable()->after('checkout_payment_link');
+            if (!Schema::hasColumn('vendas', 'link_valido_ate')) {
+                $table->timestamp('link_valido_ate')->nullable()->after('checkout_payment_link');
+            }
         });
     }
 

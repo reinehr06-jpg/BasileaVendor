@@ -9,14 +9,24 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vendedores', function (Blueprint $table) {
-            $table->boolean('lead_enabled')->default(true)->after('chat_enabled');
+            if (!Schema::hasColumn('vendedores', 'lead_enabled')) {
+                $table->boolean('lead_enabled')->default(true)->after('chat_enabled');
+            }
         });
 
         Schema::table('settings', function (Blueprint $table) {
-            $table->boolean('lead_round_robin_enabled')->default(true)->after('chat_round_robin_enabled');
-            $table->integer('lead_default_equipe_id')->nullable()->after('lead_round_robin_enabled');
-            $table->integer('lead_rate_limit')->default(10)->after('lead_default_equipe_id');
-            $table->integer('lead_rate_window')->default(3600)->after('lead_rate_limit');
+            if (!Schema::hasColumn('settings', 'lead_round_robin_enabled')) {
+                $table->boolean('lead_round_robin_enabled')->default(true)->after('chat_round_robin_enabled');
+            }
+            if (!Schema::hasColumn('settings', 'lead_default_equipe_id')) {
+                $table->integer('lead_default_equipe_id')->nullable()->after('lead_round_robin_enabled');
+            }
+            if (!Schema::hasColumn('settings', 'lead_rate_limit')) {
+                $table->integer('lead_rate_limit')->default(10)->after('lead_default_equipe_id');
+            }
+            if (!Schema::hasColumn('settings', 'lead_rate_window')) {
+                $table->integer('lead_rate_window')->default(3600)->after('lead_rate_limit');
+            }
         });
     }
 

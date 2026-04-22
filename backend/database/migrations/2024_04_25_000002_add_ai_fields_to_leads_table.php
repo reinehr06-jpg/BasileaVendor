@@ -9,10 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('leads', function (Blueprint $table) {
-            $table->tinyInteger('ai_score')->nullable()->after('status');
-            $table->string('ai_score_motivo', 200)->nullable()->after('ai_score');
-            $table->string('motivo_perda', 50)->nullable()->after('ai_score_motivo');
-            $table->timestamp('ai_avaliado_em')->nullable()->after('motivo_perda');
+            if (!Schema::hasColumn('leads', 'ai_score')) {
+                $table->tinyInteger('ai_score')->nullable()->after('status');
+            }
+            if (!Schema::hasColumn('leads', 'ai_score_motivo')) {
+                $table->string('ai_score_motivo', 200)->nullable()->after('ai_score');
+            }
+            if (!Schema::hasColumn('leads', 'motivo_perda')) {
+                $table->string('motivo_perda', 50)->nullable()->after('ai_score_motivo');
+            }
+            if (!Schema::hasColumn('leads', 'ai_avaliado_em')) {
+                $table->timestamp('ai_avaliado_em')->nullable()->after('motivo_perda');
+            }
         });
     }
 
