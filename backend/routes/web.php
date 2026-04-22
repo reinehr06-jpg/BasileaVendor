@@ -689,6 +689,17 @@ Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
 // GESTOR
 // ──────────────────────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'gestor'])->prefix('gestor')->group(function () {
+    // Configurações do Gestor (Perfil, Segurança, Split, WhatsApp)
+    Route::get('/configuracoes/{tab?}', [\App\Http\Controllers\Gestor\GestorSettingsController::class, 'index'])->name('gestor.configuracoes');
+    Route::post('/configuracoes/perfil', [\App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateProfile'])->name('gestor.configuracoes.perfil.update');
+    Route::post('/configuracoes/senha', [\App\Http\Controllers\Gestor\GestorSettingsController::class, 'updatePassword'])->name('gestor.configuracoes.senha.update');
+    Route::post('/configuracoes/whatsapp', [\App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateWhatsapp'])->name('gestor.configuracoes.whatsapp.update');
+    Route::put('/configuracoes/split', [\App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateSplit'])->name('gestor.configuracoes.split.update');
+    // 2FA Gestor
+    Route::post('/configuracoes/2fa/enable', [\App\Http\Controllers\VendedorSettingsController::class, 'enable2fa'])->name('gestor.configuracoes.2fa.enable');
+    Route::post('/configuracoes/2fa/disable', [\App\Http\Controllers\VendedorSettingsController::class, 'disable2fa'])->name('gestor.configuracoes.2fa.disable');
+    Route::post('/configuracoes/2fa/add-device', [\App\Http\Controllers\VendedorSettingsController::class, 'add2faDevice'])->name('gestor.configuracoes.2fa.add-device');
+
     // Campanhas (visualização)
     Route::get('/campanhas', [CampanhaController::class, 'index'])->name('gestor.campanhas.index');
     Route::get('/campanhas/{campanha}', [CampanhaController::class, 'show'])->name('gestor.campanhas.show');

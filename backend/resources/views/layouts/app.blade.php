@@ -495,7 +495,7 @@
                 </a>
 
                 <div class="menu-section">Comunicação</div>
-                <a href="{{ route('chat.index') }}" class="menu-item {{ request()->routeIs('chat.index') || request()->routeIs('chat.conversa') ? 'active' : '' }}">
+                <a href="{{ route('vendedor.chat') }}" class="menu-item {{ request()->routeIs('vendedor.chat') || request()->routeIs('vendedor.chat.*') ? 'active' : '' }}">
                     <i class="fab fa-whatsapp"></i> Chat WhatsApp
                 </a>
 
