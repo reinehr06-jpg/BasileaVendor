@@ -70,8 +70,8 @@ class TwoFactorController extends Controller
                 if ($key !== false) {
                     unset($codes[$key]);
                     $updatedRecoveryCodes = json_encode(array_values($codes));
-                    DB::table('users')->where('id', $user->id)->update([
-                        'recovery_codes' => $updatedRecoveryCodes,
+                    $user->update([
+                        'recovery_codes' => array_values($codes),
                     ]);
                     $user->recovery_codes = $updatedRecoveryCodes;
                     Cache::forget('2fa_attempts_'.$user->id);
@@ -125,7 +125,7 @@ class TwoFactorController extends Controller
             Log::error('2FA_VERIFY_DECRYPT_ERROR', ['user_id' => $user->id, 'error' => $e->getMessage()]);
 
             // Auto-reset 2FA when decryption fails - user can set up again
-            DB::table('users')->where('id', $user->id)->update([
+            $user->update([
                 'two_factor_enabled' => false,
                 'two_factor_secret' => null,
                 'recovery_codes' => null,
@@ -160,7 +160,7 @@ class TwoFactorController extends Controller
             $existingDevices = $this->parseTwoFactorDevices($user->two_factor_secret);
 
             if ($user->two_factor_enabled && empty($existingDevices)) {
-                DB::table('users')->where('id', $user->id)->update([
+                $user->update([
                     'two_factor_enabled' => false,
                     'recovery_codes' => null,
                 ]);
@@ -197,9 +197,7 @@ class TwoFactorController extends Controller
                     'secret' => $newSecret,
                 ]];
                 // Não encrypt manualmente - o mutator do model já faz isso automaticamente
-                DB::table('users')
-                    ->where('id', $user->id)
-                    ->update(['two_factor_secret' => 'Dispositivo Principal|'.$newSecret]);
+                $user->update(['two_factor_secret' => 'Dispositivo Principal|'.$newSecret]);
             }
 
             $primary = $devices[0];
@@ -273,10 +271,9 @@ class TwoFactorController extends Controller
             }
 
             if ($verified) {
-                $recoveryCodes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
-                DB::table('users')->where('id', $user->id)->update([
+                $user->update([
                     'two_factor_enabled' => true,
-                    'recovery_codes' => $recoveryCodes,
+                    'recovery_codes' => TwoFactorAuthService::generateRecoveryCodes(),
                 ]);
                 $user->two_factor_enabled = true;
 
@@ -346,8 +343,7 @@ class TwoFactorController extends Controller
         }
 
         if ($verified) {
-            // Use query builder to avoid encrypted cast issues during deploy/key rotation
-            DB::table('users')->where('id', $user->id)->update([
+            $user->update([
                 'two_factor_enabled' => false,
                 'two_factor_secret' => null,
                 'recovery_codes' => null,
