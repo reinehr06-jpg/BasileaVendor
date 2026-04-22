@@ -37,9 +37,15 @@ class AsaasWebhookController extends Controller
         $event   = $payload['event'] ?? null;
         $payment = $payload['payment'] ?? null;
 
-        if (!$event || !$payment) {
-            Log::warning('Asaas Webhook: payload incompleto', $payload);
+        if (!$event) {
+            Log::warning('Asaas Webhook: payload sem evento', $payload);
             return response()->json(['error' => 'Payload incompleto'], 400);
+        }
+
+        // Ignorar eventos de sistema que não possuem pagamento (ex: ACCESS_TOKEN_CREATED, ACCOUNT_STATUS_CHANGED)
+        if (!$payment) {
+            Log::info("Asaas Webhook: evento de sistema recebido e ignorado", ['event' => $event]);
+            return response()->json(['message' => 'Evento de sistema recebido'], 200);
         }
 
         $asaasPaymentId = $payment['id'] ?? null;
