@@ -12,13 +12,13 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
     restart: unless-stopped
     expose:
       - "8000"
     environment:
       - APP_ENV=production
-      - APP_DEBUG=false
+      - APP_DEBUG=true
       - APP_URL=https://vendor.basileia.global
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
@@ -26,11 +26,8 @@ services:
       - DB_DATABASE=basileia_vendas
       - DB_USERNAME=postgres
       - DB_PASSWORD=secret
-      - QUEUE_CONNECTION=database
-      - CACHE_STORE=file
     volumes:
       - basileia_storage:/var/www/html/storage
-      - basileia_logs:/var/log
     depends_on:
       - postgres
 
@@ -49,4 +46,3 @@ services:
 volumes:
   basileia_pgdata:
   basileia_storage:
-  basileia_logs:

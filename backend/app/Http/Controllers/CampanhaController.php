@@ -4,11 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\Campanha;
 use App\Models\Contato;
+use App\Services\CampanhaMetricsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class CampanhaController extends Controller
 {
+    private CampanhaMetricsService $metrics;
+
+    public function __construct(CampanhaMetricsService $metrics)
+    {
+        $this->metrics = $metrics;
+    }
+
     // Listagem com métricas em tempo real
     public function index(Request $request)
     {
@@ -31,25 +39,14 @@ class CampanhaController extends Controller
         $query->orderByDesc($ordem);
 
         $campanhas = $query->get()->map(function ($c) {
-            $c->taxa_conversao = $c->total_leads > 0
-                ? round(($c->total_convertidos / $c->total_leads) * 100, 2)
-                : 0;
-            $c->cpl = $c->custo_total && $c->total_leads > 0
-                ? round($c->custo_total / $c->total_leads, 2)
-                : null;
-            $c->ultimo_lead = $c->contatos()->latest('entry_date')->value('entry_date');
+            $c->taxa_conversao = $this->metrics->calcularTaxaConversao($c);
+            $c->cpl = $this->metrics->calcularCPL($c);
+            $c->ultimo_lead = $this->metrics->getUltimoLead($c);
             return $c;
         });
 
         // KPIs globais para o topo
-        $kpis = [
-            'total_leads'       => Contato::count(),
-            'total_convertidos' => Contato::where('status', 'convertido')->count(),
-            'taxa_geral'        => Contato::count() > 0
-                ? round((Contato::where('status', 'convertido')->count() / Contato::count()) * 100, 2)
-                : 0,
-            'campanhas_ativas'  => Campanha::where('status', 'ativa')->count(),
-        ];
+        $kpis = $this->metrics->getMetricasGlobais();
 
         return view('admin.campanhas.index', compact('campanhas', 'kpis'));
     }
@@ -57,38 +54,11 @@ class CampanhaController extends Controller
     // Detalhes de uma campanha — funil + gráfico + lista de leads
     public function show(Campanha $campanha)
     {
-        // Funil
-        $funil = [
-            'total'       => $campanha->contatos()->count(),
-            'atendidos'   => $campanha->contatos()->whereNotNull('agente_id')->count(),
-            'convertidos' => $campanha->contatos()->where('status', 'convertido')->count(),
-            'perdidos'    => $campanha->contatos()->whereIn('status', ['perdido', 'lead_ruim'])->count(),
-        ];
+        $funil = $this->metrics->getFunil($campanha);
+        $leadsPorDia = $this->metrics->getLeadsPorDia($campanha);
+        $porCanal = $this->metrics->getPorCanal($campanha);
+        $porAgente = $this->metrics->getPorAgente($campanha);
 
-        // Leads por dia (últimos 30 dias) — para o gráfico de linha
-        $leadsPorDia = $campanha->contatos()
-            ->selectRaw('CAST(entry_date AS DATE) as dia, COUNT(*) as total')
-            ->where('entry_date', '>=', now()->subDays(30))
-            ->groupBy('dia')
-            ->orderBy('dia')
-            ->pluck('total', 'dia');
-
-        // Distribuição por canal
-        $porCanal = $campanha->contatos()
-            ->selectRaw('canal_origem, COUNT(*) as total')
-            ->groupBy('canal_origem')
-            ->pluck('total', 'canal_origem');
-
-        // Performance por agente
-        $porAgente = $campanha->contatos()
-            ->selectRaw('agente_id, COUNT(*) as total_leads,
-                         SUM(CASE WHEN status = \'convertido\' THEN 1 ELSE 0 END) as convertidos')
-            ->whereNotNull('agente_id')
-            ->with('agente')
-            ->groupBy('agente_id')
-            ->get();
-
-        // Lista de leads paginada
         $leads = $campanha->contatos()
             ->with('agente', 'vendedor')
             ->orderByDesc('entry_date')
@@ -143,9 +113,9 @@ class CampanhaController extends Controller
             'total_leads'       => $campanha->contatos()->count(),
             'convertidos'       => $campanha->contatos()->where('status', 'convertido')->count(),
             'perdidos'          => $campanha->contatos()->whereIn('status', ['perdido', 'lead_ruim'])->count(),
-            'taxa_conversao'    => $campanha->taxaConversao(),
-            'cpl'               => $campanha->custoPorLead(),
-            'ultimo_lead'       => $campanha->contatos()->latest('entry_date')->value('entry_date'),
+            'taxa_conversao'    => $this->metrics->calcularTaxaConversao($campanha),
+            'cpl'               => $this->metrics->calcularCPL($campanha),
+            'ultimo_lead'       => $this->metrics->getUltimoLead($campanha),
         ]);
     }
 }

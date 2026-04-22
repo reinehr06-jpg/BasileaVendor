@@ -663,6 +663,9 @@ Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
 
     // Calendário Admin
     Route::get('/calendario', [CalendarioController::class, 'adminIndex'])->name('admin.calendario.index');
+
+    // Atualização do Sistema
+    Route::get('/atualizacao', [App\Http\Controllers\Admin\AtualizacaoController::class, 'index'])->name('admin.atualizacao.instrucoes');
 });
 
 // ──────────────────────────────────────────────────────────────────────────────

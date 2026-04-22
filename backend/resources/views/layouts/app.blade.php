@@ -597,6 +597,38 @@
             </div>
         </header>
         <section class="content-area">
+            @if(isset($systemUpdateAvailable) && $systemUpdateAvailable && isset($systemUpdateInfo))
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 shadow-lg mb-6 rounded-2xl">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <div>
+                            <p class="font-bold text-sm md:text-base">
+                                Nova versão disponível: {{ $systemUpdateInfo['latest_version'] }}
+                                (atual: {{ $systemUpdateInfo['current_version'] }})
+                            </p>
+                            <p class="text-xs md:text-sm opacity-90 mt-0.5">
+                                Atualize para obter as últimas correções e melhorias.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 flex-shrink-0">
+                        <a href="{{ $systemUpdateInfo['release_url'] }}"
+                           target="_blank"
+                           class="bg-white text-blue-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors shadow">
+                            Ver detalhes
+                        </a>
+                        <a href="{{ route('admin.atualizacao.instrucoes') }}"
+                           class="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-900 transition-colors">
+                            Como atualizar
+                        </a>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             @if(session('warning'))
             <div class="alert" style="background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 14px 18px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-weight: 600;">
                 <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 1.1rem;"></i>
