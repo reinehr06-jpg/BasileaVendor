@@ -55,17 +55,23 @@
 <x-page-hero title="Configurações" subtitle="Gerencie seu perfil, segurança e preferências" icon="fas fa-gear" />
 
 {{-- Tabs --}}
-<div class="settings-tabs">
-    <a href="{{ route('vendedor.configuracoes', ['tab' => 'perfil']) }}" class="settings-tab {{ $tab === 'perfil' ? 'active' : '' }}">
-        <i class="fas fa-user"></i> Perfil
-    </a>
-    <a href="{{ route('vendedor.configuracoes', ['tab' => 'seguranca']) }}" class="settings-tab {{ $tab === 'seguranca' ? 'active' : '' }}">
-        <i class="fas fa-shield-halved"></i> Segurança
-    </a>
-    <a href="{{ route('vendedor.configuracoes', ['tab' => 'split']) }}" class="settings-tab {{ $tab === 'split' ? 'active' : '' }}">
-        <i class="fas fa-wallet"></i> Split
-    </a>
-</div>
+    <div class="settings-tabs">
+        <a href="{{ route('vendedor.configuracoes', 'perfil') }}" class="settings-tab {{ $tab === 'perfil' ? 'active' : '' }}">
+            <i class="fas fa-user"></i> Perfil
+        </a>
+        <a href="{{ route('vendedor.configuracoes', 'seguranca') }}" class="settings-tab {{ $tab === 'seguranca' ? 'active' : '' }}">
+            <i class="fas fa-shield-alt"></i> Segurança
+        </a>
+        <a href="{{ route('vendedor.configuracoes', 'integracoes') }}" class="settings-tab {{ $tab === 'integracoes' ? 'active' : '' }}">
+            <i class="fas fa-plug"></i> Integrações
+        </a>
+        <a href="{{ route('vendedor.configuracoes', 'comissoes') }}" class="settings-tab {{ $tab === 'comissoes' ? 'active' : '' }}">
+            <i class="fas fa-coins"></i> Comissões
+        </a>
+        <a href="{{ route('vendedor.configuracoes.termos') }}" class="settings-tab {{ request()->routeIs('vendedor.configuracoes.termos') ? 'active' : '' }}">
+            <i class="fas fa-file-contract"></i> Termos
+        </a>
+    </div>
 
 {{-- PERFIL --}}
 @if($tab === 'perfil')

@@ -703,6 +703,9 @@ Route::middleware(['auth', 'gestor'])->prefix('gestor')->group(function () {
     Route::post('/configuracoes/aprovar-mensagem/{mensagem}/aprovar', [PrimeiraMensagemController::class, 'aprovar'])->name('gestor.aprovar-mensagem.aprovar');
     Route::post('/configuracoes/aprovar-mensagem/{mensagem}/rejeitar', [PrimeiraMensagemController::class, 'rejeitar'])->name('gestor.aprovar-mensagem.rejeitar');
     // Catch-all: Configurações index (DEVE ser por último para não capturar as rotas acima)
+    Route::get('/configuracoes/termos', [\App\Http\Controllers\Gestor\GestorSettingsController::class, 'termos'])->name('gestor.configuracoes.termos');
+    Route::get('/configuracoes/termos/pdf/{termo}', [\App\Http\Controllers\Gestor\GestorSettingsController::class, 'downloadPdf'])->name('gestor.configuracoes.termos.pdf');
+    Route::get('/configuracoes/termos/html/{termo}', [\App\Http\Controllers\Gestor\GestorSettingsController::class, 'downloadHtml'])->name('gestor.configuracoes.termos.html');
     Route::get('/configuracoes/{tab?}', [\App\Http\Controllers\Gestor\GestorSettingsController::class, 'index'])->name('gestor.configuracoes');
 
     // Campanhas (visualização)
@@ -724,7 +727,10 @@ Route::middleware(['auth', 'gestor'])->prefix('gestor')->group(function () {
 // VENDEDOR
 // ──────────────────────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'vendedor'])->prefix('vendedor')->group(function () {
-    // Contatos (seus leads)
+    Route::get('/configuracoes/termos', [\App\Http\Controllers\VendedorSettingsController::class, 'termos'])->name('vendedor.configuracoes.termos');
+    Route::get('/configuracoes/termos/pdf/{termo}', [\App\Http\Controllers\VendedorSettingsController::class, 'downloadPdf'])->name('vendedor.configuracoes.termos.pdf');
+    Route::get('/configuracoes/termos/html/{termo}', [\App\Http\Controllers\VendedorSettingsController::class, 'downloadHtml'])->name('vendedor.configuracoes.termos.html');
+    
     Route::get('/contatos', [ContatoController::class, 'index'])->name('vendedor.contatos.index');
     Route::get('/contatos/{contato}', [ContatoController::class, 'show'])->name('vendedor.contatos.show');
     Route::put('/contatos/{contato}', [ContatoController::class, 'update'])->name('vendedor.contatos.update');

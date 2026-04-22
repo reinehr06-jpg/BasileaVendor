@@ -194,6 +194,9 @@
                 <span style="background: var(--materio-error); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 900; margin-left: 8px; box-shadow: 0 2px 6px rgba(255, 76, 81, 0.4);">{{ $pendentes->count() }}</span>
             @endif
         </button>
+        <button class="materio-tab-btn {{ request()->routeIs('gestor.configuracoes.termos') ? 'active' : '' }}" onclick="window.location.href='{{ route('gestor.configuracoes.termos') }}'">
+            <i class="fas fa-file-contract"></i> Termos
+        </button>
     </div>
 
     <div class="tab-content">

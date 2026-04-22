@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TermsDocument;
 use App\Services\SecurityLogService;
 use App\Services\TwoFactorAuthService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -241,5 +243,29 @@ class VendedorSettingsController extends Controller
         }
 
         return response()->json(['devices' => $devices]);
+    }
+
+    public function termos()
+    {
+        $termos = TermsDocument::ativos()->orderByDesc('created_at')->get();
+        return view('vendedor.configuracoes.termos', compact('termos'));
+    }
+
+    public function downloadPdf(TermsDocument $termo)
+    {
+        $pdf = Pdf::loadHTML($termo->conteudo_html)
+            ->setPaper('a4')
+            ->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', true);
+        
+        return $pdf->download("{$termo->titulo}-v{$termo->versao}.pdf");
+    }
+
+    public function downloadHtml(TermsDocument $termo)
+    {
+        $html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><title>{$termo->titulo}</title><style>body{font-family:Arial,sans-serif;padding:40px;max-width:800px;margin:0 auto;}</style></head><body>{$termo->conteudo_html}</body></html>";
+        return response($html)
+            ->header('Content-Type', 'text/html')
+            ->header('Content-Disposition', "attachment; filename=\"{$termo->titulo}-v{$termo->versao}.html\"");
     }
 }
