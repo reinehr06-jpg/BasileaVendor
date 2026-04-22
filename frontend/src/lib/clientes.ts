@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/vendedor'; // Note: Clientes is often under vendedor/master prefix
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/vendedor'; // Note: Clientes is often under vendedor/master prefix
 
 export interface Cliente {
   id: number;
