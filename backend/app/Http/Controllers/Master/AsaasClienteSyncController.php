@@ -977,8 +977,8 @@ class AsaasClienteSyncController extends Controller
                 'updated_at' => now(),
             ]);
 
-            // Criar registro de comissão APENAS se houver valor base
-            if ($valorBase > 0 && ($comissaoVendedor > 0 || $comissaoGestor > 0)) {
+            // Criar registro de comissão para clientes ativos, mesmo que a comissão deste mês seja 0 (venda histórica)
+            if ($import->diagnostico_status === 'ATIVO') {
                 if ($isGestor) {
                     Comissao::create([
                         'vendedor_id' => $vendedorId,
@@ -986,7 +986,7 @@ class AsaasClienteSyncController extends Controller
                         'tipo_comissao' => $comissaoTipo,
                         'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
                         'percentual_gerente' => 0,
-                        'valor_venda' => $valorTotalHistorico,
+                        'valor_venda' => $valorTotalHistorico > 0 ? $valorTotalHistorico : ($import->valor_plano_mensal ?? 0),
                         'valor_comissao' => $comissaoVendedor,
                         'valor_gerente' => 0,
                         'status' => 'pendente',
@@ -999,7 +999,7 @@ class AsaasClienteSyncController extends Controller
                         'tipo_comissao' => $comissaoTipo,
                         'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
                         'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
-                        'valor_venda' => $valorTotalHistorico,
+                        'valor_venda' => $valorTotalHistorico > 0 ? $valorTotalHistorico : ($import->valor_plano_mensal ?? 0),
                         'valor_comissao' => $comissaoVendedor,
                         'valor_gerente' => $comissaoGestor,
                         'status' => 'pendente',
