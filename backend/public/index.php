@@ -2,8 +2,40 @@
 
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
+use Illuminate\Encryption\Encrypter;
 
 define('LARAVEL_START', microtime(true));
+
+// FIX: Auto generate APP_KEY se não existir - resolve MissingAppKeyException
+$envPath = __DIR__ . '/../.env';
+$envExamplePath = __DIR__ . '/../.env.example';
+
+// Copia .env.example se .env não existir
+if (!file_exists($envPath) && file_exists($envExamplePath)) {
+    copy($envExamplePath, $envPath);
+}
+
+// Gera APP_KEY automaticamente se não existir
+if (file_exists($envPath)) {
+    $envContent = file_get_contents($envPath);
+    
+    if (!preg_match('/^APP_KEY=.{32,}$/m', $envContent)) {
+        $key = 'base64:' . base64_encode(Encrypter::generateKey('AES-256-CBC'));
+        
+        if (preg_match('/^APP_KEY=.*$/m', $envContent)) {
+            $envContent = preg_replace('/^APP_KEY=.*$/m', "APP_KEY={$key}", $envContent);
+        } else {
+            $envContent = "APP_KEY={$key}\n" . $envContent;
+        }
+        
+        file_put_contents($envPath, $envContent);
+        
+        // Sobrescreve todas as variáveis de ambiente
+        putenv("APP_KEY={$key}");
+        $_ENV['APP_KEY'] = $key;
+        $_SERVER['APP_KEY'] = $key;
+    }
+}
 
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
