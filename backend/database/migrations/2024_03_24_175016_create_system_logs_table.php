@@ -11,12 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('system_logs', function (Blueprint $table) {
-            $table->id();
-            $table->string('evento');
-            $table->foreignId('usuario_id')->nullable()->constrained('users')->onDelete('set null');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('system_logs')) {
+            Schema::create('system_logs', function (Blueprint $table) {
+                $table->id();
+                $table->string('evento');
+                $table->foreignId('usuario_id')->nullable()->constrained('users')->onDelete('set null');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
