@@ -31,7 +31,14 @@ class VendedorSettingsController extends Controller
             $qrCode = TwoFactorAuthService::generateQrCode($user->email, $user->two_factor_secret);
         }
 
-        return view('vendedor.configuracoes.index', compact('user', 'vendedor', 'tab', 'qrCode'));
+        $termoUso = null;
+        $termoPrivacidade = null;
+        if ($tab === 'termos') {
+            $termoUso = \App\Models\TermsDocument::ativoPorTipo('uso');
+            $termoPrivacidade = \App\Models\TermsDocument::ativoPorTipo('privacidade');
+        }
+
+        return view('vendedor.configuracoes.index', compact('user', 'vendedor', 'tab', 'qrCode', 'termoUso', 'termoPrivacidade'));
     }
 
     public function updateProfile(Request $request)

@@ -103,6 +103,11 @@ class GestorSettingsController extends Controller
                 $data['devices'] = $devices;
                 $data['recoveryCodes'] = $user->recovery_codes ? json_decode($user->recovery_codes, true) : null;
             }
+
+            if ($tab === 'termos') {
+                $data['termoUso'] = \App\Models\TermsDocument::ativoPorTipo('uso');
+                $data['termoPrivacidade'] = \App\Models\TermsDocument::ativoPorTipo('privacidade');
+            }
         } catch (\Exception $e) {
             Log::error('GESTOR_SETTINGS_ERROR: tab=' . $tab . ' | ' . $e->getMessage() . ' | ' . $e->getTraceAsString());
             return back()->with('error', 'Erro ao carregar configurações: ' . $e->getMessage());

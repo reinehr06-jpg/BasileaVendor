@@ -196,6 +196,13 @@ Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
 });
 
 // ==========================================
+// TERMOS (Geral)
+// ==========================================
+Route::middleware('auth')->group(function () {
+    Route::get('/termos/{termo}/pdf', [TermsController::class, 'exportPdf'])->name('termos.pdf');
+});
+
+// ==========================================
 // IMPORTAÇÃO
 // ==========================================
 Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
@@ -561,6 +568,7 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/configuracoes/2fa/add-device', [VendedorSettingsController::class, 'add2faDevice'])->name('configuracoes.2fa.add-device');
         Route::get('/configuracoes/2fa/devices', [VendedorSettingsController::class, 'list2faDevices'])->name('configuracoes.2fa.devices');
         Route::put('/configuracoes/split', [VendedorConfiguracaoController::class, 'updateSplit'])->name('configuracoes.split.update');
+        Route::get('/configuracoes/termos/{termo}/pdf', [\App\Http\Controllers\TermsController::class, 'exportPdf'])->name('configuracoes.termos.pdf');
 
         // Equipe do Gestor
         Route::get('/equipe', [GestorEquipeController::class, 'index'])->name('equipe');
@@ -721,6 +729,9 @@ Route::middleware(['auth', 'gestor'])->prefix('gestor')->group(function () {
     
     // Calendário
     Route::get('/calendario', [CalendarioController::class, 'gestorIndex'])->name('gestor.calendario.index');
+
+    // Termos PDF Export para Gestor
+    Route::get('/configuracoes/termos/{termo}/pdf', [\App\Http\Controllers\TermsController::class, 'exportPdf'])->name('gestor.configuracoes.termos.pdf');
 });
 
 // ──────────────────────────────────────────────────────────────────────────────

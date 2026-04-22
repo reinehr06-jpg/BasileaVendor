@@ -55,23 +55,20 @@
 <x-page-hero title="Configurações" subtitle="Gerencie seu perfil, segurança e preferências" icon="fas fa-gear" />
 
 {{-- Tabs --}}
-    <div class="settings-tabs">
-        <a href="{{ route('vendedor.configuracoes', 'perfil') }}" class="settings-tab {{ $tab === 'perfil' ? 'active' : '' }}">
-            <i class="fas fa-user"></i> Perfil
-        </a>
-        <a href="{{ route('vendedor.configuracoes', 'seguranca') }}" class="settings-tab {{ $tab === 'seguranca' ? 'active' : '' }}">
-            <i class="fas fa-shield-alt"></i> Segurança
-        </a>
-        <a href="{{ route('vendedor.configuracoes', 'integracoes') }}" class="settings-tab {{ $tab === 'integracoes' ? 'active' : '' }}">
-            <i class="fas fa-plug"></i> Integrações
-        </a>
-        <a href="{{ route('vendedor.configuracoes', 'comissoes') }}" class="settings-tab {{ $tab === 'comissoes' ? 'active' : '' }}">
-            <i class="fas fa-coins"></i> Comissões
-        </a>
-        <a href="{{ route('vendedor.configuracoes.termos') }}" class="settings-tab {{ request()->routeIs('vendedor.configuracoes.termos') ? 'active' : '' }}">
-            <i class="fas fa-file-contract"></i> Termos
-        </a>
-    </div>
+<div class="settings-tabs">
+    <a href="{{ route('vendedor.configuracoes', ['tab' => 'perfil']) }}" class="settings-tab {{ $tab === 'perfil' ? 'active' : '' }}">
+        <i class="fas fa-user"></i> Perfil
+    </a>
+    <a href="{{ route('vendedor.configuracoes', ['tab' => 'seguranca']) }}" class="settings-tab {{ $tab === 'seguranca' ? 'active' : '' }}">
+        <i class="fas fa-shield-halved"></i> Segurança
+    </a>
+    <a href="{{ route('vendedor.configuracoes', ['tab' => 'split']) }}" class="settings-tab {{ $tab === 'split' ? 'active' : '' }}">
+        <i class="fas fa-wallet"></i> Split
+    </a>
+    <a href="{{ route('vendedor.configuracoes', ['tab' => 'termos']) }}" class="settings-tab {{ $tab === 'termos' ? 'active' : '' }}">
+        <i class="fas fa-file-contract"></i> Termos
+    </a>
+</div>
 
 {{-- PERFIL --}}
 @if($tab === 'perfil')
@@ -107,177 +104,122 @@
             <label>Senha Atual</label>
             <input type="password" name="current_password" required>
         </div>
-        <div class="form-group">
-            <label>Nova Senha</label>
-            <input type="password" name="password" required>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+                <label>Nova Senha</label>
+                <input type="password" name="password" required>
+            </div>
+            <div class="form-group">
+                <label>Confirmar Nova Senha</label>
+                <input type="password" name="password_confirmation" required>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Confirmar Nova Senha</label>
-            <input type="password" name="password_confirmation" required>
-        </div>
-        <button type="submit" class="btn-save"><i class="fas fa-key"></i> Alterar Senha</button>
+        <button type="submit" class="btn-save"><i class="fas fa-check"></i> Atualizar Senha</button>
     </form>
 </div>
 
 {{-- 2FA --}}
 <div class="settings-card">
-    <h3><i class="fas fa-shield-halved"></i> Autenticação em Duas Etapas (2FA)</h3>
-    <p class="desc">Proteja sua conta com um código adicional gerado pelo app autenticador</p>
+    <h3><i class="fas fa-shield-halved"></i> Autenticação de Dois Fatores (2FA)</h3>
+    <p class="desc">Proteja sua conta com uma camada extra de segurança</p>
 
     @if($user->two_factor_enabled)
     <div class="twofa-status active">
         <div class="icon"><i class="fas fa-check"></i></div>
         <div class="info">
             <h4>2FA Ativado</h4>
-            <p>Sua conta está protegida com autenticação em duas etapas</p>
-            @if($user->two_factor_rotated_at)
-            <p style="font-size: 0.72rem; color: #a1a1b5; margin-top: 4px;">Última rotação: {{ $user->two_factor_rotated_at->format('d/m/Y H:i') }} (renova a cada 90 dias)</p>
-            @endif
+            <p>Sua conta está protegida por autenticação em dois fatores.</p>
         </div>
     </div>
-
-    @if($user->recovery_codes)
-    <div class="recovery-codes">
-        <h4><i class="fas fa-list" style="margin-right: 6px; color: #4C1D95;"></i> Códigos de Recuperação</h4>
-        <p style="font-size: 0.78rem; color: #a1a1b5; margin-bottom: 8px;">Guarde estes códigos em local seguro. Cada um pode ser usado uma vez.</p>
-        <div class="codes">
-            @foreach(json_decode($user->recovery_codes, true) as $code)
-            <span class="code">{{ $code }}</span>
-            @endforeach
-        </div>
-    </div>
-    @endif
-
-    <div class="recovery-codes" style="margin-top: 16px;">
-        <h4><i class="fas fa-mobile-screen-button" style="margin-right: 6px; color: #4C1D95;"></i> Dispositivos 2FA</h4>
-        <p style="font-size: 0.78rem; color: #a1a1b5; margin-bottom: 8px;">Adicione mais celulares/aplicativos autenticadores para não perder acesso no deploy.</p>
-        @php
-            $secretRaw = $user->two_factor_secret ?? '';
-            $deviceEntries = [];
-            if (!empty($secretRaw)) {
-                foreach (explode(',', $secretRaw) as $entry) {
-                    $entry = trim($entry);
-                    if ($entry === '') continue;
-                    if (str_contains($entry, '|')) {
-                        [$name, $sec] = explode('|', $entry, 2);
-                        $deviceEntries[] = ['name' => $name, 'mask' => substr($sec, 0, 4) . '****'];
-                    } else {
-                        $deviceEntries[] = ['name' => 'Dispositivo Principal', 'mask' => substr($entry, 0, 4) . '****'];
-                    }
-                }
-            }
-        @endphp
-
-        @if(count($deviceEntries) > 0)
-            <div style="display: grid; gap: 8px; margin-bottom: 12px;">
-                @foreach($deviceEntries as $device)
-                    <div style="display:flex; justify-content:space-between; background:#f8f7ff; border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px; font-size:0.82rem;">
-                        <span>{{ $device['name'] }}</span>
-                        <span style="color:#6b7280;">{{ $device['mask'] }}</span>
-                    </div>
-                @endforeach
-            </div>
-        @endif
-
-        <form method="POST" action="{{ route('vendedor.configuracoes.2fa.add-device') }}" style="display:flex; gap:8px; flex-wrap:wrap;">
-            @csrf
-            <input type="text" name="device_name" maxlength="60" placeholder="Nome do celular (ex: iPhone pessoal)" required style="flex:1; min-width:220px;">
-            <button type="submit" class="btn-save"><i class="fas fa-plus"></i> Adicionar celular</button>
-        </form>
-    </div>
-
-    <form method="POST" action="{{ route('vendedor.configuracoes.2fa.disable') }}" style="margin-top: 16px;">
-        @csrf
-        <div class="form-group">
-            <label>Digite o código atual do app para desativar</label>
-            <input type="text" name="code" class="twofa-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="000000" required>
-        </div>
-        @error('code')
-        <div style="color: #ef4444; font-size: 0.8rem; margin-bottom: 12px;">{{ $message }}</div>
-        @enderror
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-            <button type="submit" class="btn-danger"><i class="fas fa-times"></i> Desativar 2FA</button>
-            <form method="POST" action="{{ route('vendedor.configuracoes.2fa.rotate') }}" style="display: inline;" onsubmit="return confirm('Tem certeza? Você precisará reconfigurar o app autenticador.');">
+    
+    <div style="margin-top: 24px;">
+        <h4 style="font-size: 0.85rem; font-weight: 700; color: #3b3b5c; margin-bottom: 12px; text-transform: uppercase;">Ações de Segurança</h4>
+        <div style="display: flex; gap: 10px;">
+            <form method="POST" action="{{ route('vendedor.configuracoes.2fa.rotate') }}">
                 @csrf
-                <button type="submit" class="btn-save" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-sync"></i> Rotacionar Chave</button>
+                <button type="submit" class="btn-save" style="background: #6366f1;"><i class="fas fa-sync"></i> Rotacionar Chave</button>
+            </form>
+            <button onclick="document.getElementById('disable-2fa-form').style.display='block'" class="btn-danger"><i class="fas fa-power-off"></i> Desativar</button>
+        </div>
+
+        <div id="disable-2fa-form" style="display: none; margin-top: 20px; padding: 20px; background: #fee2e2; border-radius: 12px; border: 1px solid #fecaca;">
+            <h4 style="font-size: 0.9rem; font-weight: 700; color: #991b1b; margin-bottom: 12px;">Confirmar Desativação</h4>
+            <form method="POST" action="{{ route('vendedor.configuracoes.2fa.disable') }}">
+                @csrf
+                <div class="form-group">
+                    <label style="color: #991b1b;">Código do Autenticador</label>
+                    <input type="text" name="code" class="twofa-input" placeholder="000000" maxlength="6" required>
+                </div>
+                <button type="submit" class="btn-danger">Confirmar Desativação Permanente</button>
             </form>
         </div>
-    </form>
+
+        @if(isset($recoveryCodes))
+        <div class="recovery-codes">
+            <h4>Códigos de Recuperação</h4>
+            <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 12px;">Guarde estes códigos em local seguro. Se perder o acesso ao app, use um deles para entrar.</p>
+            <div class="codes">
+                @foreach(json_decode($user->recovery_codes, true) as $code)
+                    <div class="code">{{ $code }}</div>
+                @endforeach
+            </div>
+        </div>
+        @endif
+    </div>
     @else
     <div class="twofa-status inactive">
         <div class="icon"><i class="fas fa-exclamation"></i></div>
         <div class="info">
-            <h4>2FA Não Ativado</h4>
-            <p>Recomendamos ativar para maior segurança da sua conta</p>
+            <h4>2FA Desativado</h4>
+            <p>Recomendamos fortemente a ativação para maior segurança.</p>
         </div>
     </div>
 
     <div class="twofa-setup">
         <div class="step">
-            <span class="step-num">1</span>
-            <div class="step-text"><strong>Instale um app autenticador</strong><br>Google Authenticator, Authy, Microsoft Authenticator, etc.</div>
+            <div class="step-num">1</div>
+            <div class="step-text">Instale um aplicativo autenticador como <strong>Google Authenticator</strong> ou <strong>Authy</strong>.</div>
         </div>
         <div class="step">
-            <span class="step-num">2</span>
-            <div class="step-text">
-                <strong>Escaneie o QR code ou adicione a chave manualmente</strong>
-                <div style="text-align: center; margin: 12px 0;">
-                    @if($qrCode)
-                    <div style="display: inline-block; background: white; border: 2px solid #e5e7eb; border-radius: 12px; padding: 12px;">
-                        {!! $qrCode !!}
-                    </div>
-                    @endif
-                </div>
-                <div class="secret-box">{{ $user->two_factor_secret ?: 'Clique em "Gerar Chave" abaixo' }}</div>
-            </div>
-        </div>
-        <div class="step">
-            <span class="step-num">3</span>
-            <div class="step-text"><strong>Digite o código de 6 dígitos gerado pelo app</strong></div>
+            <div class="step-num">2</div>
+            <div class="step-text">Escaneie o QR Code abaixo ou insira a chave manual no aplicativo.</div>
         </div>
 
-        <form method="POST" action="{{ route('vendedor.configuracoes.2fa.enable') }}">
-            @csrf
-            @if(!$user->two_factor_secret)
-            <button type="submit" name="generate_key" value="1" class="btn-save" style="margin-bottom: 12px;"><i class="fas fa-sync"></i> Gerar Chave Secreta</button>
-            @else
-            <div class="form-group" style="margin-bottom: 12px;">
-                <input type="text" name="code" class="twofa-input" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="000000" required>
-            </div>
-            @error('code')
-            <div style="color: #ef4444; font-size: 0.8rem; margin-bottom: 12px;">{{ $message }}</div>
-            @enderror
-            <button type="submit" class="btn-success"><i class="fas fa-check"></i> Ativar 2FA</button>
+        <div style="display: flex; flex-direction: column; align-items: center; margin: 24px 0;">
+            @if(isset($qrCode))
+                <div style="background: white; padding: 12px; border-radius: 12px; border: 1px solid #e0e0e8; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
+                    {!! $qrCode !!}
+                </div>
             @endif
+            <div class="secret-box">{{ $user->two_factor_secret }}</div>
+            <p style="font-size: 0.75rem; color: #a1a1b5;">Chave manual de configuração</p>
+        </div>
+
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-text">Digite o código de 6 dígitos gerado pelo aplicativo para confirmar.</div>
+        </div>
+
+        <form method="POST" action="{{ route('vendedor.configuracoes.2fa.enable') }}" style="display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 10px;">
+            @csrf
+            <input type="text" name="code" class="twofa-input" placeholder="000000" maxlength="6" required>
+            <button type="submit" class="btn-save" style="width: 100%; max-width: 200px;">Ativar Proteção 2FA</button>
         </form>
     </div>
     @endif
 </div>
 
-{{-- Sessão --}}
-<div class="settings-card">
-    <h3><i class="fas fa-clock"></i> Sessão do Sistema</h3>
-    <p class="desc">Sua sessão expira automaticamente após 2 horas de inatividade ou ao fechar o navegador</p>
-    <div style="background: #f4f5fa; border-radius: 8px; padding: 14px; font-size: 0.85rem; color: #6b7280;">
-        <i class="fas fa-info-circle" style="color: #4C1D95; margin-right: 6px;"></i>
-        Último login: {{ $user->last_login_at ? $user->last_login_at->format('d/m/Y H:i') : '—' }}
-        @if($user->login_ip)
-        <br><i class="fas fa-globe" style="color: #4C1D95; margin-right: 6px;"></i> IP: {{ $user->login_ip }}
-        @endif
-    </div>
-</div>
-
 {{-- SPLIT --}}
 @elseif($tab === 'split')
 <div class="settings-card">
-    <h3><i class="fas fa-wallet"></i> Configuração de Split</h3>
-    <p class="desc">Configure sua carteira Asaas para recebimento automático de comissões</p>
+    <h3><i class="fas fa-wallet"></i> Configurações de Split (Asaas)</h3>
+    <p class="desc">Gerencie seus recebimentos automáticos</p>
 
-    <div class="rate-display" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-        <div class="rate-box" style="background: #f8f7ff; border: 1px solid #e0e0e8; border-radius: 12px; padding: 16px; text-align: center;">
-            <div class="rate-label" style="font-size: 0.72rem; color: #6b7280; text-transform: uppercase;">Primeira Venda</div>
-            <div class="rate-value" style="font-size: 1.4rem; font-weight: 800; color: #4C1D95; margin: 4px 0;">
-                {{ ($vendedor->tipo_split ?? 'percentual') === 'percentual' ? ($vendedor->valor_split_inicial ?? 0) . '%' : 'R$ ' . number_format($vendedor->valor_split_inicial ?? 0, 2, ',', '.') }}
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+        <div class="rate-box" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; text-align: center;">
+            <div class="rate-label" style="font-size: 0.72rem; color: #166534; text-transform: uppercase;">Vendas Diretas</div>
+            <div class="rate-value" style="font-size: 1.4rem; font-weight: 800; color: #15803d; margin: 4px 0;">
+                {{ ($vendedor->tipo_split ?? 'percentual') === 'percentual' ? ($vendedor->valor_split ?? 0) . '%' : 'R$ ' . number_format($vendedor->valor_split ?? 0, 2, ',', '.') }}
             </div>
             <div class="rate-type" style="font-size: 0.75rem; color: #a1a1b5;">Comissão Atribuída</div>
         </div>
@@ -310,6 +252,67 @@
         <button type="submit" class="btn-save"><i class="fas fa-check"></i> Salvar Wallet ID</button>
         @endif
     </form>
+</div>
+
+{{-- TERMOS --}}
+@elseif($tab === 'termos')
+<div class="settings-card">
+    <h3><i class="fas fa-file-contract"></i> Termos e Políticas</h3>
+    <p class="desc">Consulte os documentos legais da plataforma</p>
+
+    <div style="display: flex; flex-direction: column; gap: 40px; margin-top: 20px;">
+        {{-- Termos de Uso --}}
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h4 style="font-size: 1rem; font-weight: 700; color: #3b3b5c; margin: 0;">1. Termos de Uso</h4>
+                @if(isset($termoUso))
+                    <span style="padding: 4px 10px; background: #E3F2FD; color: #1565C0; border-radius: 20px; font-size: 0.75rem; font-weight: 800;">VERSÃO {{ $termoUso->versao }}</span>
+                @endif
+            </div>
+            
+            <div style="background: #F9FAFB; border: 1px solid #e0e0e8; border-radius: 12px; padding: 20px; max-height: 400px; overflow-y: auto; color: #4b5563; line-height: 1.6; font-size: 0.9rem;">
+                @if(isset($termoUso))
+                    {!! $termoUso->conteudo_html !!}
+                @else
+                    <p style="text-align: center; color: #9ca3af; padding: 20px;">Nenhum termo de uso ativo.</p>
+                @endif
+            </div>
+
+            @if(isset($termoUso))
+            <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+                <a href="{{ route('configuracoes.termos.pdf', $termoUso) }}" class="btn-save" style="background: #6b7280; text-decoration: none;">
+                    <i class="fas fa-file-pdf"></i> Baixar PDF
+                </a>
+            </div>
+            @endif
+        </div>
+
+        {{-- Política de Privacidade --}}
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h4 style="font-size: 1rem; font-weight: 700; color: #3b3b5c; margin: 0;">2. Política de Privacidade</h4>
+                @if(isset($termoPrivacidade))
+                    <span style="padding: 4px 10px; background: #E3F2FD; color: #1565C0; border-radius: 20px; font-size: 0.75rem; font-weight: 800;">VERSÃO {{ $termoPrivacidade->versao }}</span>
+                @endif
+            </div>
+            
+            <div style="background: #F9FAFB; border: 1px solid #e0e0e8; border-radius: 12px; padding: 20px; max-height: 400px; overflow-y: auto; color: #4b5563; line-height: 1.6; font-size: 0.9rem;">
+                @if(isset($termoPrivacidade))
+                    {!! $termoPrivacidade->conteudo_html !!}
+                @else
+                    <p style="text-align: center; color: #9ca3af; padding: 20px;">Nenhuma política ativa.</p>
+                @endif
+            </div>
+
+            @if(isset($termoPrivacidade))
+            <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+                <a href="{{ route('configuracoes.termos.pdf', $termoPrivacidade) }}" class="btn-save" style="background: #6b7280; text-decoration: none;">
+                    <i class="fas fa-file-pdf"></i> Baixar PDF
+                </a>
+            </div>
+            @endif
+        </div>
+    </div>
 </div>
 @endif
 

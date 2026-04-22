@@ -105,7 +105,7 @@
         letter-spacing: 0.5px;
     }
 
-    .materio-input, .materio-select, .materio-textarea {
+    .materio-input, .materio-textarea, .materio-select {
         width: 100%;
         padding: 12px 16px;
         border: 1px solid var(--materio-border);
@@ -194,7 +194,7 @@
                 <span style="background: var(--materio-error); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 900; margin-left: 8px; box-shadow: 0 2px 6px rgba(255, 76, 81, 0.4);">{{ $pendentes->count() }}</span>
             @endif
         </button>
-        <button class="materio-tab-btn {{ request()->routeIs('gestor.configuracoes.termos') ? 'active' : '' }}" onclick="window.location.href='{{ route('gestor.configuracoes.termos') }}'">
+        <button class="materio-tab-btn {{ $tab === 'termos' ? 'active' : '' }}" onclick="window.location.href='?tab=termos'">
             <i class="fas fa-file-contract"></i> Termos
         </button>
     </div>
@@ -204,126 +204,145 @@
         @if($tab === 'geral')
         <div class="materio-card">
             <div class="section-header">
-                <h4><i class="fas fa-id-card"></i> Dados do Perfil</h4>
+                <h4><i class="fas fa-user-edit"></i> Informações do Perfil</h4>
             </div>
-            <form action="{{ route('gestor.configuracoes.perfil.update') }}" method="POST">
+
+            <form method="POST" action="{{ route('gestor.configuracoes.perfil.update') }}">
                 @csrf
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
                     <div class="materio-form-group">
                         <label class="materio-label">Nome Completo</label>
-                        <input type="text" name="name" class="materio-input" value="{{ $user->name }}" required>
+                        <input type="text" name="name" class="materio-input" value="{{ old('name', $user->name) }}" required>
                     </div>
                     <div class="materio-form-group">
-                        <label class="materio-label">E-mail de Acesso</label>
-                        <input type="email" name="email" class="materio-input" value="{{ $user->email }}" required>
+                        <label class="materio-label">E-mail Corporativo</label>
+                        <input type="email" name="email" class="materio-input" value="{{ old('email', $user->email) }}" required>
                     </div>
                 </div>
-                <button type="submit" class="materio-btn-primary"><i class="fas fa-save"></i> Atualizar Dados</button>
+                <div style="margin-top: 10px;">
+                    <button type="submit" class="materio-btn-primary">Atualizar Perfil</button>
+                </div>
+            </form>
+
+            <div class="section-header" style="margin-top: 50px;">
+                <h4><i class="fas fa-lock"></i> Alterar Senha</h4>
+            </div>
+
+            <form method="POST" action="{{ route('gestor.configuracoes.senha.update') }}">
+                @csrf
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                    <div class="materio-form-group">
+                        <label class="materio-label">Senha Atual</label>
+                        <input type="password" name="current_password" class="materio-input" required>
+                    </div>
+                    <div class="materio-form-group">
+                        <label class="materio-label">Nova Senha</label>
+                        <input type="password" name="password" class="materio-input" required>
+                    </div>
+                    <div class="materio-form-group">
+                        <label class="materio-label">Confirmar Nova Senha</label>
+                        <input type="password" name="password_confirmation" class="materio-input" required>
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button type="submit" class="materio-btn-primary" style="background: #64748b; box-shadow: 0 4px 14px rgba(100, 116, 139, 0.3);">Redefinir Senha</button>
+                </div>
             </form>
         </div>
         @endif
 
-        {{-- TAB: SEGURANÇA --}}
+        {{-- TAB: SEGURANÇA (2FA) --}}
         @if($tab === 'seguranca')
         <div class="materio-card">
             <div class="section-header">
-                <h4><i class="fas fa-key"></i> Alterar Senha</h4>
+                <h4><i class="fas fa-shield-check"></i> Autenticação de Dois Fatores (2FA)</h4>
+                @if($user->two_factor_enabled)
+                    <span class="status-badge bg-success">Protegido</span>
+                @else
+                    <span class="status-badge bg-warning">Recomendado</span>
+                @endif
             </div>
-            <form action="{{ route('gestor.configuracoes.senha.update') }}" method="POST">
-                @csrf
-                <div class="materio-form-group">
-                    <label class="materio-label">Senha Atual</label>
-                    <input type="password" name="current_password" class="materio-input" required placeholder="••••••••">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
-                    <div class="materio-form-group">
-                        <label class="materio-label">Nova Senha</label>
-                        <input type="password" name="password" class="materio-input" required placeholder="Mínimo 8 caracteres">
-                    </div>
-                    <div class="materio-form-group">
-                        <label class="materio-label">Confirmar Nova Senha</label>
-                        <input type="password" name="password_confirmation" class="materio-input" required placeholder="Repita a nova senha">
-                    </div>
-                </div>
-                <button type="submit" class="materio-btn-primary"><i class="fas fa-lock"></i> Atualizar Senha</button>
-            </form>
-        </div>
 
-        <div class="materio-card">
-            <div class="section-header">
-                <h4><i class="fas fa-shield-halved"></i> Autenticação 2FA</h4>
-                <span class="status-badge {{ $user->two_factor_enabled ? 'bg-success' : 'bg-warning' }}">
-                    {{ $user->two_factor_enabled ? 'Ativado' : 'Não Ativado' }}
-                </span>
-            </div>
-            
-            @if($user->two_factor_enabled)
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
-                    <div>
-                        <h5 style="font-weight: 800; color: var(--materio-text-main); margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                            <i class="fas fa-mobile-screen-button" style="color: var(--materio-primary);"></i> Meus Dispositivos
-                        </h5>
-                        @foreach($devices as $device)
-                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #fafafa; border: 1px solid var(--materio-border); border-radius: 12px; margin-bottom: 12px; transition: 0.2s hover:border-primary;">
-                                <div>
-                                    <strong style="color: var(--materio-text-main);">{{ $device['name'] }}</strong><br>
-                                    <small style="color: var(--materio-text-muted);">{{ $device['mask'] }}</small>
+            <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 40px;">
+                <div>
+                    <p style="color: var(--materio-text-muted); line-height: 1.6; margin-bottom: 25px;">
+                        A autenticação de dois fatores adiciona uma camada extra de segurança à sua conta. Para fazer login, você precisará fornecer sua senha e um código de verificação do seu dispositivo móvel.
+                    </p>
+
+                    @if(!$user->two_factor_enabled)
+                        <div style="background: #f8f7ff; border: 1px solid #e0e0e8; border-radius: 12px; padding: 25px;">
+                            <h5 style="font-weight: 700; margin-bottom: 15px; color: var(--materio-primary);">Configurar novo dispositivo</h5>
+                            <ol style="padding-left: 20px; color: var(--materio-text-main); font-size: 0.9rem;">
+                                <li style="margin-bottom: 10px;">Instale um app autenticador (Google Authenticator, Authy, etc).</li>
+                                <li style="margin-bottom: 10px;">Escaneie o QR Code ao lado ou insira a chave manualmente.</li>
+                                <li style="margin-bottom: 10px;">Digite o código de 6 dígitos gerado para confirmar.</li>
+                            </ol>
+
+                            <form action="{{ route('gestor.configuracoes.2fa.enable') }}" method="POST" style="margin-top: 25px;">
+                                @csrf
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" name="code" class="materio-input" placeholder="000 000" style="text-align: center; letter-spacing: 5px; font-size: 1.2rem; font-weight: 700; max-width: 180px;" maxlength="6" required>
+                                    <button type="submit" class="materio-btn-primary">Ativar Agora</button>
                                 </div>
-                                <i class="fas fa-circle-check" style="color: var(--materio-success);"></i>
-                            </div>
-                        @endforeach
-                        <form action="{{ route('gestor.configuracoes.2fa.add-device') }}" method="POST" style="margin-top: 20px;">
-                            @csrf
-                            <div class="materio-form-group">
-                                <input type="text" name="device_name" class="materio-input" placeholder="Ex: Meu iPhone 15" required>
-                            </div>
-                            <button type="submit" class="materio-btn-primary" style="width: 100%; justify-content: center;"><i class="fas fa-plus"></i> Adicionar Celular</button>
-                        </form>
-                    </div>
-                    <div>
-                        <h5 style="font-weight: 800; color: var(--materio-text-main); margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-                            <i class="fas fa-file-shield" style="color: var(--materio-primary);"></i> Códigos de Recuperação
-                        </h5>
-                        <p style="font-size: 0.85rem; color: var(--materio-text-muted); margin-bottom: 15px;">Imprima ou salve estes códigos em um local seguro.</p>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px;">
-                            @if($recoveryCodes)
-                                @foreach($recoveryCodes as $code)
-                                    <div style="font-family: 'Roboto Mono', monospace; font-size: 0.9rem; background: #F4F5FA; padding: 10px; border-radius: 8px; text-align: center; border: 1px dashed var(--materio-border); color: var(--materio-primary); font-weight: 700;">{{ $code }}</div>
-                                @endforeach
-                            @endif
+                            </form>
                         </div>
-                        <form action="{{ route('gestor.configuracoes.2fa.disable') }}" method="POST" style="padding-top: 25px; border-top: 1px solid var(--materio-border);">
+                    @else
+                        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 25px; margin-bottom: 25px;">
+                            <div style="display: flex; align-items: center; gap: 15px; color: #166534;">
+                                <i class="fas fa-check-double" style="font-size: 1.5rem;"></i>
+                                <div>
+                                    <h5 style="font-weight: 700; margin: 0;">2FA está Ativo e Protegendo sua Conta</h5>
+                                    <p style="font-size: 0.85rem; margin: 5px 0 0;">Configurado em {{ count($devices ?? []) }} dispositivo(s).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h5 style="font-weight: 700; margin-bottom: 15px;">Dispositivos Conectados</h5>
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 30px;">
+                            @foreach($devices ?? [] as $dev)
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: #fff; border: 1px solid var(--materio-border); border-radius: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 12px;">
+                                        <i class="fas fa-mobile-screen" style="color: var(--materio-primary);"></i>
+                                        <span style="font-weight: 600;">{{ $dev['name'] }}</span>
+                                        <code style="font-size: 0.75rem; background: #eee; padding: 2px 6px; border-radius: 4px;">{{ $dev['mask'] }}</code>
+                                    </div>
+                                    <span class="status-badge bg-success" style="font-size: 0.65rem;">Ativo</span>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <form action="{{ route('gestor.configuracoes.2fa.disable') }}" method="POST" onsubmit="return confirm('ATENÇÃO: Desativar o 2FA reduzirá significativamente a segurança da sua conta. Confirmar?')">
                             @csrf
-                            <label class="materio-label">Desativar 2FA (Digite o código do app)</label>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="text" name="code" class="materio-input" placeholder="000 000" required>
-                                <button type="submit" class="materio-btn-primary" style="background: var(--materio-error); box-shadow: 0 4px 14px rgba(255, 76, 81, 0.3);">Desativar</button>
+                            <div style="display: flex; gap: 10px; align-items: center;">
+                                <input type="text" name="code" class="materio-input" placeholder="Digite o código para desativar" style="max-width: 250px;" maxlength="6" required>
+                                <button type="submit" class="materio-btn-primary" style="background: var(--materio-error); box-shadow: 0 4px 14px rgba(255, 76, 81, 0.3);">Desativar 2FA</button>
                             </div>
                         </form>
-                    </div>
+                    @endif
                 </div>
-            @else
-                <div style="display: flex; gap: 40px; align-items: flex-start; padding: 20px; background: #fefce8; border: 1px solid #fef08a; border-radius: 15px;">
-                    <div style="background: white; padding: 20px; border-radius: 15px; border: 1px solid #fef08a; flex-shrink: 0; box-shadow: 0 8px 25px rgba(254, 240, 138, 0.3);">
-                        {!! $qrCode !!}
-                    </div>
-                    <div style="flex: 1;">
-                        <h5 style="font-weight: 800; color: #854d0e; margin-bottom: 15px;">Proteja sua Conta Agora</h5>
-                        <p style="font-size: 0.95rem; color: #a16207; line-height: 1.6; margin-bottom: 25px;">
-                            1. Instale o Google Authenticator ou Authy.<br>
-                            2. Escaneie este QR Code exclusivo.<br>
-                            3. Digite o código de 6 dígitos gerado no app.
-                        </p>
-                        <form action="{{ route('gestor.configuracoes.2fa.enable') }}" method="POST">
-                            @csrf
-                            <div class="materio-form-group">
-                                <input type="text" name="code" class="materio-input" style="font-size: 1.5rem; text-align: center; letter-spacing: 10px; font-weight: 900;" placeholder="000000" required>
+
+                <div style="text-align: center;">
+                    @if(isset($qrCode))
+                        <div style="background: white; padding: 20px; border-radius: 15px; border: 1px solid var(--materio-border); display: inline-block; box-shadow: var(--materio-shadow);">
+                            {!! $qrCode !!}
+                        </div>
+                        <p style="margin-top: 15px; font-weight: 700; color: var(--materio-text-main);">QR Code de Configuração</p>
+                        <code style="display: block; margin-top: 10px; color: var(--materio-primary); font-size: 0.9rem;">{{ $user->two_factor_secret }}</code>
+                    @endif
+
+                    @if($user->two_factor_enabled && isset($recoveryCodes))
+                        <div style="margin-top: 40px; text-align: left; background: #fffbe6; border: 1px solid #ffe58f; padding: 20px; border-radius: 12px;">
+                            <h5 style="font-weight: 700; color: #856404; margin-bottom: 10px;"><i class="fas fa- lifeboat"></i> Códigos de Recuperação</h5>
+                            <p style="font-size: 0.8rem; color: #856404; margin-bottom: 15px;">Guarde estes códigos em local seguro. Eles permitem o acesso se você perder seu celular.</p>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                                @foreach($recoveryCodes as $code)
+                                    <div style="font-family: monospace; font-size: 0.9rem; background: rgba(255,255,255,0.5); padding: 5px; text-align: center; border-radius: 4px;">{{ $code }}</div>
+                                @endforeach
                             </div>
-                            <button type="submit" class="materio-btn-primary" style="width: 100%; justify-content: center;"><i class="fas fa-shield-check"></i> Ativar Proteção 2FA</button>
-                        </form>
-                    </div>
+                        </div>
+                    @endif
                 </div>
-            @endif
+            </div>
         </div>
         @endif
 
@@ -331,62 +350,70 @@
         @if($tab === 'whatsapp')
         <div class="materio-card">
             <div class="section-header">
-                <h4><i class="fab fa-whatsapp"></i> Integração WhatsApp</h4>
+                <h4><i class="fab fa-whatsapp"></i> Integração WhatsApp Business</h4>
+                <span class="status-badge {{ $whatsappConfig->is_active ? 'bg-success' : 'bg-danger' }}">
+                    {{ $whatsappConfig->is_active ? 'Conectado' : 'Desconectado' }}
+                </span>
             </div>
-            
-            <div class="wa-connection {{ $whatsappConfig->is_active ? '' : 'inactive' }}">
+
+            <div class="wa-connection {{ !$whatsappConfig->is_active ? 'inactive' : '' }}">
                 <div class="wa-icon-box">
                     <i class="fab fa-whatsapp"></i>
                 </div>
                 <div style="flex: 1;">
-                    <h5 style="font-weight: 800; color: var(--materio-text-main); margin: 0; font-size: 1.2rem;">
-                        {{ $whatsappConfig->is_active ? 'Conexão Ativa' : 'Integração Pausada' }}
+                    <h5 style="font-weight: 800; margin: 0; font-size: 1.1rem; color: var(--materio-text-main);">
+                        {{ $whatsappConfig->is_active ? 'Sua API está ativa!' : 'Aguardando configuração da API' }}
                     </h5>
-                    <p style="color: var(--materio-text-muted); margin: 5px 0 0; font-size: 0.95rem;">
-                        {{ $whatsappConfig->is_active ? 'O sistema está recebendo e enviando mensagens normalmente.' : 'As mensagens não serão sincronizadas enquanto estiver pausado.' }}
+                    <p style="color: var(--materio-text-muted); margin: 5px 0 0;">
+                        {{ $whatsappConfig->is_active ? 'As mensagens estão sendo distribuídas normalmente entre os vendedores.' : 'Configure as credenciais abaixo para habilitar o chatbot e a distribuição de leads.' }}
                     </p>
                 </div>
-                <div class="status-badge {{ $whatsappConfig->is_active ? 'bg-success' : 'bg-danger' }}">
-                    {{ $whatsappConfig->is_active ? 'ONLINE' : 'OFFLINE' }}
-                </div>
+                @if($whatsappConfig->is_active)
+                    <div class="status-badge bg-success" style="padding: 10px 20px;">
+                        <i class="fas fa-check-circle"></i> OPERACIONAL
+                    </div>
+                @endif
             </div>
 
-            <form action="{{ route('gestor.configuracoes.whatsapp.update') }}" method="POST">
+            <form method="POST" action="{{ route('gestor.configuracoes.whatsapp.update') }}">
                 @csrf
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
                     <div class="materio-form-group">
-                        <label class="materio-label">Número do WhatsApp</label>
-                        <input type="text" name="numero_telefone" class="materio-input" value="{{ $whatsappConfig->numero_telefone }}" placeholder="Ex: 5547999999999" required>
+                        <label class="materio-label">Número de Telefone (com DDI)</label>
+                        <input type="text" name="numero_telefone" class="materio-input" value="{{ old('numero_telefone', $whatsappConfig->numero_telefone) }}" placeholder="Ex: 5511999999999" required>
                     </div>
                     <div class="materio-form-group">
                         <label class="materio-label">Provedor de API</label>
-                        <select name="provider" class="materio-input" required>
-                            <option value="meta" {{ $whatsappConfig->provider === 'meta' ? 'selected' : '' }}>Meta (Oficial)</option>
-                            <option value="Evolution" {{ $whatsappConfig->provider === 'Evolution' ? 'selected' : '' }}>Evolution API</option>
-                            <option value="WppConnect" {{ $whatsappConfig->provider === 'WppConnect' ? 'selected' : '' }}>WppConnect</option>
+                        <select name="provider" class="materio-select" required>
                             <option value="Take" {{ $whatsappConfig->provider === 'Take' ? 'selected' : '' }}>Take Blip</option>
+                            <option value="meta" {{ $whatsappConfig->provider === 'meta' ? 'selected' : '' }}>Meta (Oficial)</option>
+                            <option value="WppConnect" {{ $whatsappConfig->provider === 'WppConnect' ? 'selected' : '' }}>WppConnect</option>
+                            <option value="Evolution" {{ $whatsappConfig->provider === 'Evolution' ? 'selected' : '' }}>Evolution API</option>
                         </select>
                     </div>
                 </div>
+
                 <div class="materio-form-group">
-                    <label class="materio-label">Token de Acesso / API Key</label>
-                    <input type="password" name="api_token" class="materio-input" value="{{ $whatsappConfig->api_token }}" required placeholder="Digite o token da API">
+                    <label class="materio-label">API Token / Access Token</label>
+                    <input type="password" name="api_token" class="materio-input" value="{{ $whatsappConfig->api_token }}" placeholder="Insira o token de autenticação fornecido pelo provedor" required>
                 </div>
-                <div class="materio-form-group" style="padding: 20px; background: #f8fafc; border: 1px solid var(--materio-border); border-radius: 12px;">
-                    <label class="materio-label" style="color: #64748b;">Verify Token para Webhook</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" name="webhook_verify_token" class="materio-input" value="{{ $whatsappConfig->webhook_verify_token }}" readonly style="background: #fff; font-family: monospace;">
-                        <button type="button" class="materio-btn-primary" style="padding: 10px; background: #64748b; box-shadow: none;" onclick="navigator.clipboard.writeText('{{ $whatsappConfig->webhook_verify_token }}')">
-                            <i class="fas fa-copy"></i>
-                        </button>
+
+                <div class="materio-form-group">
+                    <label class="materio-label">Webhook Verify Token (Opcional)</label>
+                    <input type="text" name="webhook_verify_token" class="materio-input" value="{{ $whatsappConfig->webhook_verify_token }}" placeholder="Token para validação de segurança do Webhook">
+                </div>
+
+                <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 25px; border: 1px dashed var(--materio-border);">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <input type="checkbox" name="is_active" id="is_active" {{ $whatsappConfig->is_active ? 'checked' : '' }} style="width: 20px; height: 20px; accent-color: var(--materio-primary);">
+                        <label for="is_active" style="font-weight: 700; color: var(--materio-text-main); cursor: pointer;">Habilitar processamento automático e distribuição de mensagens</label>
                     </div>
-                    <small style="color: #94a3b8; display: block; margin-top: 10px;">Copie este token para configurar o recebimento de mensagens no seu provedor.</small>
                 </div>
-                <div style="margin-bottom: 30px; display: flex; align-items: center; gap: 15px; padding: 15px; border-radius: 12px; background: rgba(145, 85, 253, 0.05);">
-                    <input type="checkbox" name="is_active" value="1" {{ $whatsappConfig->is_active ? 'checked' : '' }} style="width: 22px; height: 22px; accent-color: var(--materio-primary);">
-                    <span style="font-weight: 800; color: var(--materio-primary);">Manter integração ativa e processando dados</span>
+
+                <div style="display: flex; gap: 15px;">
+                    <button type="submit" class="materio-btn-primary">Salvar Configurações</button>
+                    <button type="button" class="materio-btn-primary" style="background: #16B1FF; box-shadow: 0 4px 14px rgba(22, 177, 255, 0.3);">Testar Conexão</button>
                 </div>
-                <button type="submit" class="materio-btn-primary"><i class="fas fa-cloud-arrow-up"></i> Salvar Integração</button>
             </form>
         </div>
         @endif
@@ -395,43 +422,46 @@
         @if($tab === 'split')
         <div class="materio-card">
             <div class="section-header">
-                <h4><i class="fas fa-wallet"></i> Split & Recebimentos</h4>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 40px;">
-                <div style="background: linear-gradient(135deg, #F4EFFF 0%, #FFFFFF 100%); border: 1px solid #E9D9FF; padding: 30px; border-radius: 20px; text-align: center; position: relative; overflow: hidden;">
-                    <div style="font-size: 0.75rem; text-transform: uppercase; color: #7c3aed; font-weight: 900; letter-spacing: 1.5px; margin-bottom: 10px;">Comissão Venda Direta</div>
-                    <div style="font-size: 2.5rem; font-weight: 900; color: #4C1D95;">
-                        {{ ($vendedor->tipo_split ?? 'percentual') === 'percentual' ? ($vendedor->valor_split_inicial ?? 0) . '%' : 'R$ ' . number_format($vendedor->valor_split_inicial ?? 0, 2, ',', '.') }}
-                    </div>
-                    <i class="fas fa-sack-dollar" style="position: absolute; bottom: -10px; right: -10px; font-size: 5rem; opacity: 0.05; color: #4C1D95;"></i>
-                </div>
-                <div style="background: linear-gradient(135deg, #F4EFFF 0%, #FFFFFF 100%); border: 1px solid #E9D9FF; padding: 30px; border-radius: 20px; text-align: center; position: relative; overflow: hidden;">
-                    <div style="font-size: 0.75rem; text-transform: uppercase; color: #7c3aed; font-weight: 900; letter-spacing: 1.5px; margin-bottom: 10px;">Recorrência Mensal</div>
-                    <div style="font-size: 2.5rem; font-weight: 900; color: #4C1D95;">
-                        {{ ($vendedor->tipo_split ?? 'percentual') === 'percentual' ? ($vendedor->valor_split_recorrencia ?? 0) . '%' : 'R$ ' . number_format($vendedor->valor_split_recorrencia ?? 0, 2, ',', '.') }}
-                    </div>
-                    <i class="fas fa-arrows-rotate" style="position: absolute; bottom: -10px; right: -10px; font-size: 5rem; opacity: 0.05; color: #4C1D95;"></i>
-                </div>
+                <h4><i class="fas fa-wallet"></i> Configurações de Recebimento (Split)</h4>
+                @if(isset($vendedor) && $vendedor->wallet_status === 'validado')
+                    <span class="status-badge bg-success">Validado</span>
+                @else
+                    <span class="status-badge bg-warning">Pendente</span>
+                @endif
             </div>
 
-            <form action="{{ route('gestor.configuracoes.split.update') }}" method="POST">
+            <div style="background: #F9FAFB; border: 1px solid var(--materio-border); border-radius: 12px; padding: 25px; margin-bottom: 30px;">
+                <h5 style="font-weight: 800; color: var(--materio-text-main); margin-bottom: 10px;">Como funciona o Split Asaas?</h5>
+                <p style="color: var(--materio-text-muted); font-size: 0.95rem; line-height: 1.6; margin: 0;">
+                    Para receber suas comissões automaticamente, você precisa vincular sua **Wallet ID** do Asaas. Uma vez vinculada, o sistema dividirá automaticamente os valores das vendas entre a plataforma e sua conta, sem necessidade de transferências manuais.
+                </p>
+            </div>
+
+            <form method="POST" action="{{ route('gestor.configuracoes.split.update') }}">
                 @csrf
                 @method('PUT')
                 <div class="materio-form-group">
-                    <label class="materio-label">ID da Carteira Asaas (Wallet ID)</label>
-                    <input type="text" name="asaas_wallet_id" class="materio-input" value="{{ $vendedor->asaas_wallet_id }}" {{ $vendedor->wallet_status === 'validado' ? 'readonly' : '' }} placeholder="Ex: b65c69b2-...">
-                    @if($vendedor->wallet_status === 'validado')
-                        <div style="margin-top: 12px; padding: 12px; background: #e8f5e9; border-radius: 10px; color: #2e7d32; font-weight: 700; display: flex; align-items: center; gap: 10px;">
-                            <i class="fas fa-shield-check"></i> Carteira Validada e Operacional
+                    <label class="materio-label">Seu Asaas Wallet ID</label>
+                    <input type="text" name="asaas_wallet_id" class="materio-input" 
+                           value="{{ old('asaas_wallet_id', $vendedor->asaas_wallet_id ?? '') }}" 
+                           {{ (isset($vendedor) && $vendedor->wallet_status === 'validado') ? 'readonly' : '' }} 
+                           placeholder="Digite o ID da sua subconta Asaas" required>
+                    @if(isset($vendedor) && $vendedor->wallet_status === 'validado')
+                        <div style="color: var(--materio-success); font-size: 0.8rem; margin-top: 8px; font-weight: 600;">
+                            <i class="fas fa-check-circle"></i> Sua carteira já foi validada e está pronta para receber.
                         </div>
                     @else
-                        <div style="margin-top: 12px; padding: 12px; background: #fff8e1; border-radius: 10px; color: #f57f17; font-weight: 700; display: flex; align-items: center; gap: 10px;">
-                            <i class="fas fa-clock"></i> Pendente de Validação ou Configuração
+                        <div style="color: var(--materio-text-muted); font-size: 0.8rem; margin-top: 8px;">
+                            Você encontra este ID nas configurações da sua conta no painel do Asaas.
                         </div>
-                        <button type="submit" class="materio-btn-primary" style="margin-top: 20px;"><i class="fas fa-save"></i> Salvar Wallet ID</button>
                     @endif
                 </div>
+
+                @if(!isset($vendedor) || $vendedor->wallet_status !== 'validado')
+                    <div style="margin-top: 25px;">
+                        <button type="submit" class="materio-btn-primary">Vincular Carteira</button>
+                    </div>
+                @endif
             </form>
         </div>
         @endif
@@ -440,41 +470,39 @@
         @if($tab === 'aprovacoes')
         <div class="materio-card">
             <div class="section-header">
-                <h4><i class="fas fa-clipboard-list"></i> Aprovação de Mensagens</h4>
+                <h4><i class="fas fa-comment-check"></i> Revisão de Primeiras Mensagens</h4>
+                <p style="color: var(--materio-text-muted); font-size: 0.9rem; margin: 0;">Aprove ou rejeite as abordagens iniciais sugeridas pelos vendedores.</p>
             </div>
-            
-            @forelse($pendentes as $p)
-                <div style="border: 1px solid var(--materio-border); border-radius: 15px; padding: 30px; margin-bottom: 25px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.02); transition: 0.3s hover:shadow-md;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed var(--materio-border);">
-                        <div>
-                            <h5 style="font-size: 1.2rem; font-weight: 900; color: var(--materio-text-main); margin: 0;">{{ $p->titulo }}</h5>
-                            <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
-                                <span class="status-badge bg-info" style="font-size: 0.65rem;">Solicitação</span>
-                                <span style="font-size: 0.85rem; color: var(--materio-primary); font-weight: 800;">De: {{ $p->usuario->name }}</span>
-                                <span style="font-size: 0.8rem; color: var(--materio-text-muted); margin-left: 10px;"><i class="far fa-clock"></i> {{ $p->created_at->diffForHumans() }}</span>
+
+            @forelse($pendentes ?? [] as $msg)
+                <div style="border: 1px solid var(--materio-border); border-radius: 12px; padding: 25px; margin-bottom: 20px; background: white; transition: all 0.2s; position: relative;" onmouseover="this.style.borderColor='var(--materio-primary)'" onmouseout="this.style.borderColor='var(--materio-border)'">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 45px; height: 45px; background: var(--materio-primary-light); color: var(--materio-primary); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: 800;">
+                                {{ substr($msg->usuario->name, 0, 1) }}
+                            </div>
+                            <div>
+                                <h5 style="font-weight: 800; margin: 0; color: var(--materio-text-main);">{{ $msg->usuario->name }}</h5>
+                                <span style="font-size: 0.75rem; color: var(--materio-text-muted); text-transform: uppercase; font-weight: 700;">Vendedor</span>
                             </div>
                         </div>
-                        <div style="display: flex; gap: 12px;">
-                            <form action="{{ route('gestor.aprovar-mensagem.aprovar', $p->id) }}" method="POST">
-                                @csrf
-                                <button type="submit" class="materio-btn-primary" style="background: var(--materio-success); padding: 10px 20px; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(86, 202, 0, 0.3);">
-                                    <i class="fas fa-check"></i> Aprovar
-                                </button>
-                            </form>
-                            <button type="button" class="materio-btn-primary" style="background: var(--materio-error); padding: 10px 20px; font-size: 0.9rem; box-shadow: 0 4px 12px rgba(255, 76, 81, 0.3);" 
-                                    onclick="document.getElementById('rejeitar-form-{{ $p->id }}').style.display='block'; this.style.display='none'">
-                                <i class="fas fa-times"></i> Rejeitar
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div style="background: #F4F5FA; padding: 25px; border-radius: 12px; border-left: 5px solid var(--materio-primary); position: relative;">
-                        <i class="fas fa-quote-left" style="position: absolute; top: 10px; left: 10px; font-size: 1.5rem; opacity: 0.1; color: var(--materio-primary);"></i>
-                        <p style="margin: 0; font-size: 1rem; line-height: 1.7; color: #3b4252; white-space: pre-line; font-weight: 500;">{{ $p->mensagem }}</p>
+                        <div class="status-badge bg-warning">Pendente</div>
                     </div>
 
-                    <div id="rejeitar-form-{{ $p->id }}" style="display: none; margin-top: 25px; padding: 20px; border-radius: 12px; background: #fff1f0; border: 1px solid #ffa39e; animation: slideDown 0.3s ease-out;">
-                        <form action="{{ route('gestor.aprovar-mensagem.rejeitar', $p->id) }}" method="POST">
+                    <div style="background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 25px;">
+                        <p style="margin: 0; font-size: 1rem; color: var(--materio-text-main); line-height: 1.6; white-space: pre-wrap;">{{ $msg->mensagem }}</p>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                        <form action="{{ route('gestor.aprovar-mensagem.aprovar', $msg) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="materio-btn-primary" style="background: var(--materio-success); box-shadow: 0 4px 12px rgba(86, 202, 0, 0.3);">Aprovar Mensagem</button>
+                        </form>
+                        <button class="materio-btn-primary" style="background: #cf1322; box-shadow: 0 4px 12px rgba(207, 19, 34, 0.3);" onclick="document.getElementById('rejeitar-form-{{ $msg->id }}').style.display = 'block'; this.style.display='none'">Rejeitar</button>
+                    </div>
+
+                    <div id="rejeitar-form-{{ $msg->id }}" style="display: none; margin-top: 25px; padding-top: 25px; border-top: 1px dashed #ffa39e;">
+                        <form action="{{ route('gestor.aprovar-mensagem.rejeitar', $msg) }}" method="POST">
                             @csrf
                             <label class="materio-label" style="color: #cf1322;">Motivo da Rejeição</label>
                             <textarea name="motivo" class="materio-textarea" rows="3" placeholder="Explique ao vendedor o que precisa ser alterado..." required style="border-color: #ffa39e;"></textarea>
@@ -494,6 +522,70 @@
                     <p style="color: var(--materio-text-muted); font-size: 1.1rem;">Não há mensagens pendentes de revisão no momento.</p>
                 </div>
             @endforelse
+        </div>
+        @endif
+
+        {{-- TAB: TERMOS --}}
+        @if($tab === 'termos')
+        <div class="materio-card">
+            <div class="section-header">
+                <h4><i class="fas fa-file-contract"></i> Termos e Políticas</h4>
+                <p style="color: var(--materio-text-muted); font-size: 0.9rem; margin: 0;">Consulte os termos de uso e políticas da plataforma.</p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 40px;">
+                {{-- Termos de Uso --}}
+                <div style="border-bottom: 1px solid var(--materio-border); padding-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h5 style="font-weight: 800; color: var(--materio-text-main); margin: 0; font-size: 1.1rem;">1. Termos de Uso</h5>
+                        @if(isset($termoUso))
+                            <span class="status-badge bg-info">Versão {{ $termoUso->versao }}</span>
+                        @endif
+                    </div>
+                    
+                    <div style="background: #F9FAFB; border: 1px solid var(--materio-border); border-radius: 12px; padding: 25px; max-height: 400px; overflow-y: auto; color: var(--materio-text-main); line-height: 1.6;">
+                        @if(isset($termoUso))
+                            {!! $termoUso->conteudo_html !!}
+                        @else
+                            <p style="text-align: center; color: var(--materio-text-muted); padding: 20px;">Nenhum termo de uso ativo no momento.</p>
+                        @endif
+                    </div>
+
+                    @if(isset($termoUso))
+                    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                        <a href="{{ route('gestor.configuracoes.termos.pdf', $termoUso) }}" class="materio-btn-primary" style="background: #64748b; box-shadow: none;">
+                            <i class="fas fa-file-pdf"></i> Baixar Termos em PDF
+                        </a>
+                    </div>
+                    @endif
+                </div>
+
+                {{-- Política de Privacidade --}}
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h5 style="font-weight: 800; color: var(--materio-text-main); margin: 0; font-size: 1.1rem;">2. Política de Privacidade</h5>
+                        @if(isset($termoPrivacidade))
+                            <span class="status-badge bg-info">Versão {{ $termoPrivacidade->versao }}</span>
+                        @endif
+                    </div>
+                    
+                    <div style="background: #F9FAFB; border: 1px solid var(--materio-border); border-radius: 12px; padding: 25px; max-height: 400px; overflow-y: auto; color: var(--materio-text-main); line-height: 1.6;">
+                        @if(isset($termoPrivacidade))
+                            {!! $termoPrivacidade->conteudo_html !!}
+                        @else
+                            <p style="text-align: center; color: var(--materio-text-muted); padding: 20px;">Nenhuma política de privacidade ativa no momento.</p>
+                        @endif
+                    </div>
+
+                    @if(isset($termoPrivacidade))
+                    <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                        <a href="{{ route('gestor.configuracoes.termos.pdf', $termoPrivacidade) }}" class="materio-btn-primary" style="background: #64748b; box-shadow: none;">
+                            <i class="fas fa-file-pdf"></i> Baixar Política em PDF
+                        </a>
+                    </div>
+                    @endif
+                </div>
+            </div>
         </div>
         @endif
     </div>
