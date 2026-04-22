@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Encryption\EncryptionServiceProvider as BaseEncryptionServiceProvider;
 use Illuminate\Encryption\Encrypter;
+use Illuminate\Support\Str;
 
 class FixEncryptionServiceProvider extends BaseEncryptionServiceProvider
 {
@@ -35,10 +36,18 @@ class FixEncryptionServiceProvider extends BaseEncryptionServiceProvider
                     
                     // Atualiza a configuração em tempo real
                     $app->make('config')->set('app.key', $base64Key);
+                    $config['key'] = $base64Key;
                 }
             }
 
-            return parent::registerEncrypter();
+            // Reimplementado corretamente para Laravel 13 - parent::registerEncrypter retorna void
+            return (new Encrypter($this->parseKey($config), $config['cipher']))
+                ->previousKeys(array_map(
+                    fn ($key) => $this->parseKey(['key' => $key]),
+                    $config['previous_keys'] ?? []
+                ));
         });
+
+        $this->registerSerializableClosureSecurityKey();
     }
 }
