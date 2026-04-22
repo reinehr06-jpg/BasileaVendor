@@ -22,12 +22,9 @@ class ClienteController extends Controller
         $query = Cliente::query();
 
         if ($isMaster) {
-            // Master mantém regra financeira: cliente com ao menos 1 pagamento confirmado
-            $query->whereHas('vendas.pagamentos', function ($q) {
-                $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
-            });
+            // Master vê todos os clientes do sistema
         } else {
-            // Vendedor deve enxergar todos os clientes atribuídos, mesmo sem comissão/pagamento no mês
+            // Vendedor vê todos os clientes que possuem alguma venda atribuída a ele
             $query->whereHas('vendas', function ($q) use ($user) {
                 $q->whereHas('vendedor', function ($v) use ($user) {
                     $v->where('usuario_id', $user->id);
@@ -35,24 +32,22 @@ class ClienteController extends Controller
             });
         }
 
-        // Sincronizar status dos clientes CANDIDATOS (Regra de Ouro + Pertencimento ao Usuário) antes de aplicar filtros específicos
-        $clientesParaSync = (clone $query)->with('vendas.pagamentos')->get();
-        ClienteStatusService::sincronizarStatus($clientesParaSync);
+        // Sincronizar status antes de exibir (opcional, mas garante dados novos)
+        // $clientesParaSync = (clone $query)->with('vendas.pagamentos')->get();
+        // ClienteStatusService::sincronizarStatus($clientesParaSync);
 
-        // Filtros Adicionais (Status e Busca) para a exibição final
+        // Filtros Adicionais (Status e Busca)
         if ($request->filled('busca')) {
             $busca = $request->get('busca');
             $query->where(function ($q) use ($busca) {
-                $q->where('nome_igreja', 'like', "%{$busca}%")
-                    ->orWhere('nome_pastor', 'like', "%{$busca}%")
-                    ->orWhere('documento', 'like', "%{$busca}%");
+                $q->where('nome', 'like', "%{$busca}%")
+                    ->orWhere('documento', 'like', "%{$busca}%")
+                    ->orWhere('email', 'like', "%{$busca}%");
             });
         }
 
         if ($request->filled('status')) {
             $query->where('status', $request->get('status'));
-        } else {
-            $query->where('status', 'ativo');
         }
 
         $clientes = $query->with('vendas')->orderBy('created_at', 'desc')->paginate(15);
