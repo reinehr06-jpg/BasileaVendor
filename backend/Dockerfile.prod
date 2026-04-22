@@ -9,8 +9,14 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction
 # Stage 2: PHP-FPM runtime
 FROM php:8.4-fpm-alpine
 
-# Install build deps, compile extensions, then remove build deps
-RUN apk add --no-cache libpq nginx supervisor \
+# Install essential dependencies
+RUN apk add --no-cache \
+    libpq \
+    nginx \
+    supervisor \
+    curl \
+    git \
+    unzip \
     && apk add --no-cache --virtual .build-deps postgresql-dev \
     && docker-php-ext-install pdo pdo_pgsql \
     && apk del .build-deps
