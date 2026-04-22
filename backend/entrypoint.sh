@@ -64,7 +64,11 @@ php artisan view:clear 2>/dev/null || true
 
 # === Migrations ===
 echo "Migrations..."
-php artisan migrate --force -vvv || echo "ALERTA: Falha nas migrations. Verifique os logs detalhados acima, mas prosseguindo com a inicialização do servidor..."
+php artisan migrate --force -vvv 2>&1 || echo "ALERTA: Algumas migrations falharam (possivelmente tabelas já existentes). Continuando..."
+
+# === Garantir tabelas faltantes ===
+echo "Verificando tabelas faltantes..."
+php database/ensure_missing_tables.php 2>&1 || echo "ALERTA: Erro ao verificar tabelas faltantes."
 
 echo "=== Servidor na porta 8000 ==="
 exec php -d max_execution_time=600 -d memory_limit=512M artisan serve --host=0.0.0.0 --port=8000
