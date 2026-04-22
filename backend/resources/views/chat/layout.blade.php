@@ -40,6 +40,7 @@
         background: var(--chat-header-grad);
         color: white;
         position: relative;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
     }
 
     .chat-sidebar-header h4 { 
@@ -50,7 +51,54 @@
         display: flex;
         align-items: center;
         gap: 10px;
+        color: white !important;
     }
+
+    .user-status-card {
+        margin-top: 15px;
+        background: rgba(255,255,255,0.1);
+        padding: 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .user-status-name {
+        font-weight: 700;
+        font-size: 0.9rem;
+        display: block;
+        color: white;
+    }
+
+    .user-status-number {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        display: block;
+        margin-top: 2px;
+        color: white;
+    }
+
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-top: 8px;
+        padding: 3px 8px;
+        background: rgba(0,0,0,0.2);
+        width: fit-content;
+        border-radius: 20px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .status-dot.active { background: #10b981; box-shadow: 0 0 10px #10b981; }
+    .status-dot.inactive { background: #ef4444; }
 
     .chat-tabs {
         display: flex;

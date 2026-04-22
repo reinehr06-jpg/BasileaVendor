@@ -3,7 +3,22 @@
 @section('chat-sidebar')
     <div class="chat-sidebar-header">
         <h4><i class="fab fa-whatsapp"></i> Chat Hub</h4>
-        <div style="font-size: 0.75rem; opacity: 0.8; font-weight: 500;">Monitoramento Global de Mensagens</div>
+        
+        @php
+            $user = Auth::user();
+            $vendedor = $user->vendedor;
+            $status = $vendedor ? ($vendedor->status === 'ativo' ? 'Ativo' : 'Inativo') : 'Ativo';
+            $telefone = $vendedor ? $vendedor->telefone : 'Admin/Global';
+        @endphp
+
+        <div class="user-status-card">
+            <span class="user-status-name">{{ $user->name }}</span>
+            <span class="user-status-number"><i class="fas fa-phone-alt" style="font-size: 0.6rem;"></i> {{ $telefone }}</span>
+            <div class="status-indicator">
+                <div class="status-dot {{ $status === 'Ativo' ? 'active' : 'inactive' }}"></div>
+                {{ $status }}
+            </div>
+        </div>
     </div>
 
     <div class="chat-tabs">
