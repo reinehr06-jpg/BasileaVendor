@@ -1,4 +1,4 @@
-FROM php:8.4-cli
+FROM php:8.4-fpm
 
 # Instalar dependências essenciais e extensões do PostgreSQL
 RUN apt-get update && apt-get install -y \
@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
+    nginx \
+    supervisor \
     && docker-php-ext-install pdo pdo_pgsql pgsql
 
 # Instalar Composer
@@ -20,10 +22,14 @@ RUN composer install --no-interaction --no-dev --optimize-autoloader --no-script
 # Copiar o restante do projeto
 COPY . .
 
+# Configurar Nginx e Supervisor
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY supervisor.conf /etc/supervisor/conf.d/supervisor.conf
+
 # Rodar scripts do composer que dependem do artisan
 RUN composer dump-autoload --optimize
 
-# Expor porta do artisan serve
+# Expor porta 8000
 EXPOSE 8000
 
 # Configurações PHP para produção

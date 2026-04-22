@@ -36,7 +36,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        URL::forceScheme('https');
+        if (app()->environment('production')) {
+            URL::forceScheme('https');
+        }
 
         // Admin view composer for update alerts
         View::composer('admin.*', AdminComposer::class);
