@@ -2,9 +2,8 @@
 /**
  * ensure_missing_tables.php
  * 
- * Script que garante que TODAS as tabelas necessárias existam no banco PostgreSQL.
- * Roda DEPOIS do php artisan migrate e cria apenas as que estiverem faltando.
- * Isso contorna problemas de tracking do Laravel migrations.
+ * Cria TODAS as tabelas faltantes no PostgreSQL, alinhadas com os Models reais.
+ * Roda DEPOIS do php artisan migrate. É 100% idempotente.
  */
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -54,6 +53,7 @@ if (!Schema::hasTable('contatos')) {
         $table->id();
         $table->string('nome');
         $table->string('email')->nullable();
+        $table->string('telefone')->nullable();
         $table->string('phone')->nullable();
         $table->string('whatsapp')->nullable();
         $table->string('documento')->nullable();
@@ -123,70 +123,127 @@ if (!Schema::hasTable('contato_status_logs')) {
     echo "OK: contato_status_logs\n";
 }
 
-// ---- primeira_mensagens ----
+// ---- primeira_mensagens (alinhada com Model PrimeiraMensagem) ----
 if (!Schema::hasTable('primeira_mensagens')) {
     echo "Criando tabela: primeira_mensagens\n";
     Schema::create('primeira_mensagens', function (Blueprint $table) {
         $table->id();
+        $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+        $table->string('perfil', 30)->nullable();
         $table->string('titulo');
-        $table->text('conteudo');
-        $table->string('canal', 50)->nullable();
-        $table->boolean('ativo')->default(true);
-        $table->foreignId('criado_por')->constrained('users')->cascadeOnDelete();
+        $table->text('mensagem');
+        $table->boolean('ativa')->default(false);
+        $table->string('status', 30)->default('rascunho');
+        $table->foreignId('aprovada_por')->nullable()->constrained('users')->nullOnDelete();
+        $table->foreignId('rejeitada_por')->nullable()->constrained('users')->nullOnDelete();
+        $table->text('motivo_rejeicao')->nullable();
         $table->timestamps();
     });
 } else {
     echo "OK: primeira_mensagens\n";
 }
 
-// ---- calendario_eventos ----
+// ---- calendario_eventos (alinhada com Model CalendarioEvento + SoftDeletes) ----
 if (!Schema::hasTable('calendario_eventos')) {
     echo "Criando tabela: calendario_eventos\n";
     Schema::create('calendario_eventos', function (Blueprint $table) {
         $table->id();
+        $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+        $table->string('tipo', 30)->default('follow_up');
         $table->string('titulo');
         $table->text('descricao')->nullable();
-        $table->timestamp('data_inicio');
-        $table->timestamp('data_fim')->nullable();
-        $table->boolean('dia_inteiro')->default(false);
-        $table->string('tipo', 30)->default('evento');
-        $table->string('cor', 7)->default('#4C1D95');
+        $table->timestamp('data_hora_inicio');
+        $table->timestamp('data_hora_fim')->nullable();
+        $table->foreignId('cliente_id')->nullable()->constrained('clientes')->nullOnDelete();
         $table->foreignId('contato_id')->nullable()->constrained('contatos')->nullOnDelete();
-        $table->foreignId('usuario_id')->constrained('users')->cascadeOnDelete();
+        $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->nullOnDelete();
+        $table->json('recorrencia')->nullable();
+        $table->string('google_event_id')->nullable();
+        $table->string('status', 20)->default('agendado');
+        $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
+        $table->timestamp('notificado_em')->nullable();
         $table->timestamps();
-        $table->index(['usuario_id', 'data_inicio']);
+        $table->softDeletes();
+        $table->index(['user_id', 'data_hora_inicio']);
         $table->index(['contato_id']);
+        $table->index(['status']);
     });
 } else {
-    echo "OK: calendario_eventos\n";
+    // Tabela existe, mas pode estar faltando deleted_at
+    if (!Schema::hasColumn('calendario_eventos', 'deleted_at')) {
+        echo "Adicionando deleted_at em calendario_eventos\n";
+        Schema::table('calendario_eventos', function (Blueprint $table) {
+            $table->softDeletes();
+        });
+    }
+    // Verificar colunas que podem estar faltando
+    Schema::table('calendario_eventos', function (Blueprint $table) {
+        if (!Schema::hasColumn('calendario_eventos', 'user_id')) {
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
+        }
+        if (!Schema::hasColumn('calendario_eventos', 'data_hora_inicio')) {
+            $table->timestamp('data_hora_inicio')->nullable();
+        }
+        if (!Schema::hasColumn('calendario_eventos', 'data_hora_fim')) {
+            $table->timestamp('data_hora_fim')->nullable();
+        }
+        if (!Schema::hasColumn('calendario_eventos', 'cliente_id')) {
+            $table->foreignId('cliente_id')->nullable()->constrained('clientes')->nullOnDelete();
+        }
+        if (!Schema::hasColumn('calendario_eventos', 'vendedor_id')) {
+            $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->nullOnDelete();
+        }
+        if (!Schema::hasColumn('calendario_eventos', 'recorrencia')) {
+            $table->json('recorrencia')->nullable();
+        }
+        if (!Schema::hasColumn('calendario_eventos', 'google_event_id')) {
+            $table->string('google_event_id')->nullable();
+        }
+        if (!Schema::hasColumn('calendario_eventos', 'status')) {
+            $table->string('status', 20)->default('agendado');
+        }
+        if (!Schema::hasColumn('calendario_eventos', 'criado_por')) {
+            $table->foreignId('criado_por')->nullable()->constrained('users')->nullOnDelete();
+        }
+        if (!Schema::hasColumn('calendario_eventos', 'notificado_em')) {
+            $table->timestamp('notificado_em')->nullable();
+        }
+    });
+    echo "OK: calendario_eventos (colunas verificadas)\n";
 }
 
-// ---- terms_documents ----
+// ---- terms_documents (alinhada com Model TermsDocument) ----
 if (!Schema::hasTable('terms_documents')) {
     echo "Criando tabela: terms_documents\n";
     Schema::create('terms_documents', function (Blueprint $table) {
         $table->id();
         $table->string('tipo', 30);
         $table->string('titulo');
-        $table->text('conteudo');
         $table->string('versao', 20)->default('1.0');
+        $table->text('conteudo_html')->nullable();
         $table->boolean('ativo')->default(true);
         $table->timestamps();
         $table->index(['tipo', 'ativo']);
     });
 } else {
+    Schema::table('terms_documents', function (Blueprint $table) {
+        if (!Schema::hasColumn('terms_documents', 'conteudo_html') && !Schema::hasColumn('terms_documents', 'conteudo')) {
+            $table->text('conteudo_html')->nullable();
+        }
+    });
     echo "OK: terms_documents\n";
 }
 
-// ---- terms_acceptances ----
+// ---- terms_acceptances (alinhada com Model TermsAcceptance) ----
 if (!Schema::hasTable('terms_acceptances')) {
     echo "Criando tabela: terms_acceptances\n";
     Schema::create('terms_acceptances', function (Blueprint $table) {
         $table->id();
         $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
         $table->foreignId('terms_document_id')->constrained('terms_documents')->cascadeOnDelete();
-        $table->timestamp('accepted_at');
         $table->string('ip_address')->nullable();
+        $table->text('user_agent')->nullable();
+        $table->timestamp('aceito_em')->nullable();
         $table->timestamps();
         $table->unique(['user_id', 'terms_document_id']);
     });
@@ -286,7 +343,97 @@ if (!Schema::hasTable('lead_inbound_logs')) {
     echo "OK: lead_inbound_logs\n";
 }
 
-// ---- Adicionar colunas faltantes na tabela leads ----
+// ---- lead_schedules ----
+if (!Schema::hasTable('lead_schedules')) {
+    echo "Criando tabela: lead_schedules\n";
+    Schema::create('lead_schedules', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('lead_id')->constrained('leads')->onDelete('cascade');
+        $table->foreignId('vendedor_id')->constrained('vendedores')->onDelete('cascade');
+        $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('set null');
+        $table->datetime('scheduled_at');
+        $table->string('status', 20)->default('pending');
+        $table->text('notes')->nullable();
+        $table->boolean('is_completed')->default(false);
+        $table->timestamps();
+        $table->index(['vendedor_id', 'scheduled_at']);
+        $table->index(['status', 'scheduled_at']);
+    });
+} else {
+    echo "OK: lead_schedules\n";
+}
+
+// ---- lead_fields ----
+if (!Schema::hasTable('lead_fields')) {
+    echo "Criando tabela: lead_fields\n";
+    Schema::create('lead_fields', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
+        $table->string('name');
+        $table->string('label');
+        $table->string('type')->default('text');
+        $table->json('options')->nullable();
+        $table->boolean('is_required')->default(false);
+        $table->integer('order')->default(0);
+        $table->timestamps();
+    });
+} else {
+    echo "OK: lead_fields\n";
+}
+
+// ---- lead_field_values ----
+if (!Schema::hasTable('lead_field_values')) {
+    echo "Criando tabela: lead_field_values\n";
+    Schema::create('lead_field_values', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('lead_id')->constrained('leads')->onDelete('cascade');
+        $table->foreignId('field_id')->constrained('lead_fields')->onDelete('cascade');
+        $table->text('value')->nullable();
+        $table->timestamps();
+        $table->unique(['lead_id', 'field_id']);
+    });
+} else {
+    echo "OK: lead_field_values\n";
+}
+
+// ---- lead_transfer_history ----
+if (!Schema::hasTable('lead_transfer_history')) {
+    echo "Criando tabela: lead_transfer_history\n";
+    Schema::create('lead_transfer_history', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('lead_id')->constrained('leads')->onDelete('cascade');
+        $table->foreignId('from_vendedor_id')->nullable()->constrained('vendedores')->onDelete('set null');
+        $table->foreignId('to_vendedor_id')->nullable()->constrained('vendedores')->onDelete('set null');
+        $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('set null');
+        $table->string('motivo')->nullable();
+        $table->string('type')->default('manual');
+        $table->timestamps();
+        $table->index('lead_id');
+    });
+} else {
+    echo "OK: lead_transfer_history\n";
+}
+
+// ---- quick_replies ----
+if (!Schema::hasTable('quick_replies')) {
+    echo "Criando tabela: quick_replies\n";
+    Schema::create('quick_replies', function (Blueprint $table) {
+        $table->id();
+        $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('cascade');
+        $table->foreignId('vendedor_id')->nullable()->constrained('vendedores')->onDelete('cascade');
+        $table->string('shortcut');
+        $table->text('content');
+        $table->string('category')->nullable();
+        $table->boolean('is_global')->default(false);
+        $table->timestamps();
+    });
+} else {
+    echo "OK: quick_replies\n";
+}
+
+// ======== COLUNAS FALTANTES EM TABELAS EXISTENTES ========
+
+// ---- leads: colunas CRM ----
 if (Schema::hasTable('leads')) {
     Schema::table('leads', function (Blueprint $table) {
         if (!Schema::hasColumn('leads', 'tenant_id')) {
@@ -350,7 +497,7 @@ if (Schema::hasTable('leads')) {
     echo "OK: leads (colunas verificadas)\n";
 }
 
-// ---- Adicionar colunas de onboarding em users ----
+// ---- users: onboarding ----
 if (Schema::hasTable('users')) {
     Schema::table('users', function (Blueprint $table) {
         if (!Schema::hasColumn('users', 'onboarding_completed')) {
@@ -363,7 +510,7 @@ if (Schema::hasTable('users')) {
     echo "OK: users (onboarding verificado)\n";
 }
 
-// ---- Adicionar campos IA em vendedores ----
+// ---- vendedores: IA ----
 if (Schema::hasTable('vendedores')) {
     Schema::table('vendedores', function (Blueprint $table) {
         if (!Schema::hasColumn('vendedores', 'ia_enabled')) {
@@ -376,4 +523,4 @@ if (Schema::hasTable('vendedores')) {
     echo "OK: vendedores (IA verificado)\n";
 }
 
-echo "=== Todas as tabelas verificadas! ===\n";
+echo "=== Todas as tabelas verificadas com sucesso! ===\n";
