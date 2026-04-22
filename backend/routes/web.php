@@ -686,7 +686,13 @@ Route::middleware(['auth', 'gestor'])->prefix('gestor')->group(function () {
     // Calendário
     Route::get('/calendario', [CalendarioController::class, 'gestorIndex'])->name('gestor.calendario.index');
     
-    // Primeira Mensagem - Aprovação
+    // Configurações Consolidadas (Novo)
+    Route::get('/configuracoes/{tab?}', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'index'])->name('configuracoes');
+    Route::post('/configuracoes/perfil', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateProfile'])->name('configuracoes.perfil.update');
+    Route::post('/configuracoes/whatsapp', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateWhatsapp'])->name('configuracoes.whatsapp.update');
+    Route::put('/configuracoes/split', [App\Http\Controllers\Gestor\GestorSettingsController::class, 'updateSplit'])->name('configuracoes.split.update');
+
+    // Primeira Mensagem - Aprovação (Antigas rotas mantidas por compatibilidade de ação)
     Route::get('/configuracoes/aprovar-mensagem', [PrimeiraMensagemController::class, 'pendentes'])->name('gestor.aprovar-mensagem');
     Route::post('/configuracoes/aprovar-mensagem/{mensagem}/aprovar', [PrimeiraMensagemController::class, 'aprovar'])->name('gestor.aprovar-mensagem.aprovar');
     Route::post('/configuracoes/aprovar-mensagem/{mensagem}/rejeitar', [PrimeiraMensagemController::class, 'rejeitar'])->name('gestor.aprovar-mensagem.rejeitar');

@@ -2,6 +2,23 @@
 @section('title', 'Dashboard')
 
 @section('content')
+<div class="welcome-banner" style="margin-bottom: 30px; padding: 35px; border-radius: 20px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; position: relative; overflow: hidden; box-shadow: 0 10px 20px rgba(124, 58, 237, 0.2);">
+    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="font-size: 2.2rem; font-weight: 800; margin: 0;">Olá, {{ explode(' ', Auth::user()->name)[0] }}! 👋</h2>
+            <p style="margin: 8px 0 0; opacity: 0.9; font-size: 1.1rem; font-weight: 500;">
+                Seja bem-vindo ao seu Command Center. Tudo pronto para as vendas de hoje?
+            </p>
+        </div>
+        <div style="text-align: right;">
+            <div style="font-weight: 800; font-size: 1.2rem;">{{ date('d') }} de {{ \Carbon\Carbon::now()->translatedFormat('F') }}</div>
+            <div style="font-size: 0.9rem; opacity: 0.8; font-weight: 600;">{{ \Carbon\Carbon::now()->translatedFormat('l') }}</div>
+        </div>
+    </div>
+    {{-- Efeito decorativo no fundo --}}
+    <div style="position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+    <div style="position: absolute; bottom: -30px; left: 10%; width: 100px; height: 100px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
+</div>
 <style>
     .dashboard-viewport {
         height: calc(100vh - 100px);
