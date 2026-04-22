@@ -28,64 +28,85 @@ class GestorSettingsController extends Controller
             'tab' => $tab,
         ];
 
-        if ($tab === 'whatsapp') {
-            $config = ChatWhatsappConfig::byGestor($gestorId)->first();
-            if (!$config) {
-                $config = ChatWhatsappConfig::create([
-                    'gestor_id' => $gestorId,
-                    'is_active' => false
-                ]);
-            }
-            $data['whatsappConfig'] = $config;
-        }
-
-        if ($tab === 'aprovacoes') {
-            $vendedorIds = Vendedor::where('gestor_id', $gestorId)->pluck('user_id');
-            $data['pendentes'] = PrimeiraMensagem::whereIn('user_id', $vendedorIds)
-                ->where('status', 'pendente_aprovacao')
-                ->with('usuario')
-                ->get();
-        }
-
-        if ($tab === 'split') {
-            $data['vendedor'] = $user->vendedor;
-        }
-
-        if ($tab === 'seguranca') {
-            $qrCode = null;
-            if ($user->two_factor_secret) {
-                // If there are multiple secrets, get the first one or handle appropriately
-                $secret = $user->two_factor_secret;
-                if (str_contains($secret, ',')) {
-                    $secret = explode(',', $secret)[0];
+        try {
+            if ($tab === 'whatsapp') {
+                $config = ChatWhatsappConfig::byGestor($gestorId)->first();
+                if (!$config) {
+                    $config = ChatWhatsappConfig::create([
+                        'gestor_id' => $gestorId,
+                        'is_active' => false
+                    ]);
                 }
-                if (str_contains($secret, '|')) {
-                    $secret = explode('|', $secret)[1];
-                }
-                $qrCode = TwoFactorAuthService::generateQrCode($user->email, $secret);
+                $data['whatsappConfig'] = $config;
             }
-            $data['qrCode'] = $qrCode;
-            
-            // Get devices list
-            $secrets = $user->two_factor_secret ?? '';
-            $devices = [];
-            if (!empty($secrets)) {
-                $idx = 1;
-                foreach (explode(',', $secrets) as $entry) {
-                    $entry = trim($entry);
-                    if ($entry === '') continue;
-                    if (str_contains($entry, '|')) {
-                        [$name, $s] = explode('|', $entry, 2);
-                        $devices[] = ['name' => $name, 'mask' => substr($s, 0, 4) . '****'];
-                    } else {
-                        $devices[] = ['name' => $idx === 1 ? 'Principal' : 'Dispositivo '.$idx, 'mask' => substr($entry, 0, 4) . '****'];
+
+            if ($tab === 'aprovacoes') {
+                $vendedorIds = Vendedor::where('gestor_id', $gestorId)->pluck('user_id');
+                $data['pendentes'] = PrimeiraMensagem::whereIn('user_id', $vendedorIds)
+                    ->where('status', 'pendente_aprovacao')
+                    ->with('usuario')
+                    ->get();
+            }
+
+            if ($tab === 'split') {
+                $data['vendedor'] = $user->vendedor;
+            }
+
+            if ($tab === 'seguranca') {
+                // Gerar secret automaticamente se não existe (igual ao VendedorSettingsController)
+                if (!$user->two_factor_enabled && !$user->two_factor_secret) {
+                    try {
+                        $user->two_factor_secret = TwoFactorAuthService::generateSecret();
+                        $user->save();
+                    } catch (\Exception $e) {
+                        Log::warning('GESTOR_2FA_GENERATE_SECRET_ERROR: ' . $e->getMessage());
                     }
-                    $idx++;
                 }
+
+                // Gerar QR Code
+                $qrCode = null;
+                if ($user->two_factor_secret) {
+                    try {
+                        $secret = $user->two_factor_secret;
+                        if (str_contains($secret, ',')) {
+                            $secret = explode(',', $secret)[0];
+                        }
+                        if (str_contains($secret, '|')) {
+                            $secret = explode('|', $secret)[1];
+                        }
+                        $qrCode = TwoFactorAuthService::generateQrCode($user->email, $secret);
+                    } catch (\Exception $e) {
+                        Log::warning('GESTOR_2FA_QRCODE_ERROR: ' . $e->getMessage());
+                    }
+                }
+                $data['qrCode'] = $qrCode;
+
+                // Lista de dispositivos
+                $secrets = $user->two_factor_secret ?? '';
+                $devices = [];
+                if (!empty($secrets)) {
+                    $idx = 1;
+                    foreach (explode(',', $secrets) as $entry) {
+                        $entry = trim($entry);
+                        if ($entry === '') continue;
+                        if (str_contains($entry, '|')) {
+                            [$name, $s] = explode('|', $entry, 2);
+                            $devices[] = ['name' => $name, 'mask' => substr($s, 0, 4) . '****'];
+                        } else {
+                            $devices[] = ['name' => $idx === 1 ? 'Principal' : 'Dispositivo '.$idx, 'mask' => substr($entry, 0, 4) . '****'];
+                        }
+                        $idx++;
+                    }
+                }
+                $data['devices'] = $devices;
+                $data['recoveryCodes'] = $user->recovery_codes ? json_decode($user->recovery_codes, true) : null;
             }
-            $data['devices'] = $devices;
-            $data['recoveryCodes'] = $user->recovery_codes ? json_decode($user->recovery_codes, true) : null;
+        } catch (\Exception $e) {
+            Log::error('GESTOR_SETTINGS_ERROR: tab=' . $tab . ' | ' . $e->getMessage() . ' | ' . $e->getTraceAsString());
+            return back()->with('error', 'Erro ao carregar configurações: ' . $e->getMessage());
         }
+
+        Log::info('GESTOR_SETTINGS_RENDER: tab=' . $tab . ' | user=' . $user->id . ' | data_keys=' . implode(',', array_keys($data)));
 
         return view('gestor.configuracoes.index', $data);
     }
