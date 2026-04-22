@@ -37,7 +37,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3005:3000"
     environment:
       - NEXT_PUBLIC_API_URL=https://vendor.basileia.global/api
     depends_on:
