@@ -1,137 +1,115 @@
 @extends('chat.layout')
 
-@section('chat-content')
-<div class="chat-sidebar">
-    <div class="chat-header">
-        <h4><i class="fab fa-whatsapp me-2"></i>Chat da Equipe</h4>
-        <small style="opacity: 0.8">Todas as conversas da equipe</small>
+@section('chat-sidebar')
+    <div class="chat-sidebar-header">
+        <h4><i class="fab fa-whatsapp"></i> Chat Equipe</h4>
+        
+        @php
+            $user = Auth::user();
+            $vendedor = $user->vendedor;
+            $status = $vendedor ? ($vendedor->status === 'ativo' ? 'Ativo' : 'Inativo') : 'Ativo';
+            $telefone = $vendedor ? $vendedor->telefone : 'Gestor/Global';
+        @endphp
+
+        <div class="user-status-card">
+            <span class="user-status-name">{{ $user->name }}</span>
+            <span class="user-status-number"><i class="fas fa-phone-alt" style="font-size: 0.6rem;"></i> {{ $telefone }}</span>
+            <div class="status-indicator">
+                <div class="status-dot {{ $status === 'Ativo' ? 'active' : 'inactive' }}"></div>
+                {{ $status }}
+            </div>
+        </div>
     </div>
 
     <div class="chat-tabs">
-        <button class="chat-tab @if($filtro === 'nao_atendidos') active @endif" 
-                onclick="window.location.href='{{ route('gestor.chat.index', ['aba' => 'nao_atendidos']) }}'">
-            Não Atendidos
-            <span class="badge">{{ $contagem['nao_atendidos'] }}</span>
+        <button class="chat-tab-btn" onclick="window.location.href='{{ route('gestor.chat.index', ['aba' => 'nao_atendidos']) }}'">
+            <i class="fas fa-clock"></i> Pendentes
         </button>
-        <button class="chat-tab @if($filtro === 'atendidos') active @endif" 
-                onclick="window.location.href='{{ route('gestor.chat.index', ['aba' => 'atendidos']) }}'">
-            Atendidos
-            <span class="badge">{{ $contagem['atendidos'] }}</span>
+        <button class="chat-tab-btn" onclick="window.location.href='{{ route('gestor.chat.index', ['aba' => 'atendidos']) }}'">
+            <i class="fas fa-user-check"></i> Atendimento
         </button>
     </div>
 
-    <div class="chat-search">
-        <form method="GET">
-            <input type="text" name="q" placeholder="Buscar conversa..." value="{{ $busca }}">
+    <div class="chat-search-box">
+        <form method="GET" action="{{ route('gestor.chat.index') }}">
+            <input type="text" name="q" class="chat-search-input" placeholder="Procurar na equipe...">
         </form>
     </div>
 
     <div class="chat-list">
-        @forelse($conversas as $conversa)
-        <a href="{{ route('gestor.chat.conversa', $conversa->id) }}" 
-           class="chat-item @if($conversa->pinned) pinned @endif">
+        <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 0.8rem;">
+            Volte para a lista para ver todas as conversas da equipe.
+        </div>
+    </div>
+@endsection
+
+@section('chat-content')
+    <div class="chat-main-header">
+        <div style="display: flex; align-items: center; gap: 15px;">
             <div class="chat-item-avatar">
                 {{ strtoupper(substr($conversa->contact->nome ?? 'C', 0, 1)) }}
             </div>
-            <div class="chat-item-info">
-                <div class="chat-item-name">
-                    @if($conversa->pinned)
-                    <i class="fas fa-star pin-icon"></i>
+            <div>
+                <div style="font-weight: 800; color: #1e293b; font-size: 1.1rem;">{{ $conversa->contact->nome ?? 'Cliente' }}</div>
+                <div style="font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 6px;">
+                    <span class="status-badge" style="background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 10px; font-weight: 700;">{{ strtoupper($conversa->status) }}</span>
+                    @if($conversa->vendedor)
+                        <span style="color: var(--primary); font-weight: 600;"><i class="fas fa-user-tie"></i> Vendedor: {{ $conversa->vendedor->user->name }}</span>
                     @endif
-                    <span>{{ $conversa->contact->nome ?? 'Cliente' }}</span>
-                    <span class="chat-item-time">
-                        @if($conversa->last_message_at)
-                        {{ $conversa->last_message_at->format('H:i') }}
-                        @endif
-                    </span>
-                </div>
-                <div class="chat-item-preview">
-                    <small class="text-muted">{{ $conversa->vendedor->nome ?? 'Sem vendedor' }}</small>
-                    <br>
-                    {{ $conversa->ultimoMensagem->conteudo ?? 'Sem mensagens' }}
                 </div>
             </div>
-            @if($conversa->unread_count > 0)
-            <div class="chat-item-badge">{{ $conversa->unread_count }}</div>
-            @endif
-        </a>
-        @empty
-        <div class="empty-state" style="padding: 40px;">
-            <i class="fas fa-comments fa-3x"></i>
-            <p>Nenhuma conversa encontrada</p>
         </div>
-        @endforelse
-    </div>
-
-    <div class="pagination-container" style="padding: 12px;">
-        {{ $conversas->appends(['aba' => $filtro, 'q' => $busca])->links() }}
-    </div>
-</div>
-
-<div class="chat-main">
-    <div class="chat-main-header">
-        <div class="avatar">
-            {{ strtoupper(substr($conversa->contact->nome ?? 'C', 0, 1)) }}
-        </div>
-        <div class="info">
-            <h5>{{ $conversa->contact->nome ?? 'Cliente' }}</h5>
-            <p>
-                <span class="status-badge status-{{ $conversa->status }}">
-                    {{ ucfirst($conversa->status) }}
-                </span>
-                <small class="text-muted ms-2">{{ $conversa->vendedor->nome ?? '' }}</small>
-            </p>
-        </div>
-        <div class="ms-auto">
-            <button class="btn btn-sm btn-outline-primary" onclick="document.getElementById('atribuirModal').show()">
-                <i class="fas fa-user-plus"></i> Atribuir
-            </button>
+        <div style="text-align: right;">
+            <div style="font-weight: 700; color: #1e293b; font-size: 0.9rem;">{{ $conversa->contact->telefone }}</div>
+            <div style="font-size: 0.7rem; color: #94a3b8;">Monitoramento de Equipe</div>
         </div>
     </div>
 
-    <div class="chat-messages">
+    <div class="chat-messages" id="messagesContainer">
         @forelse($conversa->mensagens as $mensagem)
-        <div class="message {{ $mensagem->direction }}">
-            <div class="message-bubble">
-                <div>{{ $mensagem->conteudo }}</div>
-                <div class="message-time">
-                    {{ $mensagem->created_at->format('H:i') }}
-                    @if($mensagem->direction === 'outbound')
-                    <span class="message-status">
-                        @if($mensagem->delivery_status === 'read')
-                        <i class="fas fa-check-double"></i>
-                        @else
-                        <i class="fas fa-check"></i>
+            <div style="display: flex; flex-direction: column; align-items: {{ $mensagem->direction === 'outbound' ? 'flex-end' : 'flex-start' }}; margin-bottom: 10px;">
+                <div style="
+                    max-width: 75%;
+                    padding: 12px 16px;
+                    border-radius: 18px;
+                    font-size: 0.95rem;
+                    line-height: 1.4;
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+                    background: {{ $mensagem->direction === 'outbound' ? 'var(--primary)' : 'white' }};
+                    color: {{ $mensagem->direction === 'outbound' ? 'white' : '#1e293b' }};
+                    border-bottom-{{ $mensagem->direction === 'outbound' ? 'right' : 'left' }}-radius: 4px;
+                ">
+                    {{ $mensagem->conteudo }}
+                    <div style="font-size: 0.65rem; margin-top: 4px; opacity: 0.7; text-align: right;">
+                        {{ $mensagem->created_at->format('H:i') }}
+                        @if($mensagem->direction === 'outbound')
+                            <i class="fas fa-{{ $mensagem->delivery_status === 'read' ? 'check-double' : 'check' }}" style="margin-left: 4px;"></i>
                         @endif
-                    </span>
-                    @endif
+                    </div>
                 </div>
             </div>
-        </div>
         @empty
-        <div class="empty-state">
-            <i class="fas fa-comments fa-3x"></i>
-            <p>Nenhuma mensagem ainda</p>
-        </div>
+            <div class="chat-empty-state">
+                <i class="fas fa-comment-dots"></i>
+                <h3>Início da conversa</h3>
+                <p>Monitorando conversas da equipe.</p>
+            </div>
         @endforelse
     </div>
-</div>
 
-<!-- Modal Atribuir -->
-<div id="atribuirModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999;">
-    <div style="position:relative; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:8px; max-width:400px;">
-        <h5>Atribuir Conversa</h5>
-        <form action="{{ route('gestor.chat.atribuir', $conversa->id) }}" method="POST">
+    <div style="padding: 20px 28px; background: white; border-top: 1px solid var(--chat-border);">
+        <form action="{{ route('gestor.chat.conversa', $conversa->id) }}" method="POST" id="msgForm" style="display: flex; gap: 15px; align-items: center;">
             @csrf
-            <select name="vendedor_id" class="form-control mb-3" required>
-                <option value="">Selecione um vendedor</option>
-                @foreach($vendedores as $v)
-                <option value="{{ $v->id }}">{{ $v->nome }}</option>
-                @endforeach
-            </select>
-            <button type="submit" class="btn btn-primary">Atribuir</button>
-            <button type="button" onclick="document.getElementById('atribuirModal').style.display='none'" class="btn btn-secondary">Cancelar</button>
+            <button type="button" class="btn btn-ghost" style="padding: 10px; color: #94a3b8;"><i class="fas fa-paperclip fa-lg"></i></button>
+            <input type="text" name="mensagem" class="chat-search-input" style="flex: 1; background: #f1f5f9;" placeholder="Responder como gestor...">
+            <button type="submit" class="btn btn-primary" style="padding: 10px 24px; border-radius: 14px; font-weight: 800;"><i class="fas fa-paper-plane me-2"></i> ENVIAR</button>
         </form>
     </div>
-</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('messagesContainer');
+            if (container) container.scrollTop = container.scrollHeight;
+        });
+    </script>
 @endsection

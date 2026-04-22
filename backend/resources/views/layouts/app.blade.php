@@ -447,17 +447,17 @@
                     <i class="fas fa-chart-pie"></i> Meu Painel
                 </a>
 
-                <div class="menu-section">Gestão</div>
-                <a href="{{ route('vendedor.equipe') }}" class="menu-item {{ request()->routeIs('vendedor.equipe*') ? 'active' : '' }}">
-                    <i class="fas fa-users-cog"></i> Minha Equipe
+                <div class="menu-section">Vendas</div>
+                <a href="{{ route('vendedor.vendas') }}" class="menu-item {{ request()->routeIs('vendedor.vendas*') ? 'active' : '' }}">
+                    <i class="fas fa-shopping-bag"></i> Minhas Vendas
+                </a>
+                <a href="{{ route('vendedor.clientes') }}" class="menu-item {{ request()->routeIs('vendedor.clientes*') ? 'active' : '' }}">
+                    <i class="fas fa-user-friends"></i> Meus Clientes
                 </a>
 
-                <div class="menu-section">Marketing</div>
-                <a href="{{ route('gestor.contatos.index') }}" class="menu-item {{ request()->routeIs('gestor.contatos*') ? 'active' : '' }}">
-                    <i class="fas fa-address-book"></i> Leads
-                </a>
-                <a href="{{ route('gestor.calendario.index') }}" class="menu-item {{ request()->routeIs('gestor.calendario*') ? 'active' : '' }}">
-                    <i class="fas fa-calendar-alt"></i> Calendário
+                <div class="menu-section">Gestão de Equipe</div>
+                <a href="{{ route('vendedor.equipe') }}" class="menu-item {{ request()->routeIs('vendedor.equipe*') ? 'active' : '' }}">
+                    <i class="fas fa-users-cog"></i> Minha Equipe
                 </a>
                 <a href="{{ route('gestor.aprovar-mensagem') }}" class="menu-item {{ request()->routeIs('gestor.aprovar-mensagem*') ? 'active' : '' }}">
                     <i class="fas fa-comment-check"></i> Aprovar Mensagens
@@ -465,13 +465,10 @@
 
                 <div class="menu-section">Comunicação</div>
                 <a href="{{ route('gestor.chat.index') }}" class="menu-item {{ request()->routeIs('gestor.chat.index') ? 'active' : '' }}">
-                    <i class="fab fa-whatsapp"></i> Conversas
-                </a>
-                <a href="{{ route('gestor.chat.distribuicao') }}" class="menu-item {{ request()->routeIs('gestor.chat.distribuicao') ? 'active' : '' }}">
-                    <i class="fas fa-random"></i> Distribuição
+                    <i class="fab fa-whatsapp"></i> Chat Conversas
                 </a>
                 <a href="{{ route('gestor.chat.config') }}" class="menu-item {{ request()->routeIs('gestor.chat.config') ? 'active' : '' }}">
-                    <i class="fas fa-phone-alt"></i> WhatsApp
+                    <i class="fas fa-phone-alt"></i> Configurar WhatsApp
                 </a>
 
                 <div class="menu-section">Financeiro</div>
@@ -480,11 +477,6 @@
                 </a>
                 <a href="{{ route('vendedor.configuracoes') }}" class="menu-item {{ request()->routeIs('vendedor.configuracoes*') ? 'active' : '' }}">
                     <i class="fas fa-cog"></i> Split e Repasse
-                </a>
-
-                <div class="menu-section">IA Lab</div>
-                <a href="{{ route('master.ia') }}" class="menu-item {{ request()->routeIs('master.ia*') ? 'active' : '' }}">
-                    <i class="fas fa-chart-line"></i> Métricas de IA
                 </a>
 
             @else
@@ -633,6 +625,20 @@
                 </div>
             </div>
             @endif
+            <div class="welcome-banner glass-card" style="margin-bottom: 25px; padding: 25px; border: none; background: linear-gradient(135deg, rgba(145, 85, 253, 0.1), rgba(145, 85, 253, 0.02));">
+                <div class="d-flex justify-between align-center">
+                    <div>
+                        <h2 style="font-size: 1.8rem; font-weight: 800; margin: 0; color: var(--primary);">Olá, {{ explode(' ', Auth::user()->name)[0] }}! 👋</h2>
+                        <p style="margin: 5px 0 0; color: var(--text-secondary); font-size: 0.95rem; font-weight: 500;">
+                            Seja bem-vindo ao seu Command Center. Tudo pronto para as vendas de hoje?
+                        </p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 800; color: var(--text-primary); font-size: 1rem;">{{ date('d') }} de {{ \Carbon\Carbon::now()->translatedFormat('F') }}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">{{ \Carbon\Carbon::now()->translatedFormat('l') }}</div>
+                    </div>
+                </div>
+            </div>
             @yield('content')
         </section>
     </main>

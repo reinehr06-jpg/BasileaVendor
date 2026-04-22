@@ -1,44 +1,56 @@
 @extends('chat.layout')
 
-@section('chat-content')
-<div class="chat-sidebar">
-    <div class="chat-header">
-        <h4><i class="fab fa-whatsapp me-2"></i>Chat da Equipe</h4>
-        <small style="opacity: 0.8">Todas as conversas da equipe</small>
+@section('chat-sidebar')
+    <div class="chat-sidebar-header">
+        <h4><i class="fab fa-whatsapp"></i> Chat Equipe</h4>
+        
+        @php
+            $user = Auth::user();
+            $vendedor = $user->vendedor;
+            $status = $vendedor ? ($vendedor->status === 'ativo' ? 'Ativo' : 'Inativo') : 'Ativo';
+            $telefone = $vendedor ? $vendedor->telefone : 'Gestor/Global';
+        @endphp
+
+        <div class="user-status-card">
+            <span class="user-status-name">{{ $user->name }}</span>
+            <span class="user-status-number"><i class="fas fa-phone-alt" style="font-size: 0.6rem;"></i> {{ $telefone }}</span>
+            <div class="status-indicator">
+                <div class="status-dot {{ $status === 'Ativo' ? 'active' : 'inactive' }}"></div>
+                {{ $status }}
+            </div>
+        </div>
     </div>
 
     <div class="chat-tabs">
-        <button class="chat-tab @if($filtro === 'nao_atendidos') active @endif" 
+        <button class="chat-tab-btn @if($filtro === 'nao_atendidos') active @endif" 
                 onclick="window.location.href='{{ route('gestor.chat.index', ['aba' => 'nao_atendidos']) }}'">
-            Não Atendidos
-            <span class="badge">{{ $contagem['nao_atendidos'] }}</span>
+            <i class="fas fa-clock"></i> Pendentes
+            @if($contagem['nao_atendidos'] > 0)
+                <span class="badge bg-white text-primary" style="font-size: 0.65rem; padding: 2px 6px;">{{ $contagem['nao_atendidos'] }}</span>
+            @endif
         </button>
-        <button class="chat-tab @if($filtro === 'atendidos') active @endif" 
+        <button class="chat-tab-btn @if($filtro === 'atendidos') active @endif" 
                 onclick="window.location.href='{{ route('gestor.chat.index', ['aba' => 'atendidos']) }}'">
-            Atendidos
-            <span class="badge">{{ $contagem['atendidos'] }}</span>
+            <i class="fas fa-user-check"></i> Atendimento
         </button>
     </div>
 
-    <div class="chat-search">
+    <div class="chat-search-box">
         <form method="GET">
-            <input type="text" name="q" placeholder="Buscar conversa..." value="{{ $busca }}">
+            <input type="text" name="q" class="chat-search-input" placeholder="Procurar na equipe..." value="{{ $busca }}">
         </form>
     </div>
 
     <div class="chat-list">
         @forelse($conversas as $conversa)
         <a href="{{ route('gestor.chat.conversa', $conversa->id) }}" 
-           class="chat-item @if($conversa->pinned) pinned @endif">
+           class="chat-item {{ request()->route('id') == $conversa->id ? 'active' : '' }}">
             <div class="chat-item-avatar">
                 {{ strtoupper(substr($conversa->contact->nome ?? 'C', 0, 1)) }}
             </div>
             <div class="chat-item-info">
-                <div class="chat-item-name">
-                    @if($conversa->pinned)
-                    <i class="fas fa-star pin-icon"></i>
-                    @endif
-                    <span>{{ $conversa->contact->nome ?? 'Cliente' }}</span>
+                <div class="chat-item-header">
+                    <span class="chat-item-name">{{ $conversa->contact->nome ?? 'Cliente' }}</span>
                     <span class="chat-item-time">
                         @if($conversa->last_message_at)
                         {{ $conversa->last_message_at->format('H:i') }}
@@ -46,33 +58,26 @@
                     </span>
                 </div>
                 <div class="chat-item-preview">
-                    <small class="text-muted">{{ $conversa->vendedor->nome ?? 'Sem vendedor' }}</small>
-                    <br>
-                    {{ $conversa->ultimoMensagem->conteudo ?? 'Sem mensagens' }}
+                    <span style="font-weight: 800; color: var(--primary); font-size: 0.7rem; text-transform: uppercase;">
+                        {{ $conversa->vendedor->user->name ?? 'Fila Global' }}
+                    </span>
+                    <span style="margin-left: 4px;">{{ $conversa->ultimoMensagem->conteudo ?? 'Mensagem da equipe...' }}</span>
                 </div>
             </div>
-            @if($conversa->unread_count > 0)
-            <div class="chat-item-badge">{{ $conversa->unread_count }}</div>
-            @endif
         </a>
         @empty
-        <div class="empty-state" style="padding: 40px;">
-            <i class="fas fa-comments fa-3x"></i>
-            <p>Nenhuma conversa encontrada</p>
+        <div class="chat-empty-state" style="padding: 20px;">
+            <i class="fas fa-comment-slash" style="font-size: 2rem; margin-bottom: 10px;"></i>
+            <p style="font-size: 0.85rem;">Nenhuma conversa ativa</p>
         </div>
         @endforelse
     </div>
+@endsection
 
-    <div class="pagination-container" style="padding: 12px;">
-        {{ $conversas->appends(['aba' => $filtro, 'q' => $busca])->links() }}
+@section('chat-content')
+    <div class="chat-empty-state">
+        <i class="fab fa-whatsapp"></i>
+        <h3>Chat da Equipe</h3>
+        <p>Selecione uma conversa ao lado para monitorar o atendimento ou intervir se necessário.</p>
     </div>
-</div>
-
-<div class="chat-main">
-    <div class="empty-state">
-        <i class="fas fa-comments fa-4x"></i>
-        <h4>Selecione uma conversa</h4>
-        <p>Clique em uma conversa na lista para visualizar as mensagens</p>
-    </div>
-</div>
 @endsection
