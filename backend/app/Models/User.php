@@ -52,6 +52,8 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_rotated_at' => 'datetime',
+            'two_factor_enabled' => 'boolean',
+            'require_password_change' => 'boolean',
         ];
     }
 
