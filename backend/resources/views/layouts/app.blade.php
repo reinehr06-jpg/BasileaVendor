@@ -353,6 +353,18 @@
 </head>
 <body>
     <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand-logo mini">
+            <div style="display:flex;flex-direction:column;align-items:center;width:100%;">
+                <div style="display:flex;align-items:center;gap:4px;">
+                    <div class="brand-icon">B</div>
+                    <span class="brand-name">Basiléia</span>
+                </div>
+                <div class="brand-subtext">Sales</div>
+            </div>
+            <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" onclick="toggleSidebar()" title="Recolher menu">
+                <i class="fas fa-circle" style="font-size:0.5rem;"></i>
+            </button>
+        </div>
         @php $perfil = Auth::user()->perfil; @endphp
         <nav class="sidebar-menu">
             @if($perfil === 'master' || $perfil === 'admin')
@@ -524,15 +536,6 @@
             @endif
         </nav>
         <div class="sidebar-footer">
-            <div class="sidebar-brand-logo mini">
-                <div style="display:flex;flex-direction:column;align-items:center;width:100%;">
-                    <div style="display:flex;align-items:center;gap:4px;">
-                        <div class="brand-icon">B</div>
-                        <span class="brand-name">Basiléia</span>
-                    </div>
-                    <div class="brand-subtext">Sales</div>
-                </div>
-            </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="btn-logout">

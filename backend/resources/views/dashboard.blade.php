@@ -7,9 +7,8 @@
         height: calc(100vh - 100px);
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        overflow-y: auto;
-        padding-bottom: 20px;
+        gap: 15px;
+        overflow: hidden;
     }
 
     .dashboard-header {
@@ -22,9 +21,8 @@
     .dashboard-header h2 {
         font-size: 1.35rem;
         font-weight: 800;
-        letter-spacing: -0.5px;
-        margin: 0;
         color: var(--text-primary);
+        margin: 0;
     }
 
     .kpi-row {
@@ -38,15 +36,13 @@
         display: flex;
         flex-direction: column;
         justify-content: center;
-        transition: transform 0.2s;
     }
-    .stat-card.mini:hover { transform: translateY(-3px); }
 
     .stat-card.mini .stat-icon {
-        width: 32px;
-        height: 32px;
-        font-size: 0.85rem;
-        margin-bottom: 8px;
+        width: 30px;
+        height: 30px;
+        font-size: 0.8rem;
+        margin-bottom: 6px;
     }
 
     .stat-card.mini .stat-value {
@@ -55,34 +51,41 @@
     }
 
     .stat-card.mini .stat-label {
-        font-size: 0.68rem;
+        font-size: 0.65rem;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        opacity: 0.7;
+        opacity: 0.6;
     }
 
-    .chart-container-box {
-        background: white;
-        border-radius: var(--radius-lg);
-        border: 1px solid var(--border-light);
-        padding: 15px;
+    .main-area {
         flex: 1;
-        min-height: 300px;
+        display: grid;
+        grid-template-columns: 2.5fr 1fr;
+        gap: 15px;
+        min-height: 0;
+    }
+
+    .chart-box {
+        background: white;
         display: flex;
         flex-direction: column;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-light);
     }
 
-    .secondary-metrics-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
+    .insights-column {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; /* Spreads cards to fill vertical space */
+        height: 100%;
+        gap: 10px;
     }
 
-    .insight-card {
-        padding: 15px;
+    .insight-item {
+        flex: 1;
         background: white;
         border: 1px solid var(--border-light);
         border-radius: var(--radius-lg);
+        padding: 15px;
         display: flex;
         align-items: center;
         gap: 15px;
@@ -90,14 +93,15 @@
         text-decoration: none !important;
     }
 
-    .insight-card:hover {
+    .insight-item:hover {
+        transform: translateX(5px);
         border-color: var(--primary);
         box-shadow: var(--shadow-sm);
     }
 
-    .insight-card-icon {
-        width: 44px;
-        height: 44px;
+    .insight-icon {
+        width: 42px;
+        height: 42px;
         border-radius: 12px;
         display: flex;
         align-items: center;
@@ -106,17 +110,17 @@
         flex-shrink: 0;
     }
 
-    .insight-card-info .label {
-        font-size: 0.7rem;
+    .insight-info .label {
+        font-size: 0.68rem;
         text-transform: uppercase;
         letter-spacing: 0.5px;
         color: var(--text-muted);
         margin-bottom: 2px;
     }
 
-    .insight-card-info .value {
+    .insight-info .value {
         font-weight: 800;
-        font-size: 1.1rem;
+        font-size: 1.15rem;
         color: var(--text-primary);
     }
 </style>
@@ -127,13 +131,11 @@
             <h2>{{ $tituloSessao }}</h2>
             <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">{{ $periodoLabel }} • Atualizado em tempo real</p>
         </div>
-        <div class="d-flex gap-2">
-            <select class="filter-select" style="height: 36px; border-radius: 10px;" onchange="window.location.href='?periodo='+this.value">
-                <option value="month" {{ $periodo === 'month' ? 'selected' : '' }}>Este Mês</option>
-                <option value="week" {{ $periodo === 'week' ? 'selected' : '' }}>Esta Semana</option>
-                <option value="year" {{ $periodo === 'year' ? 'selected' : '' }}>Este Ano</option>
-            </select>
-        </div>
+        <select class="filter-select" style="height: 34px; border-radius: 10px;" onchange="window.location.href='?periodo='+this.value">
+            <option value="month" {{ $periodo === 'month' ? 'selected' : '' }}>Este Mês</option>
+            <option value="week" {{ $periodo === 'week' ? 'selected' : '' }}>Esta Semana</option>
+            <option value="year" {{ $periodo === 'year' ? 'selected' : '' }}>Este Ano</option>
+        </select>
     </div>
 
     <!-- Mini KPIs Row -->
@@ -170,49 +172,48 @@
         </div>
     </div>
 
-    <!-- Main Chart Box -->
-    <div class="chart-container-box glass-card">
-        <div class="d-flex justify-between align-center mb-3">
-            <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary);">
-                <i class="fas fa-chart-area text-primary me-2"></i>Desempenho Comercial
+    <!-- Main Analysis Area -->
+    <div class="main-area">
+        <div class="chart-box glass-card">
+            <div class="card-header d-flex justify-between" style="padding: 10px 15px; border-bottom: 1px solid var(--border-light);">
+                <div style="font-weight: 800; font-size: 0.9rem;"><i class="fas fa-chart-area text-primary me-2"></i>Desempenho Comercial</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">{{ $periodoLabel }}</div>
             </div>
-            <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">{{ $periodoLabel }}</div>
+            <div style="flex: 1; padding: 15px; position: relative;">
+                <canvas id="mainChart"></canvas>
+            </div>
         </div>
-        <div style="flex: 1; position: relative; min-height: 250px;">
-            <canvas id="mainChart"></canvas>
-        </div>
-    </div>
 
-    <!-- Secondary Metrics Row -->
-    <div class="secondary-metrics-row">
-        <div class="insight-card glass-card">
-            <div class="insight-card-icon" style="background: #e0f2fe; color: #0284c7;"><i class="fas fa-tag"></i></div>
-            <div class="insight-card-info">
-                <div class="label">Ticket Médio</div>
-                <div class="value">R$ {{ number_format($ticketMedio, 2, ',', '.') }}</div>
+        <div class="insights-column">
+            <div class="insight-item glass-card">
+                <div class="insight-icon" style="background: #e0f2fe; color: #0284c7;"><i class="fas fa-tag"></i></div>
+                <div class="insight-info">
+                    <div class="label">Ticket Médio</div>
+                    <div class="value">R$ {{ number_format($ticketMedio, 2, ',', '.') }}</div>
+                </div>
             </div>
+            <div class="insight-item glass-card">
+                <div class="insight-icon" style="background: #fef3c7; color: #d97706;"><i class="fas fa-sync"></i></div>
+                <div class="insight-info">
+                    <div class="label">Renovações</div>
+                    <div class="value">{{ $renovacoesMes }} <small style="font-size: 0.6rem; opacity: 0.6;">UND</small></div>
+                </div>
+            </div>
+            <div class="insight-item glass-card">
+                <div class="insight-icon" style="background: #fee2e2; color: #dc2626;"><i class="fas fa-user-minus"></i></div>
+                <div class="insight-info">
+                    <div class="label">Churn Rate</div>
+                    <div class="value">{{ number_format($churnMes, 1) }}%</div>
+                </div>
+            </div>
+            <a href="{{ route('master.ia') }}" class="insight-item glass-card" style="background: rgba(145, 85, 253, 0.04); border-color: var(--primary);">
+                <div class="insight-icon" style="background: #9155FD; color: white;"><i class="fas fa-brain"></i></div>
+                <div class="insight-info">
+                    <div class="label">IA Insights</div>
+                    <div class="value" style="color: #9155FD;">Ver Operação <i class="fas fa-arrow-right ms-1" style="font-size: 0.7rem;"></i></div>
+                </div>
+            </a>
         </div>
-        <div class="insight-card glass-card">
-            <div class="insight-card-icon" style="background: #fef3c7; color: #d97706;"><i class="fas fa-sync"></i></div>
-            <div class="insight-card-info">
-                <div class="label">Renovações</div>
-                <div class="value">{{ $renovacoesMes }} <small style="font-size: 0.6rem; opacity: 0.6;">UND</small></div>
-            </div>
-        </div>
-        <div class="insight-card glass-card">
-            <div class="insight-card-icon" style="background: #fee2e2; color: #dc2626;"><i class="fas fa-user-minus"></i></div>
-            <div class="insight-card-info">
-                <div class="label">Churn Rate</div>
-                <div class="value">{{ number_format($churnMes, 1) }}%</div>
-            </div>
-        </div>
-        <a href="{{ route('master.ia') }}" class="insight-card glass-card" style="background: rgba(145, 85, 253, 0.04); border-color: rgba(145, 85, 253, 0.3);">
-            <div class="insight-card-icon" style="background: #9155FD; color: white;"><i class="fas fa-brain"></i></div>
-            <div class="insight-card-info">
-                <div class="label">IA Insights</div>
-                <div class="value" style="color: #9155FD;">Ver Operação <i class="fas fa-arrow-right ms-1" style="font-size: 0.7rem;"></i></div>
-            </div>
-        </a>
     </div>
 </div>
 
@@ -220,8 +221,8 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const ctx = document.getElementById('mainChart').getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-        gradient.addColorStop(0, 'rgba(145, 85, 253, 0.15)');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(145, 85, 253, 0.2)');
         gradient.addColorStop(1, 'rgba(145, 85, 253, 0.0)');
 
         new Chart(ctx, {
@@ -239,36 +240,23 @@
                     pointRadius: 4,
                     pointBackgroundColor: '#9155FD',
                     pointBorderColor: '#fff',
-                    pointBorderWidth: 2,
-                    pointHoverRadius: 6
+                    pointBorderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        backgroundColor: '#1e293b',
-                        padding: 12,
-                        titleFont: { size: 13, weight: 'bold' },
-                        bodyFont: { size: 12 },
-                        cornerRadius: 8
-                    }
+                    legend: { display: false }
                 },
                 scales: {
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#94a3b8', font: { size: 11 } }
-                    },
-                    y: {
-                        beginAtZero: true,
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                    y: { 
+                        beginAtZero: true, 
                         grid: { color: 'rgba(226, 232, 240, 0.5)', drawBorder: false },
                         ticks: { 
                             color: '#94a3b8', 
-                            font: { size: 11 },
+                            font: { size: 10 },
                             callback: function(value) { return 'R$ ' + value.toLocaleString(); }
                         }
                     }
