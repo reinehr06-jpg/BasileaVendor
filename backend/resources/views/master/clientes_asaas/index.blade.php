@@ -460,44 +460,57 @@ async function sincronizarAsaas() {
     btn.disabled     = true;
     btn.innerHTML    = '<i class="fas fa-spinner fa-spin"></i> Sincronizando...';
     progress.style.display = 'block';
-
-    let pct = 0;
-    const ticker = setInterval(() => {
-        pct = Math.min(pct + Math.random() * 3, 90);
-        bar.style.width = pct + '%';
-    }, 800);
+    
+    let currentOffset = 0;
+    let hasMore = true;
+    let totalProcessed = 0;
 
     try {
-        const resp = await fetch('{{ route("master.clientes-asaas.sincronizar") }}', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        while (hasMore) {
+            const resp = await fetch('{{ route("master.clientes-asaas.sincronizar") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ offset: currentOffset })
+            });
+            
+            const isJson = resp.headers.get('content-type')?.includes('application/json');
+            const data = isJson ? await resp.json() : null;
+            
+            if (!resp.ok) {
+                throw new Error(data?.message || 'Erro ' + resp.status + ': ' + resp.statusText);
             }
-        });
-        
-        const isJson = resp.headers.get('content-type')?.includes('application/json');
-        const data = isJson ? await resp.json() : null;
-        
-        if (!resp.ok) {
-            throw new Error(data?.message || 'Erro ' + resp.status + ': ' + resp.statusText);
-        }
 
-        clearInterval(ticker);
-        bar.style.width = '100%';
+            if (!data.success) {
+                throw new Error(data.message);
+            }
 
-        if (data.success) {
-            msg.textContent = data.message;
-            msg.style.color = '#166534';
-            setTimeout(() => window.location.reload(), 2000);
-        } else {
-            msg.textContent = data.message;
-            msg.style.color = '#991b1b';
+            hasMore = data.hasMore;
+            currentOffset = data.nextOffset;
+            totalProcessed += data.totalProcessed;
+            
+            // Update progress bar
+            if (data.totalCount > 0) {
+                const pct = Math.min((currentOffset / data.totalCount) * 100, 100);
+                bar.style.width = pct + '%';
+                msg.textContent = `Processando ${currentOffset} de ${data.totalCount} clientes...`;
+            } else {
+                bar.style.width = '100%';
+            }
+
+            if (!hasMore) {
+                bar.style.width = '100%';
+                msg.textContent = '✅ Sincronização concluída com sucesso!';
+                msg.style.color = '#166534';
+                setTimeout(() => window.location.reload(), 2000);
+            }
         }
     } catch (e) {
-        clearInterval(ticker);
-        msg.textContent = 'Erro de conexão: ' + e.message;
+        msg.textContent = 'Erro na sincronização: ' + e.message;
         msg.style.color = '#991b1b';
+        console.error(e);
     } finally {
         btn.disabled  = false;
         btn.innerHTML = '<i class="fas fa-rotate"></i> Sincronizar com Asaas';

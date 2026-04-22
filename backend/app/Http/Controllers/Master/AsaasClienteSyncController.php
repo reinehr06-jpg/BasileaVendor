@@ -369,56 +369,61 @@ class AsaasClienteSyncController extends Controller
 
     public function sincronizar(Request $request)
     {
-        // Trava de execução: max 10 min
-        set_time_limit(600);
-        ini_set('max_execution_time', 600);
+        // Reduzimos o timeout individual, pois agora faremos múltiplas requisições rápidas
+        set_time_limit(120);
+        ini_set('memory_limit', '512M');
 
-        $offset    = 0;
-        $limit     = 100;
+        $offset    = $request->get('offset', 0);
+        $limit     = 20; // Processamos menos por vez para garantir resposta rápida (< 30s)
         $totalSinc = 0;
         $erros     = 0;
 
-        set_time_limit(0);
-        ini_set('memory_limit', '512M');
-
         try {
-            do {
-                $response  = $this->asaas->requestAsaas('GET', '/customers', [
-                    'limit'  => $limit,
-                    'offset' => $offset,
+            $response  = $this->asaas->requestAsaas('GET', '/customers', [
+                'limit'  => $limit,
+                'offset' => $offset,
+            ]);
+            
+            $customers = $response['data'] ?? [];
+            $totalCount = $response['totalCount'] ?? 0;
+            $hasMore = $response['hasMore'] ?? false;
+
+            if (empty($customers)) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "✅ Sincronização finalizada.",
+                    'hasMore' => false,
+                    'totalProcessed' => 0
                 ]);
-                $customers = $response['data'] ?? [];
-                if (empty($customers)) break;
+            }
 
-                foreach ($customers as $customer) {
-                    try {
-                        $this->processarCliente($customer);
-                        $totalSinc++;
-                    } catch (\Exception $e) {
-                        $erros++;
-                        Log::warning("AsaasSync: falha no cliente {$customer['id']}", ['error' => $e->getMessage()]);
-                    }
-                    // Delay para não saturar a API do Asaas (~3 req/cliente)
-                    usleep(300_000); // 300ms
+            foreach ($customers as $customer) {
+                try {
+                    $this->processarCliente($customer);
+                    $totalSinc++;
+                } catch (\Exception $e) {
+                    $erros++;
+                    Log::warning("AsaasSync: falha no cliente {$customer['id']}", ['error' => $e->getMessage()]);
                 }
-
-                $offset  += $limit;
-                $hasMore  = $response['hasMore'] ?? false;
-
-            } while ($hasMore);
+                // Delay menor agora que processamos menos
+                usleep(100_000); // 100ms
+            }
 
             return response()->json([
                 'success' => true,
-                'message' => "✅ Sincronizado! {$totalSinc} clientes processados." . ($erros > 0 ? " ({$erros} com erro)" : ''),
-                'total'   => $totalSinc,
-                'erros'   => $erros,
+                'message' => "Processando... ({$offset} de {$totalCount})",
+                'hasMore' => $hasMore,
+                'nextOffset' => $offset + $limit,
+                'totalProcessed' => $totalSinc,
+                'totalCount' => $totalCount,
+                'erros' => $erros
             ]);
 
         } catch (\Exception $e) {
-            Log::error('AsaasSync: erro geral', ['error' => $e->getMessage()]);
+            Log::error('AsaasSync: erro na página', ['offset' => $offset, 'error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'message' => '❌ Erro: ' . $e->getMessage(),
+                'message' => '❌ Erro no lote: ' . $e->getMessage(),
             ], 500);
         }
     }
