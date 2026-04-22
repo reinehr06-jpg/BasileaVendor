@@ -8,6 +8,7 @@ use App\Models\Vendedor;
 use App\Models\Cliente;
 use App\Models\Comissao;
 use App\Models\Venda;
+use App\Models\Pagamento;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
