@@ -179,8 +179,23 @@
             </div>
             
             <div class="form-group">
+                <label class="form-label">Importar de Arquivo (Opcional)</label>
+                <div style="border: 2px dashed #E2E8F0; padding: 20px; border-radius: 12px; text-align: center; background: #f8fafc;">
+                    <i class="fas fa-file-upload" style="font-size: 1.5rem; color: var(--primary); margin-bottom: 8px;"></i>
+                    <input type="file" name="arquivo_termo" id="arquivo_termo" class="form-control" accept=".pdf,.doc,.docx" style="display: none;" onchange="updateFileName(this)">
+                    <label for="arquivo_termo" style="display: block; cursor: pointer; color: var(--primary); font-weight: 700;">
+                        Clique para selecionar PDF ou DOCX
+                    </label>
+                    <div id="file-name" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">O sistema tentará formatar o texto automaticamente</div>
+                </div>
+            </div>
+
+            <div class="form-group">
                 <label class="form-label">Conteúdo (HTML)</label>
-                <textarea name="conteudo_html" class="form-textarea" placeholder="<h1>Termos de Uso</h1><p>Seu conteúdo aqui...</p>" required></textarea>
+                <textarea name="conteudo_html" id="conteudo_html" class="form-textarea" placeholder="<h1>Termos de Uso</h1><p>Seu conteúdo aqui...</p>" required></textarea>
+                <div class="form-text" style="font-size: 0.75rem; color: var(--primary); margin-top: 4px;">
+                    <i class="fas fa-magic"></i> Se você subir um arquivo, o conteúdo acima será preenchido após o processamento.
+                </div>
             </div>
             
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
@@ -213,6 +228,12 @@ function editarTermo(id, titulo, versao, conteudo) {
     document.querySelector('input[name="titulo"]').value = titulo;
     document.querySelector('input[name="versao"]').value = versao;
     document.querySelector('textarea[name="conteudo_html"]').value = conteudo;
+}
+
+function updateFileName(input) {
+    if (input.files && input.files[0]) {
+        document.getElementById('file-name').textContent = 'Selecionado: ' + input.files[0].name;
+    }
 }
 
 document.getElementById('termoModal').addEventListener('click', function(e) {

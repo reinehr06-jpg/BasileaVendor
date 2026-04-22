@@ -54,8 +54,8 @@
                         <div class="mb-3">
                             <label class="form-label">Prompt Personalizado</label>
                             <textarea name="prompt_personalizado" class="form-control" rows="12" 
-                                required placeholder="Use {{$variavel}} para usar contexto...">{{ old('prompt_personalizado') }}</textarea>
-                            <div class="form-text">Use variáveis como {{$nome}}, {{$email}}, etc. Entre chaves duplas.</div>
+                                required placeholder="Use {nome} para usar contexto...">{{ old('prompt_personalizado') }}</textarea>
+                            <div class="form-text">Use variáveis como {nome}, {email}, etc. Entre chaves simples.</div>
                             @error('prompt_personalizado')<div class="text-danger">{{ $message }}</div>@enderror
                         </div>
 

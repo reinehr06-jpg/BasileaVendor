@@ -23,6 +23,8 @@ class DashboardController extends Controller
         // Marketing Data
         $totalLeads = \App\Models\Contato::count();
         $campanhasAtivas = \App\Models\Campanha::where('status', 'ativa')->count();
+        $leadsHoje = \App\Models\Contato::whereDate('created_at', Carbon::today())->count();
+        $conversaoLeads = $totalLeads > 0 ? (\App\Models\Contato::where('status', 'convertido')->count() / $totalLeads) * 100 : 0;
         
         switch ($periodo) {
             case 'week':
@@ -245,7 +247,7 @@ class DashboardController extends Controller
             'melhorFaixa', 'renovacoesMes', 'vendasTrend', 'recebidoTrend',
             'contagemPendentes', 'graficoData', 'tituloSessao', 'isPersonal',
             'periodo', 'periodoLabel', 'ticketMedio',
-            'totalLeads', 'campanhasAtivas'
+            'totalLeads', 'campanhasAtivas', 'leadsHoje', 'conversaoLeads'
         ));
     }
 }

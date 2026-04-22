@@ -49,18 +49,28 @@
             min-height: 68px;
         }
         .sidebar-brand-logo img {
-            max-height: 36px;
+            max-height: 32px;
             width: auto;
-            filter: brightness(10);
             transition: all 0.3s;
         }
         .sidebar-brand-logo span {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: white;
+            white-space: nowrap;
+        }
+        .sidebar-brand-logo .brand-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1;
+        }
+        .sidebar-brand-logo .brand-subtext {
             font-size: 0.65rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            opacity: 0.5;
-            font-weight: 600;
-            white-space: nowrap;
+            opacity: 0.6;
+            font-weight: 500;
         }
         .sidebar-collapse-btn {
             width: 26px;
@@ -306,9 +316,12 @@
 <body>
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand-logo">
-            <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
+            <div style="display:flex;align-items:center;gap:12px;overflow:hidden;">
                 <img src="/assets/img/logo_oficial.png" alt="Basiléia">
-                <span>Vendas</span>
+                <div class="brand-text">
+                    <span>Basiléia</span>
+                    <span class="brand-subtext">Vendas</span>
+                </div>
             </div>
             <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" onclick="toggleSidebar()" title="Recolher menu">
                 <i class="fas fa-circle" style="font-size:0.5rem;"></i>
