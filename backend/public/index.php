@@ -22,19 +22,33 @@ if (file_exists($envPath)) {
     if (!preg_match('/^APP_KEY=.{32,}$/m', $envContent)) {
         $key = 'base64:' . base64_encode(Encrypter::generateKey('AES-256-CBC'));
         
-        if (preg_match('/^APP_KEY=.*$/m', $envContent)) {
-            $envContent = preg_replace('/^APP_KEY=.*$/m', "APP_KEY={$key}", $envContent);
-        } else {
-            $envContent = "APP_KEY={$key}\n" . $envContent;
+        if (is_writable($envPath)) {
+            if (preg_match('/^APP_KEY=.*$/m', $envContent)) {
+                $envContent = preg_replace('/^APP_KEY=.*$/m', "APP_KEY={$key}", $envContent);
+            } else {
+                $envContent = "APP_KEY={$key}\n" . $envContent;
+            }
+            
+            file_put_contents($envPath, $envContent);
         }
         
-        file_put_contents($envPath, $envContent);
-        
-        // Sobrescreve todas as variáveis de ambiente
+        // SOBRESCREVE TODAS AS VARIÁVEIS MESMO SE NÃO CONSEGUIR ESCREVER NO ARQUIVO!
         putenv("APP_KEY={$key}");
         $_ENV['APP_KEY'] = $key;
         $_SERVER['APP_KEY'] = $key;
+        
+        // Força o Laravel a usar essa chave SEM EXCEÇÃO
+        $GLOBALS['APP_KEY'] = $key;
+        define('APP_KEY', $key);
     }
+}
+
+// FORÇA A CHAVE MESMO SE NÃO TIVER NADA!
+if (!isset($_ENV['APP_KEY']) || empty($_ENV['APP_KEY'])) {
+    $key = 'base64:' . base64_encode(Encrypter::generateKey('AES-256-CBC'));
+    putenv("APP_KEY={$key}");
+    $_ENV['APP_KEY'] = $key;
+    $_SERVER['APP_KEY'] = $key;
 }
 
 // Determine if the application is in maintenance mode...
