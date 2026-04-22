@@ -19,6 +19,10 @@ class DashboardController extends Controller
     {
         $user = Auth::user();
         $periodo = $request->get('periodo', 'month');
+
+        // Marketing Data
+        $totalLeads = \App\Models\Contato::count();
+        $campanhasAtivas = \App\Models\Campanha::where('status', 'ativa')->count();
         
         switch ($periodo) {
             case 'week':
@@ -240,7 +244,8 @@ class DashboardController extends Controller
             'totalRecebido', 'clientesAtivos', 'churnMes',
             'melhorFaixa', 'renovacoesMes', 'vendasTrend', 'recebidoTrend',
             'contagemPendentes', 'graficoData', 'tituloSessao', 'isPersonal',
-            'periodo', 'periodoLabel', 'ticketMedio'
+            'periodo', 'periodoLabel', 'ticketMedio',
+            'totalLeads', 'campanhasAtivas'
         ));
     }
 }

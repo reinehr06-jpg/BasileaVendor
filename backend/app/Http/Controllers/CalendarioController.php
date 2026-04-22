@@ -109,4 +109,61 @@ class CalendarioController extends Controller
 
         return back()->with('success', 'Eventos sincronizados com Google Calendar!');
     }
+
+    /**
+     * Download .ics file for a calendar event (RFC 5545).
+     * Works natively on macOS (Apple Calendar), Windows (Outlook),
+     * and Linux (GNOME Calendar / Thunderbird).
+     * Includes a 5-minute reminder (VALARM).
+     */
+    public function downloadIcs(CalendarioEvento $evento)
+    {
+        $uid = 'basileia-' . $evento->id . '@basileia.global';
+        $now = gmdate('Ymd\THis\Z');
+        $dtstart = $evento->data_hora_inicio->setTimezone('UTC')->format('Ymd\THis\Z');
+        $dtend = $evento->data_hora_fim
+            ? $evento->data_hora_fim->setTimezone('UTC')->format('Ymd\THis\Z')
+            : $evento->data_hora_inicio->addHour()->setTimezone('UTC')->format('Ymd\THis\Z');
+
+        $summary = str_replace(["\r", "\n", ",", ";"], [' ', ' ', '\,', '\;'], $evento->titulo);
+        $description = str_replace(["\r", "\n", ",", ";"], [' ', ' ', '\,', '\;'], $evento->descricao ?? '');
+
+        $tipoLabel = match($evento->tipo) {
+            'follow_up' => 'Follow-up',
+            'reuniao' => 'Reunião',
+            'lembrete' => 'Lembrete',
+            'vencimento' => 'Vencimento',
+            default => ucfirst($evento->tipo),
+        };
+
+        $ics = "BEGIN:VCALENDAR\r\n";
+        $ics .= "VERSION:2.0\r\n";
+        $ics .= "PRODID:-//Basileia Vendas//Calendar//PT\r\n";
+        $ics .= "CALSCALE:GREGORIAN\r\n";
+        $ics .= "METHOD:PUBLISH\r\n";
+        $ics .= "X-WR-CALNAME:Basiléia Vendas\r\n";
+        $ics .= "BEGIN:VEVENT\r\n";
+        $ics .= "UID:{$uid}\r\n";
+        $ics .= "DTSTAMP:{$now}\r\n";
+        $ics .= "DTSTART:{$dtstart}\r\n";
+        $ics .= "DTEND:{$dtend}\r\n";
+        $ics .= "SUMMARY:[{$tipoLabel}] {$summary}\r\n";
+        $ics .= "DESCRIPTION:{$description}\r\n";
+        $ics .= "STATUS:CONFIRMED\r\n";
+        $ics .= "BEGIN:VALARM\r\n";
+        $ics .= "TRIGGER:-PT5M\r\n";
+        $ics .= "ACTION:DISPLAY\r\n";
+        $ics .= "DESCRIPTION:Lembrete: {$summary} em 5 minutos\r\n";
+        $ics .= "END:VALARM\r\n";
+        $ics .= "END:VEVENT\r\n";
+        $ics .= "END:VCALENDAR\r\n";
+
+        $filename = 'evento-' . \Str::slug($evento->titulo) . '.ics';
+
+        return response($ics, 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
 }
+

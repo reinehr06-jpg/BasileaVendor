@@ -3,166 +3,162 @@
 @section('title', 'Campanhas')
 
 @section('content')
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">Campanhas de Marketing</h4>
-                </div>
-                <div class="card-body">
+<div class="animate-up">
+    <div class="page-header">
+        <div>
+            <h2><i class="fas fa-bullhorn text-primary"></i> Marketing de Resultados</h2>
+            <p>Gerencie suas campanhas e monitore a performance de captação em tempo real.</p>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="novaCampanha()">
+            <i class="fas fa-plus"></i> Nova Campanha
+        </button>
+    </div>
 
-                    {{-- KPIs Globais --}}
-                    <div class="row mb-4">
-                        <div class="col-md-3">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body">
-                                    <h5>{{ number_format($kpis['total_leads']) }}</h5>
-                                    <p class="mb-0">Total de Leads</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-success text-white">
-                                <div class="card-body">
-                                    <h5>{{ number_format($kpis['total_convertidos']) }}</h5>
-                                    <p class="mb-0">Convertidos</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-info text-white">
-                                <div class="card-body">
-                                    <h5>{{ number_format($kpis['taxa_geral'], 1) }}%</h5>
-                                    <p class="mb-0">Taxa Conversão Geral</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-warning text-white">
-                                <div class="card-body">
-                                    <h5>{{ $kpis['campanhas_ativas'] }}</h5>
-                                    <p class="mb-0">Campanhas Ativas</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+    {{-- KPIs Premium --}}
+    <div class="stats-bar mb-4">
+        <div class="stat-card glass-card">
+            <div class="stat-icon primary"><i class="fas fa-users"></i></div>
+            <div class="stat-value">{{ number_format($kpis['total_leads']) }}</div>
+            <div class="stat-label">Total de Leads</div>
+        </div>
+        <div class="stat-card glass-card">
+            <div class="stat-icon success"><i class="fas fa-user-check"></i></div>
+            <div class="stat-value">{{ number_format($kpis['total_convertidos']) }}</div>
+            <div class="stat-label">Convertidos</div>
+        </div>
+        <div class="stat-card glass-card">
+            <div class="stat-icon info"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-value">{{ number_format($kpis['taxa_geral'], 1) }}%</div>
+            <div class="stat-label">Conversão Geral</div>
+        </div>
+        <div class="stat-card glass-card">
+            <div class="stat-icon warning"><i class="fas fa-rocket"></i></div>
+            <div class="stat-value">{{ $kpis['campanhas_ativas'] }}</div>
+            <div class="stat-label">Campanhas Ativas</div>
+        </div>
+    </div>
 
-                    {{-- Filtros --}}
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <form method="GET" class="d-flex gap-2">
-                                <select name="status" class="form-select" style="width: auto;">
-                                    <option value="">Todos os Status</option>
-                                    <option value="ativa" {{ request('status') === 'ativa' ? 'selected' : '' }}>Ativa</option>
-                                    <option value="pausada" {{ request('status') === 'pausada' ? 'selected' : '' }}>Pausada</option>
-                                    <option value="encerrada" {{ request('status') === 'encerrada' ? 'selected' : '' }}>Encerrada</option>
-                                </select>
-                                <select name="canal" class="form-select" style="width: auto;">
-                                    <option value="">Todos os Canais</option>
-                                    <option value="meta_ads" {{ request('canal') === 'meta_ads' ? 'selected' : '' }}>Meta Ads</option>
-                                    <option value="google_ads" {{ request('canal') === 'google_ads' ? 'selected' : '' }}>Google Ads</option>
-                                    <option value="whatsapp_link" {{ request('canal') === 'whatsapp_link' ? 'selected' : '' }}>WhatsApp Link</option>
-                                    <option value="instagram" {{ request('canal') === 'instagram' ? 'selected' : '' }}>Instagram</option>
-                                    <option value="tiktok_ads" {{ request('canal') === 'tiktok_ads' ? 'selected' : '' }}>TikTok Ads</option>
-                                    <option value="formulario_web" {{ request('canal') === 'formulario_web' ? 'selected' : '' }}>Formulário Web</option>
-                                    <option value="landing_page" {{ request('canal') === 'landing_page' ? 'selected' : '' }}>Landing Page</option>
-                                    <option value="organico" {{ request('canal') === 'organico' ? 'selected' : '' }}>Orgânico</option>
-                                    <option value="importacao" {{ request('canal') === 'importacao' ? 'selected' : '' }}>Importação</option>
-                                    <option value="outro" {{ request('canal') === 'outro' ? 'selected' : '' }}>Outro</option>
-                                </select>
-                                <button type="submit" class="btn btn-primary">Filtrar</button>
-                                <a href="{{ route('admin.campanhas.index') }}" class="btn btn-secondary">Limpar</a>
-                            </form>
-                        </div>
-                    </div>
-
-                    {{-- Tabela de Campanhas --}}
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Canal</th>
-                                    <th>Status</th>
-                                    <th>Leads</th>
-                                    <th>Convertidos</th>
-                                    <th>Taxa Conv.</th>
-                                    <th>CPL</th>
-                                    <th>Último Lead</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($campanhas as $campanha)
-                                <tr>
-                                    <td>
-                                        <strong>{{ $campanha->nome }}</strong>
-                                        @if($campanha->descricao)
-                                        <br><small class="text-muted">{{ Str::limit($campanha->descricao, 50) }}</small>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ ucfirst(str_replace('_', ' ', $campanha->canal)) }}</span>
-                                    </td>
-                                    <td>
-                                        @if($campanha->status === 'ativa')
-                                            <span class="badge bg-success">Ativa</span>
-                                        @elseif($campanha->status === 'pausada')
-                                            <span class="badge bg-warning">Pausada</span>
-                                        @else
-                                            <span class="badge bg-secondary">Encerrada</span>
-                                        @endif
-                                    </td>
-                                    <td>{{ number_format($campanha->total_leads) }}</td>
-                                    <td>{{ number_format($campanha->total_convertidos) }}</td>
-                                    <td>{{ number_format($campanha->taxa_conversao, 1) }}%</td>
-                                    <td>
-                                        @if($campanha->cpl)
-                                            R$ {{ number_format($campanha->cpl, 2, ',', '.') }}
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($campanha->ultimo_lead)
-                                            {{ $campanha->ultimo_lead->format('d/m/Y') }}
-                                        @else
-                                            Nunca
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <a href="{{ route('admin.campanhas.show', $campanha) }}" class="btn btn-sm btn-info">
-                                            <i class="fas fa-eye"></i> Ver
-                                        </a>
-                                        <a href="#" onclick="editarCampanha({{ $campanha->id }})" class="btn btn-sm btn-warning">
-                                            <i class="fas fa-edit"></i> Editar
-                                        </a>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="9" class="text-center py-4">
-                                        <i class="fas fa-bullhorn fa-3x text-muted mb-3"></i>
-                                        <h5>Nenhuma campanha encontrada</h5>
-                                        <p class="text-muted">Crie sua primeira campanha para começar a capturar leads.</p>
-                                        <button type="button" class="btn btn-primary" onclick="novaCampanha()">
-                                            <i class="fas fa-plus"></i> Criar Primeira Campanha
-                                        </button>
-                                    </td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {{-- Botão Nova Campanha --}}
-                    <div class="mt-3">
-                        <button type="button" class="btn btn-primary" onclick="novaCampanha()">
-                            <i class="fas fa-plus"></i> Nova Campanha
-                        </button>
-                    </div>
-                </div>
+    <div class="card glass-card">
+        <div class="card-header justify-between">
+            <div class="d-flex align-center gap-2">
+                <i class="fas fa-list-ul"></i> Ativos de Marketing
+            </div>
+            
+            <form method="GET" class="d-flex gap-2">
+                <select name="status" class="form-control" style="width: auto; height: 36px; padding: 0 12px; font-size: 0.8rem;">
+                    <option value="">Status</option>
+                    <option value="ativa" {{ request('status') === 'ativa' ? 'selected' : '' }}>Ativa</option>
+                    <option value="pausada" {{ request('status') === 'pausada' ? 'selected' : '' }}>Pausada</option>
+                </select>
+                <select name="canal" class="form-control" style="width: auto; height: 36px; padding: 0 12px; font-size: 0.8rem;">
+                    <option value="">Canal</option>
+                    <option value="meta_ads" {{ request('canal') === 'meta_ads' ? 'selected' : '' }}>Meta Ads</option>
+                    <option value="google_ads" {{ request('canal') === 'google_ads' ? 'selected' : '' }}>Google Ads</option>
+                    <option value="whatsapp_link" {{ request('canal') === 'whatsapp_link' ? 'selected' : '' }}>WhatsApp</option>
+                </select>
+                <button type="submit" class="btn btn-sm btn-outline-primary">Filtrar</button>
+            </form>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead style="background: rgba(var(--primary-rgb), 0.03);">
+                        <tr>
+                            <th style="padding: 16px 24px;">Campanha</th>
+                            <th>Canal de Origem</th>
+                            <th>Status</th>
+                            <th>Performance</th>
+                            <th>Conversão</th>
+                            <th>Custo/Lead</th>
+                            <th class="text-right" style="padding-right: 24px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($campanhas as $campanha)
+                        <tr>
+                            <td style="padding: 16px 24px;">
+                                <div style="font-weight: 700; color: var(--text-primary);">{{ $campanha->nome }}</div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">ID: #CMP-{{ str_pad($campanha->id, 4, '0', STR_PAD_LEFT) }}</div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-center gap-1">
+                                    @php
+                                        $icon = match($campanha->canal) {
+                                            'meta_ads' => 'fab fa-facebook-square',
+                                            'google_ads' => 'fab fa-google',
+                                            'whatsapp_link' => 'fab fa-whatsapp',
+                                            'instagram' => 'fab fa-instagram',
+                                            'tiktok_ads' => 'fab fa-tiktok',
+                                            default => 'fas fa-link'
+                                        };
+                                        $color = match($campanha->canal) {
+                                            'meta_ads' => '#1877F2',
+                                            'google_ads' => '#EA4335',
+                                            'whatsapp_link' => '#25D366',
+                                            'instagram' => '#E4405F',
+                                            'tiktok_ads' => '#000000',
+                                            default => 'var(--text-muted)'
+                                        };
+                                    @endphp
+                                    <i class="{{ $icon }}" style="color: {{ $color }};"></i>
+                                    <span style="font-size: 0.85rem; font-weight: 500;">{{ ucfirst(str_replace('_', ' ', $campanha->canal)) }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                @if($campanha->status === 'ativa')
+                                    <span class="badge" style="background: rgba(22, 163, 74, 0.1); color: #16a34a; border: 1px solid rgba(22, 163, 74, 0.2);">Ativa</span>
+                                @elseif($campanha->status === 'pausada')
+                                    <span class="badge" style="background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2);">Pausada</span>
+                                @else
+                                    <span class="badge" style="background: rgba(161, 161, 181, 0.1); color: #a1a1b5; border: 1px solid rgba(161, 161, 181, 0.2);">Encerrada</span>
+                                @endif
+                            </td>
+                            <td>
+                                <div style="font-size: 0.9rem; font-weight: 700;">{{ number_format($campanha->total_leads) }} <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 400;">leads</span></div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-center gap-2">
+                                    <div style="flex: 1; height: 6px; background: #eee; border-radius: 3px; max-width: 60px; overflow: hidden;">
+                                        <div style="width: {{ $campanha->taxa_conversao }}%; height: 100%; background: var(--primary); border-radius: 3px;"></div>
+                                    </div>
+                                    <span style="font-size: 0.85rem; font-weight: 600;">{{ number_format($campanha->taxa_conversao, 1) }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600;">
+                                    @if($campanha->cpl)
+                                        <span style="color: var(--text-primary);">R$ {{ number_format($campanha->cpl, 2, ',', '.') }}</span>
+                                    @else
+                                        <span style="color: var(--text-muted); font-size: 0.8rem;">N/A</span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="text-right" style="padding-right: 24px;">
+                                <div class="d-flex justify-end gap-1">
+                                    <a href="{{ route('admin.campanhas.show', $campanha) }}" class="btn btn-icon btn-sm btn-outline-primary" title="Visualizar Detalhes">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </a>
+                                    <button onclick="editarCampanha({{ $campanha->id }})" class="btn btn-icon btn-sm btn-outline-warning" title="Editar Campanha">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="fas fa-bullhorn fa-3x mb-3 opacity-20"></i>
+                                    <p>Nenhuma campanha estratégica ativa no momento.</p>
+                                    <button type="button" class="btn btn-outline-primary mt-2" onclick="novaCampanha()">
+                                        <i class="fas fa-plus"></i> Iniciar Primeira Campanha
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

@@ -13,6 +13,7 @@ use App\Http\Controllers\Chat\ChatWebhookController;
 use App\Http\Controllers\Lead\LeadWebhookController;
 use App\Http\Controllers\Lead\LeadController;
 use App\Http\Controllers\Api\LimparBancoController;
+use App\Http\Controllers\Api\IAController;
 use App\Http\Middleware\ApiKeyAuth;
 
 // ==========================================

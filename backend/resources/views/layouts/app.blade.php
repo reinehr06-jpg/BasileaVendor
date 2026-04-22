@@ -20,23 +20,70 @@
             height: 100vh;
             z-index: 50;
             box-shadow: 4px 0 30px rgba(59, 7, 100, 0.4);
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
         }
-        .sidebar-brand {
-            padding: 22px 20px;
-            font-size: 1.35rem;
-            font-weight: 800;
+        /* ── Collapsed State ── */
+        .sidebar.collapsed { width: 68px; }
+        .sidebar.collapsed .sidebar-brand-logo span,
+        .sidebar.collapsed .sidebar-user,
+        .sidebar.collapsed .menu-section,
+        .sidebar.collapsed .menu-item-text,
+        .sidebar.collapsed .btn-logout-text { display: none; }
+        .sidebar.collapsed .sidebar-brand-logo { justify-content: center; padding: 16px 8px; }
+        .sidebar.collapsed .sidebar-brand-logo img { max-height: 28px; }
+        .sidebar.collapsed .sidebar-collapse-btn { position: static; margin: 0 auto; }
+        .sidebar.collapsed .menu-item { justify-content: center; padding: 14px 0; gap: 0; border-left: none; }
+        .sidebar.collapsed .menu-item i { margin: 0; font-size: 1.2rem; }
+        .sidebar.collapsed .menu-item.active { border-left: none; background: rgba(255,255,255,0.2); border-radius: 10px; margin: 2px 8px; }
+        .sidebar.collapsed .btn-logout { justify-content: center; padding: 12px; }
+        .sidebar.collapsed .sidebar-footer { padding: 12px 8px; }
+
+        .sidebar-brand-logo {
+            padding: 18px 20px;
             border-bottom: 1px solid rgba(255,255,255,0.12);
-            text-align: center;
-            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            min-height: 68px;
+        }
+        .sidebar-brand-logo img {
+            max-height: 36px;
+            width: auto;
+            filter: brightness(10);
+            transition: all 0.3s;
+        }
+        .sidebar-brand-logo span {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.5;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .sidebar-collapse-btn {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.55rem;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .sidebar-collapse-btn:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.6);
             color: white;
+            transform: scale(1.15);
         }
-        .sidebar-brand span {
-            opacity: 0.6;
-            font-weight: 400;
-            font-size: 0.8rem;
-            display: block;
-            margin-top: 2px;
-        }
+
         .sidebar-user {
             padding: 18px 20px;
             border-bottom: 1px solid rgba(255,255,255,0.12);
@@ -73,6 +120,9 @@
             letter-spacing: 1.5px;
             color: rgba(255,255,255,0.35);
             font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            transition: opacity 0.2s;
         }
         .menu-item {
             display: flex;
@@ -86,6 +136,8 @@
             font-size: 0.88rem;
             border-left: 3px solid transparent;
             margin: 1px 0;
+            white-space: nowrap;
+            overflow: hidden;
         }
         .menu-item i {
             font-size: 1.1rem;
@@ -93,7 +145,9 @@
             text-align: center;
             color: rgba(255,255,255,0.8);
             font-weight: 900;
+            flex-shrink: 0;
         }
+        .menu-item-text { transition: opacity 0.2s; }
         .menu-item:hover {
             background: rgba(255,255,255,0.1);
             color: white;
@@ -140,7 +194,10 @@
             flex-direction: column;
             min-height: 100vh;
             overflow-x: hidden;
+            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        .sidebar.collapsed ~ .main-content { margin-left: 68px; }
+
         .topbar {
             background: var(--surface);
             padding: 14px 32px;
@@ -236,9 +293,10 @@
         }
 
         @media (max-width: 900px) {
-            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .sidebar { transform: translateX(-100%); transition: transform 0.3s ease, width 0.3s ease; width: 260px !important; }
             .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; }
+            .sidebar.collapsed { width: 260px !important; }
+            .main-content { margin-left: 0 !important; }
             .sidebar-toggle { display: block; }
             .content-area { padding: 20px 16px; }
             .topbar { padding: 12px 16px; }
@@ -247,9 +305,14 @@
 </head>
 <body>
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-brand">
-            Basiléia Vendas
-            <span>Sistema de Gestão</span>
+        <div class="sidebar-brand-logo">
+            <div style="display:flex;align-items:center;gap:10px;overflow:hidden;">
+                <img src="/assets/img/logo_oficial.png" alt="Basiléia">
+                <span>Vendas</span>
+            </div>
+            <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" onclick="toggleSidebar()" title="Recolher menu">
+                <i class="fas fa-circle" style="font-size:0.5rem;"></i>
+            </button>
         </div>
         @php $perfil = Auth::user()->perfil; @endphp
         <div class="sidebar-user">
@@ -259,227 +322,177 @@
         <nav class="sidebar-menu">
             @if($perfil === 'master' || $perfil === 'admin')
                 {{-- ADMIN MASTER --}}
+                <div class="menu-section">Painel</div>
                 <a href="{{ route('master.dashboard') }}" class="menu-item {{ request()->routeIs('master.dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-chart-pie"></i> Painel Principal
+                    <i class="fas fa-chart-pie"></i> <span class="menu-item-text">Painel Principal</span>
                 </a>
 
-                {{-- Gestão Comercial --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('gestao-comercial')">
-                        <span><i class="fas fa-briefcase"></i> Gestão Comercial</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="gestao-comercial">
-                        <a href="{{ route('master.vendedores') }}" class="menu-item {{ request()->routeIs('master.vendedores') ? 'active' : '' }}">Vendedores</a>
-                        <a href="{{ route('master.equipes') }}" class="menu-item {{ request()->routeIs('master.equipes') ? 'active' : '' }}">Equipes</a>
-                        <a href="{{ route('master.vendas') }}" class="menu-item {{ request()->routeIs('master.vendas') ? 'active' : '' }}">Todas as Vendas</a>
-                        <a href="{{ route('master.clientes') }}" class="menu-item {{ request()->routeIs('master.clientes') ? 'active' : '' }}">Clientes</a>
-                        <a href="{{ route('master.aprovacoes') }}" class="menu-item {{ request()->routeIs('master.aprovacoes') ? 'active' : '' }}">Aprovações Pendentes</a>
-                    </div>
-                </div>
+                <div class="menu-section">Gestão Comercial</div>
+                <a href="{{ route('master.vendedores') }}" class="menu-item {{ request()->routeIs('master.vendedores') ? 'active' : '' }}">
+                    <i class="fas fa-user-tie"></i> <span class="menu-item-text">Vendedores</span>
+                </a>
+                <a href="{{ route('master.equipes') }}" class="menu-item {{ request()->routeIs('master.equipes') ? 'active' : '' }}">
+                    <i class="fas fa-users"></i> <span class="menu-item-text">Equipes</span>
+                </a>
+                <a href="{{ route('master.vendas') }}" class="menu-item {{ request()->routeIs('master.vendas') ? 'active' : '' }}">
+                    <i class="fas fa-shopping-cart"></i> <span class="menu-item-text">Todas as Vendas</span>
+                </a>
+                <a href="{{ route('master.clientes') }}" class="menu-item {{ request()->routeIs('master.clientes') ? 'active' : '' }}">
+                    <i class="fas fa-user-friends"></i> <span class="menu-item-text">Clientes</span>
+                </a>
+                <a href="{{ route('master.aprovacoes') }}" class="menu-item {{ request()->routeIs('master.aprovacoes') ? 'active' : '' }}">
+                    <i class="fas fa-check-double"></i> <span class="menu-item-text">Aprovações</span>
+                </a>
 
-                {{-- Marketing & Leads --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('marketing-leads')">
-                        <span><i class="fas fa-bullhorn"></i> Marketing & Leads</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="marketing-leads">
-                        <a href="{{ route('admin.campanhas.index') }}" class="menu-item {{ request()->routeIs('admin.campanhas*') ? 'active' : '' }}">Campanhas</a>
-                        <a href="{{ route('admin.contatos.index') }}" class="menu-item {{ request()->routeIs('admin.contatos*') ? 'active' : '' }}">Contatos</a>
-                        <a href="{{ route('admin.calendario.index') }}" class="menu-item {{ request()->routeIs('admin.calendario*') ? 'active' : '' }}">Calendário</a>
-                    </div>
-                </div>
+                <div class="menu-section">Marketing</div>
+                <a href="{{ route('admin.campanhas.index') }}" class="menu-item {{ request()->routeIs('admin.campanhas*') ? 'active' : '' }}">
+                    <i class="fas fa-bullhorn"></i> <span class="menu-item-text">Campanhas</span>
+                </a>
+                <a href="{{ route('admin.contatos.index') }}" class="menu-item {{ request()->routeIs('admin.contatos*') ? 'active' : '' }}">
+                    <i class="fas fa-address-book"></i> <span class="menu-item-text">Leads</span>
+                </a>
+                <a href="{{ route('admin.calendario.index') }}" class="menu-item {{ request()->routeIs('admin.calendario*') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-alt"></i> <span class="menu-item-text">Calendário</span>
+                </a>
 
-                {{-- Chat --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('chat')">
-                        <span><i class="fab fa-whatsapp"></i> Chat</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="chat">
-                        <a href="{{ route('admin.chat.index') }}" class="menu-item {{ request()->routeIs('admin.chat.index') ? 'active' : '' }}">Conversas</a>
-                        <a href="{{ route('admin.chat.contatos') }}" class="menu-item {{ request()->routeIs('admin.chat.contatos') ? 'active' : '' }}">Contatos</a>
-                    </div>
-                </div>
+                <div class="menu-section">Comunicação</div>
+                <a href="{{ route('admin.chat.index') }}" class="menu-item {{ request()->routeIs('admin.chat.index') ? 'active' : '' }}">
+                    <i class="fab fa-whatsapp"></i> <span class="menu-item-text">Chat Conversas</span>
+                </a>
+                <a href="{{ route('admin.chat.contatos') }}" class="menu-item {{ request()->routeIs('admin.chat.contatos') ? 'active' : '' }}">
+                    <i class="fas fa-id-card"></i> <span class="menu-item-text">Chat Contatos</span>
+                </a>
 
-                {{-- Financeiro --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('financeiro')">
-                        <span><i class="fas fa-credit-card"></i> Financeiro</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="financeiro">
-                        <a href="{{ route('master.pagamentos') }}" class="menu-item {{ request()->routeIs('master.pagamentos') ? 'active' : '' }}">Controle de Pagamentos</a>
-                        <a href="{{ route('master.comissoes') }}" class="menu-item {{ request()->routeIs('master.comissoes') ? 'active' : '' }}">Comissões</a>
-                        <a href="{{ route('master.metas') }}" class="menu-item {{ request()->routeIs('master.metas') ? 'active' : '' }}">Metas e Objetivos</a>
-                    </div>
-                </div>
+                <div class="menu-section">Financeiro</div>
+                <a href="{{ route('master.pagamentos') }}" class="menu-item {{ request()->routeIs('master.pagamentos') ? 'active' : '' }}">
+                    <i class="fas fa-credit-card"></i> <span class="menu-item-text">Pagamentos</span>
+                </a>
+                <a href="{{ route('master.comissoes') }}" class="menu-item {{ request()->routeIs('master.comissoes') ? 'active' : '' }}">
+                    <i class="fas fa-percentage"></i> <span class="menu-item-text">Comissões</span>
+                </a>
+                <a href="{{ route('master.metas') }}" class="menu-item {{ request()->routeIs('master.metas') ? 'active' : '' }}">
+                    <i class="fas fa-target-slash"></i> <span class="menu-item-text">Metas</span>
+                </a>
 
-                {{-- IA & Automação --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('ia-automatizacao')">
-                        <span><i class="fas fa-robot"></i> IA & Automação</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="ia-automatizacao">
-                        <a href="{{ route('admin.ia.prompts.index') }}" class="menu-item {{ request()->routeIs('admin.ia.prompts*') ? 'active' : '' }}">📝 Configurar Prompts</a>
-                        <a href="{{ route('master.ia') }}" class="menu-item {{ request()->routeIs('master.ia') ? 'active' : '' }}">📊 Logs de IA</a>
-                    </div>
-                </div>
+                <div class="menu-section">IA Lab</div>
+                <a href="{{ route('admin.ia.prompts.index') }}" class="menu-item {{ request()->routeIs('admin.ia.prompts*') ? 'active' : '' }}">
+                    <i class="fas fa-microchip"></i> <span class="menu-item-text">Configurações IA</span>
+                </a>
+                <a href="{{ route('master.ia') }}" class="menu-item {{ request()->routeIs('master.ia') ? 'active' : '' }}">
+                    <i class="fas fa-terminal"></i> <span class="menu-item-text">Logs de Operação</span>
+                </a>
 
-                {{-- Sistema --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('sistema')">
-                        <span><i class="fas fa-cog"></i> Sistema</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="sistema">
-                        <a href="{{ route('master.configuracoes') }}" class="menu-item {{ request()->is('master/configuracoes*') ? 'active' : '' }}">Configurações</a>
-                        <a href="{{ route('admin.termos.index') }}" class="menu-item {{ request()->routeIs('admin.termos*') ? 'active' : '' }}">Termos de Uso</a>
-                        <a href="{{ route('admin.importar.index') }}" class="menu-item {{ request()->routeIs('admin.importar*') ? 'active' : '' }}">Importar Contatos</a>
-                    </div>
-                </div>
+                <div class="menu-section">Sistema</div>
+                <a href="{{ route('master.configuracoes') }}" class="menu-item {{ request()->is('master/configuracoes*') ? 'active' : '' }}">
+                    <i class="fas fa-cog"></i> <span class="menu-item-text">Configurações</span>
+                </a>
+                <a href="{{ route('admin.termos.index') }}" class="menu-item {{ request()->routeIs('admin.termos*') ? 'active' : '' }}">
+                    <i class="fas fa-file-contract"></i> <span class="menu-item-text">Termos de Uso</span>
+                </a>
+                <a href="{{ route('admin.importar.index') }}" class="menu-item {{ request()->routeIs('admin.importar*') ? 'active' : '' }}">
+                    <i class="fas fa-file-import"></i> <span class="menu-item-text">Importar</span>
+                </a>
 
             @elseif(Auth::user()->perfil === 'gestor')
                 {{-- GESTOR --}}
+                <div class="menu-section">Painel</div>
                 <a href="{{ route('vendedor.dashboard') }}" class="menu-item {{ request()->routeIs('vendedor.dashboard') ? 'active' : '' }}">
                     <i class="fas fa-chart-pie"></i> Meu Painel
                 </a>
 
-                {{-- Gestão --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('gestao-gestor')">
-                        <span><i class="fas fa-users-cog"></i> Gestão</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="gestao-gestor">
-                        <a href="{{ route('vendedor.equipe') }}" class="menu-item {{ request()->routeIs('vendedor.equipe*') ? 'active' : '' }}">Minha Equipe</a>
-                    </div>
-                </div>
+                <div class="menu-section">Gestão</div>
+                <a href="{{ route('vendedor.equipe') }}" class="menu-item {{ request()->routeIs('vendedor.equipe*') ? 'active' : '' }}">
+                    <i class="fas fa-users-cog"></i> Minha Equipe
+                </a>
 
-                {{-- Marketing & Leads --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('marketing-leads-gestor')">
-                        <span><i class="fas fa-bullhorn"></i> Marketing & Leads</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="marketing-leads-gestor">
-                        <a href="{{ route('gestor.contatos.index') }}" class="menu-item {{ request()->routeIs('gestor.contatos*') ? 'active' : '' }}">Contatos</a>
-                        <a href="{{ route('gestor.calendario.index') }}" class="menu-item {{ request()->routeIs('gestor.calendario*') ? 'active' : '' }}">Calendário</a>
-                        <a href="{{ route('gestor.aprovar-mensagem') }}" class="menu-item {{ request()->routeIs('gestor.aprovar-mensagem*') ? 'active' : '' }}">Aprovar Mensagens</a>
-                    </div>
-                </div>
+                <div class="menu-section">Marketing</div>
+                <a href="{{ route('gestor.contatos.index') }}" class="menu-item {{ request()->routeIs('gestor.contatos*') ? 'active' : '' }}">
+                    <i class="fas fa-address-book"></i> Leads
+                </a>
+                <a href="{{ route('gestor.calendario.index') }}" class="menu-item {{ request()->routeIs('gestor.calendario*') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-alt"></i> Calendário
+                </a>
+                <a href="{{ route('gestor.aprovar-mensagem') }}" class="menu-item {{ request()->routeIs('gestor.aprovar-mensagem*') ? 'active' : '' }}">
+                    <i class="fas fa-comment-check"></i> Aprovar Mensagens
+                </a>
 
-                {{-- Chat --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('chat-gestor')">
-                        <span><i class="fab fa-whatsapp"></i> Chat</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="chat-gestor">
-                        <a href="{{ route('gestor.chat.index') }}" class="menu-item {{ request()->routeIs('gestor.chat.index') ? 'active' : '' }}">Conversas</a>
-                        <a href="{{ route('gestor.chat.distribuicao') }}" class="menu-item {{ request()->routeIs('gestor.chat.distribuicao') ? 'active' : '' }}">Fila de Distribuição</a>
-                        <a href="{{ route('gestor.chat.config') }}" class="menu-item {{ request()->routeIs('gestor.chat.config') ? 'active' : '' }}">WhatsApp</a>
-                    </div>
-                </div>
+                <div class="menu-section">Comunicação</div>
+                <a href="{{ route('gestor.chat.index') }}" class="menu-item {{ request()->routeIs('gestor.chat.index') ? 'active' : '' }}">
+                    <i class="fab fa-whatsapp"></i> Conversas
+                </a>
+                <a href="{{ route('gestor.chat.distribuicao') }}" class="menu-item {{ request()->routeIs('gestor.chat.distribuicao') ? 'active' : '' }}">
+                    <i class="fas fa-random"></i> Distribuição
+                </a>
+                <a href="{{ route('gestor.chat.config') }}" class="menu-item {{ request()->routeIs('gestor.chat.config') ? 'active' : '' }}">
+                    <i class="fas fa-phone-alt"></i> WhatsApp
+                </a>
 
-                {{-- Financeiro --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('financeiro-gestor')">
-                        <span><i class="fas fa-credit-card"></i> Financeiro</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="financeiro-gestor">
-                        <a href="{{ route('vendedor.comissoes') }}" class="menu-item {{ request()->routeIs('vendedor.comissoes*') ? 'active' : '' }}">Minhas Comissões</a>
-                        <a href="{{ route('vendedor.configuracoes') }}" class="menu-item {{ request()->routeIs('vendedor.configuracoes*') ? 'active' : '' }}">Split e Repasse</a>
-                    </div>
-                </div>
+                <div class="menu-section">Financeiro</div>
+                <a href="{{ route('vendedor.comissoes') }}" class="menu-item {{ request()->routeIs('vendedor.comissoes*') ? 'active' : '' }}">
+                    <i class="fas fa-percentage"></i> Minhas Comissões
+                </a>
+                <a href="{{ route('vendedor.configuracoes') }}" class="menu-item {{ request()->routeIs('vendedor.configuracoes*') ? 'active' : '' }}">
+                    <i class="fas fa-cog"></i> Split e Repasse
+                </a>
 
-                {{-- Minha IA --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('mia-ia-gestor')">
-                        <span><i class="fas fa-robot"></i> Minha IA</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="mia-ia-gestor">
-                        <a href="{{ route('master.ia') }}" class="menu-item {{ request()->routeIs('master.ia*') ? 'active' : '' }}">📊 Métricas Pessoais</a>
-                        <a href="#" class="menu-item">🤖 SDR <span class="badge-dev">Em desenvolvimento</span></a>
-                    </div>
-                </div>
+                <div class="menu-section">IA Lab</div>
+                <a href="{{ route('master.ia') }}" class="menu-item {{ request()->routeIs('master.ia*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-line"></i> Métricas de IA
+                </a>
 
             @else
                 {{-- VENDEDOR --}}
+                <div class="menu-section">Painel</div>
                 <a href="{{ route('vendedor.dashboard') }}" class="menu-item {{ request()->routeIs('vendedor.dashboard') ? 'active' : '' }}">
                     <i class="fas fa-chart-pie"></i> Meu Painel
                 </a>
 
-                {{-- Minhas Vendas --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('minhas-vendas')">
-                        <span><i class="fas fa-shopping-bag"></i> Minhas Vendas</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="minhas-vendas">
-                        <a href="{{ route('vendedor.vendas') }}" class="menu-item {{ request()->routeIs('vendedor.vendas*') ? 'active' : '' }}">Vendas Realizadas</a>
-                        <a href="{{ route('vendedor.clientes') }}" class="menu-item {{ request()->routeIs('vendedor.clientes*') ? 'active' : '' }}">Meus Clientes</a>
-                        <a href="{{ route('vendedor.pagamentos') }}" class="menu-item {{ request()->routeIs('vendedor.pagamentos') ? 'active' : '' }}">Pagamentos Recebidos</a>
-                    </div>
-                </div>
+                <div class="menu-section">Vendas</div>
+                <a href="{{ route('vendedor.vendas') }}" class="menu-item {{ request()->routeIs('vendedor.vendas*') ? 'active' : '' }}">
+                    <i class="fas fa-shopping-bag"></i> Minhas Vendas
+                </a>
+                <a href="{{ route('vendedor.clientes') }}" class="menu-item {{ request()->routeIs('vendedor.clientes*') ? 'active' : '' }}">
+                    <i class="fas fa-user-friends"></i> Meus Clientes
+                </a>
+                <a href="{{ route('vendedor.pagamentos') }}" class="menu-item {{ request()->routeIs('vendedor.pagamentos') ? 'active' : '' }}">
+                    <i class="fas fa-credit-card"></i> Pagamentos
+                </a>
 
-                {{-- Chat --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('chat-vendedor')">
-                        <span><i class="fab fa-whatsapp"></i> Chat</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="chat-vendedor">
-                        <a href="{{ route('chat.index') }}" class="menu-item {{ request()->routeIs('chat.index') || request()->routeIs('chat.conversa') ? 'active' : '' }}">Minhas Conversas</a>
-                    </div>
-                </div>
+                <div class="menu-section">Comunicação</div>
+                <a href="{{ route('chat.index') }}" class="menu-item {{ request()->routeIs('chat.index') || request()->routeIs('chat.conversa') ? 'active' : '' }}">
+                    <i class="fab fa-whatsapp"></i> Chat WhatsApp
+                </a>
 
-                {{-- Gestão de Leads --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('leads-vendedor')">
-                        <span><i class="fas fa-address-book"></i> Gestão de Leads</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="leads-vendedor">
-                        <a href="{{ route('vendedor.contatos.index') }}" class="menu-item {{ request()->routeIs('vendedor.contatos*') ? 'active' : '' }}">Meus Contatos</a>
-                        <a href="{{ route('vendedor.calendario.index') }}" class="menu-item {{ request()->routeIs('vendedor.calendario*') ? 'active' : '' }}">Meu Calendário</a>
-                        <a href="{{ route('configuracoes.primeira-mensagem') }}" class="menu-item {{ request()->routeIs('configuracoes.primeira-mensagem*') ? 'active' : '' }}">Primeira Mensagem</a>
-                    </div>
-                </div>
+                <div class="menu-section">Marketing</div>
+                <a href="{{ route('vendedor.contatos.index') }}" class="menu-item {{ request()->routeIs('vendedor.contatos*') ? 'active' : '' }}">
+                    <i class="fas fa-address-book"></i> Meus Leads
+                </a>
+                <a href="{{ route('vendedor.calendario.index') }}" class="menu-item {{ request()->routeIs('vendedor.calendario*') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-alt"></i> Meu Calendário
+                </a>
+                <a href="{{ route('configuracoes.primeira-mensagem') }}" class="menu-item {{ request()->routeIs('configuracoes.primeira-mensagem*') ? 'active' : '' }}">
+                    <i class="fas fa-comment-dots"></i> Primeira Mensagem
+                </a>
 
-                {{-- Financeiro --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('financeiro-vendedor')">
-                        <span><i class="fas fa-credit-card"></i> Financeiro</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="financeiro-vendedor">
-                        <a href="{{ route('vendedor.comissoes') }}" class="menu-item {{ request()->routeIs('vendedor.comissoes*') ? 'active' : '' }}">Minhas Comissões</a>
-                        <a href="{{ route('vendedor.configuracoes') }}" class="menu-item {{ request()->routeIs('vendedor.configuracoes*') ? 'active' : '' }}">Split e Repasse</a>
-                    </div>
-                </div>
+                <div class="menu-section">Financeiro</div>
+                <a href="{{ route('vendedor.comissoes') }}" class="menu-item {{ request()->routeIs('vendedor.comissoes*') ? 'active' : '' }}">
+                    <i class="fas fa-percentage"></i> Comissões
+                </a>
+                <a href="{{ route('vendedor.configuracoes') }}" class="menu-item {{ request()->routeIs('vendedor.configuracoes*') ? 'active' : '' }}">
+                    <i class="fas fa-cog"></i> Configurações
+                </a>
 
-                {{-- Minha IA --}}
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-header" onclick="toggleMenuDropdown('mia-ia-vendedor')">
-                        <span><i class="fas fa-robot"></i> Minha IA</span>
-                        <i class="fas fa-chevron-down menu-dropdown-icon"></i>
-                    </div>
-                    <div class="menu-dropdown-content" id="mia-ia-vendedor">
-                        <a href="{{ route('vendedor.dashboard') }}" class="menu-item {{ request()->routeIs('vendedor.dashboard*') ? 'active' : '' }}">📊 Métricas Pessoais</a>
-                    </div>
-                </div>
+                <div class="menu-section">IA Lab</div>
+                <a href="{{ route('vendedor.dashboard') }}" class="menu-item {{ request()->routeIs('vendedor.dashboard*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-line"></i> IA Métricas
+                </a>
             @endif
         </nav>
         <div class="sidebar-footer">
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="btn-logout">
-                    <i class="fas fa-right-from-bracket"></i> Sair do Sistema
+                    <i class="fas fa-right-from-bracket"></i> <span class="btn-logout-text">Sair do Sistema</span>
                 </button>
             </form>
         </div>
@@ -579,12 +592,27 @@
 
     <script src="/js/basileia.js"></script>
     <script>
+    // ── Sidebar Collapse Toggle ──
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.toggle('collapsed');
+        localStorage.setItem('sidebar_collapsed', sidebar.classList.contains('collapsed'));
+    }
+    // Restore sidebar state from localStorage
+    (function() {
+        const collapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        if (collapsed) {
+            document.getElementById('sidebar').classList.add('collapsed');
+        }
+    })();
+
     function toggleNotif() {
         document.getElementById('notifDropdown').classList.toggle('show');
     }
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.notif-wrapper')) {
-            document.getElementById('notifDropdown').classList.remove('show');
+            var dd = document.getElementById('notifDropdown');
+            if (dd) dd.classList.remove('show');
         }
     });
     function verNotificacao(id, tipo, vendaId) {
