@@ -245,6 +245,7 @@ class AsaasClienteSyncController extends Controller
     // ──────────────────────────────────────────────────────────────
     public function update(Request $request, $id)
     {
+        try {
         $cliente = DB::table('legacy_customer_imports')->where('id', $id)->first();
         if (!$cliente) {
             return response()->json(['success' => false, 'message' => 'Cliente não encontrado'], 404);
@@ -364,6 +365,18 @@ class AsaasClienteSyncController extends Controller
             'comissao_vendedor' => 'R$ ' . number_format($importAtualizado->comissao_vendedor_calculada, 2, ',', '.'),
             'comissao_gestor' => 'R$ ' . number_format($importAtualizado->comissao_gestor_calculada, 2, ',', '.'),
         ]);
+        } catch (\Exception $e) {
+            Log::error('ERRO_UPDATE_CLIENTE', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro técnico no update: ' . $e->getMessage() . ' (Linha ' . $e->getLine() . ')'
+            ], 200);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -1166,10 +1179,12 @@ class AsaasClienteSyncController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
 
+            // Retornamos 200 com success: false para forçar o JS a mostrar o alerta com a mensagem real
+            // pois o servidor pode estar configurado para esconder detalhes em caso de 500
             return response()->json([
                 'success' => false,
-                'message' => 'Erro interno ao confirmar: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Erro técnico na confirmação: ' . $e->getMessage() . ' (Linha ' . $e->getLine() . ')'
+            ], 200);
         }
     }
 
