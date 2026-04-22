@@ -387,12 +387,12 @@
                     <i class="fas fa-target-slash"></i> <span class="menu-item-text">Metas</span>
                 </a>
 
-                <div class="menu-section">IA Lab</div>
+                <div class="menu-section">Ia Lab</div>
                 <a href="{{ route('admin.ia.prompts.index') }}" class="menu-item {{ request()->routeIs('admin.ia.prompts*') ? 'active' : '' }}">
-                    <i class="fas fa-microchip"></i> <span class="menu-item-text">Configurações IA</span>
+                    <i class="fas fa-microchip"></i> <span class="menu-item-text">IA Prompts</span>
                 </a>
                 <a href="{{ route('master.ia') }}" class="menu-item {{ request()->routeIs('master.ia') ? 'active' : '' }}">
-                    <i class="fas fa-terminal"></i> <span class="menu-item-text">Logs de Operação</span>
+                    <i class="fas fa-terminal"></i> <span class="menu-item-text">Ia Lab</span>
                 </a>
 
                 <div class="menu-section">Sistema</div>

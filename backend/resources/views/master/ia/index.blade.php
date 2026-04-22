@@ -36,8 +36,8 @@
 
 <x-page-hero 
     title="Ia Lab" 
-    subtitle="Monitoramento de Inteligência Artificial e Logs de Operação" 
-    icon="fas fa-microchip"
+    subtitle="Monitoramento em tempo real das operações e automações da IA" 
+    icon="fas fa-terminal"
 />
 
 <!-- KPIs -->
