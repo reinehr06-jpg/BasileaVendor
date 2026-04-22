@@ -17,15 +17,15 @@ chmod -R 775 storage bootstrap/cache
 # Create storage symlink
 php artisan storage:link --force 2>/dev/null || true
 
-# Cache config and routes
-php artisan config:cache || true
-php artisan route:cache || true
-php artisan view:cache || true
+# Clear any stale caches (do NOT re-cache - closures break route:cache)
+php artisan config:clear 2>/dev/null || true
+php artisan route:clear 2>/dev/null || true
+php artisan view:clear 2>/dev/null || true
 
-# Wait for database (pure sh, no netcat needed)
+# Wait for database using PHP (no external tools needed)
 echo "Waiting for database at ${DB_HOST:-postgres}:${DB_PORT:-5432}..."
 for i in $(seq 1 30); do
-    if php -r "try { new PDO('pgsql:host=${DB_HOST:-postgres};port=${DB_PORT:-5432};dbname=${DB_DATABASE:-basileia_vendas}', '${DB_USERNAME:-postgres}', '${DB_PASSWORD:-secret}'); echo 'ok'; } catch(Exception \$e) { exit(1); }" 2>/dev/null; then
+    if php -r "try { new PDO('pgsql:host='.\$_SERVER['DB_HOST'].';port='.\$_SERVER['DB_PORT'].';dbname='.\$_SERVER['DB_DATABASE'], \$_SERVER['DB_USERNAME'], \$_SERVER['DB_PASSWORD']); echo 'ok'; } catch(Exception \$e) { exit(1); }" 2>/dev/null; then
         echo "Database is ready!"
         break
     fi
@@ -34,7 +34,7 @@ for i in $(seq 1 30); do
 done
 
 # Run migrations
-php artisan migrate --force 2>/dev/null || echo "Migration skipped or failed"
+php artisan migrate --force 2>/dev/null || echo "Migration skipped"
 
 echo "Starting services..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisor.conf
