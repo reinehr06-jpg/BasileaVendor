@@ -67,7 +67,7 @@ class Campanha extends Model
         // Retorna média em horas entre entry_date e data de conversão
         return $this->contatos()
             ->where('status', 'convertido')
-            ->selectRaw('AVG(TIMESTAMPDIFF(HOUR, entry_date, updated_at)) as media')
+            ->selectRaw('AVG(EXTRACT(EPOCH FROM (updated_at - entry_date)) / 3600) as media')
             ->value('media');
     }
 

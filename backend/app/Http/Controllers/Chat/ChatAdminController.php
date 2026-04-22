@@ -159,7 +159,7 @@ class ChatAdminController extends Controller
         $tempoMedioResposta = DB::table('chat_conversas')
             ->where('created_at', '>=', $dataInicio)
             ->whereNotNull('first_response_at')
-            ->selectRaw('AVG(TIMESTAMPDIFF(MINUTE, created_at, first_response_at)) as tempo_medio')
+            ->selectRaw('AVG(EXTRACT(EPOCH FROM (first_response_at - created_at)) / 60) as tempo_medio')
             ->value('tempo_medio');
 
         $topVendedores = ChatConversa::where('created_at', '>=', $dataInicio)

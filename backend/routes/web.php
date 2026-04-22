@@ -28,7 +28,6 @@ use App\Http\Controllers\NotificacaoController;
 use App\Http\Controllers\PagamentoBoletoController;
 use App\Http\Controllers\PagamentoController;
 use App\Http\Controllers\RelatorioController;
-use App\Http\Controllers\TestLoginController;
 use App\Http\Controllers\VendaController;
 use App\Http\Controllers\VendedorConfiguracaoController;
 use App\Http\Controllers\VendedorSettingsController;
@@ -615,30 +614,11 @@ Route::middleware(['auth', 'admin'])->prefix('admin/chat/config')->name('admin.c
 // Webhooks externos (sem CSRF, com validacao propria)
 Route::post('/webhook/asaas', [BasileiaChurchWebhookController::class, 'webhookAsaas']);
 
-// Rota para limpar cache (desenvolvimento)
-Route::get('/clear-cache', function () {
-    Artisan::call('cache:clear');
-    Artisan::call('config:clear');
-    Artisan::call('view:clear');
+// Rota de migrations removida por segurança
 
-    return 'Cache limpo!';
-});
-
-// Rota para executar migrations (APENAS MASTER - usar com cuidado!)
-Route::middleware(['auth', 'master'])->get('/run-migrations', function () {
-    try {
-        Artisan::call('migrate', ['--force' => true]);
-        $output = Artisan::output();
-        return response('Migrations executadas:<br><pre>'.$output.'</pre>');
-    } catch (\Exception $e) {
-        return response('Erro: '.$e->getMessage(), 500);
-    }
-});
 Route::post('/webhook/basileia-church/sync', [BasileiaChurchWebhookController::class, 'syncCliente']);
-
 // Checkout - Webhook que recebe eventos do Checkout (servico externo)
 Route::post('/webhook/checkout', [CheckoutWebhookController::class, 'handle'])->name('webhook.checkout');
-Route::get('/test-login', [TestLoginController::class, 'testLogin']);
 
 // ──────────────────────────────────────────────────────────────────────────────
 // LEAD CAPTURE WEBHOOKS (Sem CSRF, sem auth)

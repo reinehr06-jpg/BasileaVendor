@@ -67,7 +67,7 @@ class CampanhaController extends Controller
 
         // Leads por dia (últimos 30 dias) — para o gráfico de linha
         $leadsPorDia = $campanha->contatos()
-            ->selectRaw('DATE(entry_date) as dia, COUNT(*) as total')
+            ->selectRaw('CAST(entry_date AS DATE) as dia, COUNT(*) as total')
             ->where('entry_date', '>=', now()->subDays(30))
             ->groupBy('dia')
             ->orderBy('dia')
@@ -82,7 +82,7 @@ class CampanhaController extends Controller
         // Performance por agente
         $porAgente = $campanha->contatos()
             ->selectRaw('agente_id, COUNT(*) as total_leads,
-                         SUM(CASE WHEN status = "convertido" THEN 1 ELSE 0 END) as convertidos')
+                         SUM(CASE WHEN status = \'convertido\' THEN 1 ELSE 0 END) as convertidos')
             ->whereNotNull('agente_id')
             ->with('agente')
             ->groupBy('agente_id')

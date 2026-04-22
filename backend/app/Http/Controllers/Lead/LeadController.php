@@ -336,7 +336,7 @@ class LeadController extends Controller
 
         $tempoMedio = (clone $query)
             ->whereNotNull('first_contact_at')
-            ->selectRaw('AVG(TIMESTIFFDIFF(first_contact_at, created_at, MINUTE)) as media')
+            ->selectRaw('AVG(EXTRACT(EPOCH FROM (first_contact_at - created_at)) / 60) as media')
             ->first()
             ->media ?? 0;
 
