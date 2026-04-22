@@ -18,14 +18,14 @@
 />
 
 <!-- Filters -->
-<form method="GET" action="{{ route('chat.admin.contatos') }}">
+<form method="GET" action="{{ route('admin.chat.contatos') }}">
 <div class="filters-bar">
     <div style="flex-grow: 1; position: relative;">
         <i class="fas fa-magnifying-glass" style="position: absolute; left: 14px; top: 11px; color: var(--text-muted);"></i>
         <input type="text" name="q" class="search-input" style="padding-left: 40px;" value="{{ request('q') }}" placeholder="Buscar por nome, telefone ou email...">
     </div>
     <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search"></i> Filtrar</button>
-    <a href="{{ route('chat.admin.contatos') }}" class="btn btn-ghost btn-sm">Limpar</a>
+    <a href="{{ route('admin.chat.contatos') }}" class="btn btn-ghost btn-sm">Limpar</a>
 </div>
 </form>
 
