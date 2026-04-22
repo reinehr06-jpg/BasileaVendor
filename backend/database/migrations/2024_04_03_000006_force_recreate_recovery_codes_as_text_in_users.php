@@ -19,7 +19,9 @@ return new class extends Migration
         });
 
         Schema::table('users', function (Blueprint $table) {
-            $table->text('recovery_codes')->nullable()->after('two_factor_enabled');
+            if (!Schema::hasColumn('users', 'recovery_codes')) {
+                $table->text('recovery_codes')->nullable()->after('two_factor_enabled');
+            }
         });
     }
 

@@ -49,8 +49,12 @@ return new class extends Migration
                 $table->foreignId('confirmado_por')->nullable()->constrained('users')->nullOnDelete()->after('confirmado_em');
             }
 
-            $table->index('diagnostico_status');
-            $table->index('tem_pagamento_pendente_atual');
+            try {
+                $table->index('diagnostico_status');
+            } catch (\Exception $e) {}
+            try {
+                $table->index('tem_pagamento_pendente_atual');
+            } catch (\Exception $e) {}
         });
     }
 
