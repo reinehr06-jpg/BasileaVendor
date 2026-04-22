@@ -9,18 +9,30 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('comissoes', function (Blueprint $table) {
-            // Novos campos para o sistema de comissão completo
-            $table->foreignId('pagamento_id')->nullable()->after('venda_id')->constrained('pagamentos')->onDelete('set null');
-            $table->foreignId('gerente_id')->nullable()->after('vendedor_id')->constrained('users')->onDelete('set null');
-            $table->decimal('valor_gerente', 12, 2)->default(0)->after('valor_comissao');
-            $table->timestamp('eligible_at')->nullable()->after('status');
-            $table->timestamp('released_at')->nullable()->after('eligible_at');
-            $table->boolean('paid_via_split')->default(false)->after('released_at');
-            $table->string('split_transfer_id')->nullable()->after('paid_via_split');
-            $table->decimal('percentual_gerente', 5, 2)->default(0)->after('percentual_aplicado');
-            
-            // Renomear tipo_comissao para aceitar os novos valores
-            // FIRST_PAYMENT, RECURRING (além dos valores existentes)
+            if (!Schema::hasColumn('comissoes', 'pagamento_id')) {
+                $table->foreignId('pagamento_id')->nullable()->after('venda_id')->constrained('pagamentos')->onDelete('set null');
+            }
+            if (!Schema::hasColumn('comissoes', 'gerente_id')) {
+                $table->foreignId('gerente_id')->nullable()->after('vendedor_id')->constrained('users')->onDelete('set null');
+            }
+            if (!Schema::hasColumn('comissoes', 'valor_gerente')) {
+                $table->decimal('valor_gerente', 12, 2)->default(0)->after('valor_comissao');
+            }
+            if (!Schema::hasColumn('comissoes', 'eligible_at')) {
+                $table->timestamp('eligible_at')->nullable()->after('status');
+            }
+            if (!Schema::hasColumn('comissoes', 'released_at')) {
+                $table->timestamp('released_at')->nullable()->after('eligible_at');
+            }
+            if (!Schema::hasColumn('comissoes', 'paid_via_split')) {
+                $table->boolean('paid_via_split')->default(false)->after('released_at');
+            }
+            if (!Schema::hasColumn('comissoes', 'split_transfer_id')) {
+                $table->string('split_transfer_id')->nullable()->after('paid_via_split');
+            }
+            if (!Schema::hasColumn('comissoes', 'percentual_gerente')) {
+                $table->decimal('percentual_gerente', 5, 2)->default(0)->after('percentual_aplicado');
+            }
         });
     }
 
