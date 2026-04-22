@@ -19,6 +19,23 @@ class TermsController extends Controller
 
     public function store(Request $request)
     {
+        // AUTO-HEALING: Garantir que a coluna existe no banco caso a migração não tenha rodado
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('terms_documents', 'conteudo_html')) {
+                Log::info('TermsController: Auto-healing disparado - adicionando coluna conteudo_html');
+                \Illuminate\Support\Facades\Schema::table('terms_documents', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->longText('conteudo_html')->nullable();
+                });
+            }
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('terms_documents', 'tipo')) {
+                \Illuminate\Support\Facades\Schema::table('terms_documents', function (\Illuminate\Database\Schema\Blueprint $table) {
+                    $table->string('tipo')->nullable();
+                });
+            }
+        } catch (\Exception $e) {
+            Log::warning('TermsController: Falha no auto-healing', ['error' => $e->getMessage()]);
+        }
+
         $request->validate([
             'tipo' => 'required|string',
             'titulo' => 'required|string|max:255',
