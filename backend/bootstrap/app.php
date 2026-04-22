@@ -3,6 +3,35 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Encryption\Encrypter;
+
+// FIX: Auto generate APP_KEY se não existir - resolve MissingAppKeyException
+$envPath = __DIR__ . '/../.env';
+
+if (!file_exists($envPath) && file_exists(__DIR__ . '/../.env.example')) {
+    copy(__DIR__ . '/../.env.example', $envPath);
+}
+
+if (file_exists($envPath)) {
+    $envContent = file_get_contents($envPath);
+    
+    if (!preg_match('/^APP_KEY=.+$/m', $envContent) || preg_match('/^APP_KEY=$/m', $envContent)) {
+        $key = 'base64:' . base64_encode(Encrypter::generateKey('AES-256-CBC'));
+        
+        if (preg_match('/^APP_KEY=.*$/m', $envContent)) {
+            $envContent = preg_replace('/^APP_KEY=.*$/m', "APP_KEY={$key}", $envContent);
+        } else {
+            $envContent .= "\nAPP_KEY={$key}\n";
+        }
+        
+        file_put_contents($envPath, $envContent);
+        
+        // Atualiza variável de ambiente
+        putenv("APP_KEY={$key}");
+        $_ENV['APP_KEY'] = $key;
+        $_SERVER['APP_KEY'] = $key;
+    }
+}
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
