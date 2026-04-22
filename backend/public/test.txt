@@ -1,0 +1,2 @@
+O servidor Basilea esta ONLINE. Se voce esta lendo isso, o Nginx e o Docker estao funcionando corretamente na porta 8000.
+Gerado em: 2026-04-22
