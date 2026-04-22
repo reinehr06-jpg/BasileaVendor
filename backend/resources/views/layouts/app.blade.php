@@ -60,30 +60,48 @@
             color: white;
             white-space: nowrap;
         }
-        .sidebar-brand-logo .brand-text {
-            display: flex;
-            flex-direction: column;
-            line-height: 1.1;
-        }
-        .sidebar-brand-logo .brand-subtext {
-            font-size: 0.85rem;
-            letter-spacing: 2px;
-            opacity: 0.9;
-            font-weight: 500;
+        .sidebar-brand-logo .brand-icon {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
-            width: 100%;
-            margin-top: 5px;
+            color: var(--primary);
+            font-size: 1.8rem;
+            font-weight: 900;
+            flex-shrink: 0;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .sidebar-brand-logo .brand-name {
+            font-size: 1.6rem;
+            font-weight: 800;
             color: white;
-            text-transform: capitalize;
+            font-style: italic;
+            letter-spacing: -1px;
+            margin-left: 5px;
+        }
+        .sidebar-brand-logo .brand-subtext {
+            font-size: 1rem;
+            letter-spacing: 5px;
+            opacity: 1;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            margin-top: 2px;
+            color: white;
+            text-transform: uppercase;
+            font-family: 'Inter', sans-serif;
         }
         .sidebar-brand-logo .brand-subtext::before,
         .sidebar-brand-logo .brand-subtext::after {
             content: "";
-            height: 1px;
-            background: rgba(255,255,255,0.4);
+            height: 1.5px;
+            background: rgba(255,255,255,0.5);
             flex: 1;
             display: block;
         }
@@ -331,10 +349,10 @@
 <body>
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand-logo">
-            <div style="display:flex;flex-direction:column;align-items:center;width:100%;overflow:hidden;">
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <img src="/assets/img/logo_oficial.png" alt="Basiléia" style="max-height: 40px;">
-                    <span style="font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px;">Basiléia</span>
+            <div style="display:flex;flex-direction:column;align-items:center;width:100%;overflow:hidden;padding: 10px 0;">
+                <div style="display:flex;align-items:center;gap:4px;">
+                    <div class="brand-icon">B</div>
+                    <span class="brand-name">Basiléia</span>
                 </div>
                 <div class="brand-subtext">Sales</div>
             </div>
