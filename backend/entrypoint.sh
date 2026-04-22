@@ -64,7 +64,7 @@ php artisan view:clear 2>/dev/null || true
 
 # === Migrations ===
 echo "Migrations..."
-php artisan migrate --force
+php artisan migrate --force || echo "ALERTA: Falha nas migrations. Verifique os logs acima, mas prosseguindo com a inicialização do servidor..."
 
 echo "=== Servidor na porta 8000 ==="
 exec php -d max_execution_time=600 -d memory_limit=512M artisan serve --host=0.0.0.0 --port=8000
