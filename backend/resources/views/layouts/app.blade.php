@@ -66,11 +66,26 @@
             line-height: 1.1;
         }
         .sidebar-brand-logo .brand-subtext {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.6;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            opacity: 0.9;
             font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            width: 100%;
+            margin-top: 5px;
+            color: white;
+            text-transform: capitalize;
+        }
+        .sidebar-brand-logo .brand-subtext::before,
+        .sidebar-brand-logo .brand-subtext::after {
+            content: "";
+            height: 1px;
+            background: rgba(255,255,255,0.4);
+            flex: 1;
+            display: block;
         }
         .sidebar-collapse-btn {
             width: 26px;
@@ -316,12 +331,12 @@
 <body>
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand-logo">
-            <div style="display:flex;align-items:center;gap:12px;overflow:hidden;">
-                <img src="/assets/img/logo_oficial.png" alt="Basiléia">
-                <div class="brand-text">
-                    <span>Basiléia</span>
-                    <span class="brand-subtext">Vendas</span>
+            <div style="display:flex;flex-direction:column;align-items:center;width:100%;overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <img src="/assets/img/logo_oficial.png" alt="Basiléia" style="max-height: 40px;">
+                    <span style="font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px;">Basiléia</span>
                 </div>
+                <div class="brand-subtext">Sales</div>
             </div>
             <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" onclick="toggleSidebar()" title="Recolher menu">
                 <i class="fas fa-circle" style="font-size:0.5rem;"></i>
@@ -389,7 +404,7 @@
 
                 <div class="menu-section">Ia Lab</div>
                 <a href="{{ route('admin.ia.prompts.index') }}" class="menu-item {{ request()->routeIs('admin.ia.prompts*') ? 'active' : '' }}">
-                    <i class="fas fa-microchip"></i> <span class="menu-item-text">IA Prompts</span>
+                    <i class="fas fa-keyboard"></i> <span class="menu-item-text">Novo Prompt</span>
                 </a>
                 <a href="{{ route('master.ia') }}" class="menu-item {{ request()->routeIs('master.ia') ? 'active' : '' }}">
                     <i class="fas fa-terminal"></i> <span class="menu-item-text">Ia Lab</span>
