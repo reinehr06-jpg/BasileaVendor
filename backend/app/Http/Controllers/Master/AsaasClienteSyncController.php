@@ -968,6 +968,9 @@ class AsaasClienteSyncController extends Controller
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
             }
 
+            // Apenas atualizamos a tabela de importação com o vendedor e os valores calculados.
+            // A criação do registro real na tabela 'comissoes' ocorrerá no momento da CONFIRMAÇÃO do cliente,
+            // pois a tabela 'comissoes' exige cliente_id e venda_id (que ainda não existem aqui).
             DB::table('legacy_customer_imports')->where('id', $customerId)->update([
                 'vendedor_id' => $vendedorId,
                 'comissao_vendedor_calculada' => $comissaoVendedor,
@@ -976,37 +979,6 @@ class AsaasClienteSyncController extends Controller
                 'comissao_tipo' => $comissaoTipo,
                 'updated_at' => now(),
             ]);
-
-            // Criar registro de comissão para clientes ativos, mesmo que a comissão deste mês seja 0 (venda histórica)
-            if ($import->diagnostico_status === 'ATIVO') {
-                if ($isGestor) {
-                    Comissao::create([
-                        'vendedor_id' => $vendedorId,
-                        'gerente_id' => null,
-                        'tipo_comissao' => $comissaoTipo,
-                        'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
-                        'percentual_gerente' => 0,
-                        'valor_venda' => $valorTotalHistorico > 0 ? $valorTotalHistorico : ($import->valor_plano_mensal ?? 0),
-                        'valor_comissao' => $comissaoVendedor,
-                        'valor_gerente' => 0,
-                        'status' => 'pendente',
-                        'competencia' => $mesRef,
-                    ]);
-                } else {
-                    Comissao::create([
-                        'vendedor_id' => $vendedorId,
-                        'gerente_id' => $gestorId,
-                        'tipo_comissao' => $comissaoTipo,
-                        'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
-                        'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
-                        'valor_venda' => $valorTotalHistorico > 0 ? $valorTotalHistorico : ($import->valor_plano_mensal ?? 0),
-                        'valor_comissao' => $comissaoVendedor,
-                        'valor_gerente' => $comissaoGestor,
-                        'status' => 'pendente',
-                        'competencia' => $mesRef,
-                    ]);
-                }
-            }
 
             $totalComissaoVendedor += $isGestor ? $comissaoGestor : $comissaoVendedor;
             $totalComissaoGestor += $comissaoGestor;
