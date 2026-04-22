@@ -335,31 +335,34 @@ class AsaasClienteSyncController extends Controller
 
         DB::table('legacy_customer_imports')->where('id', $id)->update($data);
 
-        // SYNC AUTOMÁTICO: Se já tiver local_venda_id, atualiza a venda oficial também
-        if ($cliente->local_venda_id) {
-            $valorVendaReal = (float) ($data['valor_total_cobranca'] ?? $cliente->valor_total_cobranca ?? 0);
+        // Recarregar o registro para garantir que temos os dados atualizados
+        $importAtualizado = DB::table('legacy_customer_imports')->where('id', $id)->first();
+        
+        // SYNC AUTOMÁTICO DA VENDA (se já existir)
+        if ($importAtualizado->local_venda_id) {
+            $valorVendaReal = (float) ($data['valor_total_cobranca'] ?? $importAtualizado->valor_total_cobranca ?? 0);
             if ($valorVendaReal <= 0) {
-                $valorVendaReal = ($data['valor_plano_mensal'] ?? $cliente->valor_plano_mensal ?? 0) * ($data['parcelas_total'] ?? $cliente->parcelas_total ?? 1);
+                $valorVendaReal = ($data['valor_plano_mensal'] ?? $importAtualizado->valor_plano_mensal ?? 0) * ($data['parcelas_total'] ?? $importAtualizado->parcelas_total ?? 1);
             }
 
-            DB::table('vendas')->where('id', $cliente->local_venda_id)->update([
+            DB::table('vendas')->where('id', $importAtualizado->local_venda_id)->update([
                 'valor' => $valorVendaReal,
-                'comissao_gerada' => $data['comissao_vendedor_calculada'] ?? $cliente->comissao_vendedor_calculada ?? 0,
-                'parcelas' => $data['parcelas_total'] ?? $cliente->parcelas_total ?? 1,
+                'comissao_gerada' => $data['comissao_vendedor_calculada'] ?? $importAtualizado->comissao_vendedor_calculada ?? 0,
+                'parcelas' => $data['parcelas_total'] ?? $importAtualizado->parcelas_total ?? 1,
                 'updated_at' => now(),
             ]);
         }
 
         // SYNC AUTOMÁTICO: Se estiver ATIVO e tiver Vendedor, mas não confirmado ainda, sincroniza com as tabelas oficiais agora
-        if (!$cliente->local_cliente_id && ($validated['diagnostico_status'] ?? $cliente->diagnostico_status) === 'ATIVO' && ($vendedorId ?? $cliente->vendedor_id)) {
+        if (!$importAtualizado->local_cliente_id && $importAtualizado->diagnostico_status === 'ATIVO' && $importAtualizado->vendedor_id) {
             $this->confirmarCliente($request, (int) $id);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'Cliente atualizado com sucesso!',
-            'comissao_vendedor' => 'R$ ' . number_format($comissaoVendedor, 2, ',', '.'),
-            'comissao_gestor' => 'R$ ' . number_format($comissaoGestor, 2, ',', '.'),
+            'comissao_vendedor' => 'R$ ' . number_format($importAtualizado->comissao_vendedor_calculada, 2, ',', '.'),
+            'comissao_gestor' => 'R$ ' . number_format($importAtualizado->comissao_gestor_calculada, 2, ',', '.'),
         ]);
     }
 

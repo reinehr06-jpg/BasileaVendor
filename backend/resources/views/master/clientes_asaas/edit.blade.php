@@ -434,11 +434,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Redireciona para a listagem na aba correta (Aba de Sem Vendedor para continuar o ritmo)
                 window.location.href = '{{ route("master.clientes-asaas.index", ["aba" => "sem_vendedor"]) }}';
             } else {
+                alert(result.message || 'Erro ao salvar alterações.');
                 btn.disabled = false;
                 btn.innerHTML = origText;
             }
         } catch(e) {
             console.error('Erro ao salvar:', e);
+            alert('Erro crítico ao salvar. Verifique o console ou a rede.');
             btn.disabled = false;
             btn.innerHTML = origText;
         }
