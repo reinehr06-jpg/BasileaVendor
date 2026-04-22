@@ -1,11 +1,19 @@
 #!/bin/sh
 set -e
 
-echo "--- Iniciando Entrypoint Basilea ---"
+# LOG IMEDIATO PARA TESTE
+echo "###########################################"
+echo "### CONTAINER STARTING - BASILEA VENDOR ###"
+echo "###########################################"
+
 cd /var/www/html
 
+# Testar se o nginx está ok
+echo "Testando configuração do Nginx..."
+nginx -t || echo "AVISO: Erro na configuração do Nginx"
+
 # Garantir pastas de storage
-echo "Configurando diretórios de storage..."
+echo "Configurando diretórios..."
 mkdir -p storage/framework/sessions storage/framework/views storage/framework/cache/data storage/logs bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
@@ -13,30 +21,15 @@ chmod -R 775 storage bootstrap/cache
 # Link de storage
 php artisan storage:link --force 2>/dev/null || true
 
-# Limpar caches para evitar rotas corrompidas
-echo "Limpando caches do Laravel..."
-php artisan config:clear
-php artisan route:clear
-php artisan view:clear
+# Limpar caches
+echo "Limpando caches..."
+php artisan config:clear || true
+php artisan route:clear || true
 
-# Teste de conexão com o banco
-DB_HOST=${DB_HOST:-postgres}
-DB_PORT=${DB_PORT:-5432}
-echo "Testando conexão com o banco em $DB_HOST:$DB_PORT..."
+# Pular espera do banco se quiser testar apenas o boot
+echo "Verificando variáveis de ambiente..."
+echo "APP_ENV: $APP_ENV"
+echo "DB_HOST: $DB_HOST"
 
-for i in $(seq 1 15); do
-    if php -r "try { new PDO('pgsql:host='.getenv('DB_HOST').';port='.getenv('DB_PORT').';dbname='.getenv('DB_DATABASE'), getenv('DB_USERNAME'), getenv('DB_PASSWORD')); exit(0); } catch(Exception \$e) { echo \$e->getMessage(); exit(1); }" 2>&1; then
-        echo "Banco de dados conectado com sucesso!"
-        break
-    else
-        echo "Tentativa $i: Banco ainda não disponível..."
-        sleep 2
-    fi
-done
-
-# Migrações
-echo "Executando migrações..."
-php artisan migrate --force --no-interaction || echo "Aviso: Migrações falharam ou já estavam prontas."
-
-echo "Iniciando Supervisor (Nginx + PHP-FPM)..."
+echo "Iniciando Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisor.conf
