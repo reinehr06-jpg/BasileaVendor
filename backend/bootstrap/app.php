@@ -44,6 +44,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Always allow CSRF for Asaas webhooks
         $middleware->validateCsrfTokens(except: [
             'api/asaas/webhook',
+            'api/webhook/asaas',
+            'api/webhook/assas',
+            'webhook/asaas',
+            'webhook/assas',
             'webhook/basileia-church/*',
             'webhook/checkout',
             'webhooks/asaas',

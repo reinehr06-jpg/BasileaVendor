@@ -155,7 +155,7 @@
             <button class="modal-close" onclick="fecharModal()">&times;</button>
         </div>
         
-        <form id="termoForm" method="POST" action="{{ route('admin.termos.store') }}">
+        <form id="termoForm" method="POST" action="{{ route('admin.termos.store') }}" enctype="multipart/form-data">
             @csrf
             <input type="hidden" name="_method" id="formMethod" value="POST">
             
@@ -192,7 +192,7 @@
 
             <div class="form-group">
                 <label class="form-label">Conteúdo (HTML)</label>
-                <textarea name="conteudo_html" id="conteudo_html" class="form-textarea" placeholder="<h1>Termos de Uso</h1><p>Seu conteúdo aqui...</p>" required></textarea>
+                <textarea name="conteudo_html" id="conteudo_html" class="form-textarea" placeholder="<h1>Termos de Uso</h1><p>Seu conteúdo aqui...</p>"></textarea>
                 <div class="form-text" style="font-size: 0.75rem; color: var(--primary); margin-top: 4px;">
                     <i class="fas fa-magic"></i> Se você subir um arquivo, o conteúdo acima será preenchido após o processamento.
                 </div>

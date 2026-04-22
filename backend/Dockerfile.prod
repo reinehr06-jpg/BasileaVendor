@@ -2,9 +2,9 @@
 FROM composer:latest AS vendor
 WORKDIR /app
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction
+RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction --ignore-platform-reqs
 COPY . .
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
 # Stage 2: PHP-FPM runtime
 FROM php:8.4-fpm-alpine
@@ -17,8 +17,12 @@ RUN apk add --no-cache \
     curl \
     git \
     unzip \
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
     && apk add --no-cache --virtual .build-deps postgresql-dev \
-    && docker-php-ext-install pdo pdo_pgsql \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_pgsql gd \
     && apk del .build-deps
 
 # PHP-FPM config

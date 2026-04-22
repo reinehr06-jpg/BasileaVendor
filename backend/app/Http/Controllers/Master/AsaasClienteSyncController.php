@@ -378,6 +378,9 @@ class AsaasClienteSyncController extends Controller
         $totalSinc = 0;
         $erros     = 0;
 
+        set_time_limit(0);
+        ini_set('memory_limit', '512M');
+
         try {
             do {
                 $response  = $this->asaas->requestAsaas('GET', '/customers', [

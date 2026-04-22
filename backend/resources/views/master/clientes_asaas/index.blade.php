@@ -470,9 +470,18 @@ async function sincronizarAsaas() {
     try {
         const resp = await fetch('{{ route("master.clientes-asaas.sincronizar") }}', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
         });
-        const data = await resp.json();
+        
+        const isJson = resp.headers.get('content-type')?.includes('application/json');
+        const data = isJson ? await resp.json() : null;
+        
+        if (!resp.ok) {
+            throw new Error(data?.message || 'Erro ' + resp.status + ': ' + resp.statusText);
+        }
 
         clearInterval(ticker);
         bar.style.width = '100%';

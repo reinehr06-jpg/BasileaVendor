@@ -24,10 +24,10 @@ class IntegrationTestService
         }
 
         try {
-            $response = Http::withToken($apiKey)
+            $response = Http::withHeaders(['access_token' => $apiKey])
                 ->timeout(10)
                 ->get("{$baseUrl}/customers", [
-                    'page' => 1,
+                    'offset' => 0,
                     'limit' => 1
                 ]);
 

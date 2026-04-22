@@ -895,7 +895,7 @@
                         <div class="integ-panel-title">Asaas Gateway</div>
                         <div class="integ-panel-sub">Configure a API Key, Webhook Token e o ambiente de cobrança.</div>
                     </div>
-                    <button type="button" class="materio-btn-outline" style="margin-left:auto;" onclick="testarConexao()">Testar Conexão</button>
+                    <button type="button" class="materio-btn-outline" style="margin-left:auto;" onclick="testarConexao(event)">Testar Conexão</button>
                 </div>
                 <div class="materio-card">
                     <form action="{{ route('master.configuracoes.integracoes.update') }}" method="POST">
@@ -923,13 +923,27 @@
                                 </div>
                                 <div class="materio-form-group">
                                     <label class="materio-label">URL de Callback</label>
-                                    <input type="url" name="asaas_callback_url" class="materio-input" value="{{ $integracoes['asaasCallbackUrl'] }}" placeholder="https://seudominio.com/callback">
+                                    {{-- CAMPO CHECKOUT OCULTO para manter ao salvar --}}
+                                    <input type="hidden" name="checkout_external_url" value="{{ $integracoes['checkoutExternalUrl'] }}">
                                 </div>
-                                {{-- CAMPO CHECKOUT OCULTO para manter ao salvar --}}
-                                <input type="hidden" name="checkout_external_url" value="{{ $integracoes['checkoutExternalUrl'] }}">
                             </div>
                         </div>
-                        <button type="submit" class="materio-btn-primary">Salvar Configurações do Asaas</button>
+
+                        <div style="margin-top: 20px; background:#f0f9ff; border:1px solid #bae6fd; border-radius:12px; padding:20px;">
+                            <h4 style="font-size:0.95rem; font-weight:800; color:#0369a1; margin-bottom:8px;"><i class="fas fa-link"></i> URL do Webhook Asaas</h4>
+                            <p style="font-size:0.8rem; color:#0c4a6e; margin-bottom:12px;">Copie esta URL e cole no campo <b>Webhook</b> no painel do Asaas (Configurações > Integrações > Webhooks).</p>
+                            <div style="display:flex; gap:10px;">
+                                <input type="text" id="asaas_webhook_url_display" class="materio-input" 
+                                       value="{{ url('/api/webhook/asaas') }}" 
+                                       readonly style="background:#e0f2fe; border-color:#7dd3fc; font-family:monospace; color:#0369a1; font-weight:700;">
+                                <button type="button" class="materio-btn-primary" onclick="copiarTexto('asaas_webhook_url_display')" title="Copiar URL" style="background:#0284c7;">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <p style="font-size:0.75rem; color:#0369a1; margin-top:8px;"><i class="fas fa-info-circle"></i> O sistema também aceita <code>/api/webhook/assas</code> caso haja erro de digitação.</p>
+                         </div>
+
+                        <button type="submit" class="materio-btn-primary" style="margin-top:20px;">Salvar Configurações do Asaas</button>
                     </form>
                 </div>
             </div>
@@ -1680,8 +1694,8 @@
 
 
     // Teste de Conexão API
-    function testarConexao() {
-        const btn = event.currentTarget;
+    function testarConexao(e) {
+        const btn = e ? e.currentTarget : event.currentTarget;
         const original = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
         btn.disabled = true;
@@ -1690,7 +1704,15 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
         })
-        .then(r => r.json())
+        .then(async r => {
+            const isJson = r.headers.get('content-type')?.includes('application/json');
+            const data = isJson ? await r.json() : null;
+            
+            if (!r.ok) {
+                throw new Error(data?.message || 'Erro ' + r.status + ': ' + r.statusText);
+            }
+            return data;
+        })
         .then(d => {
             alert(d.success ? '🍏 ' + d.message : '🍎 ' + d.message);
         })

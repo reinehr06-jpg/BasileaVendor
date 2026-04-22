@@ -639,7 +639,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin/chat/config')->name('admin.c
 });
 
 // Webhooks externos (sem CSRF, com validacao propria)
-Route::post('/webhook/asaas', [BasileiaChurchWebhookController::class, 'webhookAsaas']);
+Route::match(['get', 'post'], '/webhook/asaas', [AsaasWebhookController::class, 'handle'])->name('webhook.asaas.web');
+Route::match(['get', 'post'], '/webhook/assas', [AsaasWebhookController::class, 'handle'])->name('webhook.assas.web');
+Route::match(['get', 'post'], '/asaas/webhook', [AsaasWebhookController::class, 'handle'])->name('webhook.asaas.legacy.web');
 
 // Rota de migrations removida por segurança
 
