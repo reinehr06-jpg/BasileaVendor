@@ -11,17 +11,18 @@ return new class extends Migration
     {
         if (Schema::hasTable('chat_messages')) {
             Schema::table('chat_messages', function (Blueprint $table) {
-                if (Schema::hasColumn('chat_messages', 'external_message_id')) {
-                    // Try to add unique index only if column exists
-                    try {
-                        $table->unique(['external_message_id'], 'chat_messages_external_unique');
-                    } catch (\Exception $e) {}
-                }
                 if (!Schema::hasColumn('chat_messages', 'source_id')) {
                     $table->string('source_id')->nullable()->index();
-                    $table->unique(['source_id'], 'chat_messages_source_unique');
                 }
             });
+            
+            // Raw SQL for idempotency on PostgreSQL
+            if (Schema::hasColumn('chat_messages', 'external_message_id')) {
+                DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS chat_messages_external_unique ON chat_messages (external_message_id)');
+            }
+            if (Schema::hasColumn('chat_messages', 'source_id')) {
+                DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS chat_messages_source_unique ON chat_messages (source_id)');
+            }
         }
 
         if (Schema::hasTable('settings')) {
@@ -42,22 +43,14 @@ return new class extends Migration
         }
 
         if (Schema::hasTable('chat_contacts')) {
-            Schema::table('chat_contacts', function (Blueprint $table) {
-                if (Schema::hasColumn('chat_contacts', 'phone')) {
-                    try {
-                        $table->unique(['phone'], 'chat_contacts_phone_unique');
-                    } catch (\Exception $e) {}
-                }
-            });
+            if (Schema::hasColumn('chat_contacts', 'phone')) {
+                DB::statement('CREATE UNIQUE INDEX IF NOT EXISTS chat_contacts_phone_unique ON chat_contacts (phone)');
+            }
         }
 
         if (Schema::hasTable('chat_conversations')) {
-            Schema::table('chat_conversations', function (Blueprint $table) {
-                try {
-                    $table->index(['gestor_id', 'status', 'is_atendido']);
-                    $table->index(['gestor_id', 'vendedor_id', 'status']);
-                } catch (\Exception $e) {}
-            });
+            DB::statement('CREATE INDEX IF NOT EXISTS chat_conversations_gestor_status_atendido_idx ON chat_conversations (gestor_id, status, is_atendido)');
+            DB::statement('CREATE INDEX IF NOT EXISTS chat_conversations_gestor_vendedor_status_idx ON chat_conversations (gestor_id, vendedor_id, status)');
         }
     }
 

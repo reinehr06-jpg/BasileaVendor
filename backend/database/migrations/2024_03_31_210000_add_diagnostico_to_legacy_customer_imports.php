@@ -49,13 +49,12 @@ return new class extends Migration
                 $table->foreignId('confirmado_por')->nullable()->constrained('users')->nullOnDelete()->after('confirmado_em');
             }
 
-            try {
-                $table->index('diagnostico_status');
-            } catch (\Exception $e) {}
-            try {
-                $table->index('tem_pagamento_pendente_atual');
-            } catch (\Exception $e) {}
         });
+        
+        // Em PostgreSQL, try-catch dentro de Schema::table falha se estiver em transação.
+        // Usamos raw SQL com IF NOT EXISTS para garantir idempotência real.
+        \Illuminate\Support\Facades\DB::statement('CREATE INDEX IF NOT EXISTS legacy_customer_imports_diagnostico_status_index ON legacy_customer_imports (diagnostico_status)');
+        \Illuminate\Support\Facades\DB::statement('CREATE INDEX IF NOT EXISTS legacy_customer_imports_tem_pag_pend_atual_index ON legacy_customer_imports (tem_pagamento_pendente_atual)');
     }
 
     public function down(): void
