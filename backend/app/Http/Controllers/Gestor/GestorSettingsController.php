@@ -15,8 +15,11 @@ use Illuminate\Support\Str;
 
 class GestorSettingsController extends Controller
 {
-    public function index($tab = 'geral')
+    public function index(Request $request, $tab = null)
     {
+        // A view navega com ?tab=xxx, então lemos da query string como fallback
+        $tab = $tab ?: $request->query('tab', 'geral');
+
         $user = Auth::user();
         $gestorId = $user->id;
 
