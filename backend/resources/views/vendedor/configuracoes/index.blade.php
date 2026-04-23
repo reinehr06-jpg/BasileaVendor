@@ -280,7 +280,7 @@
 
             @if(isset($termoUso))
             <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
-                <a href="{{ route('configuracoes.termos.pdf', $termoUso) }}" class="btn-save" style="background: #6b7280; text-decoration: none;">
+                <a href="{{ route('vendedor.configuracoes.termos.pdf', $termoUso) }}" class="btn-save" style="background: #6b7280; text-decoration: none;">
                     <i class="fas fa-file-pdf"></i> Baixar PDF
                 </a>
             </div>
@@ -306,7 +306,7 @@
 
             @if(isset($termoPrivacidade))
             <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
-                <a href="{{ route('configuracoes.termos.pdf', $termoPrivacidade) }}" class="btn-save" style="background: #6b7280; text-decoration: none;">
+                <a href="{{ route('vendedor.configuracoes.termos.pdf', $termoPrivacidade) }}" class="btn-save" style="background: #6b7280; text-decoration: none;">
                     <i class="fas fa-file-pdf"></i> Baixar PDF
                 </a>
             </div>

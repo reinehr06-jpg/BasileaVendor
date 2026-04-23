@@ -56,7 +56,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Always add security headers
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
-        $middleware->append(\App\Http\Middleware\EnsureFluxoOnboarding::class);
+        
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureFluxoOnboarding::class,
+        ]);
         
         // Register security middleware groups
         $middleware->group('admin.security', [
