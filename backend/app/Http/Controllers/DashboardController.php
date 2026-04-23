@@ -125,10 +125,14 @@ class DashboardController extends Controller
         
         $recebidoTrend = $recebidoPassado > 0 ? (($totalRecebido - $recebidoPassado) / $recebidoPassado) * 100 : 0;
 
-        $queryClientes = Cliente::whereHas('vendas.pagamentos', function($q) use ($vendedorIds, $dataInicio, $dataFim) {
-            $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO'])
-              ->whereBetween('pagamentos.updated_at', [$dataInicio, $dataFim]);
-            if ($vendedorIds) $q->whereIn('vendas.vendedor_id', $vendedorIds);
+        $queryClientes = Cliente::whereHas('vendas', function($q) use ($vendedorIds, $dataInicio, $dataFim) {
+            if ($vendedorIds) {
+                $q->whereIn('vendedor_id', $vendedorIds);
+            }
+            $q->whereHas('pagamentos', function($qp) use ($dataInicio, $dataFim) {
+                $qp->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO'])
+                  ->whereBetween('updated_at', [$dataInicio, $dataFim]);
+            });
         });
         
         // Integrar clientes legados ativos
