@@ -29,11 +29,22 @@ class OnboardingController extends Controller
 
     public function aceitarTermos(Request $request)
     {
-        try {
-            $request->validate([
-                'termos_aceitos' => 'required|accepted',
-                'terms_document_id' => 'required|exists:terms_documents,id',
+        \Illuminate\Support\Facades\Log::info('ACEITAR_TERMOS_ENTRY', $request->all());
+        
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'termos_aceitos' => 'required|accepted',
+            'terms_document_id' => 'required|exists:terms_documents,id',
+        ]);
+
+        if ($validator->fails()) {
+            \Illuminate\Support\Facades\Log::warning('ACEITAR_TERMOS_VALIDATION_FAILED', [
+                'errors' => $validator->errors()->toArray(),
+                'input' => $request->all()
             ]);
+            return back()->withErrors($validator)->withInput()->with('error', 'Erro de validação: ' . implode(', ', $validator->errors()->all()));
+        }
+
+        try {
 
             // Registrar o aceite no log
             \App\Models\TermsAcceptance::registrar(
@@ -80,7 +91,8 @@ class OnboardingController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return back()->with('error', 'Ocorreu um erro ao processar seu aceite. Por favor, tente novamente ou contate o suporte.');
+            // Expondo o erro para diagnóstico em produção com prefixo único
+            return back()->with('error', 'ERRO_FATAL_DIAGNOSTICO: ' . $e->getMessage());
         }
     }
 
