@@ -206,7 +206,14 @@ class ConfiguracaoController extends Controller
     {
         $request->validate([
             'current_password' => 'required',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', Password::min(20)->letters()->mixedCase()->numbers()->symbols()],
+        ], [
+            'current_password.current_password' => 'A senha atual está incorreta.',
+            'password.confirmed' => 'A confirmação da nova senha não confere.',
+            'password.min' => 'A nova senha deve ter pelo menos 20 caracteres.',
+            'password.mixed' => 'A senha deve conter letras maiúsculas e minúsculas.',
+            'password.numbers' => 'A senha deve conter pelo menos um número.',
+            'password.symbols' => 'A senha deve conter pelo menos 3 caracteres especiais.',
         ]);
 
         $user = Auth::user();

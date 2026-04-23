@@ -85,7 +85,7 @@ class MasterPanelController extends Controller
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => Hash::make('Basileia123'),
+                'password' => Hash::make('B4s1l3i@V3nd4s!2026#Xk9$'),
                 'perfil' => $request->perfil,
                 'status' => $request->status,
                 'require_password_change' => true,
@@ -152,7 +152,7 @@ class MasterPanelController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'telefone' => 'nullable|string|max:20',
-            'password' => 'nullable|string|min:6',
+            'password' => ['nullable', 'string', Password::min(20)->letters()->mixedCase()->numbers()->symbols()],
             'status' => 'required|in:ativo,inativo,bloqueado',
             'perfil' => 'required|in:vendedor,gestor',
             'comissao_inicial' => 'required|numeric|min:0|max:100',
