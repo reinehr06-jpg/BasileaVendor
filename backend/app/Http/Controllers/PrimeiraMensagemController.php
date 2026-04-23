@@ -27,17 +27,8 @@ class PrimeiraMensagemController extends Controller
 
             return view('vendedor.primeira-mensagem.index', compact('mensagens'));
         } catch (\Throwable $e) {
-            $columns = [];
-            try {
-                $columns = \Illuminate\Support\Facades\DB::select('SELECT column_name FROM information_schema.columns WHERE table_name = \'primeira_mensagens\'');
-                $columns = array_map(fn($col) => $col->column_name, $columns);
-            } catch (\Exception $dbEx) {
-                $columns = ['error_getting_columns' => $dbEx->getMessage()];
-            }
-
             \Illuminate\Support\Facades\Log::error('PRIMEIRA_MENSAGEM_INDEX_ERROR: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
-                'available_columns' => $columns,
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -45,10 +36,7 @@ class PrimeiraMensagemController extends Controller
                 throw $e;
             }
 
-            $colList = implode(', ', $columns);
-            return response()->view('errors.custom_500', [
-                'message' => 'Erro na Primeira Mensagem: ' . $e->getMessage() . " (Colunas disponíveis: $colList)"
-            ], 500);
+            return redirect()->route('dashboard')->with('error', 'Ocorreu um erro ao carregar suas mensagens. Tentamos reparar o banco de dados, por favor tente novamente em alguns instantes.');
         }
     }
 
