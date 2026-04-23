@@ -32,6 +32,10 @@ class User extends Authenticatable
         'google_access_token',
         'google_refresh_token',
         'google_token_expires_at',
+        'termos_aceitos',
+        'termos_aceitos_em',
+        'split_configurado',
+        'tour_completo',
     ];
 
     /**
@@ -60,6 +64,10 @@ class User extends Authenticatable
             'two_factor_enabled' => 'boolean',
             'require_password_change' => 'boolean',
             'google_token_expires_at' => 'datetime',
+            'termos_aceitos' => 'boolean',
+            'termos_aceitos_em' => 'datetime',
+            'split_configurado' => 'boolean',
+            'tour_completo' => 'boolean',
         ];
     }
 
