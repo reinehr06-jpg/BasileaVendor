@@ -26,12 +26,17 @@ class PrimeiraMensagemController extends Controller
                 ->orderByDesc('created_at')->get();
 
             return view('vendedor.primeira-mensagem.index', compact('mensagens'));
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Erro ao carregar Primeira Mensagem: ' . $e->getMessage(), [
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('PRIMEIRA_MENSAGEM_INDEX_ERROR: ' . $e->getMessage(), [
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
             ]);
-            return redirect()->route('dashboard')->with('error', 'Erro interno ao carregar mensagens. Por favor, tente novamente.');
+            
+            if (config('app.debug')) {
+                throw $e;
+            }
+
+            return response()->view('errors.custom_500', ['message' => 'Erro na Primeira Mensagem: ' . $e->getMessage()], 500);
         }
     }
 
