@@ -227,6 +227,15 @@
 </style>
 
 <div class="chat-container">
-    @yield('chat-content')
+    @if(View::hasSection('chat-sidebar'))
+    <aside class="chat-sidebar">
+        @yield('chat-sidebar')
+    </aside>
+    <main class="chat-main">
+        @yield('chat-content')
+    </main>
+    @else
+        @yield('chat-content')
+    @endif
 </div>
 @endsection

@@ -443,7 +443,7 @@
                 </a>
 
                 <div class="menu-section">Comunicação</div>
-                <a href="{{ route('admin.chat.index') }}" class="menu-item {{ request()->routeIs('admin.chat.index') ? 'active' : '' }}">
+                <a href="{{ route('admin.chat.index') }}" class="menu-item {{ request()->routeIs('admin.chat*') ? 'active' : '' }}">
                     <i class="fab fa-whatsapp"></i> <span class="menu-item-text">Chat Conversas</span>
                 </a>
                 <a href="{{ route('admin.chat.contatos') }}" class="menu-item {{ request()->routeIs('admin.chat.contatos') ? 'active' : '' }}">
@@ -501,7 +501,7 @@
                 </a>
 
                 <div class="menu-section">Comunicação</div>
-                <a href="{{ route('gestor.chat.index') }}" class="menu-item {{ request()->routeIs('gestor.chat.index') ? 'active' : '' }}">
+                <a href="{{ route('gestor.chat.index') }}" class="menu-item {{ request()->routeIs('gestor.chat*') ? 'active' : '' }}">
                     <i class="fab fa-whatsapp"></i> Chat Conversas
                 </a>
 
@@ -545,7 +545,7 @@
                 <a href="{{ route('vendedor.calendario.index') }}" class="menu-item {{ request()->routeIs('vendedor.calendario*') ? 'active' : '' }}">
                     <i class="fas fa-calendar-alt"></i> Meu Calendário
                 </a>
-                <a href="{{ route('configuracoes.primeira-mensagem') }}" class="menu-item {{ request()->routeIs('configuracoes.primeira-mensagem*') ? 'active' : '' }}">
+                <a href="{{ route('vendedor.primeira-mensagem') }}" class="menu-item {{ request()->routeIs('vendedor.primeira-mensagem*') ? 'active' : '' }}">
                     <i class="fas fa-comment-dots"></i> Primeira Mensagem
                 </a>
 
@@ -628,11 +628,15 @@
             </div>
         </header>
         <section class="content-area">
-            @if(request()->routeIs('vendedor.dashboard') || request()->routeIs('dashboard'))
+            @php
+                $show_banner = !isset($hide_banner) || !$hide_banner;
+            @endphp
+
+            @if($show_banner)
             <div class="global-banner">
                 <div class="global-banner-content">
                     <div>
-                        <h2>@yield('header_title', 'Bem-vindo')</h2>
+                        <h2>@yield('header_title', 'Bem-vindo ao Basiléia Sales')</h2>
                         <p>@yield('header_description', 'Gerencie suas operações com eficiência e inteligência.')</p>
                     </div>
                     <div style="text-align: right;">

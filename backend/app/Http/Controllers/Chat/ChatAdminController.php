@@ -121,7 +121,46 @@ class ChatAdminController extends Controller
             ->where('id', $id)
             ->firstOrFail();
 
+        // Marcar como lida
+        $conversa->update([
+            'unread_count' => 0,
+            'unread_at' => null
+        ]);
+
+        \App\Models\ChatMensagem::where('conversa_id', $conversa->id)
+            ->where('direction', 'inbound')
+            ->where('is_read', false)
+            ->update(['is_read' => true, 'read_at' => now()]);
+
         return view('chat.admin.conversa', compact('conversa'));
+    }
+
+    public function sendMessage(Request $request, $id)
+    {
+        $conversa = ChatConversa::findOrFail($id);
+
+        $request->validate([
+            'mensagem' => 'required|string|max:5000',
+        ]);
+
+        $mensagem = \App\Models\ChatMensagem::create([
+            'conversa_id' => $conversa->id,
+            'sender_id' => Auth::id(),
+            'sender_type' => 'admin',
+            'direction' => 'outbound',
+            'tipo' => 'texto',
+            'conteudo' => $request->mensagem,
+            'delivery_status' => 'sent'
+        ]);
+
+        $conversa->adicionarMensagemSaida();
+
+        // Se a conversa não tiver vendedor, o admin pode estar "atendendo"
+        if (!$conversa->vendedor_id) {
+            $conversa->update(['is_atendido' => true]);
+        }
+
+        return redirect()->back()->with('success', 'Mensagem enviada com sucesso!');
     }
 
     public function atualizarTags(Request $request, $contactId)

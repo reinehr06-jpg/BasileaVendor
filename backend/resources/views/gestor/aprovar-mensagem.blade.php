@@ -2,6 +2,9 @@
 
 @section('title', 'Aprovar Mensagens')
 
+@section('header_title', 'Aprovação de Mensagens')
+@section('header_description', 'Revise e aprove as mensagens automáticas enviadas pelos vendedores.')
+
 @section('content')
 <style>
     .aprovar-page { max-width: 900px; margin: 0 auto; }
@@ -101,9 +104,9 @@
         @forelse($pendentes as $mensagem)
         <div class="pendente-item">
             <div class="pendente-user">
-                <div class="user-avatar">{{ substr($mensagem->usuario->name, 0, 2) }}</div>
+                <div class="user-avatar">{{ $mensagem->usuario ? substr($mensagem->usuario->name, 0, 2) : 'V' }}</div>
                 <div>
-                    <div class="user-nome">{{ $mensagem->usuario->name }}</div>
+                    <div class="user-nome">{{ $mensagem->usuario->name ?? 'Vendedor Externo' }}</div>
                     <div class="user-funcao">{{ ucfirst($mensagem->perfil) }} • Enviado em {{ $mensagem->created_at->format('d/m/Y H:i') }}</div>
                 </div>
             </div>

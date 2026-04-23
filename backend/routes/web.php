@@ -40,6 +40,7 @@ use App\Http\Controllers\PrimeiraMensagemController;
 use App\Http\Controllers\CalendarioController;
 use App\Http\Controllers\ContatoController;
 use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\AsaasWebhookController;
 use App\Http\Middleware\CheckMaster;
 use App\Http\Middleware\CheckVendedor;
 use App\Http\Middleware\SecurityHeaders;
@@ -592,6 +593,21 @@ Route::middleware(['auth', '2fa'])->group(function () {
         Route::post('/chat/conversa/{id}/fixar', [App\Http\Controllers\Chat\ChatController::class, 'pin'])->name('chat.pin');
         Route::get('/chat/nao-lidos', [App\Http\Controllers\Chat\ChatController::class, 'unreadCount'])->name('chat.nao-lidos');
         Route::get('/chat/buscar', [App\Http\Controllers\Chat\ChatController::class, 'buscar'])->name('chat.buscar');
+        // Contatos do Vendedor
+        Route::get('/contatos', [ContatoController::class, 'index'])->name('contatos.index');
+        Route::get('/contatos/{contato}', [ContatoController::class, 'show'])->name('contatos.show');
+        Route::put('/contatos/{contato}', [ContatoController::class, 'update'])->name('contatos.update');
+        Route::post('/contatos/{contato}/status', [ContatoController::class, 'mudarStatus'])->name('contatos.status');
+        Route::post('/contatos/{contato}/gerar-observacao', [ContatoController::class, 'gerarObservacao'])->name('contatos.gerar-observacao');
+
+        // Calendário do Vendedor
+        Route::get('/calendario', [CalendarioController::class, 'vendedorIndex'])->name('calendario.index');
+
+        // Primeira Mensagem
+        Route::get('/primeira-mensagem', [PrimeiraMensagemController::class, 'index'])->name('primeira-mensagem');
+        Route::post('/primeira-mensagem', [PrimeiraMensagemController::class, 'store'])->name('primeira-mensagem.store');
+        Route::post('/primeira-mensagem/{mensagem}/enviar', [PrimeiraMensagemController::class, 'enviarParaAprovacao'])->name('primeira-mensagem.enviar');
+        Route::post('/primeira-mensagem/gerar-ia', [PrimeiraMensagemController::class, 'gerarComIA'])->name('primeira-mensagem.ia');
     });
 
     // ==========================================
@@ -617,6 +633,7 @@ Route::prefix('admin/chat')->name('admin.chat.')->group(function () {
         Route::post('/contatos/{id}/tags', [App\Http\Controllers\Chat\ChatAdminController::class, 'atualizarTags'])->name('contatos.tags');
         Route::get('/', [App\Http\Controllers\Chat\ChatAdminController::class, 'chatIndex'])->name('index');
         Route::get('/conversa/{id}', [App\Http\Controllers\Chat\ChatAdminController::class, 'show'])->name('conversa');
+        Route::post('/conversa/{id}/mensagem', [App\Http\Controllers\Chat\ChatAdminController::class, 'sendMessage'])->name('mensagem');
         Route::get('/estatisticas', [App\Http\Controllers\Chat\ChatAdminController::class, 'estatisticas'])->name('estatisticas');
         Route::get('/exportar-contatos', [App\Http\Controllers\Chat\ChatAdminController::class, 'exportarContatos'])->name('exportar');
     });
@@ -683,16 +700,6 @@ Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
     Route::put('/campanhas/{campanha}',       [CampanhaController::class, 'update'])->name('admin.campanhas.update');
     Route::get('/campanhas/{campanha}/metricas', [CampanhaController::class, 'metricas'])->name('admin.campanhas.metricas');
 
-// Contatos
-    Route::get('/contatos', [ContatoController::class, 'index'])->name('admin.contatos.index');
-    Route::post('/contatos/importar', [ImportacaoController::class, 'importar'])->name('admin.contatos.importar');
-    Route::post('/contatos', [ContatoController::class, 'store'])->name('admin.contatos.store');
-    Route::get('/contatos/{contato}', [ContatoController::class, 'show'])->name('admin.contatos.show');
-    Route::put('/contatos/{contato}', [ContatoController::class, 'update'])->name('admin.contatos.update');
-    Route::get('/contatos/{contato}/drawer', [ContatoController::class, 'drawer'])->name('admin.contatos.drawer');
-    Route::post('/contatos/{contato}/status', [ContatoController::class, 'mudarStatus'])->name('admin.contatos.status');
-    Route::post('/contatos/{contato}/gerar-observacao', [ContatoController::class, 'gerarObservacao'])->name('admin.contatos.gerar-observacao');
-
     // Calendário Admin
     Route::get('/calendario', [CalendarioController::class, 'adminIndex'])->name('admin.calendario.index');
 
@@ -736,34 +743,9 @@ Route::middleware(['auth', 'gestor'])->prefix('gestor')->group(function () {
     
     // Calendário
     Route::get('/calendario', [CalendarioController::class, 'gestorIndex'])->name('gestor.calendario.index');
-
-    // Termos PDF Export para Gestor
-    Route::get('/configuracoes/termos/{termo}/pdf', [\App\Http\Controllers\TermsController::class, 'exportPdf'])->name('gestor.configuracoes.termos.pdf');
 });
 
-// ──────────────────────────────────────────────────────────────────────────────
-// VENDEDOR
-// ──────────────────────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'vendedor'])->prefix('vendedor')->group(function () {
-    Route::get('/configuracoes/termos', [\App\Http\Controllers\VendedorSettingsController::class, 'termos'])->name('vendedor.configuracoes.termos');
-    Route::get('/configuracoes/termos/pdf/{termo}', [\App\Http\Controllers\VendedorSettingsController::class, 'downloadPdf'])->name('vendedor.configuracoes.termos.pdf');
-    Route::get('/configuracoes/termos/html/{termo}', [\App\Http\Controllers\VendedorSettingsController::class, 'downloadHtml'])->name('vendedor.configuracoes.termos.html');
-    
-    Route::get('/contatos', [ContatoController::class, 'index'])->name('vendedor.contatos.index');
-    Route::get('/contatos/{contato}', [ContatoController::class, 'show'])->name('vendedor.contatos.show');
-    Route::put('/contatos/{contato}', [ContatoController::class, 'update'])->name('vendedor.contatos.update');
-    Route::post('/contatos/{contato}/status', [ContatoController::class, 'mudarStatus'])->name('vendedor.contatos.status');
-    Route::post('/contatos/{contato}/gerar-observacao', [ContatoController::class, 'gerarObservacao'])->name('vendedor.contatos.gerar-observacao');
-    
-    // Calendário
-    Route::get('/calendario', [CalendarioController::class, 'vendedorIndex'])->name('vendedor.calendario.index');
-    
-    // Primeira Mensagem
-    Route::get('/primeira-mensagem', [PrimeiraMensagemController::class, 'index'])->name('configuracoes.primeira-mensagem');
-    Route::post('/primeira-mensagem', [PrimeiraMensagemController::class, 'store'])->name('configuracoes.primeira-mensagem.store');
-    Route::post('/primeira-mensagem/{mensagem}/enviar', [PrimeiraMensagemController::class, 'enviarParaAprovacao'])->name('configuracoes.primeira-mensagem.enviar');
-    Route::post('/primeira-mensagem/gerar-ia', [PrimeiraMensagemController::class, 'gerarComIA'])->name('configuracoes.primeira-mensagem.ia');
-});
+
 
 // ──────────────────────────────────────────────────────────────────────────────
 // CALENDÁRIO (Compartilhado - criação e ações)

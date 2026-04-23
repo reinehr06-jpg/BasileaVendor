@@ -21,10 +21,18 @@ class PrimeiraMensagemController extends Controller
 
     public function index()
     {
-        $mensagens = PrimeiraMensagem::where('user_id', Auth::id())
-            ->orderByDesc('created_at')->get();
+        try {
+            $mensagens = PrimeiraMensagem::where('user_id', Auth::id())
+                ->orderByDesc('created_at')->get();
 
-        return view('vendedor.primeira-mensagem.index', compact('mensagens'));
+            return view('vendedor.primeira-mensagem.index', compact('mensagens'));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Erro ao carregar Primeira Mensagem: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->route('dashboard')->with('error', 'Erro interno ao carregar mensagens. Por favor, tente novamente.');
+        }
     }
 
     public function store(Request $request)
@@ -55,12 +63,16 @@ class PrimeiraMensagemController extends Controller
     public function pendentes()
     {
         try {
-            $ids = Vendedor::where('gestor_id', Auth::id())->pluck('id');
-            $pendentes = $ids->isEmpty() ? collect([]) : PrimeiraMensagem::whereIn('user_id', $ids)
+            // Pegar os USUARIOS que este gestor gerencia
+            $usuarioIds = Vendedor::where('gestor_id', Auth::id())->pluck('usuario_id');
+            
+            $pendentes = $usuarioIds->isEmpty() ? collect([]) : PrimeiraMensagem::whereIn('user_id', $usuarioIds)
                 ->where('status', 'pendente_aprovacao')
                 ->with('usuario')
+                ->orderByDesc('created_at')
                 ->get();
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Erro ao carregar pendentes: ' . $e->getMessage());
             $pendentes = collect([]);
         }
 

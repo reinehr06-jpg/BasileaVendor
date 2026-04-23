@@ -54,7 +54,7 @@
                 <div style="font-weight: 800; color: #1e293b; font-size: 1.1rem;">{{ $conversa->contact->nome ?? 'Cliente' }}</div>
                 <div style="font-size: 0.75rem; color: #64748b; display: flex; align-items: center; gap: 6px;">
                     <span class="status-badge" style="background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 10px; font-weight: 700;">{{ strtoupper($conversa->status) }}</span>
-                    @if($conversa->vendedor)
+                    @if($conversa->vendedor && $conversa->vendedor->user)
                         <span style="color: var(--primary); font-weight: 600;"><i class="fas fa-user-tie"></i> {{ $conversa->vendedor->user->name }}</span>
                     @endif
                 </div>
@@ -75,38 +75,40 @@
                     border-radius: 18px;
                     font-size: 0.95rem;
                     line-height: 1.4;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-                    background: {{ $mensagem->direction === 'outbound' ? 'var(--primary)' : 'white' }};
-                    color: {{ $mensagem->direction === 'outbound' ? 'white' : '#1e293b' }};
-                    border-bottom-{{ $mensagem->direction === 'outbound' ? 'right' : 'left' }}-radius: 4px;
-                ">
-                    {{ $mensagem->conteudo }}
-                    <div style="font-size: 0.65rem; margin-top: 4px; opacity: 0.7; text-align: right;">
+
+        <div class="chat-messages" id="chat-messages" style="flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px;">
+            @forelse($conversa->mensagens as $mensagem)
+                <div class="message {{ $mensagem->direction }}" style="display: flex; flex-direction: column; max-width: 75%; {{ $mensagem->direction === 'outbound' ? 'align-self: flex-end;' : 'align-self: flex-start;' }}">
+                    <div class="message-bubble" style="padding: 12px 18px; border-radius: 18px; font-size: 0.95rem; line-height: 1.5; {{ $mensagem->direction === 'outbound' ? 'background: #7c3aed; color: white; border-bottom-right-radius: 4px;' : 'background: white; border: 1px solid #e2e8f0; color: #1e293b; border-bottom-left-radius: 4px;' }}">
+                        {{ $mensagem->conteudo }}
+                    </div>
+                    <div class="message-time" style="font-size: 0.7rem; margin-top: 5px; color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 4px; {{ $mensagem->direction === 'outbound' ? 'justify-content: flex-end;' : '' }}">
                         {{ $mensagem->created_at->format('H:i') }}
                         @if($mensagem->direction === 'outbound')
-                            <i class="fas fa-{{ $mensagem->delivery_status === 'read' ? 'check-double' : 'check' }}" style="margin-left: 4px;"></i>
+                            <i class="fas fa-check-double {{ $mensagem->delivery_status === 'read' ? 'text-info' : '' }}" style="font-size: 0.6rem;"></i>
                         @endif
                     </div>
                 </div>
-            </div>
-        @empty
-            <div class="chat-empty-state">
-                <i class="fas fa-comment-dots"></i>
-                <h3>Início da conversa</h3>
-                <p>Nenhuma mensagem enviada ou recebida ainda.</p>
-            </div>
-        @endforelse
+            @empty
+                <div style="height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; color: #94a3b8; text-align: center;">
+                    <i class="fas fa-history" style="font-size: 2.5rem; margin-bottom: 15px; opacity: 0.2;"></i>
+                    <p style="font-weight: 600;">Sem histórico de mensagens disponível.</p>
+                </div>
+            @endforelse
+        </div>
+
+        <div class="chat-input-area" style="padding: 20px; background: white; border-top: 1px solid var(--chat-border);">
+            <form action="{{ route('admin.chat.mensagem', $conversa->id) }}" method="POST" id="msgForm" style="display: flex; gap: 15px; align-items: center;">
+                @csrf
+                <input type="text" name="mensagem" placeholder="Digite sua mensagem aqui..." required autocomplete="off" style="flex: 1; padding: 12px 20px; border-radius: 12px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.95rem; outline: none; transition: 0.2s;">
+                <button type="submit" style="background: #7c3aed; color: white; border: none; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; transition: 0.2s;">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
+        </div>
     </div>
 
-    <div style="padding: 20px 28px; background: white; border-top: 1px solid var(--chat-border);">
-        <form action="{{ route('admin.chat.conversa', $conversa->id) }}" method="POST" id="msgForm" style="display: flex; gap: 15px; align-items: center;">
-            @csrf
-            <button type="button" class="btn btn-ghost" style="padding: 10px; color: #94a3b8;"><i class="fas fa-paperclip fa-lg"></i></button>
-            <input type="text" name="mensagem" class="chat-search-input" style="flex: 1; background: #f1f5f9;" placeholder="Digite sua resposta aqui...">
-            <button type="submit" class="btn btn-primary" style="padding: 10px 24px; border-radius: 14px; font-weight: 800;"><i class="fas fa-paper-plane me-2"></i> ENVIAR</button>
-        </form>
-    </div>
-
+    @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const container = document.getElementById('messagesContainer');

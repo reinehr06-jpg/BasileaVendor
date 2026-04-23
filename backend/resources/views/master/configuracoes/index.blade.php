@@ -706,7 +706,7 @@
                                     {{ $log->browser ?? '-' }} / {{ $log->os ?? '-' }}
                                 @elseif($log->user_agent)
                                     <span style="font-size: 0.75rem; color: var(--materio-text-muted);" title="{{ $log->user_agent }}">
-                                        {{ Str::limit($log->user_agent, 30) }}
+                                        {{ \Str::limit($log->user_agent, 30) }}
                                     </span>
                                 @else
                                     -

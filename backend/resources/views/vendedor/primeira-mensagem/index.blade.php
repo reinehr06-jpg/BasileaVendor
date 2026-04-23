@@ -1,6 +1,9 @@
 @extends('layouts.app')
-@php $hide_banner = true; @endphp
+
 @section('title', 'Primeira Mensagem')
+
+@section('header_title', 'Primeira Mensagem')
+@section('header_description', 'Configure suas mensagens automáticas para novos leads.')
 
 @section('content')
 <div class="container-fluid">
@@ -82,7 +85,7 @@
                                                 </div>
 
                                                 <p class="card-text small text-muted mb-2">
-                                                    {{ Str::limit($mensagem->mensagem, 100) }}
+                                                    {{ \Illuminate\Support\Str::limit($mensagem->mensagem, 100) }}
                                                 </p>
 
                                                 <div class="d-flex gap-1">
@@ -191,7 +194,7 @@
 <script>
 function novaMensagem() {
     document.getElementById('modalTitle').textContent = 'Nova Mensagem';
-    document.getElementById('mensagemForm').action = '{{ route("configuracoes.primeira-mensagem.store") }}';
+    document.getElementById('mensagemForm').action = '{{ route("vendedor.primeira-mensagem.store") }}';
     document.getElementById('mensagemForm').reset();
     new bootstrap.Modal(document.getElementById('mensagemModal')).show();
 }
@@ -203,7 +206,7 @@ function editarMensagem(id) {
 
 function enviarParaAprovacao(id) {
     if (confirm('Enviar esta mensagem para aprovação do gestor?')) {
-        fetch(`{{ url('primeira-mensagem') }}/${id}/enviar`, {
+        fetch(`{{ url('vendedor/primeira-mensagem') }}/${id}/enviar`, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -244,7 +247,7 @@ function gerarComIA() {
     document.querySelector('#sugestoesContainer button').disabled = true;
     document.querySelector('#sugestoesContainer button').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
 
-    fetch('{{ route("configuracoes.primeira-mensagem.ia") }}', {
+    fetch('{{ route("vendedor.primeira-mensagem.ia") }}', {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),

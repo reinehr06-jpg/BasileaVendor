@@ -59,7 +59,11 @@
                 </div>
                 <div class="chat-item-preview">
                     <span style="font-weight: 800; color: var(--primary); font-size: 0.7rem; text-transform: uppercase;">
-                        {{ $conversa->vendedor->user->name ?? 'Fila Global' }}
+                        @if($conversa->vendedor)
+                            {{ $conversa->vendedor->user->name ?? 'Vendedor s/ Usuário' }}
+                        @else
+                            Fila Global
+                        @endif
                     </span>
                     <span style="margin-left: 4px;">{{ $conversa->ultimoMensagem->conteudo ?? 'Iniciando conversa...' }}</span>
                 </div>
