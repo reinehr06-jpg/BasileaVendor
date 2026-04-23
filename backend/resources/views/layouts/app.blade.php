@@ -261,7 +261,46 @@
         }
         .topbar h1 { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
         .topbar-actions { display: flex; align-items: center; gap: 12px; }
-        .content-area { padding: 28px 32px; flex-grow: 1; }
+        .content-area { padding: 0; flex-grow: 1; display: flex; flex-direction: column; }
+        
+        .global-banner {
+            background: linear-gradient(135deg, #3B0764 0%, #4C1D95 100%);
+            padding: 35px 40px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(59, 7, 100, 0.2);
+            margin-bottom: 0;
+        }
+
+        .global-banner-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .global-banner h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin: 0;
+            color: #ffffff !important;
+            letter-spacing: -0.5px;
+        }
+
+        .global-banner p {
+            margin: 5px 0 0;
+            opacity: 0.85;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #ffffff;
+        }
+
+        .inner-content {
+            padding: 30px 40px;
+            flex: 1;
+        }
 
         .notif-wrapper { position: relative; }
         .notif-btn {
@@ -589,67 +628,82 @@
             </div>
         </header>
         <section class="content-area">
-            @if(isset($systemUpdateAvailable) && $systemUpdateAvailable && isset($systemUpdateInfo))
-            <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 shadow-lg mb-6 rounded-2xl">
-                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div class="flex items-center gap-4">
-                        <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                        <div>
-                            <p class="font-bold text-sm md:text-base">
-                                Nova versão disponível: {{ $systemUpdateInfo['latest_version'] }}
-                                (atual: {{ $systemUpdateInfo['current_version'] }})
-                            </p>
-                            <p class="text-xs md:text-sm opacity-90 mt-0.5">
-                                Atualize para obter as últimas correções e melhorias.
-                            </p>
+            <div class="global-banner">
+                <div class="global-banner-content">
+                    <div>
+                        <h2>@yield('header_title', 'Bem-vindo')</h2>
+                        <p>@yield('header_description', 'Gerencie suas operações com eficiência e inteligência.')</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 800; font-size: 1.1rem;">{{ date('d') }} de {{ \Carbon\Carbon::now()->translatedFormat('F') }}</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8; font-weight: 600;">{{ \Carbon\Carbon::now()->translatedFormat('l') }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="inner-content">
+                @if(isset($systemUpdateAvailable) && $systemUpdateAvailable && isset($systemUpdateInfo))
+                <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4 shadow-lg mb-6 rounded-2xl">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
+                            <div>
+                                <p class="font-bold text-sm md:text-base">
+                                    Nova versão disponível: {{ $systemUpdateInfo['latest_version'] }}
+                                    (atual: {{ $systemUpdateInfo['current_version'] }})
+                                </p>
+                                <p class="text-xs md:text-sm opacity-90 mt-0.5">
+                                    Atualize para obter as últimas correções e melhorias.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 flex-shrink-0">
+                            <a href="{{ $systemUpdateInfo['release_url'] }}"
+                               target="_blank"
+                               class="bg-white text-blue-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors shadow">
+                                Ver detalhes
+                            </a>
+                            <a href="{{ route('admin.atualizacao.instrucoes') }}"
+                               class="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-900 transition-colors">
+                                Como atualizar
+                            </a>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3 flex-shrink-0">
-                        <a href="{{ $systemUpdateInfo['release_url'] }}"
-                           target="_blank"
-                           class="bg-white text-blue-700 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-50 transition-colors shadow">
-                            Ver detalhes
-                        </a>
-                        <a href="{{ route('admin.atualizacao.instrucoes') }}"
-                           class="bg-blue-800 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-blue-900 transition-colors">
-                            Como atualizar
-                        </a>
+                </div>
+                @endif
+
+                @if(session('warning'))
+                <div class="alert" style="background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 14px 18px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-weight: 600;">
+                    <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 1.1rem;"></i>
+                    <span>{{ session('warning') }}</span>
+                </div>
+                @endif
+                @if(session('success'))
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <span>{{ session('success') }}</span>
+                </div>
+                @endif
+                @if(session('error'))
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span>{{ session('error') }}</span>
+                </div>
+                @endif
+                @if($errors->any())
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div>
+                        @foreach($errors->all() as $error)
+                            <div>{{ $error }}</div>
+                        @endforeach
                     </div>
                 </div>
+                @endif
+                @yield('content')
             </div>
-            @endif
-
-            @if(session('warning'))
-            <div class="alert" style="background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 14px 18px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-weight: 600;">
-                <i class="fas fa-exclamation-triangle" style="color: #f59e0b; font-size: 1.1rem;"></i>
-                <span>{{ session('warning') }}</span>
-            </div>
-            @endif
-            @if(session('success'))
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle"></i>
-                <span>{{ session('success') }}</span>
-            </div>
-            @endif
-            @if(session('error'))
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle"></i>
-                <span>{{ session('error') }}</span>
-            </div>
-            @endif
-            @if($errors->any())
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle"></i>
-                <div>
-                    @foreach($errors->all() as $error)
-                        <div>{{ $error }}</div>
-                    @endforeach
-                </div>
-            </div>
-            @endif
-            @yield('content')
         </section>
     </main>
 

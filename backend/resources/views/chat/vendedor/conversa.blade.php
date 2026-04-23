@@ -1,127 +1,98 @@
 @extends('chat.layout')
 
+@section('header_title', 'Atendimento WhatsApp')
+@section('header_description', 'Gerencie seus contatos e responda mensagens em tempo real.')
+
 @section('chat-content')
 <div class="chat-sidebar">
-    <div class="chat-header">
-        <h4><i class="fab fa-whatsapp me-2"></i>Chat</h4>
-        <small style="opacity: 0.8">Minhas conversas</small>
+    <div class="chat-sidebar-header">
+        <h4><i class="fab fa-whatsapp me-2"></i>Minhas Conversas</h4>
     </div>
 
     <div class="chat-tabs">
-        <button class="chat-tab {{ $filtro === 'nao_atendidos' ? 'active' : '' }}" 
+        <button class="chat-tab-btn {{ $filtro === 'nao_atendidos' ? 'active' : '' }}" 
                 onclick="window.location.href='{{ route('vendedor.chat', ['aba' => 'nao_atendidos']) }}'">
-            Não Atendidos
-            <span class="badge">{{ $contagem['nao_atendidos'] }}</span>
+            <i class="fas fa-clock"></i> Pendentes ({{ $contagem['nao_atendidos'] }})
         </button>
-        <button class="chat-tab {{ $filtro === 'atendidos' ? 'active' : '' }}" 
+        <button class="chat-tab-btn {{ $filtro === 'atendidos' ? 'active' : '' }}" 
                 onclick="window.location.href='{{ route('vendedor.chat', ['aba' => 'atendidos']) }}'">
-            Atendidos
-            <span class="badge">{{ $contagem['atendidos'] }}</span>
+            <i class="fas fa-check-double"></i> Atendidos ({{ $contagem['atendidos'] }})
         </button>
     </div>
 
-    <div class="chat-search">
-        <input type="text" placeholder="Buscar conversa..." id="searchChat">
+    <div class="chat-search-box">
+        <input type="text" class="chat-search-input" placeholder="Buscar conversa..." id="searchChat">
     </div>
 
     <div class="chat-list">
-        @forelse($conversas as $conversa)
-        <a href="{{ route('vendedor.chat.conversa', $conversa->id) }}" 
-           class="chat-item {{ $conversa->pinned ? 'pinned' : '' }}">
+        @foreach($conversas as $c)
+        <a href="{{ route('vendedor.chat.conversa', $c->id) }}" 
+           class="chat-item {{ $c->id == $conversa->id ? 'active' : '' }}">
             <div class="chat-item-avatar">
-                {{ strtoupper(substr($conversa->contact->nome ?? 'C', 0, 1)) }}
+                {{ strtoupper(substr($c->contact->nome ?? 'C', 0, 1)) }}
             </div>
             <div class="chat-item-info">
                 <div class="chat-item-name">
-                    @if($conversa->pinned)
-                    <i class="fas fa-star pin-icon"></i>
-                    @endif
-                    <span>{{ $conversa->contact->nome ?? 'Cliente' }}</span>
+                    <span>{{ $c->contact->nome ?? 'Cliente' }}</span>
                     <span class="chat-item-time">
-                        {{ $conversa->last_message_at ? $conversa->last_message_at->format('H:i') : '' }}
+                        {{ $c->last_message_at ? $c->last_message_at->format('H:i') : '' }}
                     </span>
                 </div>
                 <div class="chat-item-preview">
-                    {{ $conversa->ultimoMensagem->conteudo ?? 'Sem mensagens' }}
+                    {{ $c->ultimoMensagem->conteudo ?? 'Sem mensagens' }}
                 </div>
             </div>
-            @if($conversa->unread_count > 0)
-            <div class="chat-item-badge">{{ $conversa->unread_count }}</div>
-            @endif
         </a>
-        @empty
-        <div class="empty-state" style="padding: 40px;">
-            <i class="fas fa-comments fa-3x"></i>
-            <p>Nenhuma conversa{{ $filtro === 'nao_atendidos' ? ' não atendida' : '' }}</p>
-        </div>
-        @endforelse
-    </div>
-
-    <div class="pagination-container" style="padding: 12px;">
-        {{ $conversas->appends(['aba' => $filtro])->links() }}
+        @endforeach
     </div>
 </div>
 
 <div class="chat-main">
     <div class="chat-main-header">
-        <div class="avatar">
+        <div class="chat-item-avatar" style="width: 42px; height: 42px; font-size: 1rem;">
             {{ strtoupper(substr($conversa->contact->nome ?? 'C', 0, 1)) }}
         </div>
-        <div class="info">
-            <h5>{{ $conversa->contact->nome ?? 'Cliente' }}</h5>
-            <p>
-                <span class="status-badge status-{{ $conversa->status }}">
-                    {{ ucfirst($conversa->status) }}
-                </span>
-                @if($conversa->is_atendido)
-                <span class="atendido-badge ms-2">Atendido</span>
-                @else
-                <span class="atendido-badge ms-2" style="background: #FEF3C7; color: #B45309;">Aguardando</span>
-                @endif
-            </p>
+        <div>
+            <h5 style="margin: 0; font-weight: 800; color: #1e293b;">{{ $conversa->contact->nome ?? 'Cliente' }}</h5>
+            <small style="color: #64748b; font-weight: 600;">{{ $conversa->contact->telefone ?? '' }}</small>
         </div>
-        <div class="ms-auto">
-            <span class="text-muted">
-                {{ $conversa->contact->telefone ?? '' }}
-            </span>
+        <div class="ms-auto d-flex gap-2">
+            @if(!$conversa->is_atendido)
+            <form action="{{ route('vendedor.chat.atender', $conversa->id) }}" method="POST">
+                @csrf
+                <button type="submit" class="btn btn-sm" style="background: #f3e8ff; color: #6b21a8; font-weight: 700; border-radius: 8px; border: none; padding: 6px 12px;">
+                    <i class="fas fa-check me-1"></i> Atender
+                </button>
+            </form>
+            @endif
         </div>
     </div>
 
-    <div class="chat-messages">
+    <div class="chat-messages" id="chatMessages">
         @forelse($conversa->mensagens as $mensagem)
-        <div class="message {{ $mensagem->direction }}">
+        <div class="message {{ $mensagem->direction === 'outbound' ? 'outbound' : 'inbound' }}">
             <div class="message-bubble">
-                <div>{{ $mensagem->conteudo }}</div>
-                <div class="message-time">
-                    {{ $mensagem->created_at->format('H:i') }}
-                    @if($mensagem->direction === 'outbound')
-                    <span class="message-status">
-                        @if($mensagem->delivery_status === 'read')
-                        <i class="fas fa-check-double"></i>
-                        @else
-                        <i class="fas fa-check"></i>
-                        @endif
-                    </span>
-                    @endif
-                </div>
+                {{ $mensagem->conteudo }}
+            </div>
+            <div class="message-time">
+                {{ $mensagem->created_at->format('H:i') }}
+                @if($mensagem->direction === 'outbound')
+                <i class="fas fa-check-double {{ $mensagem->delivery_status === 'read' ? 'text-info' : '' }}" style="font-size: 0.6rem;"></i>
+                @endif
             </div>
         </div>
         @empty
         <div class="empty-state">
-            <i class="fas fa-comments fa-3x"></i>
-            <p>Nenhuma mensagem ainda</p>
+            <p>Inicie a conversa enviando uma mensagem abaixo.</p>
         </div>
         @endforelse
     </div>
 
-    <div class="chat-input">
-        <form id="mensagemForm" action="{{ route('vendedor.chat.mensagem', $conversa->id) }}" method="POST">
+    <div class="chat-input-area">
+        <form id="mensagemForm" action="{{ route('vendedor.chat.mensagem', $conversa->id) }}" method="POST" class="chat-input-form">
             @csrf
-            <button type="button" class="btn btn-light">
-                <i class="fas fa-paperclip"></i>
-            </button>
-            <input type="text" name="mensagem" placeholder="Digite uma mensagem..." required>
-            <button type="submit">
+            <input type="text" name="mensagem" placeholder="Escreva sua mensagem aqui..." required autocomplete="off">
+            <button type="submit" class="btn-send">
                 <i class="fas fa-paper-plane"></i>
             </button>
         </form>
@@ -130,49 +101,24 @@
 
 @push('scripts')
 <script>
-document.getElementById('mensagemForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const form = this;
-    const input = form.querySelector('input[name="mensagem"]');
-    const button = form.querySelector('button[type="submit"]');
-    
-    if (!input.value.trim()) return;
+    document.addEventListener('DOMContentLoaded', function() {
+        const messages = document.getElementById('chatMessages');
+        messages.scrollTop = messages.scrollHeight;
 
-    button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        const form = document.getElementById('mensagemForm');
+        form.addEventListener('submit', function(e) {
+            const btn = form.querySelector('.btn-send');
+            const input = form.querySelector('input');
+            
+            if (!input.value.trim()) {
+                e.preventDefault();
+                return;
+            }
 
-    fetch(form.action, {
-        method: 'POST',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ mensagem: input.value })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            input.value = '';
-            location.reload();
-        } else {
-            alert(data.error || 'Erro ao enviar mensagem');
-        }
-    })
-    .catch(err => {
-        alert('Erro ao enviar mensagem');
-    })
-    .finally(() => {
-        button.disabled = false;
-        button.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            // Opcional: Feedback visual de envio
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        });
     });
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    const messagesContainer = document.querySelector('.chat-messages');
-    if (messagesContainer) {
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-});
 </script>
 @endpush
 @endsection

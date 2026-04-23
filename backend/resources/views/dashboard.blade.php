@@ -1,22 +1,15 @@
 @extends('layouts.app')
 @section('title', 'Dashboard')
 
+@section('header_title')
+    Olá, {{ explode(' ', Auth::user()->name)[0] }}! 👋
+@endsection
+
+@section('header_description')
+    Seja bem-vindo ao seu Command Center. Tudo pronto para as vendas de hoje?
+@endsection
+
 @section('content')
-<div class="welcome-banner" style="margin-bottom: 30px; padding: 35px; border-radius: 20px; background: linear-gradient(135deg, #3B0764 0%, #4C1D95 100%); color: white; position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(59, 7, 100, 0.25);">
-    <div style="position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <h2 style="font-size: 2.2rem; font-weight: 800; margin: 0; color: #ffffff !important; letter-spacing: -0.5px;">Olá, {{ explode(' ', Auth::user()->name)[0] }}! 👋</h2>
-            <p style="margin: 8px 0 0; opacity: 0.9; font-size: 1.1rem; font-weight: 500; color: #ffffff;">
-                Seja bem-vindo ao seu Command Center. Tudo pronto para as vendas de hoje?
-            </p>
-        </div>
-        <div style="text-align: right;">
-            <div style="font-weight: 800; font-size: 1.2rem;">{{ date('d') }} de {{ \Carbon\Carbon::now()->translatedFormat('F') }}</div>
-            <div style="font-size: 0.9rem; opacity: 0.8; font-weight: 600;">{{ \Carbon\Carbon::now()->translatedFormat('l') }}</div>
-        </div>
-    </div>
-    {{-- Efeito decorativo removido para visual mais limpo --}}
-</div>
 <style>
     .dashboard-viewport {
         height: calc(100vh - 100px);
