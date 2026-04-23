@@ -337,18 +337,25 @@ class VendaController extends Controller
             // Verificar se requer aprovação
             // Performance: sempre requer aprovação
             // Outros planos: requer aprovação se desconto > 5%
-            $requerAprovacao = $isPerformance || $desconto > self::LIMITE_DESCONTO_SEM_APROVACAO;
+            // Split Payment: requer aprovação (duas faturas/cartões)
+            $isSplit = $request->boolean('split_payment');
+            $requerAprovacao = $isPerformance || $desconto > self::LIMITE_DESCONTO_SEM_APROVACAO || $isSplit;
 
             if ($requerAprovacao) {
+                $tipoAprovacao = 'DESCONTO';
+                if ($isPerformance) $tipoAprovacao = 'VALOR_PERFORMANCE';
+                if ($isSplit) $tipoAprovacao = 'SPLIT_PAYMENT';
+
                 // Criar registro de aprovação
                 AprovacaoVenda::create([
                     'venda_id' => $venda->id,
-                    'tipo_aprovacao' => $isPerformance ? 'VALOR_PERFORMANCE' : 'DESCONTO',
+                    'tipo_aprovacao' => $tipoAprovacao,
                     'percentual_solicitado' => $isPerformance ? 0 : $desconto,
-                    'valor_solicitado' => $isPerformance ? $valorFinal : null,
+                    'valor_solicitado' => ($isPerformance || $isSplit) ? $valorFinal : null,
                     'limite_regra' => self::LIMITE_DESCONTO_SEM_APROVACAO,
                     'status' => 'PENDENTE',
                     'solicitado_por' => Auth::id(),
+                    'observacao' => $isSplit ? 'Venda dividida em 2 cartões/faturas.' : null,
                 ]);
 
                 // Atualizar status da venda
