@@ -46,12 +46,13 @@ class OnboardingController extends Controller
             // Atualizar o usuário
             $user = auth()->user();
             
-            $user->update([
-                'termos_aceitos' => true,
-                'termos_aceitos_em' => now(),
-            ]);
-
-            $user->refresh();
+            // Atualizar o usuário usando DB direto para evitar problemas de cache/model
+            \Illuminate\Support\Facades\DB::table('users')
+                ->where('id', $user->id)
+                ->update([
+                    'termos_aceitos' => true,
+                    'termos_aceitos_em' => now(),
+                ]);
 
             // Limpar caches que possam estar guardando estado antigo
             \Illuminate\Support\Facades\Cache::forget('user_permissions_' . $user->id);

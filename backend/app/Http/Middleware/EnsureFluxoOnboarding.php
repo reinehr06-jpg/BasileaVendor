@@ -33,14 +33,24 @@ class EnsureFluxoOnboarding
             return $next($request);
         }
 
-        // 1. Verificar Termos
-        if (!$user->termos_aceitos) {
-            \Illuminate\Support\Facades\Log::info('ONBOARDING_REDIRECT_TERMOS', [
-                'user_id' => $user->id,
-                'termos_aceitos_val' => $user->termos_aceitos,
-                'raw_val' => $user->getAttributes()['termos_aceitos'] ?? 'null'
-            ]);
-            return redirect()->route('onboarding.termos');
+        // 1. Verificar Termos (Busca direta no DB para evitar cache de Model)
+        $termosAceitos = \Illuminate\Support\Facades\DB::table('users')
+            ->where('id', $user->id)
+            ->value('termos_aceitos');
+
+        if (!$termosAceitos) {
+            // Backup check: verificar na tabela de aceites
+            $temRegistro = \Illuminate\Support\Facades\DB::table('terms_acceptances')
+                ->where('user_id', $user->id)
+                ->exists();
+            
+            if (!$temRegistro) {
+                \Illuminate\Support\Facades\Log::info('ONBOARDING_REDIRECT_TERMOS_FORCED', [
+                    'user_id' => $user->id,
+                    'db_val' => $termosAceitos
+                ]);
+                return redirect()->route('onboarding.termos');
+            }
         }
 
         // 2. Verificar Split (se ativado globalmente)
