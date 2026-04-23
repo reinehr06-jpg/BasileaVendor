@@ -50,7 +50,7 @@ class DashboardController extends Controller
         $isPersonal = false;
         
         if ($user->perfil === 'vendedor') {
-            $vendedorIds = [$user->vendedor->id ?? 0];
+            $vendedorIds = [$user->vendedor?->id ?? 0];
             $isPersonal = true;
         } elseif ($user->perfil === 'gestor') {
             $vendedorIds = Vendedor::where('gestor_id', $user->id)
@@ -190,7 +190,7 @@ class DashboardController extends Controller
                 return ['label' => Carbon::parse($row->dia)->format('d/m'), 'total' => $row->total];
             });
         } elseif ($periodo === 'year') {
-            $monthFormat = $driver === 'pgsql' ? "TO_CHAR(pagamentos.updated_at, 'YYYY-MM')" : "strftime('%Y-%m', pagamentos.updated_at)";
+            $monthFormat = $driver === 'pgsql' ? "TO_CHAR(pagamentos.updated_at, 'YYYY-MM')" : "DATE_FORMAT(pagamentos.updated_at, '%Y-%m')";
             $graficoRaw = Pagamento::selectRaw("$monthFormat as mes, sum(pagamentos.valor) as total")
                 ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
                 ->whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
@@ -201,7 +201,7 @@ class DashboardController extends Controller
                 return ['label' => Carbon::parse($row->mes . '-01')->format('M/Y'), 'total' => $row->total];
             });
         } else {
-            $weekFormat = $driver === 'pgsql' ? "TO_CHAR(pagamentos.updated_at, 'IW')" : "strftime('%W', pagamentos.updated_at)";
+            $weekFormat = $driver === 'pgsql' ? "TO_CHAR(pagamentos.updated_at, 'IW')" : "WEEK(pagamentos.updated_at)";
             $graficoRaw = Pagamento::selectRaw("$weekFormat as semana, sum(pagamentos.valor) as total")
                 ->join('vendas', 'pagamentos.venda_id', '=', 'vendas.id')
                 ->whereIn('pagamentos.status', ['RECEIVED', 'pago', 'PAGO', 'CONFIRMED'])
@@ -218,7 +218,7 @@ class DashboardController extends Controller
             'valores' => $graficoData->pluck('total')->toArray()
         ];
 
-        $dayFormat = $driver === 'pgsql' ? "TO_CHAR(cobrancas.updated_at, 'DD')" : "strftime('%d', cobrancas.updated_at)";
+        $dayFormat = $driver === 'pgsql' ? "TO_CHAR(cobrancas.updated_at, 'DD')" : "DAY(cobrancas.updated_at)";
         $queryFaixa = Cobranca::selectRaw("$dayFormat as dia, count(*) as total")
             ->join('vendas', 'cobrancas.venda_id', '=', 'vendas.id')
             ->whereBetween('cobrancas.updated_at', [$dataInicio, $dataFim])
