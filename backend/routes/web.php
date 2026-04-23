@@ -342,11 +342,12 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::get('/limpar-sistema-cache-force', function() {
+    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
     \Illuminate\Support\Facades\Artisan::call('route:clear');
     \Illuminate\Support\Facades\Artisan::call('view:clear');
     \Illuminate\Support\Facades\Artisan::call('config:clear');
     \Illuminate\Support\Facades\Artisan::call('cache:clear');
-    return "Sistema limpo com sucesso!";
+    return "Sistema e Banco de Dados atualizados com sucesso!";
 });
 
 Route::middleware(['auth', 'verified', '2fa'])->group(function () {
