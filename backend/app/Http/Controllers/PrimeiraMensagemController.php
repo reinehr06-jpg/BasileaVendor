@@ -9,6 +9,9 @@ use App\Services\AI\PrimeiraMensagemIAService;
 use App\Services\AI\StrictPromptValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Log;
 
 class PrimeiraMensagemController extends Controller
 {
@@ -22,21 +25,37 @@ class PrimeiraMensagemController extends Controller
     public function index()
     {
         try {
+            // SELF-HEALING: Se a tabela estiver com schema errado, repara na hora
+            if (Schema::hasTable('primeira_mensagens') && !Schema::hasColumn('primeira_mensagens', 'user_id')) {
+                Log::warning('REPARANDO_TABELA_PRIMEIRA_MENSAGENS_ON_THE_FLY');
+                Schema::drop('primeira_mensagens');
+            }
+
+            if (!Schema::hasTable('primeira_mensagens')) {
+                Schema::create('primeira_mensagens', function (Blueprint $table) {
+                    $table->id();
+                    $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+                    $table->string('perfil')->nullable();
+                    $table->string('titulo');
+                    $table->text('mensagem');
+                    $table->boolean('ativa')->default(false);
+                    $table->enum('status', ['rascunho', 'pendente_aprovacao', 'aprovada', 'rejeitada'])->default('rascunho');
+                    $table->foreignId('aprovada_por')->nullable()->constrained('users')->nullOnDelete();
+                    $table->foreignId('rejeitada_por')->nullable()->constrained('users')->nullOnDelete();
+                    $table->text('motivo_rejeicao')->nullable();
+                    $table->timestamps();
+                    $table->index(['user_id', 'status']);
+                    $table->unique(['user_id', 'ativa']);
+                });
+            }
+
             $mensagens = PrimeiraMensagem::where('user_id', Auth::id())
                 ->orderByDesc('created_at')->get();
 
             return view('vendedor.primeira-mensagem.index', compact('mensagens'));
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('PRIMEIRA_MENSAGEM_INDEX_ERROR: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            if (config('app.debug')) {
-                throw $e;
-            }
-
-            return redirect()->route('dashboard')->with('error', 'Ocorreu um erro ao carregar suas mensagens. Tentamos reparar o banco de dados, por favor tente novamente em alguns instantes.');
+            Log::error('PRIMEIRA_MENSAGEM_INDEX_ERROR: ' . $e->getMessage());
+            return redirect()->route('dashboard')->with('error', 'Erro ao carregar mensagens. Por favor, tente recarregar a página.');
         }
     }
 
