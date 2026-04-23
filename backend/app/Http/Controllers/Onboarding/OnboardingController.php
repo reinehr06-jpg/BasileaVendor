@@ -96,13 +96,18 @@ class OnboardingController extends Controller
 
     public function verSplit()
     {
-        $user = auth()->user();
-        
-        if ($user->split_configurado) {
-            return redirect()->route('dashboard');
-        }
+        try {
+            $user = auth()->user();
+            
+            if ($user->split_configurado) {
+                return redirect()->route('dashboard');
+            }
 
-        return view('onboarding.split');
+            return view('onboarding.split');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('ERRO_VER_SPLIT: ' . $e->getMessage());
+            return redirect()->route('dashboard')->with('error', 'Erro ao carregar configuração de split. Você pode configurar isso depois no seu perfil.');
+        }
     }
 
     public function ativarSplit(Request $request)
