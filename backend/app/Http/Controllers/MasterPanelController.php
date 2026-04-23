@@ -78,6 +78,13 @@ class MasterPanelController extends Controller
             'comissao_gestor_recorrencia' => 'nullable|numeric|min:0|max:100',
             'gestor_id' => 'nullable|exists:users,id',
             'meta_mensal' => 'nullable|numeric|min:0',
+        ], [
+            'name.required' => 'O nome é obrigatório.',
+            'email.required' => 'O e-mail é obrigatório.',
+            'email.email' => 'O e-mail deve ser um endereço válido.',
+            'email.unique' => 'Este e-mail já está em uso.',
+            'comissao_inicial.required' => 'A comissão inicial é obrigatória.',
+            'comissao_recorrencia.required' => 'A comissão de recorrência é obrigatória.',
         ]);
 
         try {
@@ -86,7 +93,7 @@ class MasterPanelController extends Controller
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
-                'password' => Hash::make('B4s1l3i@V3nd4s!2026#Xk9$'),
+                'password' => Hash::make('Basileia123'),
                 'perfil' => $request->perfil,
                 'status' => $request->status,
                 'require_password_change' => true,
@@ -153,7 +160,7 @@ class MasterPanelController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'telefone' => 'nullable|string|max:20',
-            'password' => ['nullable', 'string', Password::min(20)->letters()->mixedCase()->numbers()->symbols()],
+            'password' => 'nullable|string|min:6',
             'status' => 'required|in:ativo,inativo,bloqueado',
             'perfil' => 'required|in:vendedor,gestor',
             'comissao_inicial' => 'required|numeric|min:0|max:100',
@@ -163,11 +170,18 @@ class MasterPanelController extends Controller
             'gestor_id' => 'nullable|exists:users,id',
             'meta_mensal' => 'nullable|numeric|min:0',
             'meta_pessoal' => 'nullable|numeric|min:0',
-            // Validações de Split
             'asaas_wallet_id' => 'nullable|string|max:255',
             'tipo_split' => 'nullable|in:percentual,fixo',
             'valor_split_inicial' => 'nullable|numeric|min:0',
             'valor_split_recorrencia' => 'nullable|numeric|min:0',
+        ], [
+            'name.required' => 'O nome é obrigatório.',
+            'email.required' => 'O e-mail é obrigatório.',
+            'email.email' => 'O e-mail deve ser um endereço válido.',
+            'email.unique' => 'Este e-mail já está em uso.',
+            'password.min' => 'A senha deve ter pelo menos 6 caracteres.',
+            'comissao_inicial.required' => 'A comissão inicial é obrigatória.',
+            'comissao_recorrencia.required' => 'A comissão de recorrência é obrigatória.',
         ]);
 
         try {
