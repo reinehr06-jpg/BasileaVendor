@@ -1,5 +1,7 @@
-@extends('layouts.app')
 @section('title', 'Minhas Vendas')
+
+@section('header_title', 'Minhas Vendas')
+@section('header_description', 'Acompanhe o status de todos os seus pedidos e faturamentos.')
 
 @section('content')
 <style>

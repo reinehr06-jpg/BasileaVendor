@@ -1,5 +1,7 @@
-@extends('layouts.app')
 @section('title', 'Minhas Comissões')
+
+@section('header_title', 'Minhas Comissões')
+@section('header_description', 'Detalhamento de ganhos e valores a receber.')
 
 @section('content')
 <style>

@@ -1,5 +1,7 @@
-@extends('layouts.app')
 @section('title', 'Meus Clientes')
+
+@section('header_title', 'Meus Clientes')
+@section('header_description', 'Gerencie sua base de clientes e histórico de compras.')
 
 @section('content')
 <style>
