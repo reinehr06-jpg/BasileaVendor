@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Basiléia Vendas - Atualizar Senha</title>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const passwordFields = document.querySelectorAll('input[type="password"]');
+            passwordFields.forEach(field => {
+                field.addEventListener('copy', e => e.preventDefault());
+                field.addEventListener('paste', e => e.preventDefault());
+                field.addEventListener('cut', e => e.preventDefault());
+                field.addEventListener('contextmenu', e => e.preventDefault());
+            });
+        });
+    </script>
     <style>
         :root {
             --primary: #581c87;
