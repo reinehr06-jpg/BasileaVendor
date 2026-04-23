@@ -29,34 +29,45 @@ class OnboardingController extends Controller
 
     public function aceitarTermos(Request $request)
     {
-        $request->validate([
-            'termos_aceitos' => 'required|accepted',
-            'terms_document_id' => 'required|exists:terms_documents,id',
-        ]);
+        try {
+            $request->validate([
+                'termos_aceitos' => 'required|accepted',
+                'terms_document_id' => 'required|exists:terms_documents,id',
+            ]);
 
-        // Registrar o aceite no log
-        TermsAcceptance::registrar(
-            auth()->id(),
-            $request->terms_document_id,
-            $request->ip(),
-            $request->userAgent()
-        );
+            // Registrar o aceite no log
+            \App\Models\TermsAcceptance::registrar(
+                auth()->id(),
+                $request->terms_document_id,
+                $request->ip(),
+                $request->userAgent()
+            );
 
-        // Atualizar o usuário - IMPORTANTE: O model User deve ter 'termos_aceitos' no $fillable
-        $user = auth()->user();
-        $user->termos_aceitos = true;
-        $user->termos_aceitos_em = now();
-        $user->save();
+            // Atualizar o usuário
+            $user = auth()->user();
+            $user->termos_aceitos = true;
+            $user->termos_aceitos_em = now();
+            
+            if (!$user->save()) {
+                throw new \Exception("Falha ao salvar o usuário no aceite de termos.");
+            }
 
-        // Limpar cache de permissões se necessário
-        
-        $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
+            $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
 
-        if ($splitAtivo && !$user->split_configurado) {
-            return redirect()->route('onboarding.split');
+            if ($splitAtivo && !$user->split_configurado) {
+                return redirect()->route('onboarding.split');
+            }
+
+            return redirect()->route('dashboard')->with('iniciar_tour', true);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('ERRO_ACEITE_TERMOS: ' . $e->getMessage(), [
+                'user_id' => auth()->id(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return back()->with('error', 'Ocorreu um erro ao processar seu aceite. Por favor, tente novamente ou contate o suporte.');
         }
-
-        return redirect()->route('dashboard')->with('iniciar_tour', true);
     }
 
     public function verSplit()
