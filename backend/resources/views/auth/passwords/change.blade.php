@@ -145,6 +145,32 @@
             line-height: 1.4;
         }
 
+        .password-example {
+            background: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            color: #475569;
+            word-break: break-all;
+            user-select: none;
+            position: relative;
+            cursor: default;
+        }
+
+        .password-example::before {
+            content: 'Exemplo de senha segura (não copie):';
+            display: block;
+            font-family: sans-serif;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
         .logo-b {
             width: 80px;
             height: 80px;
@@ -208,7 +234,10 @@
                     <label class="form-label" for="password">Nova Senha</label>
                     <input type="password" id="password" name="password" class="form-input" required placeholder="Nova senha segura">
                     <div class="password-requirements">
-                        Mínimo 8 caracteres, incluindo Letras (Maiúsculas e Minúsculas), Números e Símbolos.
+                        Mínimo <strong>20 caracteres</strong>, incluindo Letras (Maiúsculas e Minúsculas), Números e Símbolos.
+                    </div>
+                    <div class="password-example">
+                        B4s1l3i@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0
                     </div>
                     @error('password')
                         <span class="error-message">{{ $message }}</span>
