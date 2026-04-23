@@ -60,7 +60,6 @@ class OnboardingController extends Controller
             // Atualizar usando o Model para disparar eventos e casts corretamente
             $user = \App\Models\User::find($userId);
             $user->termos_aceitos = true;
-            $user->termos_aceitos_em = now();
             $user->save();
 
             // Sincronizar com o DB para o Middleware ler o valor atualizado
@@ -68,7 +67,6 @@ class OnboardingController extends Controller
                 ->where('id', $userId)
                 ->update([
                     'termos_aceitos' => true,
-                    'termos_aceitos_em' => now(),
                 ]);
 
             // Limpar caches críticos

@@ -8,12 +8,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TermsAcceptance extends Model
 {
     protected $fillable = [
-        'user_id', 'terms_document_id', 'aceito_em',
+        'user_id', 'terms_document_id',
     ];
 
-    protected $casts = [
-        'aceito_em' => 'datetime',
-    ];
+    protected $casts = [];
 
     public function user(): BelongsTo
     {
@@ -32,13 +30,9 @@ class TermsAcceptance extends Model
         foreach ($termosAtivos as $termo) {
             $aceite = static::where('user_id', $userId)
                 ->where('terms_document_id', $termo->id)
-                ->first();
+                ->exists();
 
             if (!$aceite) {
-                return false;
-            }
-
-            if ($aceite->termsDocument->versao !== $termo->versao) {
                 return false;
             }
         }
@@ -50,9 +44,7 @@ class TermsAcceptance extends Model
     {
         return static::updateOrCreate(
             ['user_id' => $userId, 'terms_document_id' => $termsDocumentId],
-            [
-                'aceito_em' => now(),
-            ]
+            []
         );
     }
 }
