@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TermsAcceptance extends Model
 {
     protected $fillable = [
-        'user_id', 'terms_document_id',
+        'user_id', 'terms_document_id', 'accepted_at',
     ];
 
-    protected $casts = [];
+    protected $casts = [
+        'accepted_at' => 'datetime',
+    ];
 
     public function user(): BelongsTo
     {
@@ -44,7 +46,9 @@ class TermsAcceptance extends Model
     {
         return static::updateOrCreate(
             ['user_id' => $userId, 'terms_document_id' => $termsDocumentId],
-            []
+            [
+                'accepted_at' => now(),
+            ]
         );
     }
 }
