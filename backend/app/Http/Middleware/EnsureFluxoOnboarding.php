@@ -33,6 +33,7 @@ class EnsureFluxoOnboarding
             return $next($request);
         }
 
+        /* 
         // 1. Verificar Termos (Busca direta no DB para evitar cache de Model)
         $termosAceitos = \Illuminate\Support\Facades\DB::table('users')
             ->where('id', $user->id)
@@ -52,6 +53,7 @@ class EnsureFluxoOnboarding
                 return redirect()->route('onboarding.termos');
             }
         }
+        */
 
         // 2. Verificar Split (se ativado globalmente)
         $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
