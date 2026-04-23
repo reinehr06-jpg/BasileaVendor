@@ -146,18 +146,14 @@ class TwoFactorController extends Controller
             return redirect()->route('2fa.setup')->with('warning', '2FA foi resetado devido a erro de descriptografia. Por favor, configure novamente.');
         } catch (\Throwable $e) {
             Log::error('2FA_VERIFY_FATAL_ERROR', [
-                'user_id' => $user->id, 
+                'user_id' => Auth::id(), 
                 'error' => $e->getMessage(),
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
-
-            if (config('app.debug')) {
-                throw $e;
-            }
-
-            return response()->view('errors.custom_500', ['message' => 'Erro no 2FA: ' . $e->getMessage()], 500);
+            
+            return back()->withErrors(['code' => 'Erro interno ao validar 2FA. Por favor, tente novamente.']);
         }
 
         // Código duplicado removido - já tratado no catch e no loop acima

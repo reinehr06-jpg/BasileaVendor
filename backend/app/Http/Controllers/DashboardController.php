@@ -260,16 +260,10 @@ class DashboardController extends Controller
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('DASHBOARD_ERROR: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'user_id' => Auth::id(),
-                'trace' => $e->getTraceAsString()
+                'user_id' => Auth::id()
             ]);
             
-            if (config('app.debug')) {
-                throw $e;
-            }
-
-            return response()->view('errors.custom_500', ['message' => $e->getMessage()], 500);
+            return redirect()->route('login')->with('error', 'Ocorreu um erro ao carregar o painel. Por favor, tente entrar novamente.');
         }
     }
 }
