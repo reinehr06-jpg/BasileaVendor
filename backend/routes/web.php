@@ -759,10 +759,10 @@ Route::middleware(['auth', 'vendedor'])->prefix('vendedor')->group(function () {
     Route::get('/calendario', [CalendarioController::class, 'vendedorIndex'])->name('vendedor.calendario.index');
     
     // Primeira Mensagem
-    Route::get('/configuracoes/primeira-mensagem', [PrimeiraMensagemController::class, 'index'])->name('configuracoes.primeira-mensagem');
-    Route::post('/configuracoes/primeira-mensagem', [PrimeiraMensagemController::class, 'store']);
-    Route::post('/configuracoes/primeira-mensagem/{mensagem}/enviar', [PrimeiraMensagemController::class, 'enviarParaAprovacao'])->name('configuracoes.primeira-mensagem.enviar');
-    Route::post('/configuracoes/primeira-mensagem/gerar-ia', [PrimeiraMensagemController::class, 'gerarComIA'])->name('configuracoes.primeira-mensagem.ia');
+    Route::get('/primeira-mensagem', [PrimeiraMensagemController::class, 'index'])->name('configuracoes.primeira-mensagem');
+    Route::post('/primeira-mensagem', [PrimeiraMensagemController::class, 'store']);
+    Route::post('/primeira-mensagem/{mensagem}/enviar', [PrimeiraMensagemController::class, 'enviarParaAprovacao'])->name('configuracoes.primeira-mensagem.enviar');
+    Route::post('/primeira-mensagem/gerar-ia', [PrimeiraMensagemController::class, 'gerarComIA'])->name('configuracoes.primeira-mensagem.ia');
 });
 
 // ──────────────────────────────────────────────────────────────────────────────

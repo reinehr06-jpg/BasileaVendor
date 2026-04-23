@@ -24,7 +24,7 @@ class PrimeiraMensagemController extends Controller
         $mensagens = PrimeiraMensagem::where('user_id', Auth::id())
             ->orderByDesc('created_at')->get();
 
-        return view('configuracoes.primeira-mensagem', compact('mensagens'));
+        return view('vendedor.primeira-mensagem.index', compact('mensagens'));
     }
 
     public function store(Request $request)

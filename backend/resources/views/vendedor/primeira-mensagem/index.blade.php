@@ -1,5 +1,5 @@
 @extends('layouts.app')
-
+@php $hide_banner = true; @endphp
 @section('title', 'Primeira Mensagem')
 
 @section('content')

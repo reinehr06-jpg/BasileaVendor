@@ -1,3 +1,4 @@
+@extends('layouts.app')
 @section('title', 'Meus Clientes')
 
 @section('header_title', 'Meus Clientes')

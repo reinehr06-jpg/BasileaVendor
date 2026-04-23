@@ -1,3 +1,4 @@
+@extends('layouts.app')
 @section('title', 'Minhas Comissões')
 
 @section('header_title', 'Minhas Comissões')

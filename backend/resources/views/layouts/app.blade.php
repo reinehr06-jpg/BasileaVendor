@@ -628,6 +628,7 @@
             </div>
         </header>
         <section class="content-area">
+            @if(!isset($hide_banner) || !$hide_banner)
             <div class="global-banner">
                 <div class="global-banner-content">
                     <div>
@@ -640,6 +641,7 @@
                     </div>
                 </div>
             </div>
+            @endif
 
             <div class="inner-content">
                 @if(isset($systemUpdateAvailable) && $systemUpdateAvailable && isset($systemUpdateInfo))
