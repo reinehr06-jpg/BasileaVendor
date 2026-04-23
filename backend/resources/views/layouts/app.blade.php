@@ -628,7 +628,7 @@
             </div>
         </header>
         <section class="content-area">
-            @if(!isset($hide_banner) || !$hide_banner)
+            @if(request()->routeIs('vendedor.dashboard') || request()->routeIs('dashboard'))
             <div class="global-banner">
                 <div class="global-banner-content">
                     <div>
