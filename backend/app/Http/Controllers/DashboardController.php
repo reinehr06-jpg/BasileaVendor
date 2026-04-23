@@ -257,11 +257,12 @@ class DashboardController extends Controller
                 'periodo', 'periodoLabel', 'ticketMedio',
                 'totalLeads', 'campanhasAtivas', 'leadsHoje', 'conversaoLeads'
             ));
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('DASHBOARD_ERROR: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
-                'user_id' => Auth::id()
+                'user_id' => Auth::id(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             if (config('app.debug')) {
