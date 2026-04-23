@@ -75,12 +75,6 @@ class OnboardingController extends Controller
             
             $request->session()->put('termos_aceitos', true); // Backup na sessão
 
-            $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
-
-            if ($splitAtivo && !$user->split_configurado) {
-                return redirect()->route('onboarding.split');
-            }
-
             return redirect()->route('dashboard')->with('iniciar_tour', true);
             
         } catch (\Exception $e) {
