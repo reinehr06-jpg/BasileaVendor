@@ -760,7 +760,7 @@ Route::middleware(['auth', 'vendedor'])->prefix('vendedor')->group(function () {
     
     // Primeira Mensagem
     Route::get('/primeira-mensagem', [PrimeiraMensagemController::class, 'index'])->name('configuracoes.primeira-mensagem');
-    Route::post('/primeira-mensagem', [PrimeiraMensagemController::class, 'store']);
+    Route::post('/primeira-mensagem', [PrimeiraMensagemController::class, 'store'])->name('configuracoes.primeira-mensagem.store');
     Route::post('/primeira-mensagem/{mensagem}/enviar', [PrimeiraMensagemController::class, 'enviarParaAprovacao'])->name('configuracoes.primeira-mensagem.enviar');
     Route::post('/primeira-mensagem/gerar-ia', [PrimeiraMensagemController::class, 'gerarComIA'])->name('configuracoes.primeira-mensagem.ia');
 });
