@@ -514,10 +514,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Filtrar métodos de pagamento disponíveis
             filtrarPagamentos(this.dataset.value);
 
-            // Parcelamento só para Anual + Cartão
+            // Parcelamento e Split só para Anual + Cartão
             const isAnual = this.dataset.value === 'anual';
             const isCartao = selectFormaPagamento.value === 'CREDIT_CARD';
             parcelamentoRow.classList.toggle('hidden', !(isAnual && isCartao));
+            updateSplitVisibility();
         });
     });
 
@@ -539,9 +540,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function updateSplitVisibility() {
         const isCartao = selectFormaPagamento.value === 'CREDIT_CARD';
-        splitPaymentContainer.classList.toggle('hidden', !isCartao);
+        const isAnual = selectTipo.value === 'anual';
         
-        if (!isCartao) {
+        // Split só para Cartão E Plano Anual (valor mais alto)
+        const show = isCartao && isAnual;
+        splitPaymentContainer.classList.toggle('hidden', !show);
+        
+        if (!show) {
             checkSplitPayment.checked = false;
             splitFields.classList.add('hidden');
         }

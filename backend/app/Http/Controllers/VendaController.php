@@ -166,7 +166,15 @@ class VendaController extends Controller
             'cidade' => 'required|string|max:255',
             'estado' => 'required|string|max:2',
             'complemento' => 'nullable|string|max:255',
-            'split_payment' => 'nullable|boolean',
+            'split_payment' => [
+                'nullable',
+                'boolean',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($value && $request->tipo_negociacao !== 'anual') {
+                        $fail('O parcelamento em 2 cartões só é permitido para planos ANUAIS devido ao valor.');
+                    }
+                }
+            ],
             'valor_cartao_1' => 'nullable|numeric|min:1',
             'valor_cartao_2' => 'nullable|numeric|min:1',
         ], [
