@@ -2,240 +2,358 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Termos de Uso — Basileia Vendas</title>
-    {{-- @vite(['resources/css/app.css', 'resources/js/app.js']) --}}
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --primary: #4C1D95;
-            --primary-dark: #3B0764;
-            --primary-light: #8B5CF6;
-            --surface: #FFFFFF;
-            --surface-hover: #F8FAFC;
-            --border: #E2E8F0;
-            --text: #1E293B;
-            --text-muted: #64748B;
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-soft: #eef2ff;
+            --surface: #ffffff;
+            --bg: #F1F5F9;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --radius: 16px;
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
+
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, var(--primary-dark) 0%, #5B21B6 100%);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            color: var(--text-main);
         }
+
         .card {
             background: var(--surface);
             border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
             width: 100%;
-            max-width: 680px;
+            max-width: 720px;
             overflow: hidden;
-            animation: slideUp 0.5s ease-out;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
+
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
+            from { opacity: 0; transform: translateY(40px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
         .card-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            padding: 32px;
+            background: #6366f1;
+            padding: 40px;
             color: white;
+            position: relative;
         }
-        .card-header h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: 4px; }
-        .card-header p { opacity: 0.85; font-size: 0.9rem; }
-        .card-body { padding: 32px; }
-        
-        .version-badge {
-            display: inline-flex;
+
+        .card-header .badge {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            background: rgba(255,255,255,0.2);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
             align-items: center;
-            gap: 6px;
-            background: rgba(76, 29, 149, 0.1);
-            color: var(--primary);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
+            gap: 8px;
+            backdrop-filter: blur(4px);
+        }
+
+        .card-header h1 { 
+            font-size: 1.75rem; 
+            font-weight: 800; 
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .card-header p { 
+            opacity: 0.9; 
+            font-size: 0.95rem; 
+            max-width: 400px;
+            line-height: 1.5;
+        }
+
+        .card-body { padding: 40px; }
+
+        .terms-container {
+            position: relative;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: #fafafa;
             margin-bottom: 20px;
         }
-        
+
         .terms-box {
-            border: 2px solid var(--border);
-            border-radius: 16px;
-            height: 380px;
+            height: 400px;
             overflow-y: auto;
-            padding: 30px;
-            background: #fdfdfd;
-            font-size: 0.95rem;
-            line-height: 1.8;
-            color: var(--text);
-            transition: all 0.3s;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+            padding: 35px;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #334155;
         }
-        .terms-box::-webkit-scrollbar { width: 8px; }
-        .terms-box::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        .terms-box::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius: 10px; }
+
+        /* Custom Scrollbar */
+        .terms-box::-webkit-scrollbar { width: 6px; }
+        .terms-box::-webkit-scrollbar-track { background: transparent; }
+        .terms-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .terms-box::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .terms-content h1, .terms-content h2, .terms-content h3 {
+            color: var(--primary-dark);
+            margin: 24px 0 12px 0;
+            font-weight: 800;
+        }
         
-        .legal-info {
-            background: #F1F5F9;
-            padding: 12px 20px;
-            border-radius: 10px;
-            margin-top: 15px;
-            font-size: 0.75rem;
-            color: var(--text-muted);
+        .terms-content p { margin-bottom: 16px; }
+        .terms-content ul { margin: 0 0 16px 20px; }
+
+        /* Progress Bar Section */
+        .progress-wrapper {
             display: flex;
-            justify-content: space-between;
-            border: 1px solid var(--border);
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 24px;
+            padding: 0 5px;
+        }
+        
+        .progress-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--primary);
+            white-space: nowrap;
         }
 
-        .legal-item { display: flex; align-items: center; gap: 6px; }
-        .legal-item i { color: var(--primary); }
+        .progress-bar-bg {
+            flex-grow: 1;
+            height: 8px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            overflow: hidden;
+        }
 
-        .checkbox-label {
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        /* Checkbox Section */
+        .checkbox-container {
             display: flex;
             align-items: flex-start;
-            gap: 14px;
-            padding: 20px;
+            gap: 16px;
+            padding: 24px;
             border: 2px solid var(--border);
-            border-radius: 14px;
+            border-radius: var(--radius);
             cursor: pointer;
             transition: all 0.2s;
-            margin: 24px 0;
-            background: white;
+            margin-bottom: 24px;
+            background: #fff;
         }
-        .checkbox-label:hover:not(.disabled) { border-color: var(--primary); background: rgba(76, 29, 149, 0.02); }
-        .checkbox-label.disabled { opacity: 0.5; cursor: not-allowed; background: #f8fafc; }
-        .checkbox-label input { margin-top: 3px; width: 22px; height: 22px; accent-color: var(--primary); cursor: inherit; }
-        .checkbox-label span { font-size: 0.9rem; color: var(--text); font-weight: 500; }
-        
-        .scroll-warning {
-            text-align: center;
-            font-size: 0.85rem;
-            color: #ef4444;
+
+        .checkbox-container:hover:not(.disabled) {
+            border-color: var(--primary);
+            background: var(--primary-soft);
+        }
+
+        .checkbox-container.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f8fafc;
+        }
+
+        .checkbox-container input {
+            width: 24px;
+            height: 24px;
+            accent-color: var(--primary);
+            margin-top: 2px;
+            cursor: inherit;
+        }
+
+        .checkbox-container span {
+            font-size: 0.95rem;
             font-weight: 600;
-            margin-top: 10px;
+            line-height: 1.5;
+            color: var(--text-main);
+        }
+        
+        .checkbox-container span strong {
+            color: var(--primary-dark);
+        }
+
+        /* Action Button */
+        .btn-submit {
+            width: 100%;
+            padding: 18px;
+            border-radius: var(--radius);
+            border: none;
+            background: #e2e8f0;
+            color: #94a3b8;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: not-allowed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .btn-submit.active {
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-submit.active:hover {
+            transform: translateY(-2px);
+            background: var(--primary-dark);
+        }
+
+        .btn-submit.active:active {
+            transform: translateY(0);
+        }
+
+        #scroll-warning {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #ef4444;
+            font-weight: 700;
+            margin-top: -10px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
         }
+
     </style>
 </head>
 <body>
+
 <div class="card">
     <div class="card-header">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h1 style="margin:0;">📋 Contrato e Termos</h1>
-            <div style="background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
-                Segurança LGPD
-            </div>
+        <div class="badge">
+            <i class="fas fa-shield-halved"></i>
+            Segurança LGPD
         </div>
-        <p>Por favor, leia atentamente as condições de uso do sistema.</p>
+        <h1>
+            <i class="fas fa-file-signature"></i>
+            Contrato e Termos
+        </h1>
+        <p>Por favor, leia atentamente as condições de uso antes de acessar o painel administrativo.</p>
     </div>
-    
+
     <div class="card-body">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div class="version-badge" style="margin:0;">
-                <i class="fas fa-shield-check"></i>
-                Versão {{ $termo->versao }}
+        <div class="terms-container">
+            <div class="terms-box" id="termsBox" onscroll="handleScroll(this)">
+                <div class="terms-content">
+                    {!! $termo->conteudo_html !!}
+                </div>
             </div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">
-                ID Doc: #{{ str_pad($termo->id, 5, '0', STR_PAD_LEFT) }}
-            </div>
-        </div>
-        
-        <div class="terms-box" id="termsBox" onscroll="onScroll(this)">
-            <div class="terms-content">
-                {!! $termo->conteudo_html !!}
-            </div>
-        </div>
-        
-        <div id="scrollWarning" class="scroll-warning">
-            <i class="fas fa-mouse-pointer"></i>
-            <span>Por favor, role até o final para habilitar o aceite.</span>
         </div>
 
-        <div class="progress-container">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
+        <div class="progress-wrapper">
+            <div class="progress-info">
+                <i class="fas fa-book-open"></i>
+                <span id="progressText">0% lido</span>
             </div>
-            <span class="progress-text" id="progressText">0%</span>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
         </div>
 
-        <div class="legal-info">
-            <div class="legal-item">
-                <i class="fas fa-network-wired"></i>
-                <strong>Seu IP:</strong> {{ request()->ip() }}
-            </div>
-            <div class="legal-item">
-                <i class="fas fa-clock"></i>
-                <strong>Data/Hora:</strong> {{ now()->format('d/m/Y H:i') }}
-            </div>
+        <div id="scroll-warning">
+            <i class="fas fa-arrow-down"></i>
+            Role até o final para habilitar o aceite
         </div>
-        
-        <form action="{{ route('onboarding.termos.aceitar') }}" method="POST" id="aceiteForm">
+
+        <form action="{{ route('onboarding.termos.aceitar') }}" method="POST" id="termsForm">
             @csrf
             <input type="hidden" name="terms_document_id" value="{{ $termo->id }}">
             
-            <label class="checkbox-label disabled" id="checkboxLabel">
-                <input type="checkbox" name="termos_aceitos" value="1" id="cbTermos" disabled>
-                <span>Li e concordo integralmente com os Termos de Uso e a Política de Privacidade descritos acima.</span>
+            <label class="checkbox-container disabled" id="checkboxLabel">
+                <input type="checkbox" name="termos_aceitos" value="1" id="termsCheckbox" disabled>
+                <span>Li e concordo integralmente com os <strong>Termos de Uso</strong> e a <strong>Política de Privacidade</strong> descritos acima.</span>
             </label>
-            
-            <button type="submit" id="btnAceitar" class="btn btn-primary" disabled>
+
+            <button type="submit" id="submitBtn" class="btn-submit" disabled>
+                <i class="fas fa-lock"></i>
                 <span>Aceitar e Acessar Sistema</span>
-                <i class="fas fa-lock-open"></i>
             </button>
         </form>
     </div>
 </div>
 
 <script>
-let podeAceitar = false;
+    let hasScrolledToBottom = false;
 
-// Trigger scroll check on load in case content is small
-window.addEventListener('load', () => {
-    onScroll(document.getElementById('termsBox'));
-});
-
-function onScroll(element) {
-    const scrollTop = element.scrollTop;
-    const scrollHeight = element.scrollHeight - element.clientHeight;
-    let percentage = scrollHeight > 0 ? Math.round((scrollTop / scrollHeight) * 100) : 100;
-    
-    if (percentage > 100) percentage = 100;
-
-    document.getElementById('progressFill').style.width = percentage + '%';
-    document.getElementById('progressText').textContent = percentage + '%';
-    
-    if (percentage >= 95 && !podeAceitar) {
-        podeAceitar = true;
-        liberarAceite();
-    }
-}
-
-function liberarAceite() {
-    const label = document.getElementById('checkboxLabel');
-    const checkbox = document.getElementById('cbTermos');
-    const botao = document.getElementById('btnAceitar');
-    const warning = document.getElementById('scrollWarning');
-    
-    label.classList.remove('disabled');
-    checkbox.disabled = false;
-    warning.style.display = 'none';
-    
-    checkbox.addEventListener('change', function() {
-        botao.disabled = !this.checked;
-        if (this.checked) {
-            botao.innerHTML = '<span>Acessar Dashboard</span> <i class="fas fa-check-circle"></i>';
-            botao.style.transform = 'scale(1.02)';
-        } else {
-            botao.innerHTML = '<span>Aceite os termos para continuar</span>';
-            botao.style.transform = 'scale(1)';
-        }
+    // Initial check in case content is small
+    window.addEventListener('load', () => {
+        handleScroll(document.getElementById('termsBox'));
     });
-}
+
+    function handleScroll(el) {
+        const scrollTop = el.scrollTop;
+        const scrollHeight = el.scrollHeight - el.clientHeight;
+        let percentage = scrollHeight > 0 ? Math.round((scrollTop / scrollHeight) * 100) : 100;
+        
+        if (percentage > 100) percentage = 100;
+        
+        document.getElementById('progressFill').style.width = percentage + '%';
+        document.getElementById('progressText').textContent = percentage + '% lido';
+
+        if (percentage >= 98 && !hasScrolledToBottom) {
+            enableAcceptance();
+        }
+    }
+
+    function enableAcceptance() {
+        hasScrolledToBottom = true;
+        
+        const label = document.getElementById('checkboxLabel');
+        const checkbox = document.getElementById('termsCheckbox');
+        const btn = document.getElementById('submitBtn');
+        const warning = document.getElementById('scroll-warning');
+
+        label.classList.remove('disabled');
+        checkbox.disabled = false;
+        warning.style.display = 'none';
+
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                btn.disabled = false;
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> <span>Acessar Painel Agora</span>';
+            } else {
+                btn.disabled = true;
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="fas fa-lock"></i> <span>Aceite os termos para continuar</span>';
+            }
+        });
+    }
 </script>
+
 </body>
 </html>
