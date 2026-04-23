@@ -35,12 +35,14 @@ class EnsureFluxoOnboarding
 
         // 1. Verificar Termos
         if (!$user->termos_aceitos) {
+            \Illuminate\Support\Facades\Log::info('ONBOARDING_REDIRECT_TERMOS', ['user_id' => $user->id]);
             return redirect()->route('onboarding.termos');
         }
 
         // 2. Verificar Split (se ativado globalmente)
         $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
         if ($splitAtivo && !$user->split_configurado) {
+            \Illuminate\Support\Facades\Log::info('ONBOARDING_REDIRECT_SPLIT', ['user_id' => $user->id]);
             return redirect()->route('onboarding.split');
         }
 

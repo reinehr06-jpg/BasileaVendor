@@ -45,12 +45,15 @@ class OnboardingController extends Controller
 
             // Atualizar o usuário
             $user = auth()->user();
-            $user->termos_aceitos = true;
-            $user->termos_aceitos_em = now();
             
-            if (!$user->save()) {
-                throw new \Exception("Falha ao salvar o usuário no aceite de termos.");
-            }
+            $user->update([
+                'termos_aceitos' => true,
+                'termos_aceitos_em' => now(),
+            ]);
+
+            // Limpar caches que possam estar guardando estado antigo
+            \Illuminate\Support\Facades\Cache::forget('user_permissions_' . $user->id);
+            \Illuminate\Support\Facades\Session::forget('onboarding_pending_' . $user->id);
 
             $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
 
