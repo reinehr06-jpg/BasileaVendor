@@ -5,25 +5,6 @@
 @section('header_description', 'Acompanhe o status de todos os seus pedidos e faturamentos.')
 
 @section('content')
-<x-page-hero 
-    title="Minhas Vendas" 
-    subtitle="Gerencie suas vendas e cobranças do período." 
-    icon="fas fa-shopping-basket"
-    :exports="[
-        ['type' => 'excel', 'url' => route('vendedor.vendas.exportar', ['formato' => 'excel']), 'icon' => 'fas fa-file-excel', 'label' => 'Excel'],
-        ['type' => 'pdf', 'url' => route('vendedor.vendas.exportar', ['formato' => 'pdf']), 'icon' => 'fas fa-file-pdf', 'label' => 'PDF'],
-        ['type' => 'csv', 'url' => route('vendedor.vendas.exportar', ['formato' => 'csv']), 'icon' => 'fas fa-file-csv', 'label' => 'CSV'],
-    ]">
-    <x-slot:actions>
-        <a href="{{ route('vendedor.vendas.canceladas') }}" class="hero-btn" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3);">
-            <i class="fas fa-ban"></i> Canceladas ({{ $vendasCanceladasCount ?? 0 }})
-        </a>
-        <a href="{{ route('vendedor.vendas.create') }}" class="hero-btn" style="background: var(--success); border-color: var(--success);">
-            <i class="fas fa-plus-circle"></i> Nova Venda
-        </a>
-    </x-slot:actions>
-</x-page-hero>
-
 <style>
     .status-aguardando { background: #fef9c3; color: #854d0e; }
     .status-pago { background: #dcfce7; color: #166534; }
