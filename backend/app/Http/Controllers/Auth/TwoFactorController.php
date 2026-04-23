@@ -65,15 +65,25 @@ class TwoFactorController extends Controller
         try {
             // Try recovery codes first
             if ($user->recovery_codes) {
-                $codes = json_decode($user->recovery_codes, true) ?: [];
+                // O accessor do model User já decodifica o JSON se for array
+                $codes = $user->recovery_codes;
+                
+                if (is_string($codes)) {
+                    $codes = json_decode($codes, true) ?: [];
+                }
+                
+                if (!is_array($codes)) {
+                    $codes = [];
+                }
+                
                 $key = array_search($request->code, $codes);
                 if ($key !== false) {
                     unset($codes[$key]);
-                    $updatedRecoveryCodes = json_encode(array_values($codes));
-                    $user->update([
-                        'recovery_codes' => array_values($codes),
-                    ]);
-                    $user->recovery_codes = $updatedRecoveryCodes;
+                    
+                    // O mutator do model User já vai lidar com o json_encode e encrypt
+                    $user->recovery_codes = array_values($codes);
+                    $user->save();
+                    
                     Cache::forget('2fa_attempts_'.$user->id);
                     Session::put('2fa_verified_'.$user->id, true);
                     $request->session()->forget('login_2fa_user_id');
