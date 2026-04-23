@@ -51,8 +51,8 @@
         }
 
         .card-header {
-            background: #6366f1;
-            padding: 40px;
+            background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+            padding: 30px 40px;
             color: white;
             position: relative;
         }
@@ -99,9 +99,9 @@
         }
 
         .terms-box {
-            height: 450px;
+            height: 320px;
             overflow-y: auto;
-            padding: 40px 50px;
+            padding: 30px 45px;
             font-size: 1.05rem;
             line-height: 1.7;
             color: #334155;
