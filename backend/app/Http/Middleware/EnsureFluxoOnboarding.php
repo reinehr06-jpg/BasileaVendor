@@ -35,7 +35,11 @@ class EnsureFluxoOnboarding
 
         // 1. Verificar Termos
         if (!$user->termos_aceitos) {
-            \Illuminate\Support\Facades\Log::info('ONBOARDING_REDIRECT_TERMOS', ['user_id' => $user->id]);
+            \Illuminate\Support\Facades\Log::info('ONBOARDING_REDIRECT_TERMOS', [
+                'user_id' => $user->id,
+                'termos_aceitos_val' => $user->termos_aceitos,
+                'raw_val' => $user->getAttributes()['termos_aceitos'] ?? 'null'
+            ]);
             return redirect()->route('onboarding.termos');
         }
 

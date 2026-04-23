@@ -51,6 +51,8 @@ class OnboardingController extends Controller
                 'termos_aceitos_em' => now(),
             ]);
 
+            $user->refresh();
+
             // Limpar caches que possam estar guardando estado antigo
             \Illuminate\Support\Facades\Cache::forget('user_permissions_' . $user->id);
             \Illuminate\Support\Facades\Session::forget('onboarding_pending_' . $user->id);
