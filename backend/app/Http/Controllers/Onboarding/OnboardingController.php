@@ -19,7 +19,7 @@ class OnboardingController extends Controller
                 'tipo' => 'uso',
                 'titulo' => 'Termos de Uso',
                 'versao' => '1.0.0',
-                'conteudo_html' => '<h1>Termos de Uso</h1><p>Bem-vindo ao Basileia Vendas.</p>',
+                'conteudo_html' => '<h1>Termos de Uso</h1><p>Bem-vindo ao Basiléia Vendas.</p>',
                 'ativo' => true,
             ]);
         }
@@ -29,22 +29,67 @@ class OnboardingController extends Controller
 
     public function aceitarTermos(Request $request)
     {
-        // Bypass total para entrar no sistema
-        return redirect()->route('dashboard');
+        $request->validate([
+            'termos_aceitos' => 'required|accepted',
+            'terms_document_id' => 'required|exists:terms_documents,id',
+        ]);
+
+        // Registrar o aceite no log
+        TermsAcceptance::registrar(
+            auth()->id(),
+            $request->terms_document_id,
+            $request->ip(),
+            $request->userAgent()
+        );
+
+        // Atualizar o usuário - IMPORTANTE: O model User deve ter 'termos_aceitos' no $fillable
+        $user = auth()->user();
+        $user->termos_aceitos = true;
+        $user->termos_aceitos_em = now();
+        $user->save();
+
+        // Limpar cache de permissões se necessário
+        
+        $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
+
+        if ($splitAtivo && !$user->split_configurado) {
+            return redirect()->route('onboarding.split');
+        }
+
+        return redirect()->route('dashboard')->with('iniciar_tour', true);
     }
 
     public function verSplit()
     {
-        return redirect()->route('dashboard');
+        $user = auth()->user();
+        
+        if ($user->split_configurado) {
+            return redirect()->route('dashboard');
+        }
+
+        return view('onboarding.split');
     }
 
     public function ativarSplit(Request $request)
     {
-        return redirect()->route('dashboard');
+        $request->validate([
+            'asaas_wallet_id' => 'required|string|max:100',
+        ]);
+
+        $user = auth()->user();
+        $user->vendedor->update([
+            'asaas_wallet_id' => $request->asaas_wallet_id,
+            'wallet_status' => 'pendente'
+        ]);
+
+        $user->update(['split_configurado' => true]);
+
+        return redirect()->route('dashboard')->with('success', 'Configurações de Split enviadas para validação!');
     }
 
     public function pularSplit()
     {
+        auth()->user()->update(['split_configurado' => true]);
         return redirect()->route('dashboard');
     }
 

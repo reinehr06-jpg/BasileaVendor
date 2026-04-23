@@ -22,7 +22,28 @@ class EnsureFluxoOnboarding
 
     public function handle(Request $request, Closure $next): Response
     {
-        // Bypass temporário para resolver loop de 500
+        $user = $request->user();
+
+        if (!$user) {
+            return $next($request);
+        }
+
+        // Se já está em uma rota de exceção, não faz nada
+        if ($request->is($this->except)) {
+            return $next($request);
+        }
+
+        // 1. Verificar Termos
+        if (!$user->termos_aceitos) {
+            return redirect()->route('onboarding.termos');
+        }
+
+        // 2. Verificar Split (se ativado globalmente)
+        $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
+        if ($splitAtivo && !$user->split_configurado) {
+            return redirect()->route('onboarding.split');
+        }
+
         return $next($request);
     }
 }
