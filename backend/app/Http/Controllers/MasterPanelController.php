@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Response;
 use App\Models\Vendedor;
 use App\Models\User;
 use App\Models\Equipe;
+use Illuminate\Validation\Rules\Password;
 
 class MasterPanelController extends Controller
 {
