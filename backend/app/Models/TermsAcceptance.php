@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TermsAcceptance extends Model
 {
     protected $fillable = [
-        'user_id', 'terms_document_id', 'ip_address', 'user_agent', 'aceito_em',
+        'user_id', 'terms_document_id', 'aceito_em',
     ];
 
     protected $casts = [
@@ -51,8 +51,6 @@ class TermsAcceptance extends Model
         return static::updateOrCreate(
             ['user_id' => $userId, 'terms_document_id' => $termsDocumentId],
             [
-                'ip_address' => $ip,
-                'user_agent' => $userAgent,
                 'aceito_em' => now(),
             ]
         );
