@@ -39,8 +39,8 @@
             background: var(--surface);
             border-radius: 24px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
-            width: 100%;
-            max-width: 720px;
+            width: 95%;
+            max-width: 1100px;
             overflow: hidden;
             animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -99,10 +99,10 @@
         }
 
         .terms-box {
-            height: 400px;
+            height: 450px;
             overflow-y: auto;
-            padding: 35px;
-            font-size: 1rem;
+            padding: 40px 50px;
+            font-size: 1.05rem;
             line-height: 1.7;
             color: #334155;
         }
