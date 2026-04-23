@@ -266,6 +266,26 @@
     </div>
 
     <div class="card-body">
+        @if(session('error'))
+        <div style="background: #fee2e2; border: 1px solid #ef4444; color: #b91c1c; padding: 16px; border-radius: 12px; margin-bottom: 24px; display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 0.9rem;">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>{{ session('error') }}</span>
+        </div>
+        @endif
+
+        @if($errors->any())
+        <div style="background: #fee2e2; border: 1px solid #ef4444; color: #b91c1c; padding: 16px; border-radius: 12px; margin-bottom: 24px; font-weight: 700; font-size: 0.9rem;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>Por favor, corrija os seguintes erros:</span>
+            </div>
+            <ul style="margin-left: 28px;">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
         <div class="terms-container">
             <div class="terms-box" id="termsBox" onscroll="handleScroll(this)">
                 <div class="terms-content">

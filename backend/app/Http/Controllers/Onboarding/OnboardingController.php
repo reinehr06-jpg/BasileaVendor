@@ -43,20 +43,28 @@ class OnboardingController extends Controller
                 $request->userAgent()
             );
 
-            // Atualizar o usuário
-            $user = auth()->user();
+            // Re-buscar o usuário do banco para garantir que temos a instância correta
+            $userId = auth()->id();
             
-            // Atualizar o usuário usando DB direto para evitar problemas de cache/model
+            // Atualizar usando o Model para disparar eventos e casts corretamente
+            $user = \App\Models\User::find($userId);
+            $user->termos_aceitos = true;
+            $user->termos_aceitos_em = now();
+            $user->save();
+
+            // Sincronizar com o DB para o Middleware ler o valor atualizado
             \Illuminate\Support\Facades\DB::table('users')
-                ->where('id', $user->id)
+                ->where('id', $userId)
                 ->update([
                     'termos_aceitos' => true,
                     'termos_aceitos_em' => now(),
                 ]);
 
-            // Limpar caches que possam estar guardando estado antigo
-            \Illuminate\Support\Facades\Cache::forget('user_permissions_' . $user->id);
-            \Illuminate\Support\Facades\Session::forget('onboarding_pending_' . $user->id);
+            // Limpar caches críticos
+            \Illuminate\Support\Facades\Cache::forget('user_permissions_' . $userId);
+            \Illuminate\Support\Facades\Session::forget('onboarding_pending_' . $userId);
+            
+            $request->session()->put('termos_aceitos', true); // Backup na sessão
 
             $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
 

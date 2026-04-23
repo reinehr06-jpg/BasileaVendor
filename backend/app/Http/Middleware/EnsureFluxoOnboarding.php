@@ -33,11 +33,14 @@ class EnsureFluxoOnboarding
             return $next($request);
         }
 
-        /* 
-        // 1. Verificar Termos (Busca direta no DB para evitar cache de Model)
-        $termosAceitos = \Illuminate\Support\Facades\DB::table('users')
-            ->where('id', $user->id)
-            ->value('termos_aceitos');
+        // 1. Verificar Termos (Check na sessão primeiro para velocidade e bypass de cache de DB)
+        if ($request->session()->get('termos_aceitos')) {
+            $termosAceitos = true;
+        } else {
+            $termosAceitos = \Illuminate\Support\Facades\DB::table('users')
+                ->where('id', $user->id)
+                ->value('termos_aceitos');
+        }
 
         if (!$termosAceitos) {
             // Backup check: verificar na tabela de aceites
@@ -51,9 +54,11 @@ class EnsureFluxoOnboarding
                     'db_val' => $termosAceitos
                 ]);
                 return redirect()->route('onboarding.termos');
+            } else {
+                // Sincronizar sessão se encontramos no DB
+                $request->session()->put('termos_aceitos', true);
             }
         }
-        */
 
         // 2. Verificar Split (se ativado globalmente)
         $splitAtivo = \App\Models\Setting::get('asaas_split_global_ativo', false);
