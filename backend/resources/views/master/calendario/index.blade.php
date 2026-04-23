@@ -100,7 +100,21 @@
                 <span class="cal-month-label" id="calMonthLabel"></span>
                 <button class="cal-nav-btn" onclick="calNav(1)"><i class="fas fa-chevron-right"></i></button>
             </div>
-            <button class="cal-today-btn" onclick="calToday()"><i class="fas fa-crosshairs"></i> Hoje</button>
+            <div style="display:flex; gap:10px;">
+                @if(auth()->user()->google_access_token)
+                    <form action="{{ route('calendario.sincronizar') }}" method="POST" style="display:inline;">
+                        @csrf
+                        <button type="submit" class="cal-today-btn" style="border-color:#059669; color:#059669;"><i class="fas fa-sync"></i> Sincronizar Google</button>
+                    </form>
+                    <form action="{{ route('google.disconnect') }}" method="POST" style="display:inline;">
+                        @csrf
+                        <button type="submit" class="cal-today-btn" style="border-color:#DC2626; color:#DC2626;" title="Desconectar Google Calendar"><i class="fas fa-unlink"></i></button>
+                    </form>
+                @else
+                    <a href="{{ route('google.redirect') }}" class="cal-today-btn" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; border-color:#2563EB; color:#2563EB;"><i class="fab fa-google"></i> Conectar Google</a>
+                @endif
+                <button class="cal-today-btn" onclick="calToday()"><i class="fas fa-crosshairs"></i> Hoje</button>
+            </div>
         </div>
         <div class="cal-grid-wrap">
             <div class="cal-weekdays">

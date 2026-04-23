@@ -199,6 +199,11 @@ Route::middleware(['auth', 'master'])->prefix('admin')->group(function () {
 // TERMOS (Geral)
 // ==========================================
 Route::middleware('auth')->group(function () {
+    // Google Calendar OAuth Routes
+    Route::get('/google/redirect', [\App\Http\Controllers\GoogleCalendarController::class, 'redirect'])->name('google.redirect');
+    Route::get('/google/callback', [\App\Http\Controllers\GoogleCalendarController::class, 'callback'])->name('google.callback');
+    Route::post('/google/disconnect', [\App\Http\Controllers\GoogleCalendarController::class, 'disconnect'])->name('google.disconnect');
+
     Route::get('/termos/{termo}/pdf', [TermsController::class, 'exportPdf'])->name('termos.pdf');
 });
 

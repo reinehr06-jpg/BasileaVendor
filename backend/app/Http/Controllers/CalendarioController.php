@@ -72,8 +72,8 @@ class CalendarioController extends Controller
             'criado_por' => Auth::id(),
         ]);
 
-        // Sincroniza Google Calendar se habilitado
-        if (setting('google_calendar_ativo')) {
+        // Sincroniza Google Calendar se conectado
+        if (Auth::user()->google_access_token) {
             app(GoogleCalendarService::class)->criarEvento($evento);
         }
 
@@ -96,14 +96,25 @@ class CalendarioController extends Controller
 
     public function sincronizar()
     {
-        $eventos = app(GoogleCalendarService::class)->importarEventos();
+        $user = Auth::user();
+        if (!$user->google_access_token) {
+            return back()->with('error', 'Conecte sua conta do Google primeiro.');
+        }
+
+        $eventos = app(GoogleCalendarService::class)->importarEventos($user);
 
         foreach ($eventos as $e) {
             CalendarioEvento::updateOrCreate(
                 ['google_event_id' => $e['google_event_id']],
-                ['user_id' => Auth::id(), 'titulo' => $e['titulo'],
-                 'data_hora_inicio' => $e['inicio'], 'data_hora_fim' => $e['fim'],
-                 'status' => 'agendado', 'criado_por' => Auth::id(), 'tipo' => 'reuniao']
+                [
+                    'user_id' => $user->id, 
+                    'titulo' => $e['titulo'],
+                    'data_hora_inicio' => $e['inicio'], 
+                    'data_hora_fim' => $e['fim'],
+                    'status' => 'agendado', 
+                    'criado_por' => $user->id, 
+                    'tipo' => 'reuniao'
+                ]
             );
         }
 

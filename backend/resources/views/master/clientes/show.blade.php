@@ -61,7 +61,11 @@
     #toastMessage.show { transform: translateY(0); opacity: 1; }
 </style>
 
-<x-page-hero title="{{ $cliente->nome_igreja ?? $cliente->nome }}" subtitle="Visão 360º — Dados cadastrais, vendas e pagamentos" icon="fas fa-building" />
+<x-page-hero title="{{ $cliente->nome_igreja ?? $cliente->nome }}" subtitle="Visão 360º — Dados cadastrais, vendas e pagamentos" icon="fas fa-building">
+    <button onclick="openAgendarModal()" class="hero-btn" style="background:#059669; border-color:#047857;">
+        <i class="fab fa-google"></i> Agendar Reunião
+    </button>
+</x-page-hero>
 
 <!-- Stats Cards -->
 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
@@ -286,6 +290,87 @@
             console.error(err);
         });
     }
+
+    // Modal de Agendamento
+    function openAgendarModal() {
+        document.getElementById('agendarModal').style.display = 'flex';
+        // Set default time to next hour
+        const now = new Date();
+        now.setHours(now.getHours() + 1);
+        now.setMinutes(0);
+        
+        const tzOffset = now.getTimezoneOffset() * 60000;
+        const localISOTime = (new Date(now - tzOffset)).toISOString().slice(0, 16);
+        document.getElementById('modalInicio').value = localISOTime;
+    }
+
+    function closeAgendarModal() {
+        document.getElementById('agendarModal').style.display = 'none';
+    }
+
+    document.getElementById('agendarModal').addEventListener('click', function(e){
+        if(e.target === this) closeAgendarModal();
+    });
 </script>
+
+<style>
+/* Modal Styles for Agendar */
+.cal-modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(50,50,71,.6); display:none; align-items:center; justify-content:center; z-index:1000; backdrop-filter:blur(4px); }
+.cal-modal { background:var(--surface); border-radius:16px; width:100%; max-width:500px; box-shadow:var(--shadow-xl); }
+.cal-modal-head { display:flex; justify-content:space-between; align-items:center; padding:20px 24px; border-bottom:1px solid var(--border-light); }
+.cal-modal-head h3 { font-size:1.15rem; font-weight:700; display:flex; align-items:center; gap:8px; }
+.cal-modal-close { width:32px; height:32px; border-radius:50%; border:none; background:var(--bg); cursor:pointer; font-size:1.2rem; display:flex; align-items:center; justify-content:center; color:var(--text-muted); }
+.cal-modal-close:hover { background:var(--danger-light); color:var(--danger); }
+.cal-modal form { padding:24px; }
+.cal-field { margin-bottom:16px; }
+.cal-field label { display:block; font-weight:600; font-size:.85rem; margin-bottom:6px; }
+.cal-field input, .cal-field select, .cal-field textarea { width:100%; padding:10px 14px; border:1px solid var(--border); border-radius:10px; font-size:.9rem; font-family:var(--font); }
+.cal-field input:focus, .cal-field select:focus, .cal-field textarea:focus { outline:none; border-color:var(--primary); }
+.cal-field-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.cal-modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:8px; }
+.cal-btn { padding:10px 20px; border-radius:10px; font-weight:600; cursor:pointer; font-size:.88rem; border:1px solid var(--border); transition:all .15s; }
+.cal-btn-cancel { background:var(--bg); color:var(--text-primary); }
+.cal-btn-save { background:var(--primary); color:#fff; border-color:var(--primary); }
+</style>
+
+<div class="cal-modal-overlay" id="agendarModal">
+    <div class="cal-modal">
+        <div class="cal-modal-head">
+            <h3><i class="fab fa-google" style="color:#059669;"></i> Agendar Reunião</h3>
+            <button class="cal-modal-close" onclick="closeAgendarModal()">&times;</button>
+        </div>
+        <form action="{{ route('calendario.store') }}" method="POST">
+            @csrf
+            <input type="hidden" name="cliente_id" value="{{ $cliente->id }}">
+            <input type="hidden" name="tipo" value="reuniao">
+            
+            <div class="cal-field">
+                <label>Título *</label>
+                <input type="text" name="titulo" required value="Reunião: {{ $cliente->nome_igreja ?? $cliente->nome }}">
+            </div>
+            
+            <div class="cal-field-row">
+                <div class="cal-field">
+                    <label>Início *</label>
+                    <input type="datetime-local" name="data_hora_inicio" id="modalInicio" required>
+                </div>
+                <div class="cal-field">
+                    <label>Fim</label>
+                    <input type="datetime-local" name="data_hora_fim">
+                </div>
+            </div>
+            
+            <div class="cal-field">
+                <label>Descrição (Opcional)</label>
+                <textarea name="descricao" rows="3" placeholder="Pauta da reunião, links, etc..."></textarea>
+            </div>
+            
+            <div class="cal-modal-actions">
+                <button type="button" class="cal-btn cal-btn-cancel" onclick="closeAgendarModal()">Cancelar</button>
+                <button type="submit" class="cal-btn cal-btn-save"><i class="fas fa-check"></i> Agendar e Sincronizar</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 @endsection

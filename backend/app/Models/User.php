@@ -29,6 +29,9 @@ class User extends Authenticatable
         'two_factor_enabled',
         'recovery_codes',
         'two_factor_rotated_at',
+        'google_access_token',
+        'google_refresh_token',
+        'google_token_expires_at',
     ];
 
     /**
@@ -39,6 +42,8 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'google_access_token',
+        'google_refresh_token',
     ];
 
     /**
@@ -54,6 +59,7 @@ class User extends Authenticatable
             'two_factor_rotated_at' => 'datetime',
             'two_factor_enabled' => 'boolean',
             'require_password_change' => 'boolean',
+            'google_token_expires_at' => 'datetime',
         ];
     }
 
