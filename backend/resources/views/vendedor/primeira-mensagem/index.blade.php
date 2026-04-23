@@ -3,6 +3,12 @@
 @section('title', 'Primeira Mensagem')
 
 @section('content')
+<x-page-hero 
+    title="Primeira Mensagem" 
+    subtitle="Configure mensagens automáticas personalizadas para seus novos leads."
+    icon="fas fa-comment-dots">
+</x-page-hero>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">

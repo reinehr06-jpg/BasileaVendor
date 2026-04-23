@@ -8,18 +8,18 @@
 <style>
     .page-hero-wrapper {
         margin-bottom: 24px;
-        padding: 20px 0;
-        background: transparent;
-        border-bottom: 1px solid var(--border-light);
-        color: var(--text-primary);
+        padding: 28px 32px;
+        background: linear-gradient(135deg, #3B0764 0%, #4C1D95 100%);
+        border-radius: 16px;
+        color: white;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        box-shadow: none;
+        box-shadow: 0 20px 25px -5px rgba(59, 7, 100, 0.2);
         position: relative;
     }
-    .page-hero-wrapper h2 { color: var(--text-primary); margin-bottom: 4px; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
-    .page-hero-wrapper p { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+    .page-hero-wrapper h2 { color: white; margin-bottom: 6px; font-size: 1.6rem; letter-spacing: -0.5px; }
+    .page-hero-wrapper p { opacity: 0.85; font-size: 0.95rem; }
     
     .page-hero-actions { display: flex; align-items: center; gap: 12px; }
     
@@ -28,18 +28,17 @@
         align-items: center;
         gap: 8px;
         padding: 10px 18px;
-        border-radius: 10px;
-        font-weight: 700;
+        border-radius: 8px;
+        font-weight: 600;
         font-size: 0.85rem;
         text-decoration: none;
         transition: all 0.2s;
-        background: white;
-        color: var(--text-primary);
-        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.15);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.25);
         cursor: pointer;
-        box-shadow: var(--shadow-xs);
     }
-    .hero-btn:hover { border-color: var(--primary); color: var(--primary); background: #f8fafc; }
+    .hero-btn:hover { background: rgba(255, 255, 255, 0.25); }
     
     .hero-dropdown {
         position: relative;

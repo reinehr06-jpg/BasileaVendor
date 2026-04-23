@@ -3,6 +3,12 @@
 @section('title', 'Split de Pagamento')
 
 @section('content')
+<x-page-hero 
+    title="Split de Pagamento" 
+    subtitle="Configure seu Wallet ID Asaas para recebimento automático de comissões."
+    icon="fas fa-code-branch">
+</x-page-hero>
+
 <style>
     .split-card {
         background: white;
@@ -70,16 +76,6 @@
 </style>
 
 <div class="split-card">
-    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-        <div style="width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg, #7c3aed, #4C1D95); display: flex; align-items: center; justify-content: center;">
-            <i class="fas fa-code-branch" style="color: white; font-size: 1.2rem;"></i>
-        </div>
-        <div>
-            <h2 style="font-size: 1.2rem; font-weight: 800; color: #1e1b4b; margin: 0;">Split de Pagamento</h2>
-            <p style="color: #6b7280; font-size: 0.85rem; margin: 0;">Valores definidos pelo administrador</p>
-        </div>
-    </div>
-
     @if($splitGlobalAtivo)
     
     <div class="rate-display">

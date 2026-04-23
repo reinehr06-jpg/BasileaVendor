@@ -2,6 +2,12 @@
 @section('title', 'Meu Calendário')
 
 @section('content')
+<x-page-hero 
+    title="Meu Calendário" 
+    subtitle="Organize seus agendamentos e reuniões com clientes."
+    icon="fas fa-calendar-alt">
+</x-page-hero>
+
 <style>
 .cal-wrap{display:grid;grid-template-columns:1fr 340px;gap:0;height:calc(100vh - 120px);max-height:calc(100vh - 120px);overflow:hidden}
 .cal-main{display:flex;flex-direction:column;overflow:hidden}
