@@ -124,7 +124,6 @@ class TwoFactorController extends Controller
         } catch (DecryptException $e) {
             Log::error('2FA_VERIFY_DECRYPT_ERROR', ['user_id' => $user->id, 'error' => $e->getMessage()]);
 
-            // Auto-reset 2FA when decryption fails - user can set up again
             $user->update([
                 'two_factor_enabled' => false,
                 'two_factor_secret' => null,
@@ -134,14 +133,21 @@ class TwoFactorController extends Controller
 
             SecurityLogService::logTwoFactorEvent($user->id, 'auto_reset_decrypt_failed', 'success');
 
-            // Redirect to setup so user can configure 2FA again
             return redirect()->route('2fa.setup')->with('warning', '2FA foi resetado devido a erro de descriptografia. Por favor, configure novamente.');
-        } catch (\Exception $e) {
-            Log::error('2FA_VERIFY_FATAL_ERROR', ['user_id' => $user->id, 'error' => $e->getMessage()]);
-
-            return back()->withErrors([
-                'code' => 'Erro interno ao validar 2FA. Tente novamente mais tarde e contate o suporte.',
+        } catch (\Throwable $e) {
+            Log::error('2FA_VERIFY_FATAL_ERROR', [
+                'user_id' => $user->id, 
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
             ]);
+
+            if (config('app.debug')) {
+                throw $e;
+            }
+
+            return response()->view('errors.custom_500', ['message' => 'Erro no 2FA: ' . $e->getMessage()], 500);
         }
 
         // Código duplicado removido - já tratado no catch e no loop acima
