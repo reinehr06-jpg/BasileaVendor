@@ -114,7 +114,7 @@
             </div>
             <div class="info-item">
                 <span class="info-label">Cadastrado em</span>
-                <span class="info-value">{{ $cliente->created_at->format('d/m/Y') }}</span>
+                <span class="info-value">{{ $cliente->created_at ? $cliente->created_at->format('d/m/Y') : 'Data não informada' }}</span>
             </div>
             @if($cliente->asaas_customer_id)
             <div class="info-item" style="margin-top: 16px; background: #f8fafc; padding: 12px; border-radius: 8px;">
@@ -156,7 +156,7 @@
                         @foreach($vendas as $v)
                         <tr>
                             <td style="font-weight: 700;">#{{ str_pad($v->id, 5, '0', STR_PAD_LEFT) }}</td>
-                            <td style="color: var(--text-muted);">{{ $v->created_at->format('d/m/Y H:i') }}</td>
+                            <td style="color: var(--text-muted);">{{ $v->created_at ? $v->created_at->format('d/m/Y H:i') : 'Data não informada' }}</td>
                             <td style="font-weight: 600;">{{ $v->plano ?? 'Personalizado' }}</td>
                             <td>{{ $v->vendedor->user->name ?? 'N/A' }}</td>
                             <td>{{ ucfirst($v->tipo_negociacao ?? 'Mensal') }}</td>

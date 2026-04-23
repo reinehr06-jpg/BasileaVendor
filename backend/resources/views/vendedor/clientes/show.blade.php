@@ -107,7 +107,7 @@
             </div>
             <div class="info-item">
                 <span class="info-label">Na base desde</span>
-                <span class="info-value">{{ $cliente->created_at->format('d/m/Y') }}</span>
+                <span class="info-value">{{ $cliente->created_at ? $cliente->created_at->format('d/m/Y') : 'Data não informada' }}</span>
             </div>
         </div>
     </div>
@@ -140,7 +140,7 @@
                     <tbody>
                         @foreach($vendas as $v)
                         <tr>
-                            <td style="color: var(--text-muted); font-weight: 600;">{{ $v->created_at->format('d/m/Y') }}</td>
+                            <td style="color: var(--text-muted); font-weight: 600;">{{ $v->created_at ? $v->created_at->format('d/m/Y') : 'Data não informada' }}</td>
                             <td style="font-weight: 700;">{{ $v->plano ?? 'Personalizado' }}</td>
                             <td>{{ ucfirst($v->tipo_negociacao ?? 'Mensal') }}{{ $v->parcelas > 1 ? ' (' . $v->parcelas . 'x)' : '' }}</td>
                             <td style="text-align: right; font-weight: 700; color: var(--primary);">
