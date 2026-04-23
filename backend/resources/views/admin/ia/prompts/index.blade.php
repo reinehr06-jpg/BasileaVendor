@@ -10,7 +10,7 @@
             <p>Laboratório de Inteligência Artificial: Personalize os algoritmos de processamento.</p>
         </div>
         <a href="{{ route('admin.ia.prompts.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Novo Algoritmo
+            <i class="fas fa-plus"></i> Novo Perfil
         </a>
     </div>
 

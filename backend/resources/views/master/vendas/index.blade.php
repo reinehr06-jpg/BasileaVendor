@@ -121,6 +121,7 @@ foreach ($vendas as $v) {
                         $pagamento = $venda->pagamentos->first();
                         $cobranca = $venda->cobrancas->first();
                         $formaUpper = strtoupper($venda->forma_pagamento ?? '');
+                        $linkBoleto = $pagamento->bank_slip_url ?? ($cobranca->link ?? null);
                     @endphp
                     @if(!in_array(strtoupper($venda->getStatusEfetivo()), ['PAGO', 'CANCELADO', 'EXPIRADO', 'ESTORNADO']))
                         <div class="d-flex flex-column gap-1">

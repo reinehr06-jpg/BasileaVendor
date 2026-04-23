@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Criar Prompt de IA')
+@section('title', 'Criar Perfil da IA')
 
 @section('content')
 <div class="container-fluid">
@@ -8,7 +8,7 @@
         <div class="col-lg-8">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="mb-0">Novo Prompt Customizado</h4>
+                    <h4 class="mb-0">Novo Perfil da IA</h4>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ route('admin.ia.prompts.store') }}">
@@ -52,7 +52,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Prompt Personalizado</label>
+                            <label class="form-label">Perfil Personalizado (Prompt)</label>
                             <textarea name="prompt_personalizado" class="form-control" rows="12" 
                                 required placeholder="Use {nome} para usar contexto...">{{ old('prompt_personalizado') }}</textarea>
                             <div class="form-text">Use variáveis como {nome}, {email}, etc. Entre chaves simples.</div>

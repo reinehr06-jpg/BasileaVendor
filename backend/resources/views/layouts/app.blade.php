@@ -424,7 +424,7 @@
 
                 <div class="menu-section">Ia Lab</div>
                 <a href="{{ route('admin.ia.prompts.index') }}" class="menu-item {{ request()->routeIs('admin.ia.prompts*') ? 'active' : '' }}">
-                    <i class="fas fa-keyboard"></i> <span class="menu-item-text">Novo Prompt</span>
+                    <i class="fas fa-keyboard"></i> <span class="menu-item-text">Perfil da IA</span>
                 </a>
                 <a href="{{ route('master.ia') }}" class="menu-item {{ request()->routeIs('master.ia') ? 'active' : '' }}">
                     <i class="fas fa-terminal"></i> <span class="menu-item-text">Ia Lab</span>
