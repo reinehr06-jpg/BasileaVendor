@@ -166,6 +166,9 @@ class VendaController extends Controller
             'cidade' => 'required|string|max:255',
             'estado' => 'required|string|max:2',
             'complemento' => 'nullable|string|max:255',
+            'split_payment' => 'nullable|boolean',
+            'valor_cartao_1' => 'nullable|numeric|min:1',
+            'valor_cartao_2' => 'nullable|numeric|min:1',
         ], [
             'documento.required' => 'Informe um CPF ou CNPJ válido.',
             'desconto.max' => 'O desconto informado ultrapassa o limite permitido ('.self::MAX_DESCONTO.'%).',
@@ -377,207 +380,148 @@ class VendaController extends Controller
                     ->with('success', $mensagemSucesso);
             }
 
-            // 9.2 — (Removido: Geração de Link de Checkout Externo via API prematura movido para o Passo 9.4)
+            // 9.3 — Integrar com Asaas
+            $asaas = new AsaasService;
+            $customerData = $asaas->createCustomer(
+                $request->nome_igreja,
+                $documento,
+                $request->whatsapp,
+                $request->email_cliente
+            );
 
-            // 9.3 — Integrar com Asaas (apenas se não requer aprovação)
-            $asaasId = null;
-            $linkPagamento = null;
-            $statusCobranca = 'PENDING';
-            $linhaDigitavel = null;
-            $paymentData = [];
-            $boletoUrlFromSub = null;
-            $dataVencimento = $this->calcularDataVencimento($request->forma_pagamento, $request->plano);
+            $isSplit = $request->boolean('split_payment');
+            $valoresSplit = $isSplit ? [
+                floatval($request->valor_cartao_1),
+                floatval($request->valor_cartao_2)
+            ] : [$valorFinal];
 
-            try {
-                $asaas = new AsaasService;
+            foreach ($valoresSplit as $index => $valorCobranca) {
+                $asaasId = null;
+                $linkPagamento = null;
+                $statusCobranca = 'PENDING';
+                $linhaDigitavel = null;
+                $paymentData = [];
+                $boletoUrlFromSub = null;
+                $dataVencimento = $this->calcularDataVencimento($request->forma_pagamento, $request->plano);
 
-                // 9.3.1 — Verificar/criar cliente no Asaas
-                $customerData = $asaas->createCustomer(
-                    $request->nome_igreja,
-                    $documento,
-                    $request->whatsapp,
-                    $request->email_cliente
-                );
+                try {
+                    $descricaoCobranca = "Basiléia - Plano {$request->plano} ({$request->tipo_negociacao})";
+                    if ($isSplit) $descricaoCobranca .= " (Parte " . ($index + 1) . ")";
 
-                // 9.3.2 — Criar cobrança ou assinatura com referência externa
-                $descricaoCobranca = "Basiléia - Plano {$request->plano} ({$request->tipo_negociacao})";
-
-                // Determinar split se aplicável
-                $split = [];
-                if ($vendedor->isAptoSplit()) {
-                    $split = $asaas->buildSplitArray($vendedor, $valorFinal, 'inicial');
-                }
-
-                // Determinar modo de cobrança baseado na combinação plano + forma de pagamento
-                // Monthly + Boleto → SUBSCRIPTION (recorrente mensal)
-                // Monthly + Credit Card → SUBSCRIPTION (recorrente mensal, à vista por mês)
-                // Monthly + PIX → PAYMENT (avulsa)
-                // Annual + Credit Card → INSTALLMENT (até 12x)
-                // Annual + Boleto/PIX → PAYMENT (avulsa)
-
-                $isBoleto = $request->forma_pagamento === 'BOLETO';
-                $isCartao = $request->forma_pagamento === 'CREDIT_CARD';
-                $isMensal = $request->tipo_negociacao === 'mensal';
-                $isAnual = $request->tipo_negociacao === 'anual';
-
-                if ($isMensal && ($isBoleto || $isCartao)) {
-                    // Recorrência: Boleto ou Cartão Mensal cria assinatura
-                    $subscriptionPayload = [
-                        'customer' => $customerData['id'],
-                        'billingType' => $request->forma_pagamento,
-                        'value' => $valorFinal,
-                        'nextDueDate' => $dataVencimento,
-                        'cycle' => 'MONTHLY',
-                        'description' => $descricaoCobranca,
-                        'externalReference' => "venda_{$venda->id}",
-                    ];
-
-                    if (! empty($split)) {
-                        $subscriptionPayload['split'] = $split;
+                    $split = [];
+                    if ($vendedor->isAptoSplit()) {
+                        $split = $asaas->buildSplitArray($vendedor, $valorCobranca, 'inicial');
                     }
 
-                    $paymentData = $asaas->requestAsaas('POST', '/subscriptions', $subscriptionPayload);
-                    $asaasSubscriptionId = $paymentData['id'] ?? null;
+                    $isBoleto = $request->forma_pagamento === 'BOLETO';
+                    $isCartao = $request->forma_pagamento === 'CREDIT_CARD';
+                    $isMensal = $request->tipo_negociacao === 'mensal';
+                    $isAnual = $request->tipo_negociacao === 'anual';
 
-                    // Salvar ID da assinatura
-                    $venda->update([
-                        'modo_cobranca_asaas' => 'SUBSCRIPTION',
-                        'asaas_subscription_id' => $asaasSubscriptionId,
-                    ]);
+                    // No split, we always use PAYMENT/INSTALLMENT for simplicity if multiple charges
+                    // Subscriptions don't support "split value" easily in this context
+                    if ($isMensal && ($isBoleto || $isCartao) && !$isSplit) {
+                        $subscriptionPayload = [
+                            'customer' => $customerData['id'],
+                            'billingType' => $request->forma_pagamento,
+                            'value' => $valorCobranca,
+                            'nextDueDate' => $dataVencimento,
+                            'cycle' => 'MONTHLY',
+                            'description' => $descricaoCobranca,
+                            'externalReference' => "venda_{$venda->id}",
+                        ];
 
-                    // Buscar o primeiro pagamento da assinatura para pegar o link do boleto
-                    if ($asaasSubscriptionId) {
-                        try {
-                            sleep(2); // Aguarda o Asaas gerar o pagamento
-                            $paymentsResponse = $asaas->requestAsaas('GET', "/subscriptions/{$asaasSubscriptionId}/payments");
-                            if (! empty($paymentsResponse['data']) && count($paymentsResponse['data']) > 0) {
-                                $firstPayment = $paymentsResponse['data'][0];
-                                $asaasId = $firstPayment['id'] ?? $asaasSubscriptionId;
-                                $linkPagamento = $firstPayment['invoiceUrl'] ?? ($firstPayment['bankSlipUrl'] ?? null);
-                                $boletoUrlFromSub = $firstPayment['bankSlipUrl'] ?? null;
-                                $statusCobranca = $firstPayment['status'] ?? 'PENDING';
-                                $linhaDigitavel = $firstPayment['identificationField'] ?? null;
+                        if (!empty($split)) $subscriptionPayload['split'] = $split;
 
-                                // Atualiza o pagamento com os dados do primeiro pagamento da assinatura
-                                Log::info('Asaas: primeiro pagamento da assinatura encontrado', [
-                                    'subscription_id' => $asaasSubscriptionId,
-                                    'payment_id' => $asaasId,
-                                    'bankSlipUrl' => $boletoUrlFromSub,
-                                ]);
-                            }
-                        } catch (\Exception $e) {
-                            Log::warning('Asaas: falha ao buscar pagamentos da assinatura', ['error' => $e->getMessage()]);
+                        $paymentData = $asaas->requestAsaas('POST', '/subscriptions', $subscriptionPayload);
+                        $asaasSubscriptionId = $paymentData['id'] ?? null;
+
+                        $venda->update(['modo_cobranca_asaas' => 'SUBSCRIPTION', 'asaas_subscription_id' => $asaasSubscriptionId]);
+
+                        if ($asaasSubscriptionId) {
+                            try {
+                                sleep(2);
+                                $paymentsResponse = $asaas->requestAsaas('GET', "/subscriptions/{$asaasSubscriptionId}/payments");
+                                if (!empty($paymentsResponse['data'])) {
+                                    $firstPayment = $paymentsResponse['data'][0];
+                                    $asaasId = $firstPayment['id'];
+                                    $linkPagamento = $firstPayment['invoiceUrl'] ?? $firstPayment['bankSlipUrl'];
+                                    $boletoUrlFromSub = $firstPayment['bankSlipUrl'] ?? null;
+                                    $statusCobranca = $firstPayment['status'] ?? 'PENDING';
+                                    $linhaDigitavel = $firstPayment['identificationField'] ?? null;
+                                }
+                            } catch (\Exception $e) { Log::warning('Asaas sub search failed', ['error' => $e->getMessage()]); }
+                        }
+                    } else {
+                        $paymentPayload = [
+                            'customer' => $customerData['id'],
+                            'billingType' => $request->forma_pagamento,
+                            'value' => $valorCobranca,
+                            'dueDate' => $dataVencimento,
+                            'description' => $descricaoCobranca,
+                            'externalReference' => "venda_{$venda->id}",
+                        ];
+
+                        if ($isCartao && $request->parcelas > 1) {
+                            $paymentPayload['totalValue'] = $valorCobranca;
+                            $paymentPayload['installmentCount'] = $request->parcelas;
+                            unset($paymentPayload['value']);
+                            $venda->update(['modo_cobranca_asaas' => 'INSTALLMENT']);
+                        } else {
+                            $venda->update(['modo_cobranca_asaas' => 'PAYMENT']);
+                        }
+
+                        if (!empty($split)) $paymentPayload['split'] = $split;
+
+                        $paymentData = $asaas->requestAsaas('POST', '/payments', $paymentPayload);
+                        $asaasId = $paymentData['id'] ?? null;
+                        $linkPagamento = $paymentData['invoiceUrl'] ?? $paymentData['bankSlipUrl'];
+                        $statusCobranca = $paymentData['status'] ?? 'PENDING';
+
+                        if ($isCartao && $request->parcelas > 1 && !empty($paymentData['installment'])) {
+                            $venda->update(['asaas_installment_id' => $paymentData['installment']]);
                         }
                     }
-                } else {
-                    // Criar cobrança avulsa ou parcelada
-                    $paymentPayload = [
-                        'customer' => $customerData['id'],
-                        'billingType' => $request->forma_pagamento,
-                        'value' => $valorFinal,
-                        'dueDate' => $dataVencimento,
-                        'description' => $descricaoCobranca,
-                        'externalReference' => "venda_{$venda->id}",
-                    ];
 
-                    // Se for parcelado (Cartão de Crédito)
-                    if ($request->forma_pagamento === 'CREDIT_CARD' && $request->parcelas > 1) {
-                        $paymentPayload['totalValue'] = $valorFinal;
-                        $paymentPayload['installmentCount'] = $request->parcelas;
-                        unset($paymentPayload['value']);
-                        $venda->update(['modo_cobranca_asaas' => 'INSTALLMENT']);
-                    } else {
-                        $venda->update(['modo_cobranca_asaas' => 'PAYMENT']);
+                    if ($isBoleto && $asaasId && !$linhaDigitavel) {
+                        $linhaDigitavel = $asaas->getIdentificationField($asaasId);
                     }
 
-                    if (! empty($split)) {
-                        $paymentPayload['split'] = $split;
-                    }
-
-                    $paymentData = $asaas->requestAsaas('POST', '/payments', $paymentPayload);
-
-                    // Se for parcelado, salvar o installment ID para cancelar tudo depois
-                    if ($request->forma_pagamento === 'CREDIT_CARD' && $request->parcelas > 1 && ! empty($paymentData['installment'])) {
-                        $venda->update(['asaas_installment_id' => $paymentData['installment']]);
-                        Log::info('Asaas: installment ID salvo', ['installment_id' => $paymentData['installment']]);
-                    }
+                } catch (\Exception $e) {
+                    Log::error('Asaas charge creation failed', ['error' => $e->getMessage()]);
                 }
 
-                // 9.3.3 — Salvar dados retornados
-                $asaasId = $paymentData['id'] ?? null;
-                $linkPagamento = $paymentData['invoiceUrl'] ?? ($paymentData['bankSlipUrl'] ?? null);
-                $statusCobranca = $paymentData['status'] ?? 'PENDING';
-
-                // Se for subscription, usar os dados do primeiro pagamento (já setados acima)
-                if (! empty($boletoUrlFromSub)) {
-                    $linkPagamento = $linkPagamento ?? $boletoUrlFromSub;
-                }
-
-                if (! empty($paymentData['dueDate'])) {
-                    $dataVencimento = $paymentData['dueDate'];
-                }
-
-                // 9.3.4 — Buscar linha digitável do boleto
-                if ($request->forma_pagamento === 'BOLETO' && $asaasId && ! $linhaDigitavel) {
-                    $linhaDigitavel = $asaas->getIdentificationField($asaasId);
-                }
-
-            } catch (\Exception $e) {
-                Log::warning('Asaas integration failed, sale saved locally.', [
+                // Criar registro da cobrança
+                Cobranca::create([
                     'venda_id' => $venda->id,
-                    'error' => $e->getMessage(),
+                    'asaas_id' => $asaasId,
+                    'status' => $statusCobranca,
+                    'link' => $linkPagamento,
+                ]);
+
+                // Criar registro de pagamento
+                $formaMap = ['PIX' => 'pix', 'BOLETO' => 'boleto', 'CREDIT_CARD' => 'cartao'];
+                
+                Pagamento::create([
+                    'venda_id' => $venda->id,
+                    'cliente_id' => $cliente->id,
+                    'vendedor_id' => $vendedor->id,
+                    'asaas_payment_id' => $asaasId,
+                    'valor' => $valorCobranca,
+                    'forma_pagamento' => $formaMap[$request->forma_pagamento] ?? 'pix',
+                    'status' => 'pendente',
+                    'data_vencimento' => $dataVencimento,
+                    'link_pagamento' => $linkPagamento,
+                    'invoice_url' => $paymentData['invoiceUrl'] ?? $linkPagamento,
+                    'bank_slip_url' => $boletoUrlFromSub ?? ($paymentData['bankSlipUrl'] ?? null),
+                    'linha_digitavel' => $linhaDigitavel,
+                    'nota_fiscal_status' => 'pendente',
                 ]);
             }
 
-            // Salvar valor_original e valor_final na venda
-            $venda->update([
-                'valor_original' => $valorBase,
-                'valor_final' => $valorFinal,
-            ]);
-
-            // Criar registro da cobrança
-            Cobranca::create([
-                'venda_id' => $venda->id,
-                'asaas_id' => $asaasId,
-                'status' => $statusCobranca,
-                'link' => $linkPagamento,
-            ]);
-
-            // Criar registro de pagamento (Etapa 6 + 9.3)
-            $formaMap = ['PIX' => 'pix', 'BOLETO' => 'boleto', 'CREDIT_CARD' => 'cartao'];
-
-            // Para subscription, o asaId é o ID do primeiro pagamento da assinatura
-            $paymentIdSalvar = $asaasId;
-            $invoiceUrlSalvar = $paymentData['invoiceUrl'] ?? null;
-            $bankSlipSalvar = $paymentData['bankSlipUrl'] ?? null;
-
-            // Se for subscription, usar dados do primeiro pagamento
-            if (! empty($boletoUrlFromSub)) {
-                $bankSlipSalvar = $bankSlipSalvar ?? $boletoUrlFromSub;
-            }
-            if (! empty($linkPagamento)) {
-                $invoiceUrlSalvar = $invoiceUrlSalvar ?? $linkPagamento;
-            }
-
-            Pagamento::create([
-                'venda_id' => $venda->id,
-                'cliente_id' => $cliente->id,
-                'vendedor_id' => $vendedor->id,
-                'asaas_payment_id' => $paymentIdSalvar,
-                'valor' => $valorFinal,
-                'forma_pagamento' => $formaMap[$request->forma_pagamento] ?? 'pix',
-                'status' => 'pendente',
-                'data_vencimento' => $dataVencimento,
-                'link_pagamento' => $linkPagamento,
-                'invoice_url' => $invoiceUrlSalvar,
-                'bank_slip_url' => $bankSlipSalvar,
-                'linha_digitavel' => $linhaDigitavel,
-                'nota_fiscal_status' => 'pendente',
-            ]);
-
             // 9.4 — Gerar Link de Checkout Externo Próprio (Passo 6)
             $checkoutBaseUrl = Setting::get('checkout_external_url', '');
-            if (! empty($checkoutBaseUrl) && $paymentIdSalvar) {
+            if (! empty($checkoutBaseUrl)) {
                 // Gerar checkout_hash (UUID) se não existir
                 if (empty($venda->checkout_hash)) {
                     $venda->update(['checkout_hash' => Str::uuid()->toString()]);

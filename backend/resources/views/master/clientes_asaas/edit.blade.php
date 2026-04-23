@@ -199,6 +199,20 @@
 
         <div class="edit-card">
             <div class="edit-header">
+                <h2><i class="fas fa-link"></i> Múltiplas Faturas Asaas</h2>
+            </div>
+
+            <div class="form-group full-width">
+                <label>IDs de Cobrança / Assinatura (Um por linha)</label>
+                <textarea name="multi_asaas_ids" rows="4" class="form-control" placeholder="sub_...&#10;pay_..." style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; background: #f8fafc;">{{ is_array(json_decode($cliente->multi_asaas_ids)) ? implode("\n", json_decode($cliente->multi_asaas_ids)) : '' }}</textarea>
+                <div style="font-size: 0.8rem; color: var(--materio-text-muted); margin-top: 8px;">
+                    <i class="fas fa-info-circle"></i> Use isso se o cliente tiver dois cartões ou faturas separadas no Asaas para o mesmo produto.
+                </div>
+            </div>
+        </div>
+
+        <div class="edit-card">
+            <div class="edit-header">
                 <h2><i class="fas fa-user-tie"></i> Atribuição Comercial</h2>
             </div>
 
@@ -263,9 +277,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const inputValorMensal = document.querySelector('input[name="valor_plano_mensal"]');
     const inputParcelasTotal = document.querySelector('input[name="parcelas_total"]');
     const inputParcelasPagas = document.querySelector('input[name="parcelas_pagas"]');
-    const selectVendedor = document.querySelector('select[name="vendedor_id"]');
     const selectComissaoTipo = document.querySelector('select[name="comissao_tipo"]');
     const selectStatus = document.querySelector('select[name="diagnostico_status"]');
+    const textareaMultiIds = document.querySelector('textarea[name="multi_asaas_ids"]');
 
     // Script carregado silêncio
 
@@ -305,6 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tipoCom = selectComissaoTipo.value;
         const valMensal = parseFloat(inputValorMensal.value) || 0;
         const diagStat = selectStatus.value;
+        const multiIds = textareaMultiIds ? textareaMultiIds.value.split("\n").map(s => s.trim()).filter(s => s !== "") : [];
         
         const elV = document.getElementById('live-comissao-vendedor');
         const elG = document.getElementById('live-comissao-gestor');
@@ -332,7 +347,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     valor_plano_mensal: valMensal,
                     parcelas_total: inputParcelasTotal ? inputParcelasTotal.value : 1,
                     parcelas_pagas: inputParcelasPagas ? inputParcelasPagas.value : 0,
-                    diagnostico_status: diagStat
+                    diagnostico_status: diagStat,
+                    multi_asaas_ids: multiIds
                 })
             });
 
@@ -386,6 +402,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectComissaoTipo) selectComissaoTipo.addEventListener('change', updateCommissionPreview);
     if (selectStatus) selectStatus.addEventListener('change', updateCommissionPreview);
     if (inputValorMensal) inputValorMensal.addEventListener('input', updateCommissionPreview);
+    if (textareaMultiIds) textareaMultiIds.addEventListener('change', updateCommissionPreview);
     if (inputParcelasPagas) {
         inputParcelasPagas.addEventListener('input', updateCommissionPreview);
     }
@@ -400,6 +417,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const formData = new FormData(this);
         const data = Object.fromEntries(formData.entries());
+        
+        // Multi Asaas IDs (convert to array)
+        if (data.multi_asaas_ids) {
+            data.multi_asaas_ids = data.multi_asaas_ids.split("\n").map(s => s.trim()).filter(s => s !== "");
+        } else {
+            data.multi_asaas_ids = [];
+        }
         
         // Converter campos numéricos
         if (data.parcelas_total) data.parcelas_total = parseInt(data.parcelas_total);

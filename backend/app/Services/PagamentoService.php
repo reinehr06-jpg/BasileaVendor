@@ -212,7 +212,16 @@ class PagamentoService
         $venda = $pagamento->venda;
         if ($venda) {
             $statusAnterior = $venda->status;
-            $venda->status = 'PAGO';
+            
+            // Lógica para Split Payment: Só marca PAGO se todas as cobranças iniciais forem pagas
+            $pagamentosIniciais = $venda->pagamentos()->whereNull('parcela_numero')->orWhere('parcela_numero', 1)->get();
+            $todosPagos = $pagamentosIniciais->every(fn($p) => in_array($p->status, ['RECEIVED', 'CONFIRMED']));
+
+            if ($todosPagos) {
+                $venda->status = 'PAGO';
+            } else {
+                $venda->status = 'PAGAMENTO_PARCIAL';
+            }
 
             // ══════════════════════════════════════════════════════════════
             // GERAR COMISSÕES (Sistema Novo: Fixed por plano + Sistema Legado: %)

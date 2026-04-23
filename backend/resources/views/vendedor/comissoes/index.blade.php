@@ -73,6 +73,7 @@
             <tr>
                 <th style="padding: 14px 16px; text-align: left; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Cliente</th>
                 <th style="padding: 14px 16px; text-align: left; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Venda</th>
+                <th style="padding: 14px 16px; text-align: right; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Base de Cálculo</th>
                 <th style="padding: 14px 16px; text-align: center; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">%</th>
                 <th style="padding: 14px 16px; text-align: right; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Valor Comissão</th>
                 <th style="padding: 14px 16px; text-align: center; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Status</th>
@@ -87,6 +88,7 @@
                             <div style="font-size: 0.75rem; color: var(--text-muted);">{{ $c->cliente?->documento ?? '-' }}</div>
                         </td>
                         <td style="padding: 14px 16px; font-weight: 600;">#{{ $c->venda_id }}</td>
+                        <td style="padding: 14px 16px; text-align: right; font-weight: 600;">R$ {{ number_format((float)($c->valor_venda ?? 0), 2, ',', '.') }}</td>
                         <td style="padding: 14px 16px; text-align: center; font-weight: 700;">{{ number_format((float)($c->percentual_aplicado ?? 0), 1) }}%</td>
                         <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: var(--primary);">R$ {{ number_format((float)($c->valor_comissao ?? 0), 2, ',', '.') }}</td>
                         <td style="padding: 14px 16px; text-align: center;">
@@ -96,7 +98,7 @@
                 @endforeach
             @else
                 <tr>
-                    <td colspan="5" style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
+                    <td colspan="6" style="padding: 60px 20px; text-align: center; color: var(--text-muted);">
                         <div style="font-size: 2.5rem; opacity: 0.2; margin-bottom: 16px;"><i class="fas fa-hand-holding-dollar"></i></div>
                         <h4 style="margin-bottom: 8px; font-weight: 600;">Nenhuma comissão encontrada</h4>
                         <p style="font-size: 0.85rem;">As comissões aparecerão aqui conforme as vendas forem confirmadas.</p>

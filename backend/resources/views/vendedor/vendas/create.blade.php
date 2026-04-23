@@ -321,6 +321,34 @@
             </div>
         </div>
 
+        <!-- Split Payment Row -->
+        <div id="splitPaymentContainer" class="hidden" style="margin-top: 15px; padding: 15px; border: 1px dashed var(--primary); border-radius: 12px; background: rgba(var(--primary-rgb), 0.02);">
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="d-flex items-center gap-2" style="cursor: pointer;">
+                    <input type="checkbox" name="split_payment" id="checkSplitPayment" value="1" {{ old('split_payment') ? 'checked' : '' }} style="width: 18px; height: 18px;">
+                    <span style="font-weight: 700; color: var(--primary);">Dividir em 2 Cartões</span>
+                </label>
+            </div>
+            
+            <div id="splitFields" class="form-row {{ old('split_payment') ? '' : 'hidden' }}">
+                <div class="form-group">
+                    <label>Valor Cartão 1 <span class="required">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input type="number" step="0.01" name="valor_cartao_1" id="inputValorCartao1" class="form-control" value="{{ old('valor_cartao_1') }}" placeholder="0,00">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Valor Cartão 2 <span class="required">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input type="number" step="0.01" name="valor_cartao_2" id="inputValorCartao2" class="form-control" value="{{ old('valor_cartao_2') }}" placeholder="0,00">
+                    </div>
+                </div>
+            </div>
+            <div id="splitWarning" class="field-error hidden" style="margin-top: 8px;">A soma dos valores deve ser igual ao valor total da venda.</div>
+        </div>
+
         <!-- Discount Row (hidden for Performance) -->
         <div class="form-row" id="descontoRow">
             <div class="form-group" style="flex: 0.4;">
@@ -447,6 +475,7 @@ document.addEventListener('DOMContentLoaded', function() {
             parcelamentoRow.classList.toggle('hidden', !(isAnual && isCartao));
             
             if (isAnual && isCartao) calcularValorParcela();
+            updateSplitVisibility();
         });
     });
 
@@ -499,6 +528,73 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         filtrarPagamentos(selectTipo.value);
     }
+
+    // === SPLIT PAYMENT LOGIC ===
+    const checkSplitPayment = document.getElementById('checkSplitPayment');
+    const splitFields = document.getElementById('splitFields');
+    const splitPaymentContainer = document.getElementById('splitPaymentContainer');
+    const inputValorCartao1 = document.getElementById('inputValorCartao1');
+    const inputValorCartao2 = document.getElementById('inputValorCartao2');
+    const splitWarning = document.getElementById('splitWarning');
+
+    function updateSplitVisibility() {
+        const isCartao = selectFormaPagamento.value === 'CREDIT_CARD';
+        splitPaymentContainer.classList.toggle('hidden', !isCartao);
+        
+        if (!isCartao) {
+            checkSplitPayment.checked = false;
+            splitFields.classList.add('hidden');
+        }
+    }
+
+    if (checkSplitPayment) {
+        checkSplitPayment.addEventListener('change', function() {
+            splitFields.classList.toggle('hidden', !this.checked);
+            if (this.checked) {
+                // Pre-fill card 1 with half if empty
+                const total = getValorTotalNumerico();
+                if (total > 0 && (!inputValorCartao1.value || inputValorCartao1.value == 0)) {
+                    inputValorCartao1.value = (total / 2).toFixed(2);
+                    inputValorCartao2.value = (total - (total / 2)).toFixed(2);
+                }
+            }
+        });
+    }
+
+    function getValorTotalNumerico() {
+        const selected = document.querySelector('.plano-card.selected');
+        if (!selected) return 0;
+        const isConsulte = selected.dataset.consulte === '1';
+        if (isConsulte) return parseFloat(inputValorPerformance.value) || 0;
+        
+        const tipo = selectTipo.value;
+        const base = tipo === 'anual' ? parseFloat(selected.dataset.anual) : parseFloat(selected.dataset.mensal);
+        const desconto = parseFloat(inputDesconto.value) || 0;
+        return base - (base * (desconto / 100));
+    }
+
+    function validateSplit() {
+        if (!checkSplitPayment || !checkSplitPayment.checked) return true;
+        
+        const total = getValorTotalNumerico();
+        const v1 = parseFloat(inputValorCartao1.value) || 0;
+        const v2 = parseFloat(inputValorCartao2.value) || 0;
+        
+        const diff = Math.abs(total - (v1 + v2));
+        const isValid = diff < 0.01;
+        
+        splitWarning.classList.toggle('hidden', isValid);
+        return isValid;
+    }
+
+    [inputValorCartao1, inputValorCartao2].forEach(inp => {
+        if (inp) inp.addEventListener('input', validateSplit);
+    });
+
+    // Integrated into existing card click
+    document.querySelectorAll('.payment-card').forEach(card => {
+        const originalHandler = card.onclick; // Wait, it uses addEventListener
+    });
 
     // Plan card selection
     cards.forEach(card => {

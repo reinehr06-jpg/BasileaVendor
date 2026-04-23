@@ -267,7 +267,17 @@ class AsaasClienteSyncController extends Controller
             'comissao_tipo' => 'nullable|in:inicial,inicial_antecipada,recorrencia,sem_comissao',
             'valor_total_cobranca' => 'nullable|numeric|min:0',
             'vendedor_id' => 'nullable|exists:vendedores,id',
+            'multi_asaas_ids' => 'nullable|array',
         ]);
+
+        $multiIds = $request->input('multi_asaas_ids');
+        $valorPlanoCalculado = (float) $request->input('valor_plano_mensal');
+        if (is_array($multiIds) && count($multiIds) > 0) {
+            $soma = $this->getSomaValoresFaturas($multiIds);
+            if ($soma > 0) {
+                $valorPlanoCalculado = $soma;
+            }
+        }
 
         $data = [
             'updated_at' => now(),
@@ -278,12 +288,19 @@ class AsaasClienteSyncController extends Controller
             'nome', 'email', 'documento', 'telefone', 'tipo_cobranca',
             'parcelas_total', 'parcelas_pagas', 'valor_plano_mensal', 'valor_total_cobranca',
             'primeiro_pagamento_at', 'ultimo_pagamento_confirmado_at',
-            'proximo_vencimento_at', 'diagnostico_status', 'comissao_tipo'
+            'proximo_vencimento_at', 'diagnostico_status', 'comissao_tipo', 'multi_asaas_ids'
         ];
 
         foreach ($camposEditaveis as $campo) {
             if ($request->has($campo)) {
-                $data[$campo] = $request->input($campo);
+                $val = $request->input($campo);
+                if ($campo === 'multi_asaas_ids') {
+                    $data[$campo] = json_encode($val);
+                } elseif ($campo === 'valor_plano_mensal' && isset($valorPlanoCalculado)) {
+                    $data[$campo] = $valorPlanoCalculado;
+                } else {
+                    $data[$campo] = $val;
+                }
             }
         }
 
@@ -902,6 +919,12 @@ class AsaasClienteSyncController extends Controller
             return response()->json(['success' => false, 'message' => 'Vendedor não encontrado'], 404);
         }
 
+        $multiIds = $request->multi_asaas_ids;
+        if (is_array($multiIds) && count($multiIds) > 0) {
+            $soma = $this->getSomaValoresFaturas($multiIds);
+            if ($soma > 0) $valorPlano = $soma;
+        }
+
         $import = (object) [
             'valor_marco_pago' => $valorPlano,
             'valor_plano_mensal' => $valorPlano,
@@ -1228,6 +1251,25 @@ class AsaasClienteSyncController extends Controller
         }
 
         return [round($cv, 2), round($cg, 2)];
+    }
+
+    private function getSomaValoresFaturas(array $ids): float
+    {
+        $total = 0;
+        foreach ($ids as $id) {
+            try {
+                if (str_starts_with($id, 'sub_')) {
+                    $sub = $this->asaas->requestAsaas('GET', "/subscriptions/{$id}");
+                    $total += (float) ($sub['value'] ?? 0);
+                } else {
+                    $pay = $this->asaas->requestAsaas('GET', "/payments/{$id}");
+                    $total += (float) ($pay['value'] ?? ($pay['totalValue'] ?? 0));
+                }
+            } catch (\Exception $e) {
+                Log::warning("Erro ao buscar valor da fatura {$id}: " . $e->getMessage());
+            }
+        }
+        return $total;
     }
 
     // ──────────────────────────────────────────────────────────────

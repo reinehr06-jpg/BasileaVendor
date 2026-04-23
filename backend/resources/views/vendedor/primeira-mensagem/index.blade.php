@@ -3,12 +3,6 @@
 @section('title', 'Primeira Mensagem')
 
 @section('content')
-<x-page-hero 
-    title="Primeira Mensagem" 
-    subtitle="Configure mensagens automáticas personalizadas para seus novos leads."
-    icon="fas fa-comment-dots">
-</x-page-hero>
-
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
@@ -209,7 +203,7 @@ function editarMensagem(id) {
 
 function enviarParaAprovacao(id) {
     if (confirm('Enviar esta mensagem para aprovação do gestor?')) {
-        fetch(`{{ url('vendedor/configuracoes/primeira-mensagem') }}/${id}/enviar`, {
+        fetch(`{{ url('primeira-mensagem') }}/${id}/enviar`, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),

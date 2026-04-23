@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PrimeiraMensagem extends Model
 {
+    protected $table = 'primeira_mensagens';
+
     protected $fillable = [
         'user_id', 'perfil', 'titulo', 'mensagem', 'ativa', 'status',
         'aprovada_por', 'rejeitada_por', 'motivo_rejeicao',
