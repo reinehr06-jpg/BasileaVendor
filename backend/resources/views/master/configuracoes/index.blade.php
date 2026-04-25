@@ -1852,7 +1852,7 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testando...';
         btn.disabled = true;
 
-        fetch('/master/configuracoes/integracoes/test-checkout-api', {
+        fetch('{{ route("master.configuracoes.integracoes.test-checkout-api", [], false) }}', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json', 
@@ -1882,7 +1882,7 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testando...';
         btn.disabled = true;
 
-        fetch('/master/configuracoes/integracoes/test-webhook', {
+        fetch('{{ route("master.configuracoes.integracoes.test-webhook", [], false) }}', {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json', 

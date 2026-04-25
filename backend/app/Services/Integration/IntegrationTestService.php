@@ -59,7 +59,7 @@ class IntegrationTestService
     public function testCheckout(): array
     {
         $apiKey = Setting::get('checkout_api_key');
-        $apiUrl = Setting::get('checkout_api_url', Setting::get('checkout_external_url', 'http://localhost:8001'));
+        $apiUrl = rtrim(Setting::get('checkout_api_url', Setting::get('checkout_external_url', 'http://localhost:8001')), '/');
 
         if (!$apiKey) {
             return ['success' => false, 'message' => 'Checkout API Key não configurada'];
