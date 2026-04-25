@@ -73,7 +73,7 @@ class IntegrationTestService
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json'
-            ])->timeout(10)->get("{$apiUrl}/api/v1/health");
+            ])->timeout(10)->get("{$apiUrl}/api/diag-check");
 
             if ($response->successful()) {
                 return [

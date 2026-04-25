@@ -575,7 +575,7 @@ class IntegracaoController extends Controller
 
             $response = Http::withToken($apiKey)
                 ->timeout(10)
-                ->post(rtrim($apiUrl, '/') . '/api/v1/webhooks/test', [
+                ->post(rtrim($apiUrl, '/') . '/api/webhooks/checkout', [
                     'url' => $webhookUrl
                 ]);
 
