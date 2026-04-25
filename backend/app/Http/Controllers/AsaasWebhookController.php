@@ -116,7 +116,11 @@ class AsaasWebhookController extends Controller
 
         // 2. Se o pagamento for de uma ASSINATURA e não existir localmente
         if (!$pagamento && !empty($payment['subscription'])) {
-            $assinatura = Assinatura::where('asaas_subscription_id', $payment['subscription'])->with('venda')->first();
+            $asaasSubId = $payment['subscription'];
+            
+            // Tenta achar na tabela de assinaturas (sistema novo)
+            $assinatura = Assinatura::where('asaas_subscription_id', $asaasSubId)->with('venda')->first();
+            
             if ($assinatura && $assinatura->venda) {
                 $pagamento = Pagamento::create([
                     'venda_id' => $assinatura->venda_id,
@@ -131,7 +135,26 @@ class AsaasWebhookController extends Controller
                     'invoice_url' => $payment['invoiceUrl'] ?? null,
                     'bank_slip_url' => $payment['bankSlipUrl'] ?? null,
                 ]);
-                Log::info('Asaas Webhook: pagamento criado via ciclo de assinatura', ['payment_id' => $asaasPaymentId]);
+                Log::info('Asaas Webhook: pagamento criado via ciclo de Assinatura (Model)', ['payment_id' => $asaasPaymentId]);
+            } else {
+                // Tenta achar na tabela de vendas (sistema antigo/vendedor)
+                $vendaSub = Venda::where('asaas_subscription_id', $asaasSubId)->first();
+                if ($vendaSub) {
+                    $pagamento = Pagamento::create([
+                        'venda_id' => $vendaSub->id,
+                        'cliente_id' => $vendaSub->cliente_id,
+                        'vendedor_id' => $vendaSub->vendedor_id,
+                        'asaas_payment_id' => $asaasPaymentId,
+                        'valor' => $payment['value'] ?? $vendaSub->valor_final,
+                        'billing_type' => $payment['billingType'] ?? 'BOLETO',
+                        'forma_pagamento' => $payment['billingType'] ?? 'BOLETO',
+                        'status' => 'PENDING',
+                        'data_vencimento' => $payment['dueDate'] ?? null,
+                        'invoice_url' => $payment['invoiceUrl'] ?? null,
+                        'bank_slip_url' => $payment['bankSlipUrl'] ?? null,
+                    ]);
+                    Log::info('Asaas Webhook: pagamento criado via ciclo de Assinatura (Venda)', ['payment_id' => $asaasPaymentId]);
+                }
             }
         }
 

@@ -1700,7 +1700,7 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
         btn.disabled = true;
 
-        fetch('{{ route("master.configuracoes.integracoes.testar") }}', {
+        fetch('{{ route("master.configuracoes.integracoes.testar", [], false) }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
         })
@@ -1852,16 +1852,24 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testando...';
         btn.disabled = true;
 
-        fetch('{{ route("master.configuracoes.integracoes.test-checkout-api") }}', {
+        fetch('/master/configuracoes/integracoes/test-checkout-api', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+            }
         })
-        .then(r => r.json())
+        .then(async r => {
+            const isJson = r.headers.get('content-type')?.includes('application/json');
+            const data = isJson ? await r.json() : null;
+            if (!r.ok) throw new Error(data?.message || 'Erro ' + r.status);
+            return data;
+        })
         .then(d => {
             showTestResult(d.success, d.message, d.detail || '');
         })
         .catch(e => {
-            showTestResult(false, 'Erro ao conectar: ' + e.message);
+            showTestResult(false, 'Falha técnica: ' + e.message);
         })
         .finally(() => {
             btn.innerHTML = '<i class="fas fa-plug"></i> Testar API Key';
@@ -1874,16 +1882,24 @@
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testando...';
         btn.disabled = true;
 
-        fetch('{{ route("master.configuracoes.integracoes.test-webhook") }}', {
+        fetch('/master/configuracoes/integracoes/test-webhook', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content
+            }
         })
-        .then(r => r.json())
+        .then(async r => {
+            const isJson = r.headers.get('content-type')?.includes('application/json');
+            const data = isJson ? await r.json() : null;
+            if (!r.ok) throw new Error(data?.message || 'Erro ' + r.status);
+            return data;
+        })
         .then(d => {
             showTestResult(d.success, d.message, d.detail || '');
         })
         .catch(e => {
-            showTestResult(false, 'Erro ao testar webhook: ' + e.message);
+            showTestResult(false, 'Falha técnica: ' + e.message);
         })
         .finally(() => {
             btn.innerHTML = '<i class="fas fa-broadcast-tower"></i> Testar Webhook';

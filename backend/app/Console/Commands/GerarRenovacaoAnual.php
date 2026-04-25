@@ -14,11 +14,9 @@ use Illuminate\Support\Facades\Log;
 
 class GerarRenovacaoAnual extends Command
 {
-    protected $signature = 'vendas:gerar-renovacao-anual 
-                            {--dry-run : Apenas simula, não cria cobranças}
-                            {--data= : Data específica para verificar (Y-m-d)}';
+    protected $signature = 'vendas:gerar-renovacao-anual {--dry-run} {--data=}';
 
-    protected $description = 'Gera cobranças de renovação anual para vendas que completam 1 ano';
+    protected $description = 'Gera cobrancas de renovacao (anual/mensal) para vendas que completam seu ciclo';
 
     public function handle()
     {
@@ -34,36 +32,36 @@ class GerarRenovacaoAnual extends Command
             $this->warn("⚠️  MODO DRY RUN - Nenhuma cobrança será criada");
         }
 
-        // Buscar vendas anuais que completam 1 ano hoje
-        $vendasParaRenovar = Venda::where('tipo_negociacao', 'anual')
+        // Vendas Anuais: Vencimento hoje (há 1 ano)
+        $dataAnual = $dataReferencia->copy()->subYear();
+        $vendasAnuais = Venda::where('tipo_negociacao', 'anual')
             ->whereIn('status', ['PAGO', 'Pago', 'RECEIVED'])
-            ->whereDate('data_venda', $dataReferencia->subYear()) // Há exatamente 1 ano
-            ->orWhere(function($q) use ($dataReferencia) {
-                // Ou vendas criadas há 1 ano (fallback)
-                $q->where('tipo_negociacao', 'anual')
-                  ->whereIn('status', ['PAGO', 'Pago', 'RECEIVED'])
-                  ->whereDate('created_at', $dataReferencia->subYear());
+            ->whereNull('asaas_subscription_id')
+            ->where(function($q) use ($dataAnual) {
+                $q->whereDate('data_venda', $dataAnual)
+                  ->orWhereDate('created_at', $dataAnual);
             })
-            ->with(['cliente', 'vendedor'])
             ->get();
 
-        // Filtrar apenas vendas que não têm renovação já criada
-        $vendasParaRenovar = $vendasParaRenovar->filter(function ($venda) {
-            $jaRenovada = Venda::where('cliente_id', $venda->cliente_id)
-                ->where('vendedor_id', $venda->vendedor_id)
-                ->where('plano', $venda->plano)
-                ->where('tipo_negociacao', 'anual')
-                ->where('created_at', '>', $venda->created_at)
-                ->exists();
-            return !$jaRenovada;
-        });
+        // Vendas Mensais: Vencimento hoje (há 1 mês)
+        $dataMensal = $dataReferencia->copy()->subMonth();
+        $vendasMensais = Venda::where('tipo_negociacao', 'mensal')
+            ->whereIn('status', ['PAGO', 'Pago', 'RECEIVED'])
+            ->whereNull('asaas_subscription_id')
+            ->where(function($q) use ($dataMensal) {
+                $q->whereDate('data_venda', $dataMensal)
+                  ->orWhereDate('created_at', $dataMensal);
+            })
+            ->get();
+
+        $vendasParaRenovar = $vendasAnuais->concat($vendasMensais);
 
         if ($vendasParaRenovar->isEmpty()) {
-            $this->info("✅ Nenhuma venda para renovar hoje.");
-            return 0;
+            $this->info('Nenhuma venda para renovar hoje.');
+            return self::SUCCESS;
         }
 
-        $this->info("📋 Encontradas {$vendasParaRenovar->count()} vendas para renovar:");
+        $this->info("📋 Encontradas {$vendasParaRenovar->count()} vendas para renovação.");
         $this->newLine();
 
         $sucesso = 0;
@@ -71,6 +69,18 @@ class GerarRenovacaoAnual extends Command
 
         foreach ($vendasParaRenovar as $venda) {
             $this->line("  Venda #{$venda->id} - {$venda->cliente->nome_igreja} - R$ {$venda->valor_final}");
+
+            // Evitar renovação duplicada se já existir uma venda posterior para o mesmo cliente/vendedor/plano
+            $jaRenovada = Venda::where('cliente_id', $venda->cliente_id)
+                ->where('vendedor_id', $venda->vendedor_id)
+                ->where('plano', $venda->plano)
+                ->where('created_at', '>', $venda->created_at)
+                ->exists();
+
+            if ($jaRenovada) {
+                $this->warn("    ⚠️ Já renovada anteriormente. Pulando.");
+                continue;
+            }
 
             if ($dryRun) {
                 $this->line("    [DRY RUN] Criaria cobrança de R$ {$venda->valor_final}");
@@ -80,30 +90,28 @@ class GerarRenovacaoAnual extends Command
             try {
                 $novaVenda = $this->criarRenovacao($venda);
                 $sucesso++;
-                $this->info("    ✅ Renovação criada com sucesso");
+                $this->info("    ✅ Renovação criada com sucesso (#{$novaVenda->id})");
                 
                 // Criar notificação para o Master
                 Notificacao::notificarMasters(
-                    'renovacao_anual',
-                    '🔄 Renovação Anual Gerada',
+                    'renovacao_gerada',
+                    '🔄 Renovação Gerada Automática',
                     "Uma cobrança de renovação foi gerada automaticamente para {$venda->cliente->nome_igreja}.\n\n" .
                     "• Venda original: #{$venda->id}\n" .
                     "• Nova venda: #{$novaVenda->id}\n" .
-                    "• Vendedor atual: {$venda->vendedor->user->name}\n" .
+                    "• Ciclo: {$venda->tipo_negociacao}\n" .
                     "• Valor: R$ {$venda->valor_final}\n" .
-                    "• Plano: {$venda->plano}\n\n" .
-                    "⚠️ Verifique se o vendedor ainda é o mesmo e se a comissão precisa ser alterada.",
+                    "• Plano: {$venda->plano}",
                     [
                         'venda_original_id' => $venda->id,
                         'nova_venda_id' => $novaVenda->id,
-                        'vendedor_id' => $venda->vendedor_id,
                         'valor' => $venda->valor_final,
                     ]
                 );
             } catch (\Exception $e) {
                 $erro++;
                 $this->error("    ❌ Erro: {$e->getMessage()}");
-                Log::error("Erro ao gerar renovação anual", [
+                Log::error("Erro ao gerar renovação", [
                     'venda_id' => $venda->id,
                     'error' => $e->getMessage(),
                 ]);
@@ -117,7 +125,7 @@ class GerarRenovacaoAnual extends Command
             $this->error("  ❌ Erros: {$erro}");
         }
 
-        return 0;
+        return self::SUCCESS;
     }
 
     private function criarRenovacao(Venda $vendaOriginal): Venda
@@ -126,7 +134,7 @@ class GerarRenovacaoAnual extends Command
         $cliente = $vendaOriginal->cliente;
         $vendedor = $vendaOriginal->vendedor;
 
-        // Criar nova venda
+        // Criar nova venda com os mesmos dados da original
         $novaVenda = Venda::create([
             'cliente_id' => $cliente->id,
             'vendedor_id' => $vendedor->id,
@@ -136,44 +144,46 @@ class GerarRenovacaoAnual extends Command
             'comissao_gerada' => 0,
             'status' => 'Aguardando pagamento',
             'plano' => $vendaOriginal->plano,
-            'forma_pagamento' => $vendaOriginal->forma_pagamento,
-            'tipo_negociacao' => 'anual',
+            'forma_pagamento' => $vendaOriginal->forma_pagamento ?? 'PIX',
+            'tipo_negociacao' => $vendaOriginal->tipo_negociacao,
             'desconto' => $vendaOriginal->desconto,
-            'parcelas' => $vendaOriginal->parcelas,
+            'parcelas' => $vendaOriginal->parcelas ?? 1,
             'origem' => 'renovacao_automatica',
             'data_venda' => Carbon::now(),
         ]);
 
-        // Criar cobrança no Asaas
+        // Determinar vencimento (5 dias para boleto, 15 para outros)
         $isBoleto = in_array(strtoupper($vendaOriginal->forma_pagamento ?? ''), ['BOLETO', 'BOLETO_BANCARIO']);
         $diasVencimento = $isBoleto ? 5 : 15;
         $dataVencimento = Carbon::now()->addDays($diasVencimento)->format('Y-m-d');
-        $descricaoCobranca = "Basiléia - Renovação Plano {$vendaOriginal->plano} (Anual)";
+        
+        $cicloNome = $vendaOriginal->tipo_negociacao === 'anual' ? 'Anual' : 'Mensal';
+        $descricaoCobranca = "Basiléia - Renovação Plano {$vendaOriginal->plano} ({$cicloNome})";
 
         // Determinar split se aplicável
         $split = [];
-        if ($vendedor->isAptoSplit()) {
+        if ($vendedor && $vendedor->isAptoSplit()) {
             $split = $asaas->buildSplitArray($vendedor, $vendaOriginal->valor_final, 'recorrencia');
         }
 
         $paymentPayload = [
             'customer' => $cliente->asaas_customer_id,
-            'billingType' => $vendaOriginal->forma_pagamento,
+            'billingType' => $vendaOriginal->forma_pagamento ?? 'PIX',
             'value' => $vendaOriginal->valor_final,
             'dueDate' => $dataVencimento,
             'description' => $descricaoCobranca,
             'externalReference' => "venda_{$novaVenda->id}",
         ];
 
-        // Se for parcelado
-        if ($vendaOriginal->forma_pagamento === 'CREDIT_CARD' && $vendaOriginal->parcelas > 1) {
+        if (!empty($split)) {
+            $paymentPayload['split'] = $split;
+        }
+
+        // Se for cartão e parcelado
+        if ($paymentPayload['billingType'] === 'CREDIT_CARD' && $vendaOriginal->parcelas > 1) {
             $paymentPayload['totalValue'] = $vendaOriginal->valor_final;
             $paymentPayload['installmentCount'] = $vendaOriginal->parcelas;
             unset($paymentPayload['value']);
-        }
-
-        if (!empty($split)) {
-            $paymentPayload['split'] = $split;
         }
 
         $paymentData = $asaas->requestAsaas('POST', '/payments', $paymentPayload);
@@ -194,7 +204,7 @@ class GerarRenovacaoAnual extends Command
             'vendedor_id' => $vendedor->id,
             'asaas_payment_id' => $paymentData['id'] ?? null,
             'valor' => $vendaOriginal->valor_final,
-            'forma_pagamento' => $formaMap[$vendaOriginal->forma_pagamento] ?? 'pix',
+            'forma_pagamento' => $formaMap[$paymentPayload['billingType']] ?? 'pix',
             'status' => 'pendente',
             'data_vencimento' => $dataVencimento,
             'link_pagamento' => $paymentData['invoiceUrl'] ?? null,
@@ -203,13 +213,12 @@ class GerarRenovacaoAnual extends Command
             'nota_fiscal_status' => 'pendente',
         ]);
 
-        // Atualizar status da nova venda
         $novaVenda->update(['modo_cobranca_asaas' => 'PAYMENT']);
 
-        Log::info("Renovação anual criada", [
+        Log::info("Renovação automática gerada", [
             'venda_original_id' => $vendaOriginal->id,
             'nova_venda_id' => $novaVenda->id,
-            'asaas_payment_id' => $paymentData['id'] ?? null,
+            'ciclo' => $vendaOriginal->tipo_negociacao,
         ]);
         
         return $novaVenda;

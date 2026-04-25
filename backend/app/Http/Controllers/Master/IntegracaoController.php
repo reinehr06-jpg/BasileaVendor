@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Setting;
 use App\Models\Vendedor;
+use App\Models\CommissionRule;
 use App\Services\AsaasService;
 use App\Services\Checkout\CheckoutClient;
 use App\Services\Integration\IntegrationTestService;
@@ -115,6 +116,7 @@ class IntegracaoController extends Controller
         Setting::set('asaas_environment', $request->input('asaas_environment'));
         Setting::set('asaas_callback_url', $request->input('asaas_callback_url'));
         Setting::set('checkout_external_url', $request->input('checkout_external_url'));
+        Setting::set('checkout_api_url', $request->input('checkout_external_url')); // Sincroniza para o testService
         Setting::set('checkout_api_key', $request->input('checkout_api_key'));
         Setting::set('checkout_webhook_secret', $request->input('checkout_webhook_secret'));
 
@@ -528,5 +530,132 @@ class IntegracaoController extends Controller
         ];
 
         return response()->json($status);
+    }
+
+    /**
+     * Testar API Key do Checkout
+     */
+    public function testarCheckoutApi()
+    {
+        try {
+            $result = $this->testService->testCheckout();
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao testar API: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Testar Webhook do Checkout
+     */
+    public function testarWebhook()
+    {
+        try {
+            // Tenta enviar um ping para o serviço de checkout informando nosso webhook
+            $apiUrl = Setting::get('checkout_api_url', Setting::get('checkout_external_url', ''));
+            $apiKey = Setting::get('checkout_api_key', '');
+            $webhookUrl = url('/api/webhook/checkout');
+
+            if (!$apiUrl || !$apiKey) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Configurações de API incompletas. Verifique a URL e a API Key.'
+                ]);
+            }
+
+            if (!filter_var($apiUrl, FILTER_VALIDATE_URL)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A URL do serviço de checkout é inválida. Certifique-se de incluir http:// ou https://'
+                ]);
+            }
+
+            $response = Http::withToken($apiKey)
+                ->timeout(10)
+                ->post(rtrim($apiUrl, '/') . '/api/v1/webhooks/test', [
+                    'url' => $webhookUrl
+                ]);
+
+            if ($response->successful()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Webhook testado com sucesso! O Checkout recebeu o sinal.'
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'O Checkout retornou erro: ' . ($response->json('message') ?? 'Status ' . $response->status())
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao testar webhook: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update Chat/Leads settings.
+     */
+    public function updateChatLeads(Request $request)
+    {
+        $request->validate([
+            'chat_google_ads_webhook_key' => 'nullable|string|max:255',
+            'meta_webhook_verify_token' => 'nullable|string|max:255',
+            'meta_app_secret' => 'nullable|string|max:255',
+        ]);
+
+        Setting::set('chat_google_ads_webhook_key', $request->input('chat_google_ads_webhook_key'));
+        Setting::set('meta_webhook_verify_token', $request->input('meta_webhook_verify_token'));
+        Setting::set('meta_app_secret', $request->input('meta_app_secret'));
+
+        return redirect()->route('master.configuracoes', ['tab' => 'integracoes'])
+                         ->with('success', 'Integrações de Chat atualizadas.');
+    }
+
+    /**
+     * Validar Wallet de Vendedor.
+     */
+    public function validarWallet(Request $request)
+    {
+        $vendedorId = $request->input('vendedor_id');
+        $vendedor = Vendedor::findOrFail($vendedorId);
+        
+        if (!$vendedor->asaas_wallet_id) {
+             return response()->json(['success' => false, 'message' => 'Vendedor não possui Wallet ID.']);
+        }
+        
+        $vendedor->update([
+            'wallet_status' => 'validado',
+            'wallet_validado_em' => now()
+        ]);
+        
+        return response()->json(['success' => true, 'message' => 'Carteira validada com sucesso!']);
+    }
+
+    /**
+     * Update Commission Rule.
+     */
+    public function updateComissaoRule(Request $request, $id)
+    {
+        $rule = CommissionRule::findOrFail($id);
+        
+        if ($request->has('active')) {
+            $rule->update(['active' => $request->boolean('active')]);
+            return back()->with('success', 'Regra ' . ($rule->active ? 'ativada' : 'desativada') . ' com sucesso.');
+        }
+        
+        $rule->update($request->only([
+            'seller_fixed_value_first_payment',
+            'seller_fixed_value_recurring',
+            'manager_fixed_value_first_payment',
+            'manager_fixed_value_recurring'
+        ]));
+        
+        return back()->with('success', 'Regra de comissão atualizada com sucesso.');
     }
 }

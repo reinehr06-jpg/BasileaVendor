@@ -20,3 +20,6 @@ Schedule::command('vendas:sync-pendentes')->everyFifteenMinutes();
 // Verificar inadimplência de assinaturas a cada hora
 Schedule::command('vendas:verificar-inadimplencia')->hourly();
 
+// Gerar renovações automáticas (Mensais e Anuais) diariamente à meia-noite
+Schedule::command('vendas:gerar-renovacoes')->dailyAt('00:00');
+
