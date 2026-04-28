@@ -77,6 +77,9 @@ class ChurchProvisioningService
                     'church_user_id'  => $cliente->church_user_id,
                     'venda_id'        => $venda->id,
                 ]);
+
+                // Notificar outros sistemas (Financeiro, etc.)
+                $this->notificarSistemasExternos($cliente, $venda, 'ACCOUNT_CREATED');
             } else {
                 Log::error('[Church] Falha ao criar conta', [
                     'status'     => $response->status(),
@@ -149,6 +152,9 @@ class ChurchProvisioningService
                     'cliente_id'     => $cliente->id,
                     'church_user_id' => $cliente->church_user_id,
                 ]);
+
+                // Notificar outros sistemas
+                $this->notificarSistemasExternos($cliente, null, 'ACCOUNT_SUSPENDED');
             } else {
                 Log::error('[Church] Falha ao suspender conta', [
                     'status'     => $response->status(),
@@ -194,6 +200,9 @@ class ChurchProvisioningService
                     'cliente_id'     => $cliente->id,
                     'church_user_id' => $cliente->church_user_id,
                 ]);
+
+                // Notificar outros sistemas
+                $this->notificarSistemasExternos($cliente, null, 'ACCOUNT_REACTIVATED');
             } else {
                 Log::error('[Church] Falha ao reativar conta', [
                     'status'     => $response->status(),
@@ -205,6 +214,55 @@ class ChurchProvisioningService
             Log::error('[Church] Exceção ao reativar conta', [
                 'error'      => $e->getMessage(),
                 'cliente_id' => $cliente->id,
+            ]);
+        }
+    }
+
+    /**
+     * Notificar sistemas externos (ex: Financeiro) sobre mudanças no status.
+     */
+    public function notificarSistemasExternos(Cliente $cliente, ?Venda $venda, string $evento): void
+    {
+        $financeiroUrl = \App\Models\Setting::get('external_webhook_financeiro_url', '');
+        $financeiroToken = \App\Models\Setting::get('external_webhook_financeiro_token', '');
+
+        if (empty($financeiroUrl)) {
+            return;
+        }
+
+        $payload = [
+            'event'          => $evento,
+            'timestamp'      => now()->toIso8601String(),
+            'customer' => [
+                'id'         => $cliente->id,
+                'name'       => $cliente->nome_igreja ?? $cliente->nome,
+                'document'   => $cliente->documento,
+                'email'      => $cliente->email,
+            ],
+            'metadata' => [
+                'venda_id'   => $venda ? $venda->id : null,
+                'plano'      => $venda ? $venda->plano : null,
+                'church_id'  => $cliente->church_user_id,
+            ]
+        ];
+
+        try {
+            $response = Http::timeout(10);
+            
+            if (!empty($financeiroToken)) {
+                $response = $response->withToken($financeiroToken);
+            }
+
+            $response->post($financeiroUrl, $payload);
+
+            Log::info("[Webhook] Notificação enviada para sistema externo ($evento)", [
+                'url' => $financeiroUrl,
+                'cliente_id' => $cliente->id
+            ]);
+        } catch (\Exception $e) {
+            Log::warning("[Webhook] Falha ao notificar sistema externo ($evento)", [
+                'error' => $e->getMessage(),
+                'url' => $financeiroUrl
             ]);
         }
     }

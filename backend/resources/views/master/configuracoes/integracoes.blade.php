@@ -212,6 +212,61 @@
         </div>
     </div>
 
+    <!-- Card 4.1: Comercialização e Self-Service -->
+    <div class="card settings-card" style="margin-top: 24px;">
+        <div class="card-header">
+            <h2>🏷️ Comercialização e Self-Service</h2>
+            <p class="text-muted">Personalize os termos do sistema e configure webhooks adicionais de ativação.</p>
+        </div>
+
+        <form action="{{ route('master.configuracoes.integracoes.commercial') }}" method="POST" class="settings-form">
+            @csrf
+
+            <h4 class="mt-3 mb-2" style="font-size: 0.9rem; color: var(--primary);">Nomes Dinâmicos (Labels)</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="label_church">Nome da "Igreja" (Singular)</label>
+                    <input type="text" name="label_church" id="label_church" class="form-control" value="{{ $labelChurch }}" placeholder="Ex: Igreja, Empresa, Escola">
+                </div>
+
+                <div class="form-group">
+                    <label for="label_organization">Nome da "Organização"</label>
+                    <input type="text" name="label_organization" id="label_organization" class="form-control" value="{{ $labelOrganization }}" placeholder="Ex: Igreja/Empresa">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="label_pastor">Nome do "Pastor/Líder"</label>
+                    <input type="text" name="label_pastor" id="label_pastor" class="form-control" value="{{ $labelPastor }}" placeholder="Ex: Pastor, Diretor, Gerente">
+                </div>
+
+                <div class="form-group">
+                    <label for="label_member">Nome do "Membro/Usuário"</label>
+                    <input type="text" name="label_member" id="label_member" class="form-control" value="{{ $labelMember }}" placeholder="Ex: Membro, Funcionário, Aluno">
+                </div>
+            </div>
+
+            <h4 class="mt-4 mb-2" style="font-size: 0.9rem; color: var(--primary);">Webhooks de Ativação Secundários</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="external_webhook_financeiro_url">Webhook Financeiro (URL)</label>
+                    <input type="url" name="external_webhook_financeiro_url" id="external_webhook_financeiro_url" class="form-control" value="{{ $financeiroWebhookUrl }}" placeholder="https://financeiro.seuapp.com/webhook">
+                    <small class="help-text">URL para notificar sistemas de faturamento externos.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="external_webhook_financeiro_token">Webhook Financeiro (Token)</label>
+                    <input type="password" name="external_webhook_financeiro_token" id="external_webhook_financeiro_token" class="form-control" value="{{ $financeiroWebhookToken }}" placeholder="Token de segurança">
+                </div>
+            </div>
+
+            <div class="form-actions border-top">
+                <button type="submit" class="btn btn-primary">💾 Salvar Configurações Comerciais</button>
+            </div>
+        </form>
+    </div>
+
     <!-- Card 5: Google Calendar -->
     <div class="card settings-card" style="margin-top: 24px;">
         <div class="card-header">

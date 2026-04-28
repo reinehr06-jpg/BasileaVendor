@@ -68,6 +68,14 @@ class IntegracaoController extends Controller
             ->with('user')
             ->get();
 
+        $labelChurch = Setting::get('label_church', 'Igreja');
+        $labelPastor = Setting::get('label_pastor', 'Pastor');
+        $labelMember = Setting::get('label_member', 'Membro');
+        $labelOrganization = Setting::get('label_organization', 'Igreja/Organização');
+
+        $financeiroWebhookUrl = Setting::get('external_webhook_financeiro_url', '');
+        $financeiroWebhookToken = Setting::get('external_webhook_financeiro_token', '');
+
         return view('master.configuracoes.integracoes', compact(
             'asaasApiKey', 'asaasWebhookToken', 'asaasEnvironment', 'asaasCallbackUrl',
             'splitGlobalAtivo', 'jurosPadrao', 'multaPadrao',
@@ -78,7 +86,9 @@ class IntegracaoController extends Controller
             'googleGmailClientId', 'googleGmailClientSecret', 'googleGmailRedirectUri',
             'googleGmailEmail', 'googleGmailAtivo',
             'iaProvider', 'iaAtivo', 'iaLocalEndpoint', 'iaLocalModel', 'iaRateLimit', 'openaiApiKey',
-            'vendedoresComSplit'
+            'vendedoresComSplit',
+            'labelChurch', 'labelPastor', 'labelMember', 'labelOrganization',
+            'financeiroWebhookUrl', 'financeiroWebhookToken'
         ));
     }
 
@@ -657,5 +667,33 @@ class IntegracaoController extends Controller
         ]));
         
         return back()->with('success', 'Regra de comissão atualizada com sucesso.');
+    }
+
+    /**
+     * Update commercial settings (labels and webhooks).
+     */
+    public function updateCommercial(Request $request)
+    {
+        $request->validate([
+            'label_church' => 'nullable|string|max:50',
+            'label_pastor' => 'nullable|string|max:50',
+            'label_member' => 'nullable|string|max:50',
+            'label_organization' => 'nullable|string|max:50',
+            'external_webhook_financeiro_url' => 'nullable|url|max:255',
+            'external_webhook_financeiro_token' => 'nullable|string|max:255',
+        ]);
+
+        Setting::set('label_church', $request->input('label_church', 'Igreja'));
+        Setting::set('label_pastor', $request->input('label_pastor', 'Pastor'));
+        Setting::set('label_member', $request->input('label_member', 'Membro'));
+        Setting::set('label_organization', $request->input('label_organization', 'Igreja/Organização'));
+        
+        Setting::set('external_webhook_financeiro_url', $request->input('external_webhook_financeiro_url'));
+        Setting::set('external_webhook_financeiro_token', $request->input('external_webhook_financeiro_token'));
+
+        Setting::clearAllCache();
+
+        return redirect()->route('master.configuracoes', ['tab' => 'integracoes'])
+                         ->with('success', 'Configurações comerciais atualizadas.');
     }
 }

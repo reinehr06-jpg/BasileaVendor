@@ -37,6 +37,13 @@ Route::middleware('api.key')->group(function () {
     // Basiléia Church — Verificar status do cliente (ativado via Bearer token)
     Route::get('/client-status/{venda_id}', [ClienteStatusController::class, 'show']);
 
+    // Basiléia Church — Gestão do ciclo de vida via API
+    Route::prefix('integracao')->group(function () {
+        Route::post('/cancelar-assinatura', [\App\Http\Controllers\Api\BasileiaIntegracaoController::class, 'cancelarAssinatura']);
+        Route::post('/atualizar-plano', [\App\Http\Controllers\Api\BasileiaIntegracaoController::class, 'atualizarPlano']);
+        Route::post('/contratar', [\App\Http\Controllers\Api\BasileiaIntegracaoController::class, 'contratar']);
+    });
+
     // Checkout Session
     Route::post('/checkout/session', [\App\Http\Controllers\Api\CheckoutSessionController::class, 'create']);
 

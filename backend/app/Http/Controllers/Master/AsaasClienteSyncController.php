@@ -23,11 +23,19 @@ class AsaasClienteSyncController extends Controller
     // Mês de referência para comissões (dinâmico - usa o mês atual)
     const MES_REFERENCIA = null; // null = usa mês atual
 
-    protected AsaasService $asaas;
+    protected ?AsaasService $asaas = null;
+
+    private function getAsaasService(): AsaasService
+    {
+        if (!$this->asaas) {
+            $this->asaas = new AsaasService();
+        }
+        return $this->asaas;
+    }
 
     public function __construct()
     {
-        $this->asaas = new AsaasService();
+        // Removido instanciamento direto para evitar erros no boot do controller
     }
 
     private function getMesReferencia(): string
@@ -109,22 +117,39 @@ class AsaasClienteSyncController extends Controller
     // ──────────────────────────────────────────────────────────────
     public function show(Request $request, $id)
     {
-        $cliente = DB::table('legacy_customer_imports')->where('id', $id)->first();
-        if (!$cliente) {
-            return redirect()->route('master.clientes-asaas.index')->with('error', 'Cliente não encontrado.');
-        }
+        try {
+            $cliente = DB::table('legacy_customer_imports')->where('id', $id)->first();
+            if (!$cliente) {
+                return redirect()->route('master.clientes-asaas.index')->with('error', 'Cliente não encontrado.');
+            }
 
-        $vendedores = Vendedor::whereIn('status', ['ativo', '1', 1])->with('user')->get();
-        // Separando Gestores e Vendedores
-        $listaG = collect();
-        $listaV = collect();
-        foreach($vendedores as $v) {
-            $r = strtolower($v->role ?? ($v->user->role ?? ''));
-            if(str_contains($r, 'gestor') || str_contains($r, 'master')) $listaG->push($v);
-            else $listaV->push($v);
-        }
+            $vendedores = Vendedor::whereIn('status', ['ativo', '1', 1])->with('user')->get();
+            // Separando Gestores e Vendedores
+            $listaG = collect();
+            $listaV = collect();
+            foreach($vendedores as $v) {
+                $perfil = $v->user?->perfil ?? $v->user?->role ?? 'vendedor';
+                $r = strtolower((string)$perfil);
+                
+                if (str_contains($r, 'gestor') || str_contains($r, 'master')) {
+                    $listaG->push($v);
+                } else {
+                    $listaV->push($v);
+                }
+            }
 
-        return view('master.clientes_asaas.show', compact('cliente', 'listaG', 'listaV'));
+            $mesReferencia = $this->getMesReferencia();
+            $html = view('master.clientes_asaas.show', compact('cliente', 'listaG', 'listaV', 'mesReferencia'))->render();
+            return response($html);
+        } catch (\Throwable $e) {
+            Log::error('Erro fatal no show de cliente asaas', [
+                'id' => $id,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return response('Erro Interno no Servidor (Show): ' . $e->getMessage(), 500);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -223,21 +248,39 @@ class AsaasClienteSyncController extends Controller
     // ──────────────────────────────────────────────────────────────
     public function edit(Request $request, $id)
     {
-        $cliente = DB::table('legacy_customer_imports')->where('id', $id)->first();
-        if (!$cliente) {
-            return redirect()->route('master.clientes-asaas.index')->with('error', 'Cliente não encontrado.');
-        }
+        Log::error('HIT_EDIT_METHOD', ['id' => $id]);
+        try {
+            $cliente = DB::table('legacy_customer_imports')->where('id', $id)->first();
+            if (!$cliente) {
+                return redirect()->route('master.clientes-asaas.index')->with('error', 'Cliente não encontrado.');
+            }
 
-        $vendedores = Vendedor::whereIn('status', ['ativo', '1', 1])->with('user')->get();
-        $listaG = collect();
-        $listaV = collect();
-        foreach($vendedores as $v) {
-            $r = strtolower($v->role ?? ($v->user->role ?? ''));
-            if(str_contains($r, 'gestor') || str_contains($r, 'master')) $listaG->push($v);
-            else $listaV->push($v);
-        }
+            $vendedores = Vendedor::whereIn('status', ['ativo', '1', 1])->with('user')->get();
+            $listaG = collect();
+            $listaV = collect();
+            foreach($vendedores as $v) {
+                $perfil = $v->user?->perfil ?? $v->user?->role ?? 'vendedor';
+                $r = strtolower((string)$perfil);
+                
+                if (str_contains($r, 'gestor') || str_contains($r, 'master')) {
+                    $listaG->push($v);
+                } else {
+                    $listaV->push($v);
+                }
+            }
 
-        return view('master.clientes_asaas.edit', compact('cliente', 'listaG', 'listaV'));
+            $mesReferencia = $this->getMesReferencia();
+            $html = view('master.clientes_asaas.edit', compact('cliente', 'listaG', 'listaV', 'mesReferencia'))->render();
+            return response($html);
+        } catch (\Throwable $e) {
+            Log::error('Erro fatal no edit de cliente asaas', [
+                'id' => $id,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            return response('Erro Interno no Servidor: ' . $e->getMessage(), 500);
+        }
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -412,7 +455,7 @@ class AsaasClienteSyncController extends Controller
         $erros     = 0;
 
         try {
-            $response  = $this->asaas->requestAsaas('GET', '/customers', [
+            $response  = $this->getAsaasService()->requestAsaas('GET', '/customers', [
                 'limit'  => $limit,
                 'offset' => $offset,
             ]);
@@ -1259,10 +1302,10 @@ class AsaasClienteSyncController extends Controller
         foreach ($ids as $id) {
             try {
                 if (str_starts_with($id, 'sub_')) {
-                    $sub = $this->asaas->requestAsaas('GET', "/subscriptions/{$id}");
+                    $sub = $this->getAsaasService()->requestAsaas('GET', "/subscriptions/{$id}");
                     $total += (float) ($sub['value'] ?? 0);
                 } else {
-                    $pay = $this->asaas->requestAsaas('GET', "/payments/{$id}");
+                    $pay = $this->getAsaasService()->requestAsaas('GET', "/payments/{$id}");
                     $total += (float) ($pay['value'] ?? ($pay['totalValue'] ?? 0));
                 }
             } catch (\Exception $e) {
@@ -1282,7 +1325,7 @@ class AsaasClienteSyncController extends Controller
             $all      = [];
             $offset   = 0;
             do {
-                $resp = $this->asaas->requestAsaas('GET', '/payments', [
+                $resp = $this->getAsaasService()->requestAsaas('GET', '/payments', [
                     'customer' => $customerId,
                     'limit'    => 100,
                     'offset'   => $offset,
@@ -1301,7 +1344,7 @@ class AsaasClienteSyncController extends Controller
     private function getClienteSubscriptions(string $customerId): array
     {
         try {
-            $resp = $this->asaas->requestAsaas('GET', '/subscriptions', [
+            $resp = $this->getAsaasService()->requestAsaas('GET', '/subscriptions', [
                 'customer' => $customerId,
                 'limit'    => 100,
             ]);

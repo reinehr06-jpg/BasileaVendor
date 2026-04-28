@@ -130,6 +130,12 @@ Route::prefix('checkout')->name('checkout.external.')->group(function () {
 });
 
 // ==========================================
+// Contratação Pública (Self-Service)
+// ==========================================
+Route::get('/contratar', [\App\Http\Controllers\PublicHiringController::class, 'index'])->name('public.hiring');
+Route::post('/contratar', [\App\Http\Controllers\PublicHiringController::class, 'store'])->name('public.hiring.store');
+
+// ==========================================
 // Webhooks e Manutenção (Deploy AWS)
 // ==========================================
 Route::match(['get', 'post'], '/webhooks/asaas', [WebhookController::class, 'asaasWebhook'])->name('webhooks.asaas');
@@ -481,6 +487,7 @@ Route::middleware(['auth', 'verified', '2fa'])->group(function () {
         Route::post('/configuracoes/integracoes/google-calendar', [IntegracaoController::class, 'updateGoogleCalendar'])->name('configuracoes.integracoes.google-calendar');
         Route::post('/configuracoes/integracoes/google-gmail', [IntegracaoController::class, 'updateGoogleGmail'])->name('configuracoes.integracoes.google-gmail');
         Route::post('/configuracoes/integracoes/ia', [IntegracaoController::class, 'updateIA'])->name('configuracoes.integracoes.ia');
+        Route::post('/configuracoes/integracoes/commercial', [IntegracaoController::class, 'updateCommercial'])->name('configuracoes.integracoes.commercial');
 
         // Testes de Integração (AJAX)
         Route::get('/configuracoes/integracoes/test/asaas', [IntegracaoController::class, 'testAsaas'])->name('configuracoes.integracoes.test.asaas');

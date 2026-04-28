@@ -179,19 +179,19 @@
                 <div class="form-group">
                     <label>Status (Diagnóstico)</label>
                     <select name="diagnostico_status">
-                        <option value="ATIVO" {{ $cliente->diagnostico_status === 'ATIVO' ? 'selected' : '' }}>ATIVO - Pagando em dia</option>
-                        <option value="CHURN" {{ $cliente->diagnostico_status === 'CHURN' ? 'selected' : '' }}>CHURN - Tem cobrança vencida</option>
-                        <option value="CANCELADO" {{ $cliente->diagnostico_status === 'CANCELADO' ? 'selected' : '' }}>CANCELADO - Não pagou/Cancelado</option>
-                        <option value="PENDENTE" {{ $cliente->diagnostico_status === 'PENDENTE' ? 'selected' : '' }}>PENDENTE</option>
+                        <option value="ATIVO" {{ ($cliente->diagnostico_status ?? null) === 'ATIVO' ? 'selected' : '' }}>ATIVO - Pagando em dia</option>
+                        <option value="CHURN" {{ ($cliente->diagnostico_status ?? null) === 'CHURN' ? 'selected' : '' }}>CHURN - Tem cobrança vencida</option>
+                        <option value="CANCELADO" {{ ($cliente->diagnostico_status ?? null) === 'CANCELADO' ? 'selected' : '' }}>CANCELADO - Não pagou/Cancelado</option>
+                        <option value="PENDENTE" {{ ($cliente->diagnostico_status ?? null) === 'PENDENTE' ? 'selected' : '' }}>PENDENTE</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Tipo de Comissão</label>
                     <select name="comissao_tipo">
-                        <option value="sem_comissao" {{ $cliente->comissao_tipo === 'sem_comissao' ? 'selected' : '' }}>Sem Comissão (já pago)</option>
-                        <option value="inicial" {{ $cliente->comissao_tipo === 'inicial' ? 'selected' : '' }}>Inicial (1º pagamento)</option>
-                        <option value="inicial_antecipada" {{ $cliente->comissao_tipo === 'inicial_antecipada' ? 'selected' : '' }}>Inicial Antecipada (parcelado)</option>
-                        <option value="recorrencia" {{ $cliente->comissao_tipo === 'recorrencia' ? 'selected' : '' }}>Recorrência</option>
+                        <option value="sem_comissao" {{ ($cliente->comissao_tipo ?? null) === 'sem_comissao' ? 'selected' : '' }}>Sem Comissão (já pago)</option>
+                        <option value="inicial" {{ ($cliente->comissao_tipo ?? null) === 'inicial' ? 'selected' : '' }}>Inicial (1º pagamento)</option>
+                        <option value="inicial_antecipada" {{ ($cliente->comissao_tipo ?? null) === 'inicial_antecipada' ? 'selected' : '' }}>Inicial Antecipada (parcelado)</option>
+                        <option value="recorrencia" {{ ($cliente->comissao_tipo ?? null) === 'recorrencia' ? 'selected' : '' }}>Recorrência</option>
                     </select>
                 </div>
             </div>
@@ -204,7 +204,12 @@
 
             <div class="form-group full-width">
                 <label>IDs de Cobrança / Assinatura (Um por linha)</label>
-                <textarea name="multi_asaas_ids" rows="4" class="form-control" placeholder="sub_...&#10;pay_..." style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; background: #f8fafc;">{{ is_array(json_decode($cliente->multi_asaas_ids)) ? implode("\n", json_decode($cliente->multi_asaas_ids)) : '' }}</textarea>
+                @php
+                    $multiIdsRaw = property_exists($cliente, 'multi_asaas_ids') ? $cliente->multi_asaas_ids : null;
+                    $multiIdsJson = $multiIdsRaw ? json_decode((string)$multiIdsRaw, true) : null;
+                    $multiIdsStr = is_array($multiIdsJson) ? implode("\n", $multiIdsJson) : '';
+                @endphp
+                <textarea name="multi_asaas_ids" rows="4" class="form-control" placeholder="sub_...&#10;pay_..." style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid #e2e8f0; background: #f8fafc;">{{ $multiIdsStr }}</textarea>
                 <div style="font-size: 0.8rem; color: var(--materio-text-muted); margin-top: 8px;">
                     <i class="fas fa-info-circle"></i> Use isso se o cliente tiver dois cartões ou faturas separadas no Asaas para o mesmo produto.
                 </div>
@@ -271,6 +276,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!editForm) return;
 
     const selectTipo = document.querySelector('select[name="tipo_cobranca"]');
+    const selectVendedor = document.querySelector('select[name="vendedor_id"]');
     const groupValorTotal = document.getElementById('group_valor_total');
     const labelValorMensal = document.getElementById('label_valor_mensal');
     const inputValorTotal = document.querySelector('input[name="valor_total_cobranca"]');
