@@ -232,7 +232,7 @@ async function copiarLinkCheckout(vendaId, method = null) {
             
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(checkoutUrl);
-                alert('✅ Link copiado para a área de transferência!\n\n' + checkoutUrl);
+                alert('Link copiado!');
             } else {
                 const textArea = document.createElement("textarea");
                 textArea.value = checkoutUrl;
@@ -244,7 +244,7 @@ async function copiarLinkCheckout(vendaId, method = null) {
                 textArea.select();
                 try {
                     document.execCommand('copy');
-                    alert('✅ Link copiado para a área de transferência!\n\n' + checkoutUrl);
+                    alert('Link copiado!');
                 } catch (err) {
                     console.error('Fallback copy failed', err);
                     alert('⚠️ Não foi possível copiar automaticamente. Use este link:\n\n' + checkoutUrl);
@@ -267,7 +267,7 @@ async function copiarLinkBoleto(vendaId) {
         
         if (data.success && data.boleto_url) {
             await navigator.clipboard.writeText(data.boleto_url);
-            alert('✅ Link do boleto copiado!\n\n' + data.boleto_url);
+            alert('Link copiado!');
         } else if (data.error) {
             alert('❌ ' + data.error);
         } else {

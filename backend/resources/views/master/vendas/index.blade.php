@@ -270,7 +270,7 @@ async function copyCheckoutLink(vendaId, method = null) {
         
         if (data.success) {
             await navigator.clipboard.writeText(data.url);
-            alert('✅ Link de checkout copiado!\n\n' + data.url);
+            alert('Link copiado!');
         } else {
             alert('❌ ' + (data.error || 'Erro ao gerar link'));
         }
@@ -321,7 +321,7 @@ async function copiarLinkBoletoMaster(vendaId) {
         
         if (data.success && data.boleto_url) {
             await navigator.clipboard.writeText(data.boleto_url);
-            alert('✅ Link do boleto copiado!\n\n' + data.boleto_url);
+            alert('Link copiado!');
         } else if (data.error) {
             alert('❌ ' + data.error);
         } else {
