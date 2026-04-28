@@ -20,6 +20,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -1362,8 +1363,8 @@ class VendaController extends Controller
                 ], 400);
             }
 
-            // Preparar parâmetros para o checkout (incluindo asaas_payment_id)
-            $params = http_build_query([
+            // Preparar payload para o checkout
+            $payload = [
                 'asaas_payment_id' => $asaasId,
                 'venda_id' => $venda->id,
                 'hash' => $venda->checkout_hash,
@@ -1377,22 +1378,82 @@ class VendaController extends Controller
                 'documento' => preg_replace('/[^0-9]/', '', $cliente->documento ?? ''),
                 'email' => $cliente->email ?? '',
                 'whatsapp' => preg_replace('/[^0-9]/', '', $cliente->whatsapp ?? ''),
-            ]);
+                'event' => 'checkout.created',
+                'timestamp' => now()->toIso8601String(),
+            ];
 
-            $separator = str_contains($checkoutBaseUrl, '?') ? '&' : '?';
-            $checkoutUrl = rtrim($checkoutBaseUrl, '/').$separator.$params;
+            // Obter configurações da API
+            $apiUrl = Setting::get('checkout_api_url', Setting::get('checkout_external_url', ''));
+            $apiKey = Setting::get('checkout_api_key', '');
+            $webhookSecret = Setting::get('checkout_webhook_secret', '');
 
-            Log::info('Checkout: Link gerado para checkout próprio', [
+            if (!$apiUrl) {
+                return response()->json([
+                    'error' => 'URL do checkout não configurada.',
+                ], 400);
+            }
+
+            // Gerar assinatura HMAC se o segredo estiver configurado
+            $headers = [
+                'Accept' => 'application/json',
+            ];
+
+            if ($apiKey) {
+                $headers['Authorization'] = 'Bearer ' . $apiKey;
+                $headers['X-API-Key'] = $apiKey;
+            }
+
+            if ($webhookSecret) {
+                $jsonPayload = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                $headers['X-Checkout-Signature'] = hash_hmac('sha256', $jsonPayload, $webhookSecret);
+            }
+
+            // Realizar a chamada POST para a API
+            $endpoint = rtrim($apiUrl, '/') . '/api/webhooks/checkout';
+            
+            Log::info('Checkout: Enviando transação para API', [
                 'venda_id' => $venda->id,
-                'checkout_url' => $checkoutBaseUrl,
-                'ciclo' => $venda->tipo_negociacao,
+                'endpoint' => $endpoint,
             ]);
 
-            return response()->json([
-                'success' => true,
-                'url' => $checkoutUrl,
-                'message' => 'Link do checkout próprio gerado!',
-            ]);
+            try {
+                $response = Http::withHeaders($headers)
+                    ->timeout(15)
+                    ->post($endpoint, $payload);
+
+                if ($response->successful()) {
+                    $responseData = $response->json();
+                    $checkoutUrl = $responseData['checkout_url'] ?? $responseData['url'] ?? null;
+
+                    if ($checkoutUrl) {
+                        return response()->json([
+                            'success' => true,
+                            'url' => $checkoutUrl,
+                            'message' => 'Link do checkout gerado via API!',
+                        ]);
+                    }
+                }
+
+                Log::error('Checkout: Erro na resposta da API', [
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                // Fallback: se a API falhar, podemos decidir se usamos o link antigo ou retornamos erro
+                // Por segurança, vamos retornar erro para evitar URLs inseguras se o usuário explicitamente quer a API
+                return response()->json([
+                    'error' => 'O servidor de checkout não retornou um link válido. ' . ($response->json('message') ?? ''),
+                ], 500);
+
+            } catch (\Exception $e) {
+                Log::error('Checkout: Falha na comunicação com a API', [
+                    'error' => $e->getMessage(),
+                ]);
+
+                return response()->json([
+                    'error' => 'Falha ao conectar ao servidor de checkout: ' . $e->getMessage(),
+                ], 500);
+            }
 
         } catch (\Exception $e) {
             Log::error('Erro ao gerar link de checkout', [
