@@ -435,7 +435,12 @@ class AsaasClienteSyncController extends Controller
 
         // SYNC AUTOMÁTICO: Se estiver ATIVO e tiver Vendedor, mas não confirmado ainda, sincroniza com as tabelas oficiais agora
         if (!$importAtualizado->local_cliente_id && $importAtualizado->diagnostico_status === 'ATIVO' && $importAtualizado->vendedor_id) {
-            $this->confirmarCliente($request, (int) $id);
+            try {
+                $this->confirmarCliente($request, (int) $id);
+                Log::info('Cliente confirmado automaticamente após edição', ['id' => $id]);
+            } catch (\Exception $e) {
+                Log::error('Erro ao confirmar cliente automaticamente', ['id' => $id, 'erro' => $e->getMessage()]);
+            }
         }
 
         return response()->json([
