@@ -1158,6 +1158,10 @@ class AsaasClienteSyncController extends Controller
             default     => 'pendente',
         };
 
+        // Tratar datas vazias (PostgreSQL não aceita string vazia em campos do tipo data)
+        $dtUltimoPagamento = !empty($import->ultimo_pagamento_confirmado_at) ? $import->ultimo_pagamento_confirmado_at : null;
+        $dtProximaCobranca = !empty($import->proximo_vencimento_at) ? $import->proximo_vencimento_at : null;
+
         // Criar ou reutilizar cliente
         $cliente = DB::table('clientes')->where('documento', $doc)->first();
         if (!$cliente) {
@@ -1169,8 +1173,8 @@ class AsaasClienteSyncController extends Controller
                 'email'             => $import->email,
                 'status'            => $statusCliente,
                 'asaas_customer_id' => $import->asaas_customer_id,
-                'data_ultimo_pagamento' => $import->ultimo_pagamento_confirmado_at,
-                'proxima_cobranca'      => $import->proximo_vencimento_at,
+                'data_ultimo_pagamento' => $dtUltimoPagamento,
+                'proxima_cobranca'      => $dtProximaCobranca,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -1184,8 +1188,8 @@ class AsaasClienteSyncController extends Controller
                 'email'             => $import->email,
                 'status'            => $statusCliente,
                 'asaas_customer_id' => $import->asaas_customer_id,
-                'data_ultimo_pagamento' => $import->ultimo_pagamento_confirmado_at,
-                'proxima_cobranca'      => $import->proximo_vencimento_at,
+                'data_ultimo_pagamento' => $dtUltimoPagamento,
+                'proxima_cobranca'      => $dtProximaCobranca,
                 'updated_at' => now(),
             ]);
         }
@@ -1225,7 +1229,7 @@ class AsaasClienteSyncController extends Controller
             'tipo_negociacao'  => $tipoNegociacao,
             'parcelas'         => $import->parcelas_total ?? 1,
             'origem'           => 'asaas_legado',
-            'data_venda'       => $import->primeiro_pagamento_at ?? now()->toDateString(),
+            'data_venda'       => !empty($import->primeiro_pagamento_at) ? $import->primeiro_pagamento_at : now()->toDateString(),
             'updated_at'       => now(),
         ];
 
