@@ -24,10 +24,11 @@ class ClienteController extends Controller
         if ($isMaster) {
             // Master vê todos os clientes do sistema
         } else {
-            // Vendedor vê todos os clientes que possuem alguma venda atribuída a ele
+            // Vendedor vê todos os clientes que possuem alguma venda atribuída a ele ou à sua equipe
             $query->whereHas('vendas', function ($q) use ($user) {
                 $q->whereHas('vendedor', function ($v) use ($user) {
-                    $v->where('usuario_id', $user->id);
+                    $v->where('usuario_id', $user->id)
+                      ->orWhere('gestor_id', $user->id);
                 });
             });
         }
@@ -56,10 +57,11 @@ class ClienteController extends Controller
         if ($isMaster) {
             $allClientes = Cliente::whereHas('vendas');
         } else {
-            // Para vendedor, resumo deve refletir clientes atribuídos (com ou sem pagamento)
+            // Para vendedor/gestor, resumo deve refletir clientes atribuídos à ele ou equipe
             $allClientes = Cliente::whereHas('vendas', function ($q) use ($user) {
                 $q->whereHas('vendedor', function ($v) use ($user) {
-                    $v->where('usuario_id', $user->id);
+                    $v->where('usuario_id', $user->id)
+                      ->orWhere('gestor_id', $user->id);
                 });
             });
         }
@@ -96,7 +98,8 @@ class ClienteController extends Controller
         $cliente = Cliente::with(['vendas' => function ($q) use ($user, $isMaster) {
             if (! $isMaster) {
                 $q->whereHas('vendedor', function ($v) use ($user) {
-                    $v->where('usuario_id', $user->id);
+                    $v->where('usuario_id', $user->id)
+                      ->orWhere('gestor_id', $user->id);
                 });
             }
             $q->with('vendedor.user', 'pagamentos');
