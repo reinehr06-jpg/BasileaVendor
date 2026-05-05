@@ -418,23 +418,53 @@ class AsaasClienteSyncController extends Controller
         // Recarregar o registro para garantir que temos os dados atualizados
         $importAtualizado = DB::table('legacy_customer_imports')->where('id', $id)->first();
         
-        // SYNC AUTOMÁTICO DA VENDA (se já existir)
+        // SYNC AUTOMÁTICO DA VENDA E CLIENTE (se já existir)
         if ($importAtualizado->local_venda_id) {
             $valorVendaReal = (float) ($data['valor_total_cobranca'] ?? $importAtualizado->valor_total_cobranca ?? 0);
             if ($valorVendaReal <= 0) {
                 $valorVendaReal = ($data['valor_plano_mensal'] ?? $importAtualizado->valor_plano_mensal ?? 0) * ($data['parcelas_total'] ?? $importAtualizado->parcelas_total ?? 1);
             }
 
+            // Sync da venda
+            $statusVenda = match($importAtualizado->diagnostico_status) {
+                'ATIVO'     => 'Pago',
+                'CHURN'     => 'Aguardando pagamento',
+                default     => 'Cancelada',
+            };
+
             DB::table('vendas')->where('id', $importAtualizado->local_venda_id)->update([
                 'valor' => $valorVendaReal,
                 'comissao_gerada' => $data['comissao_vendedor_calculada'] ?? $importAtualizado->comissao_vendedor_calculada ?? 0,
                 'parcelas' => $data['parcelas_total'] ?? $importAtualizado->parcelas_total ?? 1,
+                'vendedor_id' => $importAtualizado->vendedor_id,
+                'status' => $statusVenda,
                 'updated_at' => now(),
             ]);
         }
 
-        // SYNC AUTOMÁTICO: Se estiver ATIVO e tiver Vendedor, mas não confirmado ainda, sincroniza com as tabelas oficiais agora
-        if (!$importAtualizado->local_cliente_id && $importAtualizado->diagnostico_status === 'ATIVO' && $importAtualizado->vendedor_id) {
+        // Sync do cliente (se já existir na tabela clientes)
+        if ($importAtualizado->local_cliente_id) {
+            $statusCliente = match($importAtualizado->diagnostico_status) {
+                'ATIVO'     => 'ativo',
+                'CHURN'     => 'inadimplente',
+                'CANCELADO' => 'cancelado',
+                default     => 'pendente',
+            };
+
+            DB::table('clientes')->where('id', $importAtualizado->local_cliente_id)->update([
+                'nome'       => $importAtualizado->nome,
+                'documento'  => preg_replace('/\D/', '', $importAtualizado->documento ?? ''),
+                'contato'    => $importAtualizado->telefone,
+                'whatsapp'   => $importAtualizado->telefone,
+                'email'      => $importAtualizado->email,
+                'status'     => $statusCliente,
+                'asaas_customer_id' => $importAtualizado->asaas_customer_id,
+                'updated_at' => now(),
+            ]);
+        }
+
+        // SYNC AUTOMÁTICO: Se tiver Vendedor, mas não confirmado ainda, sincroniza com as tabelas oficiais agora
+        if (!$importAtualizado->local_cliente_id && $importAtualizado->vendedor_id) {
             try {
                 $this->confirmarCliente($request, (int) $id);
                 Log::info('Cliente confirmado automaticamente após edição', ['id' => $id]);
@@ -1120,20 +1150,44 @@ class AsaasClienteSyncController extends Controller
 
         $doc = preg_replace('/\D/', '', $import->documento ?? '');
 
+        // Determinar status do cliente baseado no diagnóstico
+        $statusCliente = match($import->diagnostico_status) {
+            'ATIVO'     => 'ativo',
+            'CHURN'     => 'inadimplente',
+            'CANCELADO' => 'cancelado',
+            default     => 'pendente',
+        };
+
         // Criar ou reutilizar cliente
         $cliente = DB::table('clientes')->where('documento', $doc)->first();
         if (!$cliente) {
             $clienteId = DB::table('clientes')->insertGetId([
-                'nome'       => $import->nome,
-                'documento'  => $doc,
-                'contato'    => $import->telefone,
-                'whatsapp'   => $import->telefone,
-                'email'      => $import->email,
+                'nome'              => $import->nome,
+                'documento'         => $doc,
+                'contato'           => $import->telefone,
+                'whatsapp'          => $import->telefone,
+                'email'             => $import->email,
+                'status'            => $statusCliente,
+                'asaas_customer_id' => $import->asaas_customer_id,
+                'data_ultimo_pagamento' => $import->ultimo_pagamento_confirmado_at,
+                'proxima_cobranca'      => $import->proximo_vencimento_at,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
         } else {
             $clienteId = $cliente->id;
+            // Atualizar dados do cliente existente
+            DB::table('clientes')->where('id', $clienteId)->update([
+                'nome'              => $import->nome,
+                'contato'           => $import->telefone,
+                'whatsapp'          => $import->telefone,
+                'email'             => $import->email,
+                'status'            => $statusCliente,
+                'asaas_customer_id' => $import->asaas_customer_id,
+                'data_ultimo_pagamento' => $import->ultimo_pagamento_confirmado_at,
+                'proxima_cobranca'      => $import->proximo_vencimento_at,
+                'updated_at' => now(),
+            ]);
         }
 
         // Determinar forma de pagamento e status da venda
