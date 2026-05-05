@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('legacy_customer_imports', function (Blueprint $table) {
-            $table->json('multi_asaas_ids')->nullable()->after('asaas_subscription_id');
-        });
+        if (!Schema::hasColumn('legacy_customer_imports', 'multi_asaas_ids')) {
+            Schema::table('legacy_customer_imports', function (Blueprint $table) {
+                $table->json('multi_asaas_ids')->nullable();
+            });
+        }
     }
 
     public function down(): void
