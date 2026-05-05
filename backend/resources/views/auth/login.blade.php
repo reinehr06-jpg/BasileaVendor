@@ -193,8 +193,8 @@
         
         <div class="login-form-container">
 <div class="login-header">
-                <h2>Acesso Restrito</h2>
-                <p>Insira suas credenciais Master para continuar.</p>
+                <h2>Acesso ao Sistema</h2>
+                <p>Insira suas credenciais para continuar.</p>
             </div>
 
             @php
@@ -223,15 +223,15 @@
                 
                 <div class="form-group">
                     <label class="form-label" for="email">E-mail de Acesso</label>
-                    <input type="email" id="email" name="email" class="form-input" value="{{ old('email', 'basileia.vendas@basileia.com') }}" required autofocus placeholder="Digite seu e-mail de acesso" autocomplete="email">
+                    <input type="email" id="email" name="email" class="form-input" value="{{ old('email') }}" required autofocus placeholder="Digite seu e-mail de acesso" autocomplete="email">
                     @error('email')
                         <span class="error-message">{{ $message }}</span>
                     @enderror
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="password">Senha Master</label>
-                    <input type="password" id="password" name="password" class="form-input" value="B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0" required placeholder="Digite sua senha" autocomplete="current-password">
+                    <label class="form-label" for="password">Senha</label>
+                    <input type="password" id="password" name="password" class="form-input" value="" required placeholder="Digite sua senha" autocomplete="current-password">
                     @error('password')
                         <span class="error-message">{{ $message }}</span>
                     @enderror
