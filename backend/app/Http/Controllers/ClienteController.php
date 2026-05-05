@@ -52,11 +52,9 @@ class ClienteController extends Controller
 
         $clientes = $query->with('vendas')->orderBy('created_at', 'desc')->paginate(15);
 
-        // Cards de Resumo
+        // Cards de Resumo — conta todos os clientes que possuem vendas vinculadas
         if ($isMaster) {
-            $allClientes = Cliente::whereHas('vendas.pagamentos', function ($q) {
-                $q->whereIn('status', ['RECEIVED', 'CONFIRMED', 'pago', 'PAGO']);
-            });
+            $allClientes = Cliente::whereHas('vendas');
         } else {
             // Para vendedor, resumo deve refletir clientes atribuídos (com ou sem pagamento)
             $allClientes = Cliente::whereHas('vendas', function ($q) use ($user) {
