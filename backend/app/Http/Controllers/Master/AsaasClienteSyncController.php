@@ -470,6 +470,10 @@ class AsaasClienteSyncController extends Controller
                 Log::info('Cliente confirmado automaticamente após edição', ['id' => $id]);
             } catch (\Exception $e) {
                 Log::error('Erro ao confirmar cliente automaticamente', ['id' => $id, 'erro' => $e->getMessage()]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'O cliente foi editado, mas falhou ao enviar para o painel principal. Erro: ' . $e->getMessage()
+                ], 500);
             }
         }
 
