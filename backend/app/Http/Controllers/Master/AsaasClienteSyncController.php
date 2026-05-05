@@ -38,6 +38,25 @@ class AsaasClienteSyncController extends Controller
         // Removido instanciamento direto para evitar erros no boot do controller
     }
 
+    /**
+     * Faz update na tabela legacy_customer_imports com proteção para coluna multi_asaas_ids
+     */
+    private function updateLegacyImport(int $id, array $data): void
+    {
+        try {
+            DB::table('legacy_customer_imports')->where('id', $id)->update($data);
+        } catch (\Exception $e) {
+            // Se erro for coluna multi_asaas_ids inexistente, adicionar e tentar novamente
+            if (str_contains($e->getMessage(), 'multi_asaas_ids') && str_contains($e->getMessage(), 'does not exist')) {
+                DB::statement("ALTER TABLE legacy_customer_imports ADD COLUMN IF NOT EXISTS multi_asaas_ids JSON DEFAULT NULL");
+                DB::reconnect();
+                DB::table('legacy_customer_imports')->where('id', $id)->update($data);
+            } else {
+                throw $e;
+            }
+        }
+    }
+
     private function getMesReferencia(): string
     {
         return self::MES_REFERENCIA ?? now()->format('Y-m');
@@ -394,7 +413,7 @@ class AsaasClienteSyncController extends Controller
             $data['comissao_mes_referencia'] = null;
         }
 
-        DB::table('legacy_customer_imports')->where('id', $id)->update($data);
+        $this->updateLegacyImport($id, $data);
 
         // Recarregar o registro para garantir que temos os dados atualizados
         $importAtualizado = DB::table('legacy_customer_imports')->where('id', $id)->first();
@@ -766,7 +785,7 @@ class AsaasClienteSyncController extends Controller
                     $data[$campo] = $existing->$campo;
                 }
             }
-            DB::table('legacy_customer_imports')->where('id', $existing->id)->update($data);
+            $this->updateLegacyImport($existing->id, $data);
         } else {
             $data['comissao_vendedor_calculada'] = 0;
             $data['comissao_gestor_calculada']   = 0;
@@ -844,7 +863,7 @@ class AsaasClienteSyncController extends Controller
             }
         }
 
-        DB::table('legacy_customer_imports')->where('id', $id)->update([
+        $this->updateLegacyImport($id, [
             'vendedor_id'                 => $vendedorId,
             'comissao_vendedor_calculada' => $comissaoVendedor,
             'comissao_gestor_calculada'   => $comissaoGestor,
@@ -1053,7 +1072,7 @@ class AsaasClienteSyncController extends Controller
             // Apenas atualizamos a tabela de importação com o vendedor e os valores calculados.
             // A criação do registro real na tabela 'comissoes' ocorrerá no momento da CONFIRMAÇÃO do cliente,
             // pois a tabela 'comissoes' exige cliente_id e venda_id (que ainda não existem aqui).
-            DB::table('legacy_customer_imports')->where('id', $customerId)->update([
+            $this->updateLegacyImport($customerId, [
                 'vendedor_id' => $vendedorId,
                 'comissao_vendedor_calculada' => $comissaoVendedor,
                 'comissao_gestor_calculada' => $comissaoGestor,
@@ -1221,7 +1240,7 @@ class AsaasClienteSyncController extends Controller
         }
 
         // Vincular import ao cliente e venda criados
-        DB::table('legacy_customer_imports')->where('id', $id)->update([
+        $this->updateLegacyImport($id, [
             'local_cliente_id' => $clienteId,
             'local_venda_id'   => $vendaId,
             'confirmado_em'    => now(),
