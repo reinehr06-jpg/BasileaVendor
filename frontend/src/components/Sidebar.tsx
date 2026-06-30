@@ -264,9 +264,9 @@ export default function Sidebar() {
                           <ChevronRight
                             size={16}
                             strokeWidth={2.4}
-                            className={`text-text-secondary transition-transform duration-300 ${
-                              isAccordionOpen ? "rotate-90" : "rotate-0"
-                            }`}
+                            className={`transition-transform duration-300 ml-auto ${
+                              isAccordionOpen ? "rotate-90 text-[#432E6A]" : "text-[#7B8798]"
+                            } ${isCollapsed ? "hidden" : "block"}`}
                           />
                         )}
                       </div>
