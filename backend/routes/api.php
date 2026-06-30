@@ -17,7 +17,25 @@ use App\Http\Controllers\Api\IAController;
 use App\Http\Middleware\ApiKeyAuth;
 
 // ==========================================
-// Rotas Públicas Integracoes
+// Rotas Públicas Integracoes & Auth
+// ==========================================
+
+Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me']);
+    Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout']);
+    
+    // Dashboard API
+    Route::get('/dashboard', [\App\Http\Controllers\Api\DashboardController::class, 'index']);
+
+    // Clientes Asaas API
+    Route::get('/clientes-asaas', [\App\Http\Controllers\Api\ClientesAsaasController::class, 'index']);
+
+    // Vendas API
+    Route::get('/vendas', [\App\Http\Controllers\Api\VendasController::class, 'index']);
+});
+
 // ==========================================
 
 // Asaas Webhook — Receber eventos de pagamento

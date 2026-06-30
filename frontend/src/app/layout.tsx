@@ -1,17 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { LocaleProvider } from "@/context/LocaleContext";
+import { AuthProvider } from "@/context/AuthContext";
+import { Toaster } from "sonner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Basiléia Vendor Pro",
@@ -24,14 +18,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-background">
-        <DashboardLayout>
-          {children}
-        </DashboardLayout>
+    <html lang="pt-BR">
+      <body className={`${inter.variable} font-sans bg-[#F9FAFB] text-[#111827] antialiased`}>
+        <LocaleProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </LocaleProvider>
+        <Toaster 
+          position="top-center" 
+          toastOptions={{
+            style: {
+              background: '#F8F7FC',
+              color: '#3B0764',
+              borderColor: '#E9D5FF',
+              boxShadow: '0 4px 12px rgba(124, 58, 237, 0.15)',
+              borderRadius: '12px',
+              fontWeight: 500,
+              fontSize: '14px',
+            },
+          }} 
+        />
       </body>
     </html>
   );

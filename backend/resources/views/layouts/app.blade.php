@@ -629,23 +629,8 @@
         </header>
         <section class="content-area">
             @php
-                $show_banner = !isset($hide_banner) || !$hide_banner;
+                // O banner global foi removido a pedido do usuário
             @endphp
-
-            @if($show_banner)
-            <div class="global-banner">
-                <div class="global-banner-content">
-                    <div>
-                        <h2>@yield('header_title', 'Bem-vindo ao Basiléia Sales')</h2>
-                        <p>@yield('header_description', 'Gerencie suas operações com eficiência e inteligência.')</p>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-weight: 800; font-size: 1.1rem;">{{ date('d') }} de {{ \Carbon\Carbon::now()->translatedFormat('F') }}</div>
-                        <div style="font-size: 0.8rem; opacity: 0.8; font-weight: 600;">{{ \Carbon\Carbon::now()->translatedFormat('l') }}</div>
-                    </div>
-                </div>
-            </div>
-            @endif
 
             <div class="inner-content">
                 @if(isset($systemUpdateAvailable) && $systemUpdateAvailable && isset($systemUpdateInfo))
