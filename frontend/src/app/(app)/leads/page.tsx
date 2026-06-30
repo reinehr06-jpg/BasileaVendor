@@ -139,7 +139,7 @@ export default function LeadsPage() {
         </div>
         
         <div className="p-4 border-t border-gray-100">
-          <Pagination currentPage={1} totalPages={15} onPageChange={() => {}} />
+          <Pagination total={150} currentPage={1} pageSize={10} onPageChange={() => {}} onPageSizeChange={() => {}} />
         </div>
       </div>
     </div>

@@ -129,7 +129,7 @@ export default function VendasGlobaisPage() {
         </div>
         
         <div className="p-4 border-t border-gray-100">
-          <Pagination currentPage={1} totalPages={10} onPageChange={() => {}} />
+          <Pagination total={100} currentPage={1} pageSize={10} onPageChange={() => {}} onPageSizeChange={() => {}} />
         </div>
       </div>
     </div>

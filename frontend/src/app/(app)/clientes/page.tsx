@@ -155,7 +155,7 @@ export default function ClientesAsaasPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {clientes.map(c => (
+              {clientes.map((c: any) => (
                 <tr key={c.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="font-bold text-[#111827]">{c.nome}</div>
@@ -193,7 +193,7 @@ export default function ClientesAsaasPage() {
           </table>
         </div>
         <div className="p-4 border-t border-gray-100">
-          <Pagination currentPage={1} totalPages={5} onPageChange={() => {}} />
+          <Pagination total={50} currentPage={1} pageSize={10} onPageChange={() => {}} onPageSizeChange={() => {}} />
         </div>
       </div>
     </div>

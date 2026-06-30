@@ -260,7 +260,7 @@ export default function Sidebar() {
                           {t(item.label)}
                         </span>
                         
-                        {('isAccordion' in item && item.isAccordion) && (
+                        {Boolean('isAccordion' in item && item.isAccordion) && (
                           <ChevronRight
                             size={16}
                             strokeWidth={2.4}
@@ -273,7 +273,7 @@ export default function Sidebar() {
                     </button>
 
                     {/* MAPA DO TESOURO: Submenus do accordion (expansível) */}
-                    {('isAccordion' in item && item.isAccordion && 'subItems' in item && item.subItems) && (
+                    {Boolean('isAccordion' in item && item.isAccordion && 'subItems' in item && item.subItems) && (
                       <div
                         className={`flex flex-col w-full overflow-hidden transition-all duration-300 ${
                           isAccordionOpen && !isCollapsed ? "max-h-[500px] mt-1" : "max-h-0"

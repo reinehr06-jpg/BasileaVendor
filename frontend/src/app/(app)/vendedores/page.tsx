@@ -152,7 +152,7 @@ export default function VendedoresPage() {
           </div>
           
           <div className="p-4 border-t border-gray-100">
-            <Pagination currentPage={1} totalPages={1} onPageChange={() => {}} />
+            <Pagination total={10} currentPage={1} pageSize={10} onPageChange={() => {}} onPageSizeChange={() => {}} />
           </div>
         </div>
 

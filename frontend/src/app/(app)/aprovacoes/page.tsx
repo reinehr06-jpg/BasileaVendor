@@ -89,7 +89,7 @@ export default function AprovacoesPage() {
             </div>
           ))}
 
-          <Pagination currentPage={1} totalPages={1} onPageChange={() => {}} />
+          <Pagination total={10} currentPage={1} pageSize={10} onPageChange={() => {}} onPageSizeChange={() => {}} />
 
         </div>
 
