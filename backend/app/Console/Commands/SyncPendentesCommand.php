@@ -11,7 +11,8 @@ class SyncPendentesCommand extends Command
 {
     protected $signature = 'vendas:sync-pendentes 
                             {--vendedor= : Filtrar por ID do vendedor}
-                            {--dias=7 : Quantos dias para trás buscar}';
+                            {--dias=90 : Quantos dias para trás buscar}
+                            {--all : Sincronizar TODAS as vendas pendentes sem filtro de data}';
 
     protected $description = 'Sincroniza vendas pendentes com o Asaas para detectar pagamentos confirmados';
 
@@ -19,15 +20,24 @@ class SyncPendentesCommand extends Command
     {
         $vendedorId = $this->option('vendedor');
         $dias = (int) $this->option('dias');
+        $sincronizarTudo = $this->option('all');
 
-        $this->info("Sincronizando vendas pendentes dos últimos {$dias} dias...");
+        if ($sincronizarTudo) {
+            $this->info("Sincronizando TODAS as vendas pendentes (sem filtro de data)...");
+        } else {
+            $this->info("Sincronizando vendas pendentes dos últimos {$dias} dias...");
+        }
 
         $query = Venda::whereIn('status', ['Aguardando pagamento', 'Vencido'])
-            ->where('created_at', '>', now()->subDays($dias))
             ->whereHas('pagamentos', function ($q) {
                 $q->whereNotNull('asaas_payment_id');
             })
             ->with(['pagamentos', 'cliente']);
+
+        // Aplicar filtro de data apenas se --all não foi passado
+        if (!$sincronizarTudo) {
+            $query->where('created_at', '>', now()->subDays($dias));
+        }
 
         if ($vendedorId) {
             $query->where('vendedor_id', $vendedorId);

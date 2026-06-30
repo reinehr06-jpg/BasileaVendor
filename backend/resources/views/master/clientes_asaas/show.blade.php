@@ -244,7 +244,13 @@
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-size:0.8rem; font-weight:600; color:var(--materio-text-muted);">Tipo Comissão:</span>
                         <span style="font-size:0.65rem; font-weight:800; padding:2px 6px; border-radius:6px; background:#f1f5f9; color:var(--materio-text-main);">
-                            {{ strtoupper($cliente->comissao_tipo === 'inicial_antecipada' ? 'Inicial Antecipada' : ($cliente->comissao_tipo === 'mensal' ? 'Mensal Recorrente' : 'Inválida')) }}
+                            {{ match($cliente->comissao_tipo ?? null) {
+                                'inicial' => 'Primeira Venda',
+                                'inicial_antecipada' => 'Primeira Venda (Parcelado)',
+                                'recorrencia' => 'Recorrência',
+                                'sem_comissao' => 'Sem Comissão',
+                                default => 'Não definido',
+                            } }}
                         </span>
                     </div>
                 </div>

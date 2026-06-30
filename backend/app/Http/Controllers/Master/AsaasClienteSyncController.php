@@ -9,6 +9,7 @@ use App\Models\Cliente;
 use App\Models\Comissao;
 use App\Models\Venda;
 use App\Models\Pagamento;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -762,24 +763,27 @@ class AsaasClienteSyncController extends Controller
             $subStatusLocal = $parcelasPagas >= $parcelasTotal ? 'INACTIVE' : 'ACTIVE';
         }
 
-        // ── Tipo de comissão (só calcula se ATIVO e tem pagamento no mês de referência) ──
-        // Obs: Usa o campo comissao_tipo que já foi definido na sincronização
+        // ── Tipo de comissão (auto-determinado baseado no histórico de pagamentos) ──
         $comissaoTipo = null;
-        $mesRef = $this->getMesReferencia();
-        if ($diagnostico === 'ATIVO' && $valorMarcoPago > 0 && $primeiroPgtAt) {
-            $isPrimeiroEmMarco = str_starts_with($primeiroPgtAt, $mesRef);
-            if ($tipoCobranca === 'installment' && $isPrimeiroEmMarco) {
-                $comissaoTipo = 'inicial_antecipada';
-            } elseif ($isPrimeiroEmMarco) {
-                $comissaoTipo = 'inicial';
+        $mesInicioOperacao = Setting::get('sistema_mes_inicio', '2026-04');
+
+        if ($temConfirmado && $primeiroPgtAt) {
+            // Se o primeiro pagamento foi a partir do mês de início do sistema → venda NOVA
+            $primeiroPgtMes = substr($primeiroPgtAt, 0, 7); // 'YYYY-MM'
+            $isVendaNova = ($primeiroPgtMes >= $mesInicioOperacao);
+
+            if ($isVendaNova) {
+                $comissaoTipo = ($tipoCobranca === 'installment')
+                    ? 'inicial_antecipada'
+                    : 'inicial';
             } else {
                 $comissaoTipo = 'recorrencia';
             }
         }
         
-        // Se já existe um tipo de comissão definido, usar ele (preserve para atribuições retroativas)
-        if (!empty($import->comissao_tipo)) {
-            $comissaoTipo = $import->comissao_tipo;
+        // Se já existe um tipo de comissão definido manualmente, preservar
+        if ($existing && !empty($existing->comissao_tipo)) {
+            $comissaoTipo = $existing->comissao_tipo;
         }
 
         $data = [
@@ -967,8 +971,10 @@ class AsaasClienteSyncController extends Controller
             // Para clientes antigos, usa o valor_plano_mensal como base
             if ($import->diagnostico_status === 'ATIVO' && $valorBase > 0) {
                 // Definir tipo se estiver vazio
+                // comissao_tipo já é auto-determinado na sincronização
+                // Se ainda vazio, usa 'recorrencia' como fallback seguro
                 if (empty($import->comissao_tipo)) {
-                    $import->comissao_tipo = (!$import->valor_marco_pago || $import->valor_marco_pago == 0) ? 'recorrencia' : 'inicial';
+                    $import->comissao_tipo = 'recorrencia';
                 }
                 
                 // Usar o método centralizado para garantir os mesmos fallbacks (operador Elvis)
@@ -1273,8 +1279,10 @@ class AsaasClienteSyncController extends Controller
 
         // "Ele nao pode mostrar se a comissao for antes do mes 4, mas se for uma recorrencia ele ja deve exibir o valor que vai ser pago esse mes agora"
         $currentMonth = now()->format('Y-m');
-        if ($competencia < '2026-04') {
-            // Se for importado para trabalhar agora, força a comissão para o mês atual para aparecer no dashboard
+        // Se a competência for anterior ao mês de início de operação do sistema,
+        // usar o mês atual como competência para exibir no dashboard
+        $mesInicioOperacao = Setting::get('sistema_mes_inicio', '2026-04');
+        if ($competencia < $mesInicioOperacao) {
             $competencia = $currentMonth;
         }
 
