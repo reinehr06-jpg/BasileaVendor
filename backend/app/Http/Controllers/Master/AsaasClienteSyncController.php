@@ -763,26 +763,39 @@ class AsaasClienteSyncController extends Controller
             $subStatusLocal = $parcelasPagas >= $parcelasTotal ? 'INACTIVE' : 'ACTIVE';
         }
 
-        // ── Tipo de comissão (auto-determinado baseado no histórico de pagamentos) ──
-        $comissaoTipo = null;
-        $mesInicioOperacao = Setting::get('sistema_mes_inicio', '2026-04');
+        // ── Tipo de comissão (auto-determinado baseado no histórico de pagamentos e no mês de referência) ──
+        $comissaoTipo = 'recorrencia';
+        $mesRef = $this->getMesReferencia();
 
         if ($temConfirmado && $primeiroPgtAt) {
-            // Se o primeiro pagamento foi a partir do mês de início do sistema → venda NOVA
             $primeiroPgtMes = substr($primeiroPgtAt, 0, 7); // 'YYYY-MM'
-            $isVendaNova = ($primeiroPgtMes >= $mesInicioOperacao);
 
-            if ($isVendaNova) {
-                $comissaoTipo = ($tipoCobranca === 'installment')
-                    ? 'inicial_antecipada'
-                    : 'inicial';
+            if ($primeiroPgtMes === $mesRef) {
+                // Pagou a PRIMEIRA parcela NESTE MÊS de referência -> Venda Nova
+                if ($tipoCobranca === 'installment') {
+                    $comissaoTipo = 'inicial_antecipada';
+                } elseif ($tipoCobranca === 'avulso') {
+                    $comissaoTipo = 'inicial';
+                } else {
+                    $comissaoTipo = 'inicial';
+                }
             } else {
-                $comissaoTipo = 'recorrencia';
+                // Pagou a PRIMEIRA parcela em um MÊS ANTERIOR -> Já é antigo para o mês de referência atual
+                if ($tipoCobranca === 'subscription') {
+                    $comissaoTipo = 'recorrencia';
+                } elseif ($tipoCobranca === 'installment') {
+                    $comissaoTipo = 'recorrencia';
+                } elseif ($tipoCobranca === 'avulso') {
+                    // Avulso paga apenas 1 vez na vida. Se já pagou num mês anterior, neste mês não há comissão.
+                    $comissaoTipo = 'sem_comissao';
+                }
             }
         }
         
-        // Se já existe um tipo de comissão definido manualmente, preservar
-        if ($existing && !empty($existing->comissao_tipo)) {
+        // Se já existe um tipo de comissão definido E já há um Vendedor Atribuído (venda fechada), preservar
+        if ($existing && !empty($existing->comissao_tipo) && !empty($existing->vendedor_id)) {
+            // Se virou o mês, o correto seria mudar de inicial para recorrencia, mas como a atribuição
+            // é travada no dashboard, vamos respeitar o que está lá até que a Venda seja Confirmada
             $comissaoTipo = $existing->comissao_tipo;
         }
 
