@@ -148,8 +148,17 @@ class SubscriptionLifecycleService
                     $resultado['reativadas']++;
                 }
             } else {
-                $this->marcarInadimplente($venda, 'Vencimento em ' . $venda->proximo_vencimento);
-                $resultado['marcadas_inadimplentes']++;
+                // VERIFICAÇÃO EXTRA: Consultar Asaas antes de marcar inadimplente
+                // Evita falsos positivos quando webhook falha mas pagamento existe
+                $confirmadoNoAsaas = $this->verificarPagamentoNoAsaas($venda);
+                if ($confirmadoNoAsaas) {
+                    if ($this->reativarAssinatura($venda)) {
+                        $resultado['reativadas']++;
+                    }
+                } else {
+                    $this->marcarInadimplente($venda, 'Vencimento em ' . $venda->proximo_vencimento);
+                    $resultado['marcadas_inadimplentes']++;
+                }
             }
         }
 
@@ -270,9 +279,11 @@ class SubscriptionLifecycleService
 
     private function buscarPagamentoRecente(Venda $venda): ?Pagamento
     {
+        // Janela de 45 dias para cobrir ciclo mensal completo
+        // (Antes era 7 dias, o que falhava para pagamentos confirmados após esse período)
         return $venda->pagamentos()
             ->whereIn('status', ['RECEIVED', 'CONFIRMED', 'PAGO'])
-            ->where('data_pagamento', '>=', Carbon::today()->subDays(7)->toDateTimeString())
+            ->where('data_pagamento', '>=', Carbon::today()->subDays(45)->toDateTimeString())
             ->orderByDesc('data_pagamento')
             ->first();
     }
@@ -281,5 +292,49 @@ class SubscriptionLifecycleService
     {
         $status = strtoupper($pagamento->status ?? '');
         return in_array($status, ['RECEIVED', 'CONFIRMED', 'PAGO']);
+    }
+
+    /**
+     * Consulta a API do Asaas para verificar se o cliente realmente pagou.
+     * Usado como verificação extra antes de marcar como inadimplente,
+     * prevenindo falsos positivos quando o webhook falha.
+     */
+    private function verificarPagamentoNoAsaas(Venda $venda): bool
+    {
+        $cliente = $venda->cliente;
+        if (!$cliente || empty($cliente->asaas_customer_id)) {
+            return false;
+        }
+
+        try {
+            $startDate = Carbon::today()->subDays(45)->format('Y-m-d');
+            $pagamentos = $this->asaas->getPaymentsByCustomer(
+                $cliente->asaas_customer_id,
+                $startDate
+            );
+
+            $temPagamentoConfirmado = collect($pagamentos)->contains(function ($p) {
+                return in_array(strtoupper($p['status'] ?? ''), ['RECEIVED', 'CONFIRMED']);
+            });
+
+            if ($temPagamentoConfirmado) {
+                Log::info('[Lifecycle] Pagamento encontrado no Asaas (webhook pode ter falhado)', [
+                    'venda_id' => $venda->id,
+                    'cliente_id' => $cliente->id,
+                ]);
+
+                // Sincronizar pagamentos encontrados no Asaas com o banco local
+                \App\Services\ClienteStatusService::calcularStatusViaAsaas($cliente);
+
+                return true;
+            }
+        } catch (\Exception $e) {
+            Log::warning('[Lifecycle] Falha ao verificar pagamento no Asaas', [
+                'venda_id' => $venda->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        return false;
     }
 }

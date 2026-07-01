@@ -23,3 +23,7 @@ Schedule::command('vendas:verificar-inadimplencia')->hourly();
 // Gerar renovações automáticas (Mensais e Anuais) diariamente à meia-noite
 Schedule::command('vendas:gerar-renovacoes')->dailyAt('00:00');
 
+// Sincronizar status dos clientes com API Asaas a cada 4 horas
+// Consulta diretamente a API do Asaas para determinar status real (ativo/inadimplente) mês a mês
+Schedule::command('clientes:sync-asaas --limit=100')->everyFourHours();
+

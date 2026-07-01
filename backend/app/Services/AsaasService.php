@@ -691,4 +691,118 @@ class AsaasService
 
         return false;
     }
+
+    // ============================================
+    // 9.4.1 — Listar Cobranças por Cliente (com filtros de data)
+    // Endpoint: GET /v3/payments?customer={id}&dateCreated[ge]=YYYY-MM-DD&dateCreated[le]=YYYY-MM-DD
+    // ============================================
+    /**
+     * Busca todos os pagamentos de um cliente no Asaas, com filtros opcionais de data e status.
+     * Faz paginação automática para buscar todos os resultados.
+     *
+     * @param string $customerId  ID do cliente no Asaas (e.g. "cus_xxx")
+     * @param string|null $startDate  Data início no formato Y-m-d (filtro dateCreated[ge])
+     * @param string|null $endDate    Data fim no formato Y-m-d (filtro dateCreated[le])
+     * @param string|null $status     Filtrar por status específico (RECEIVED, CONFIRMED, PENDING, OVERDUE)
+     * @return array  Lista de pagamentos encontrados
+     */
+    public function getPaymentsByCustomer(
+        string $customerId,
+        ?string $startDate = null,
+        ?string $endDate = null,
+        ?string $status = null
+    ): array {
+        $allPayments = [];
+        $offset = 0;
+        $limit = 100;
+        $maxPages = 10; // Proteção contra loops infinitos
+
+        try {
+            for ($page = 0; $page < $maxPages; $page++) {
+                $params = [
+                    'customer' => $customerId,
+                    'offset'   => $offset,
+                    'limit'    => $limit,
+                ];
+
+                if ($startDate) {
+                    $params['dateCreated[ge]'] = $startDate;
+                }
+                if ($endDate) {
+                    $params['dateCreated[le]'] = $endDate;
+                }
+                if ($status) {
+                    $params['status'] = $status;
+                }
+
+                $response = Http::withHeaders($this->headers())
+                    ->get("{$this->baseUrl}/payments", $params);
+
+                if (!$response->successful()) {
+                    Log::warning('Asaas: falha ao listar cobranças do cliente', [
+                        'customer_id' => $customerId,
+                        'status'      => $response->status(),
+                        'response'    => $response->body(),
+                    ]);
+                    break;
+                }
+
+                $data = $response->json();
+                $payments = $data['data'] ?? [];
+                $allPayments = array_merge($allPayments, $payments);
+
+                // Verificar se há mais páginas
+                $hasMore = $data['hasMore'] ?? false;
+                if (!$hasMore || empty($payments)) {
+                    break;
+                }
+
+                $offset += $limit;
+            }
+        } catch (\Exception $e) {
+            Log::error('Asaas: erro ao listar cobranças do cliente', [
+                'customer_id' => $customerId,
+                'error'       => $e->getMessage(),
+            ]);
+        }
+
+        return $allPayments;
+    }
+
+    // ============================================
+    // 9.4.2 — Listar Assinaturas por Cliente
+    // Endpoint: GET /v3/subscriptions?customer={id}
+    // ============================================
+    /**
+     * Busca todas as assinaturas de um cliente no Asaas.
+     *
+     * @param string $customerId  ID do cliente no Asaas
+     * @return array  Lista de assinaturas encontradas
+     */
+    public function getSubscriptionsByCustomer(string $customerId): array
+    {
+        try {
+            $response = Http::withHeaders($this->headers())
+                ->get("{$this->baseUrl}/subscriptions", [
+                    'customer' => $customerId,
+                    'limit'    => 100,
+                ]);
+
+            if ($response->successful()) {
+                return $response->json()['data'] ?? [];
+            }
+
+            Log::warning('Asaas: falha ao listar assinaturas do cliente', [
+                'customer_id' => $customerId,
+                'status'      => $response->status(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Asaas: erro ao listar assinaturas do cliente', [
+                'customer_id' => $customerId,
+                'error'       => $e->getMessage(),
+            ]);
+        }
+
+        return [];
+    }
 }

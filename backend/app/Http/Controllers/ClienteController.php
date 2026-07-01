@@ -188,4 +188,51 @@ class ClienteController extends Controller
             'status' => $cliente->status,
         ]);
     }
+
+    /**
+     * Sincronizar status de um cliente com a API do Asaas (mês a mês).
+     * Consulta a API do Asaas diretamente para obter o status real.
+     */
+    public function syncAsaas($id)
+    {
+        $user = Auth::user();
+
+        $cliente = Cliente::findOrFail($id);
+
+        // Authorization check
+        if ($user->perfil !== 'master') {
+            $temAcesso = $cliente->vendas()->whereHas('vendedor', function ($q) use ($user) {
+                $q->where('usuario_id', $user->id)
+                  ->orWhere('gestor_id', $user->id);
+            })->exists();
+            if (! $temAcesso) {
+                return response()->json(['error' => 'Acesso não autorizado.'], 403);
+            }
+        }
+
+        if (empty($cliente->asaas_customer_id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cliente não possui asaas_customer_id. Sincronização local aplicada.',
+                'status' => $cliente->status,
+            ], 422);
+        }
+
+        $statusAnterior = $cliente->status;
+
+        $resultado = ClienteStatusService::calcularStatusViaAsaas($cliente);
+        ClienteStatusService::aplicarStatusAsaas($cliente, $resultado);
+
+        return response()->json([
+            'success' => true,
+            'message' => $statusAnterior !== $resultado['status']
+                ? "Status atualizado de '{$statusAnterior}' para '{$resultado['status']}'."
+                : "Status confirmado: {$resultado['status']}.",
+            'status' => $resultado['status'],
+            'status_anterior' => $statusAnterior,
+            'data_ultimo_pagamento' => $resultado['data_ultimo_pagamento'],
+            'proxima_cobranca' => $resultado['proxima_cobranca'],
+            'pagamentos_sincronizados' => $resultado['pagamentos_sincronizados'],
+        ]);
+    }
 }
