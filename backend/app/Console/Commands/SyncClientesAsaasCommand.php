@@ -71,15 +71,12 @@ class SyncClientesAsaasCommand extends Command
         $query = Cliente::whereNotNull('asaas_customer_id')
             ->where('asaas_customer_id', '!=', '');
 
-        // Se não forçar, priorizar clientes que não foram sincronizados recentemente
+        // Se não forçar, sincronizar apenas clientes "silenciosos" (sem webhook nas últimas 24h)
         if (!$force) {
-            $query->orderByRaw("CASE
-                WHEN status = 'pendente' THEN 1
-                WHEN status = 'inadimplente' THEN 2
-                WHEN status IS NULL THEN 3
-                WHEN status = 'ativo' THEN 4
-                ELSE 5
-            END");
+            $query->where(function ($q) {
+                $q->whereNull('last_webhook_event_at')
+                  ->orWhere('last_webhook_event_at', '<', now()->subHours(24));
+            });
         }
 
         $clientes = $query->take($limit)->get();

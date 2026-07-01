@@ -709,15 +709,15 @@ class AsaasService
      * Faz paginação automática para buscar todos os resultados.
      *
      * @param string $customerId  ID do cliente no Asaas (e.g. "cus_xxx")
-     * @param string|null $startDate  Data início no formato Y-m-d (filtro dateCreated[ge])
-     * @param string|null $endDate    Data fim no formato Y-m-d (filtro dateCreated[le])
+     * @param \Carbon\Carbon|null $startDate  Data início (filtro dueDate[ge])
+     * @param \Carbon\Carbon|null $endDate    Data fim (filtro dueDate[le])
      * @param string|null $status     Filtrar por status específico (RECEIVED, CONFIRMED, PENDING, OVERDUE)
      * @return array  Lista de pagamentos encontrados
      */
     public function getPaymentsByCustomer(
         string $customerId,
-        ?string $startDate = null,
-        ?string $endDate = null,
+        ?\Carbon\Carbon $startDate = null,
+        ?\Carbon\Carbon $endDate = null,
         ?string $status = null
     ): array {
         $allPayments = [];
@@ -734,10 +734,10 @@ class AsaasService
                 ];
 
                 if ($startDate) {
-                    $params['dateCreated[ge]'] = $startDate;
+                    $params['dueDate[ge]'] = $startDate->format('Y-m-d');
                 }
                 if ($endDate) {
-                    $params['dateCreated[le]'] = $endDate;
+                    $params['dueDate[le]'] = $endDate->format('Y-m-d');
                 }
                 if ($status) {
                     $params['status'] = $status;
@@ -785,16 +785,23 @@ class AsaasService
      * Busca todas as assinaturas de um cliente no Asaas.
      *
      * @param string $customerId  ID do cliente no Asaas
+     * @param bool $includeDeleted  Incluir assinaturas deletadas
      * @return array  Lista de assinaturas encontradas
      */
-    public function getSubscriptionsByCustomer(string $customerId): array
+    public function getSubscriptionsByCustomer(string $customerId, bool $includeDeleted = false): array
     {
         try {
+            $params = [
+                'customer' => $customerId,
+                'limit'    => 100,
+            ];
+            
+            if ($includeDeleted) {
+                $params['includeDeleted'] = 'true';
+            }
+
             $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/subscriptions", [
-                    'customer' => $customerId,
-                    'limit'    => 100,
-                ]);
+                ->get("{$this->baseUrl}/subscriptions", $params);
 
             if ($response->successful()) {
                 return $response->json()['data'] ?? [];

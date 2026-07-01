@@ -69,21 +69,6 @@ class SubscriptionLifecycleService
 
     public function reativarAssinatura(Venda $venda): bool
     {
-        $pagamento = $this->buscarPagamentoRecente($venda);
-        if (!$pagamento) {
-            Log::warning('[Lifecycle] Tentativa de reativar sem pagamento recente', [
-                'venda_id' => $venda->id,
-            ]);
-            return false;
-        }
-
-        if (!$this->isPagamentoConfirmado($pagamento)) {
-            Log::info('[Lifecycle] Pagamento ainda não confirmado', [
-                'venda_id' => $venda->id,
-                'status' => $pagamento->status,
-            ]);
-            return false;
-        }
 
         $inicio = Carbon::now();
         $vcto = $this->calcularProximoVencimento($inicio, $venda);
@@ -134,46 +119,46 @@ class SubscriptionLifecycleService
             ->where('renovacao_ativa', true)
             ->whereNotNull('proximo_vencimento')
             ->where('proximo_vencimento', '<', Carbon::today()->toDateString())
-            ->with(['cliente', 'pagamentos'])
+            ->with(['cliente'])
             ->take(20)
             ->get();
 
         foreach ($assinaturasVencidas as $venda) {
+            $cliente = $venda->cliente;
+            if (!$cliente) continue;
+
             $resultado['verificadas']++;
 
-            $pagamento = $this->buscarPagamentoRecente($venda);
+            $statusAsaas = ClienteStatusService::calcularStatusViaAsaas($cliente);
+            ClienteStatusService::aplicarStatusAsaas($cliente, $statusAsaas);
 
-            if ($pagamento && $this->isPagamentoConfirmado($pagamento)) {
+            if ($statusAsaas['status'] === 'ativo') {
                 if ($this->reativarAssinatura($venda)) {
                     $resultado['reativadas']++;
                 }
-            } else {
-                // VERIFICAÇÃO EXTRA: Consultar Asaas antes de marcar inadimplente
-                // Evita falsos positivos quando webhook falha mas pagamento existe
-                $confirmadoNoAsaas = $this->verificarPagamentoNoAsaas($venda);
-                if ($confirmadoNoAsaas) {
-                    if ($this->reativarAssinatura($venda)) {
-                        $resultado['reativadas']++;
-                    }
-                } else {
-                    $this->marcarInadimplente($venda, 'Vencimento em ' . $venda->proximo_vencimento);
-                    $resultado['marcadas_inadimplentes']++;
-                }
+            } elseif (in_array($statusAsaas['status'], ['inadimplente', 'churn', 'cancelado'])) {
+                $this->marcarInadimplente($venda, "Status calculado: {$statusAsaas['status']}");
+                $resultado['marcadas_inadimplentes']++;
             }
         }
 
         // 3. Buscar inadimplentes e verificar se têm pagamento recente
         $inadimplentes = Venda::where('status_assinatura', 'inadimplente')
             ->where('renovacao_ativa', false)
-            ->with(['cliente', 'pagamentos'])
+            ->with(['cliente'])
             ->take(20)
             ->get();
 
         foreach ($inadimplentes as $venda) {
+            $cliente = $venda->cliente;
+            if (!$cliente) continue;
+
             $resultado['verificadas']++;
 
-            $pagamento = $this->buscarPagamentoRecente($venda);
-            if ($pagamento && $this->isPagamentoConfirmado($pagamento)) {
+            $statusAsaas = ClienteStatusService::calcularStatusViaAsaas($cliente);
+            ClienteStatusService::aplicarStatusAsaas($cliente, $statusAsaas);
+
+            if ($statusAsaas['status'] === 'ativo') {
                 if ($this->reativarAssinatura($venda)) {
                     $resultado['reativadas']++;
                 }

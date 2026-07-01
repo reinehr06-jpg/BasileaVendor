@@ -41,6 +41,9 @@ class ProcessAsaasEventsCommand extends Command
                 if ($customerId) {
                     $cliente = Cliente::where('asaas_customer_id', $customerId)->first();
                     if ($cliente) {
+                        // Atualizar a data do último webhook
+                        $cliente->update(['last_webhook_event_at' => now()]);
+
                         // RECALCULAR STATUS COMPLETO (Sincroniza pagamentos e atualiza status local)
                         $resultado = ClienteStatusService::calcularStatusViaAsaas($cliente);
                         ClienteStatusService::aplicarStatusAsaas($cliente, $resultado);

@@ -37,141 +37,77 @@ class ClienteStatusService
 
         try {
             $asaas = new AsaasService();
-            $agora = Carbon::now();
+            $inicio = now()->subMonthsNoOverflow(1)->startOfMonth();
+            $fim = now()->endOfMonth();
 
             // ══════════════════════════════════════════════════════════════
-            // ETAPA 1: Buscar TODOS os pagamentos dos últimos 60 dias
-            // Isso cobre o mês atual + mês anterior para determinar status
+            // ETAPA 1: Puxar assinaturas e pagamentos da API
             // ══════════════════════════════════════════════════════════════
-            $startDate = $agora->copy()->subDays(60)->format('Y-m-d');
-            $endDate = $agora->format('Y-m-d');
-
-            $pagamentosAsaas = $asaas->getPaymentsByCustomer(
-                $cliente->asaas_customer_id,
-                $startDate,
-                $endDate
+            $pagamentos = $asaas->getPaymentsByCustomer(
+                $cliente->asaas_customer_id, $inicio, $fim
             );
 
-            if (empty($pagamentosAsaas)) {
-                // Sem pagamentos nos últimos 60 dias → verificar se já pagou antes
-                $pagamentosAntigos = $asaas->getPaymentsByCustomer(
-                    $cliente->asaas_customer_id,
-                    null, // Sem filtro de data de início
-                    $startDate
-                );
-
-                $jaFoiPago = collect($pagamentosAntigos)->contains(function ($p) {
-                    return in_array(strtoupper($p['status'] ?? ''), ['RECEIVED', 'CONFIRMED']);
-                });
-
-                $resultado['status'] = $jaFoiPago ? 'churn' : 'pendente';
-
-                // Sincronizar pagamentos encontrados
-                $resultado['pagamentos_sincronizados'] = self::sincronizarPagamentosLocais(
-                    $cliente, array_merge($pagamentosAntigos, $pagamentosAsaas)
-                );
-
-                return $resultado;
-            }
-
-            // ══════════════════════════════════════════════════════════════
-            // ETAPA 2: Sincronizar pagamentos do Asaas → tabela local
-            // ══════════════════════════════════════════════════════════════
-            $resultado['pagamentos_sincronizados'] = self::sincronizarPagamentosLocais(
-                $cliente, $pagamentosAsaas
+            $assinaturas = $asaas->getSubscriptionsByCustomer(
+                $cliente->asaas_customer_id, true
             );
 
             // ══════════════════════════════════════════════════════════════
-            // ETAPA 3: Analisar pagamentos para determinar status
+            // ETAPA 2: Sincronizar localmente
             // ══════════════════════════════════════════════════════════════
-            $collection = collect($pagamentosAsaas);
-
-            // Ordenar por dueDate desc para pegar o mais recente
-            $collection = $collection->sortByDesc('dueDate');
-
-            // Pagamentos confirmados (RECEIVED/CONFIRMED)
-            $pagos = $collection->filter(function ($p) {
-                return in_array(strtoupper($p['status'] ?? ''), ['RECEIVED', 'CONFIRMED']);
-            });
-
-            // Pagamentos pendentes (PENDING/AWAITING_RISK_ANALYSIS)
-            $pendentes = $collection->filter(function ($p) {
-                return in_array(strtoupper($p['status'] ?? ''), ['PENDING', 'AWAITING_RISK_ANALYSIS']);
-            });
-
-            // Pagamentos vencidos (OVERDUE)
-            $vencidos = $collection->filter(function ($p) {
-                return strtoupper($p['status'] ?? '') === 'OVERDUE';
-            });
-
-            // Pagamentos cancelados
-            $cancelados = $collection->filter(function ($p) {
-                return in_array(strtoupper($p['status'] ?? ''), ['CANCELED', 'DELETED', 'REFUNDED']);
-            });
+            $resultado['pagamentos_sincronizados'] = self::sincronizarPagamentosLocais($cliente, $pagamentos);
 
             // ══════════════════════════════════════════════════════════════
-            // ETAPA 4: Determinar status final
-            // Prioridade: ATIVO > PENDENTE > INADIMPLENTE > CHURN > CANCELADO
+            // ETAPA 3: Avaliar status cruzando os dados
             // ══════════════════════════════════════════════════════════════
+            $assinaturaAtiva = collect($assinaturas)
+                ->contains(fn ($a) => strtoupper($a['status'] ?? '') === 'ACTIVE' && empty($a['deleted']));
 
-            // Verificar se tem pagamento PAGO no mês atual
-            $inicioMesAtual = $agora->copy()->startOfMonth()->format('Y-m-d');
-            $pagosNoMesAtual = $pagos->filter(function ($p) use ($inicioMesAtual) {
-                $dueDate = $p['dueDate'] ?? $p['dateCreated'] ?? null;
-                return $dueDate && $dueDate >= $inicioMesAtual;
-            });
+            $pagamentosValidos = collect($pagamentos)->filter(
+                fn ($p) => in_array(strtoupper($p['status'] ?? ''), ['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'])
+                    && empty($p['deleted'])
+                    && empty($p['refunded'])
+            );
 
-            // Também verificar pagos no mês anterior (cobertura de ciclo mensal)
-            $inicioMesAnterior = $agora->copy()->subMonth()->startOfMonth()->format('Y-m-d');
-            $fimMesAnterior = $agora->copy()->subMonth()->endOfMonth()->format('Y-m-d');
-            $pagosNoMesAnterior = $pagos->filter(function ($p) use ($inicioMesAnterior, $fimMesAnterior) {
-                $dueDate = $p['dueDate'] ?? $p['dateCreated'] ?? null;
-                return $dueDate && $dueDate >= $inicioMesAnterior && $dueDate <= $fimMesAnterior;
-            });
+            $temChargeback = collect($pagamentos)->contains(
+                fn ($p) => in_array(strtoupper($p['status'] ?? ''), ['CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE'])
+            );
 
-            if ($pagosNoMesAtual->isNotEmpty()) {
-                // Pagamento PAGO no mês atual → ATIVO
-                $resultado['status'] = 'ativo';
-            } elseif ($pagosNoMesAnterior->isNotEmpty() && $vencidos->isEmpty()) {
-                // Pagou no mês anterior e sem vencidos → ainda ATIVO (margem de ciclo)
-                $resultado['status'] = 'ativo';
-            } elseif ($pendentes->isNotEmpty()) {
-                // Tem cobrança pendente dentro do prazo
-                $pendentesNoFuturo = $pendentes->filter(function ($p) use ($agora) {
-                    $dueDate = $p['dueDate'] ?? null;
-                    return $dueDate && Carbon::parse($dueDate)->isFuture();
-                });
+            $temVencidoNaAssinaturaAtiva = collect($pagamentos)->contains(
+                fn ($p) => strtoupper($p['status'] ?? '') === 'OVERDUE' && empty($p['deleted'])
+            );
 
-                if ($pendentesNoFuturo->isNotEmpty()) {
-                    $resultado['status'] = 'pendente';
-                } else {
-                    // Pendente mas já venceu → inadimplente
-                    $resultado['status'] = 'inadimplente';
+            // Atraso maior que 30 dias para OVERDUE
+            $atrasoMaiorQue30Dias = false;
+            if ($temVencidoNaAssinaturaAtiva) {
+                $ultimoVencido = collect($pagamentos)
+                    ->filter(fn ($p) => strtoupper($p['status'] ?? '') === 'OVERDUE' && empty($p['deleted']))
+                    ->sortByDesc('dueDate')
+                    ->first();
+
+                if ($ultimoVencido && !empty($ultimoVencido['dueDate'])) {
+                    $diasAtraso = Carbon::parse($ultimoVencido['dueDate'])->diffInDays(now(), false);
+                    if ($diasAtraso > 30) {
+                        $atrasoMaiorQue30Dias = true;
+                    }
                 }
-            } elseif ($vencidos->isNotEmpty()) {
-                // Pagamento OVERDUE
-                $ultimoVencido = $vencidos->first();
-                $dueDateVencido = Carbon::parse($ultimoVencido['dueDate'] ?? now());
-                $diasAtraso = $dueDateVencido->diffInDays($agora);
-
-                // Se já pagou antes e atraso > 30 dias → CHURN
-                if ($pagos->isNotEmpty() && $diasAtraso > 30) {
-                    $resultado['status'] = 'churn';
-                } else {
-                    $resultado['status'] = 'inadimplente';
-                }
-            } elseif ($cancelados->count() === $collection->count() && $collection->isNotEmpty()) {
-                // Todos cancelados
-                $resultado['status'] = 'cancelado';
-            } else {
-                // Fallback
-                $resultado['status'] = $pagos->isNotEmpty() ? 'ativo' : 'pendente';
             }
 
+            // Aplicar precedência rígida
+            $statusEncontrado = match (true) {
+                $temChargeback => 'cancelado', // O bd suporta cancelado/ativo/pendente/inadimplente/churn
+                $temVencidoNaAssinaturaAtiva && $atrasoMaiorQue30Dias => 'churn',
+                $temVencidoNaAssinaturaAtiva => 'inadimplente',
+                $assinaturaAtiva && $pagamentosValidos->isEmpty() => 'pendente', // pendente_primeiro_pagamento vira pendente
+                $assinaturaAtiva && $pagamentosValidos->isNotEmpty() => 'ativo',
+                default => 'cancelado', // inativo vira cancelado
+            };
+
+            $resultado['status'] = $statusEncontrado;
+
             // ══════════════════════════════════════════════════════════════
-            // ETAPA 5: Extrair datas auxiliares
+            // ETAPA 4: Extrair datas auxiliares
             // ══════════════════════════════════════════════════════════════
-            $ultimoPago = $pagos->first();
+            $ultimoPago = $pagamentosValidos->sortByDesc('dueDate')->first();
             if ($ultimoPago) {
                 $resultado['data_ultimo_pagamento'] = $ultimoPago['clientPaymentDate']
                     ?? $ultimoPago['paymentDate']
@@ -179,13 +115,14 @@ class ClienteStatusService
                     ?? null;
             }
 
-            // Próxima cobrança = primeiro pendente ou vencido não pago
-            $proximaPendente = $pendentes->merge($vencidos)->sortBy('dueDate')->first();
+            $pendentesFuturos = collect($pagamentos)->filter(fn ($p) => in_array(strtoupper($p['status'] ?? ''), ['PENDING', 'AWAITING_RISK_ANALYSIS']));
+            $vencidos = collect($pagamentos)->filter(fn ($p) => strtoupper($p['status'] ?? '') === 'OVERDUE');
+
+            $proximaPendente = $pendentesFuturos->merge($vencidos)->sortBy('dueDate')->first();
             if ($proximaPendente) {
                 $resultado['proxima_cobranca'] = $proximaPendente['dueDate'] ?? null;
             }
 
-            // Recorrencia status
             $resultado['recorrencia_status'] = $resultado['status'] === 'ativo' ? 'Pago' : 'Aguardando pagamento';
 
         } catch (\Exception $e) {
