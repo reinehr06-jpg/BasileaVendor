@@ -414,6 +414,18 @@ class LegacyImportService
 
                 $comissao = ($payment->value * $percentual) / 100;
 
+                // Calcular Comissão do Gestor
+                $gestorComissao = 0;
+                if ($import->gestor_id && !$vendedor->is_gestor) {
+                    $gestorPercentual = $isInitial
+                        ? ($vendedor->comissao_gestor_primeira ?? 0)
+                        : ($vendedor->comissao_gestor_recorrencia ?? 0);
+
+                    if ($gestorPercentual > 0) {
+                        $gestorComissao = ($payment->value * $gestorPercentual) / 100;
+                    }
+                }
+
                 LegacyCommission::create([
                     'legacy_import_id' => $import->id,
                     'legacy_payment_id' => $payment->id,
@@ -424,6 +436,7 @@ class LegacyImportService
                     'reference_month' => $targetMonth,
                     'base_amount' => $payment->value,
                     'seller_commission_amount' => $comissao,
+                    'gestor_commission_amount' => $gestorComissao,
                     'status' => 'GENERATED',
                     'generated_at' => now(),
                     'source' => 'LEGACY_IMPORT',
