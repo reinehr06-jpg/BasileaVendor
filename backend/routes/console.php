@@ -27,3 +27,10 @@ Schedule::command('vendas:gerar-renovacoes')->dailyAt('00:00');
 // Consulta diretamente a API do Asaas para determinar status real (ativo/inadimplente) mês a mês
 Schedule::command('clientes:sync-asaas --limit=100')->everyFourHours();
 
+// Processador assíncrono de Webhooks Asaas (Idempotência)
+// Roda a cada minuto processando eventos PENDING
+Schedule::command('asaas:process-events')->everyMinute()->withoutOverlapping();
+
+// Reconciliação diária de proteção (garante que eventos perdidos do webhook não quebrem status)
+Schedule::command('asaas:reconcile')->dailyAt('02:00')->withoutOverlapping();
+

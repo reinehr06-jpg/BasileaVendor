@@ -173,9 +173,9 @@ class ClienteStatusService
             // ══════════════════════════════════════════════════════════════
             $ultimoPago = $pagos->first();
             if ($ultimoPago) {
-                $resultado['data_ultimo_pagamento'] = $ultimoPago['paymentDate']
+                $resultado['data_ultimo_pagamento'] = $ultimoPago['clientPaymentDate']
+                    ?? $ultimoPago['paymentDate']
                     ?? $ultimoPago['confirmedDate']
-                    ?? $ultimoPago['dueDate']
                     ?? null;
             }
 

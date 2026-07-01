@@ -14,7 +14,7 @@ class AsaasService
     public function __construct()
     {
         // Puxa do banco primeiro, caso não tenha, faz fallback pro env
-        $ambiente = \App\Models\Setting::get('asaas_environment', config('services.asaas.ambiente', 'sandbox'));
+        $ambiente = \App\Models\Setting::get('asaas_environment', config('services.asaas.ambiente', env('ASAAS_ENVIRONMENT', 'sandbox')));
         
         $this->baseUrl = $ambiente === 'production'
             ? 'https://api.asaas.com/v3'
@@ -24,6 +24,13 @@ class AsaasService
 
         if (empty($this->apiKey)) {
             Log::warning('AsaasService: API Key não configurada. As requisições irão falhar.');
+        } else {
+            // Validação de segurança sugerida pelo checklist
+            if ($ambiente === 'production' && !str_starts_with($this->apiKey, '$aact_prod_')) {
+                Log::error('AsaasService: Chave de API de PRODUÇÃO parece incorreta (não começa com $aact_prod_).');
+            } elseif ($ambiente === 'sandbox' && !str_starts_with($this->apiKey, '$aact_hmlg_')) {
+                Log::error('AsaasService: Chave de API de SANDBOX parece incorreta (não começa com $aact_hmlg_).');
+            }
         }
     }
 
@@ -37,6 +44,7 @@ class AsaasService
         return [
             'access_token' => $this->apiKey,
             'Content-Type' => 'application/json',
+            'User-Agent'   => env('ASAAS_USER_AGENT', 'BasileaVendor/1.0'),
         ];
     }
 
