@@ -17,6 +17,23 @@ use Illuminate\Support\Facades\Mail;
 class PagamentoService
 {
     /**
+     * Determina a janela (ciclo) de comissão para uma determinada data.
+     * O ciclo vai do dia 06 de um mês até o dia 05 do mês subsequente.
+     */
+    public static function getCicloDeComissao(\Carbon\Carbon $dataReferencia): array
+    {
+        if ($dataReferencia->day <= 5) {
+            $inicio = $dataReferencia->copy()->subMonth()->setDay(6)->startOfDay();
+            $fim = $dataReferencia->copy()->setDay(5)->endOfDay();
+        } else {
+            $inicio = $dataReferencia->copy()->setDay(6)->startOfDay();
+            $fim = $dataReferencia->copy()->addMonth()->setDay(5)->endOfDay();
+        }
+
+        return ['inicio' => $inicio, 'fim' => $fim];
+    }
+
+    /**
      * Sincroniza o status de um pagamento com o Asaas e atualiza a venda.
      * Retorna true se o pagamento foi confirmado nesta execução.
      */
@@ -231,9 +248,49 @@ class PagamentoService
                 $planoNome = $venda->plano ?? '';
                 $commissionRule = CommissionRule::forPlan($planoNome);
 
-                // Determinar se é primeira parcela ou recorrência
-                $isPrimeiraParcela = $pagamento->parcela_numero == 1 || $pagamento->parcela_numero === null;
-                $commissionType = $isPrimeiraParcela ? 'FIRST_PAYMENT' : 'RECURRING';
+                // Determinar o ciclo de comissão baseado na data que o pagamento foi recebido/confirmado
+                $dataPagamento = \Carbon\Carbon::parse($pagamento->data_pagamento ?? now());
+                $cicloAtual = self::getCicloDeComissao($dataPagamento);
+
+                $commissionType = 'RECURRING';
+                $sellerAmount = 0;
+                $gestorAmount = 0;
+                $isComissaoAntecipada = false;
+
+                if ($venda->isPagamentoParcelado()) {
+                    // REGRA: Parcelamento
+                    $dataVenda = \Carbon\Carbon::parse($venda->data_venda);
+                    if ($dataVenda->between($cicloAtual['inicio'], $cicloAtual['fim'])) {
+                        // Se for deste mês (ciclo atual), comissão antecipada (FIRST_PAYMENT)
+                        $commissionType = 'FIRST_PAYMENT';
+                        $isComissaoAntecipada = true;
+                    } else {
+                        // Se for de meses passados, sem comissão
+                        $commissionType = 'RECURRING';
+                        $isComissaoAntecipada = false;
+                        // $sellerAmount e $gestorAmount já começam em 0 e continuarão 0.
+                    }
+                } else {
+                    // REGRA: Assinatura recorrente ou avulsa
+                    $primeiroPagamento = $venda->pagamentos()
+                        ->whereIn('status', ['RECEIVED', 'CONFIRMED'])
+                        ->orderBy('data_pagamento', 'asc')
+                        ->first();
+                        
+                    $dataPrimeiroPagamento = $primeiroPagamento && $primeiroPagamento->data_pagamento
+                        ? \Carbon\Carbon::parse($primeiroPagamento->data_pagamento) 
+                        : \Carbon\Carbon::parse($venda->data_venda);
+
+                    if ($dataPrimeiroPagamento->between($cicloAtual['inicio'], $cicloAtual['fim'])) {
+                        // Igual ao ciclo atual: primeira comissão
+                        $commissionType = 'FIRST_PAYMENT';
+                        $isComissaoAntecipada = true;
+                    } else {
+                        // Diferente do ciclo atual: recorrência
+                        $commissionType = 'RECURRING';
+                        $isComissaoAntecipada = false;
+                    }
+                }
 
                 // Verificar se já existe comissão para este pagamento
                 $jaExisteComissao = Comissao::where('venda_id', $venda->id)
@@ -249,9 +306,13 @@ class PagamentoService
                         // ═══════════════════════════════════════════
 
                         // Comissão do Vendedor
-                        $sellerAmount = $isPrimeiraParcela
-                            ? $commissionRule->seller_fixed_value_first_payment
-                            : $commissionRule->seller_fixed_value_recurring;
+                        if ($venda->isPagamentoParcelado() && !$isComissaoAntecipada) {
+                            $sellerAmount = 0; // SEM COMISSÃO parcelas futuras
+                        } else {
+                            $sellerAmount = $isComissaoAntecipada
+                                ? $commissionRule->seller_fixed_value_first_payment
+                                : $commissionRule->seller_fixed_value_recurring;
+                        }
 
                         if ($sellerAmount > 0) {
                             Comissao::create([
@@ -285,9 +346,13 @@ class PagamentoService
 
                         // Comissão do Gestor (se o vendedor tem um gestor E o vendedor não é gestor)
                         if ($vendedor->gestor_id && !$vendedor->is_gestor) {
-                            $gestorCommissionRate = $isPrimeiraParcela
-                                ? ($vendedor->comissao_gestor_primeira ?? 0)
-                                : ($vendedor->comissao_gestor_recorrencia ?? 0);
+                            if ($venda->isPagamentoParcelado() && !$isComissaoAntecipada) {
+                                $gestorCommissionRate = 0; // SEM COMISSÃO parcelas futuras
+                            } else {
+                                $gestorCommissionRate = $isComissaoAntecipada
+                                    ? ($vendedor->comissao_gestor_primeira ?? 0)
+                                    : ($vendedor->comissao_gestor_recorrencia ?? 0);
+                            }
 
                             if ($gestorCommissionRate > 0) {
                                 $gestorAmount = ($pagamento->valor * $gestorCommissionRate) / 100;
