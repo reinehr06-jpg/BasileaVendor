@@ -342,91 +342,65 @@ class PagamentoService
                                 'tipo' => $commissionType,
                                 'valor' => $sellerAmount,
                             ]);
-                        }
-
                         // Comissão do Gestor
                         $hasGestor = !empty($vendedor->gestor_id) || $vendedor->is_gestor;
                         if ($hasGestor) {
                             if ($venda->isPagamentoParcelado() && !$isComissaoAntecipada) {
-                                $gestorCommissionRate = 0; // SEM COMISSÃO parcelas futuras
+                                $gestorAmount = 0; // SEM COMISSÃO parcelas futuras
+                                $gestorCommissionRate = 0;
                             } else {
-                                $gestorCommissionRate = $isComissaoAntecipada
-                                    ? ($vendedor->comissao_gestor_primeira ?? 0)
-                                    : ($vendedor->comissao_gestor_recorrencia ?? 0);
-                            }
-
-                            if ($gestorCommissionRate > 0) {
-                                $gestorAmount = ($pagamento->valor * $gestorCommissionRate) / 100;
-
-                                if ($gestorAmount > 0) {
-                                    $idDoGestor = $vendedor->gestor_id ?? $vendedor->usuario_id;
+                                if ($commissionRule) {
+                                    $gestorAmount = $isPrimeiraParcela
+                                        ? $commissionRule->manager_fixed_value_first_payment
+                                        : $commissionRule->manager_fixed_value_recurring;
+                                    $gestorCommissionRate = 0;
+                                } else {
+                                    $gestorCommissionRate = $isComissaoAntecipada
+                                        ? ($vendedor->comissao_gestor_primeira ?? 0)
+                                        : ($vendedor->comissao_gestor_recorrencia ?? 0);
                                     
-                                    Comissao::create([
-                                        'vendedor_id' => $vendedor->id,
-                                        'cliente_id' => $venda->cliente_id,
-                                        'venda_id' => $venda->id,
-                                        'pagamento_id' => $pagamento->id,
-                                        'gerente_id' => $idDoGestor,
-                                        'tipo_comissao' => $commissionType,
-                                        'percentual_aplicado' => 0,
-                                        'percentual_gerente' => $gestorCommissionRate,
-                                        'valor_venda' => $pagamento->valor,
-                                        'valor_comissao' => 0,
-                                        'valor_gerente' => $gestorAmount,
-                                        'status' => 'confirmada',
-                                        'data_pagamento' => $pagamento->data_pagamento ?? now(),
-                                        'competencia' => now()->format('Y-m'),
-                                        'eligible_at' => $pagamento->data_pagamento ?? now(),
-                                        'released_at' => $pagamento->data_pagamento ?? now(),
-                                    ]);
-
-                                    $venda->comissao_gerada = ($venda->comissao_gerada ?? 0) + $gestorAmount;
-
-                                    Log::info('[Comissão] Gestor gerada (fixa)', [
-                                        'venda_id' => $venda->id,
-                                        'gestor_id' => $vendedor->gestor_id,
-                                        'plano' => $planoNome,
-                                        'tipo' => $commissionType,
-                                        'percentual' => $gestorCommissionRate,
-                                        'valor' => $gestorAmount,
-                                    ]);
+                                    if ($vendedor->is_gestor && $gestorCommissionRate == 0) {
+                                        $sub = \App\Models\Vendedor::where('gestor_id', $vendedor->usuario_id)->where('comissao_gestor_primeira', '>', 0)->first();
+                                        $gestorCommissionRate = $sub ? ($isComissaoAntecipada ? $sub->comissao_gestor_primeira : $sub->comissao_gestor_recorrencia) : 5;
+                                    }
+                                    
+                                    $gestorAmount = ($pagamento->valor * $gestorCommissionRate) / 100;
                                 }
                             }
-                        }
 
-                        // Comissão do Gerente (Master)
-                        $manager = User::where('perfil', 'master')->first();
-                        $managerAmount = $isPrimeiraParcela
-                            ? $commissionRule->manager_fixed_value_first_payment
-                            : $commissionRule->manager_fixed_value_recurring;
+                            if ($gestorAmount > 0) {
+                                $idDoGestor = $vendedor->gestor_id ?? $vendedor->usuario_id;
+                                
+                                Comissao::create([
+                                    'vendedor_id' => $vendedor->id,
+                                    'cliente_id' => $venda->cliente_id,
+                                    'venda_id' => $venda->id,
+                                    'pagamento_id' => $pagamento->id,
+                                    'gerente_id' => $idDoGestor,
+                                    'tipo_comissao' => $commissionType,
+                                    'percentual_aplicado' => 0,
+                                    'percentual_gerente' => $gestorCommissionRate,
+                                    'valor_venda' => $pagamento->valor,
+                                    'valor_comissao' => 0,
+                                    'valor_gerente' => $gestorAmount,
+                                    'status' => 'confirmada',
+                                    'data_pagamento' => $pagamento->data_pagamento ?? now(),
+                                    'competencia' => now()->format('Y-m'),
+                                    'eligible_at' => $pagamento->data_pagamento ?? now(),
+                                    'released_at' => $pagamento->data_pagamento ?? now(),
+                                ]);
 
-                        if ($managerAmount > 0 && $manager) {
-                            Comissao::create([
-                                'vendedor_id' => $vendedor->id,
-                                'cliente_id' => $venda->cliente_id,
-                                'venda_id' => $venda->id,
-                                'pagamento_id' => $pagamento->id,
-                                'gerente_id' => $manager->id,
-                                'tipo_comissao' => $commissionType,
-                                'percentual_aplicado' => 0,
-                                'percentual_gerente' => 0,
-                                'valor_venda' => $pagamento->valor,
-                                'valor_comissao' => 0,
-                                'valor_gerente' => $managerAmount,
-                                'status' => 'confirmada',
-                                'data_pagamento' => $pagamento->data_pagamento ?? now(),
-                                'competencia' => now()->format('Y-m'),
-                                'eligible_at' => $pagamento->data_pagamento ?? now(),
-                                'released_at' => $pagamento->data_pagamento ?? now(),
-                            ]);
+                                $venda->comissao_gerada = ($venda->comissao_gerada ?? 0) + $gestorAmount;
 
-                            Log::info('[Comissão] Gerente gerada (fixa)', [
-                                'venda_id' => $venda->id,
-                                'gerente' => $manager->name,
-                                'plano' => $planoNome,
-                                'tipo' => $commissionType,
-                                'valor' => $managerAmount,
-                            ]);
+                                \Illuminate\Support\Facades\Log::info('[Comissão] Gestor gerada', [
+                                    'venda_id' => $venda->id,
+                                    'gestor_id' => $idDoGestor,
+                                    'plano' => $planoNome,
+                                    'tipo' => $commissionType,
+                                    'percentual' => $gestorCommissionRate,
+                                    'valor' => $gestorAmount,
+                                ]);
+                            }
                         }
 
                     } else {

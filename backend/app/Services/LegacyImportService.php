@@ -422,6 +422,11 @@ class LegacyImportService
                         ? ($vendedor->comissao_gestor_primeira ?? 0)
                         : ($vendedor->comissao_gestor_recorrencia ?? 0);
 
+                    if ($vendedor->is_gestor && $gestorPercentual == 0) {
+                        $sub = \App\Models\Vendedor::where('gestor_id', $vendedor->usuario_id)->where('comissao_gestor_primeira', '>', 0)->first();
+                        $gestorPercentual = $sub ? ($isInitial ? $sub->comissao_gestor_primeira : $sub->comissao_gestor_recorrencia) : 5;
+                    }
+
                     if ($gestorPercentual > 0) {
                         $gestorComissao = ($payment->value * $gestorPercentual) / 100;
                     }

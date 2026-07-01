@@ -1382,6 +1382,46 @@ class AsaasClienteSyncController extends Controller
 
         $comissaoTipo = $import->comissao_tipo ?? 'recorrencia';
 
+        // 1. Tentar usar regra fixa (CommissionRule) se conseguirmos identificar o plano pelo valor
+        $plano = \App\Models\Plano::where('valor_mensal', $valorPlano)->first();
+        if ($plano) {
+            $rule = \App\Models\CommissionRule::forPlan($plano->nome);
+            if ($rule) {
+                if ($comissaoTipo === 'inicial_antecipada') {
+                    $restantes = max(0, $parcelasTotal - 1);
+                    $cv = $rule->seller_fixed_value_first_payment + ($rule->seller_fixed_value_recurring * $restantes);
+                    $cg = $rule->manager_fixed_value_first_payment + ($rule->manager_fixed_value_recurring * $restantes);
+                } elseif ($comissaoTipo === 'inicial') {
+                    $cv = $rule->seller_fixed_value_first_payment;
+                    $cg = $rule->manager_fixed_value_first_payment;
+                } else {
+                    $cv = $rule->seller_fixed_value_recurring;
+                    $cg = $rule->manager_fixed_value_recurring;
+                }
+                
+                // Se o vendedor não tem gestor E não é gestor, não recebe comissão de gestor
+                if (empty($vendedor->gestor_id) && !$vendedor->is_gestor) {
+                    $cg = 0;
+                }
+                return [round($cv, 2), round($cg, 2)];
+            }
+        }
+
+        // 2. Fallback para Percentuais
+        // Se o vendedor é gestor e tem 0% na própria linha, tenta pegar de um subordinado ou usa 5% padrão
+        if ($vendedor->is_gestor && $percGstIni == 0) {
+            $sub = \App\Models\Vendedor::where('gestor_id', $vendedor->usuario_id)
+                        ->where('comissao_gestor_primeira', '>', 0)
+                        ->first();
+            if ($sub) {
+                $percGstIni = (float) $sub->comissao_gestor_primeira;
+                $percGstRec = (float) $sub->comissao_gestor_recorrencia;
+            } else {
+                $percGstIni = 5;
+                $percGstRec = 5;
+            }
+        }
+
         if ($comissaoTipo === 'inicial_antecipada') {
             // Lógica: 1ª parcela (PercIni) + Demais (PercRec * Restantes)
             $restantes = max(0, $parcelasTotal - 1);
