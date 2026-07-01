@@ -344,8 +344,9 @@ class PagamentoService
                             ]);
                         }
 
-                        // Comissão do Gestor (se o vendedor tem um gestor E o vendedor não é gestor)
-                        if ($vendedor->gestor_id && !$vendedor->is_gestor) {
+                        // Comissão do Gestor
+                        $hasGestor = !empty($vendedor->gestor_id) || $vendedor->is_gestor;
+                        if ($hasGestor) {
                             if ($venda->isPagamentoParcelado() && !$isComissaoAntecipada) {
                                 $gestorCommissionRate = 0; // SEM COMISSÃO parcelas futuras
                             } else {
@@ -358,12 +359,14 @@ class PagamentoService
                                 $gestorAmount = ($pagamento->valor * $gestorCommissionRate) / 100;
 
                                 if ($gestorAmount > 0) {
+                                    $idDoGestor = $vendedor->gestor_id ?? $vendedor->usuario_id;
+                                    
                                     Comissao::create([
                                         'vendedor_id' => $vendedor->id,
                                         'cliente_id' => $venda->cliente_id,
                                         'venda_id' => $venda->id,
                                         'pagamento_id' => $pagamento->id,
-                                        'gerente_id' => $vendedor->gestor_id,
+                                        'gerente_id' => $idDoGestor,
                                         'tipo_comissao' => $commissionType,
                                         'percentual_aplicado' => 0,
                                         'percentual_gerente' => $gestorCommissionRate,

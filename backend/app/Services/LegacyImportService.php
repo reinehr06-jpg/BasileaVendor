@@ -416,7 +416,8 @@ class LegacyImportService
 
                 // Calcular Comissão do Gestor
                 $gestorComissao = 0;
-                if ($import->gestor_id && !$vendedor->is_gestor) {
+                $hasGestor = !empty($import->gestor_id) || $vendedor->is_gestor;
+                if ($hasGestor) {
                     $gestorPercentual = $isInitial
                         ? ($vendedor->comissao_gestor_primeira ?? 0)
                         : ($vendedor->comissao_gestor_recorrencia ?? 0);

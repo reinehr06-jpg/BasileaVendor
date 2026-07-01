@@ -1395,8 +1395,8 @@ class AsaasClienteSyncController extends Controller
             $cg = $valorPlano * ($percGstRec / 100);
         }
 
-        // Se o vendedor não tem gestor acima dele, a comissão de gestão deve ser ZERO
-        if (empty($vendedor->gestor_id)) {
+        // Se o vendedor não tem gestor acima dele E não é gestor, a comissão de gestão é zero
+        if (empty($vendedor->gestor_id) && !$vendedor->is_gestor) {
             $cg = 0;
         }
 
