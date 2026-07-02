@@ -349,21 +349,36 @@ class PagamentoService
                                 $gestorAmount = 0; // SEM COMISSÃO parcelas futuras
                                 $gestorCommissionRate = 0;
                             } else {
+                                $gestorCommissionRate = $isComissaoAntecipada
+                                    ? ($vendedor->comissao_gestor_primeira ?? 0)
+                                    : ($vendedor->comissao_gestor_recorrencia ?? 0);
+                                
+                                // Tentar pegar do perfil do gestor se o vendedor estiver zerado e tiver um gestor
+                                if ($gestorCommissionRate == 0 && !empty($vendedor->gestor_id)) {
+                                    $perfilGestor = \App\Models\Vendedor::where('usuario_id', $vendedor->gestor_id)->first();
+                                    if ($perfilGestor && $perfilGestor->comissao_gestor_primeira > 0) {
+                                        $gestorCommissionRate = $isComissaoAntecipada ? $perfilGestor->comissao_gestor_primeira : $perfilGestor->comissao_gestor_recorrencia;
+                                    }
+                                }
+                                
+                                // Se for gestor e estiver zerado, tenta pegar de um subordinado ou usa 5%
+                                if ($vendedor->is_gestor && $gestorCommissionRate == 0) {
+                                    $sub = \App\Models\Vendedor::where('gestor_id', $vendedor->usuario_id)->where('comissao_gestor_primeira', '>', 0)->first();
+                                    $gestorCommissionRate = $sub ? ($isComissaoAntecipada ? $sub->comissao_gestor_primeira : $sub->comissao_gestor_recorrencia) : 5;
+                                }
+
                                 if ($commissionRule) {
                                     $gestorAmount = $isPrimeiraParcela
                                         ? $commissionRule->manager_fixed_value_first_payment
                                         : $commissionRule->manager_fixed_value_recurring;
-                                    $gestorCommissionRate = 0;
-                                } else {
-                                    $gestorCommissionRate = $isComissaoAntecipada
-                                        ? ($vendedor->comissao_gestor_primeira ?? 0)
-                                        : ($vendedor->comissao_gestor_recorrencia ?? 0);
                                     
-                                    if ($vendedor->is_gestor && $gestorCommissionRate == 0) {
-                                        $sub = \App\Models\Vendedor::where('gestor_id', $vendedor->usuario_id)->where('comissao_gestor_primeira', '>', 0)->first();
-                                        $gestorCommissionRate = $sub ? ($isComissaoAntecipada ? $sub->comissao_gestor_primeira : $sub->comissao_gestor_recorrencia) : 5;
+                                    // Se a CommissionRule retornou 0, faz fallback pra porcentagem
+                                    if ($gestorAmount == 0) {
+                                        $gestorAmount = ($pagamento->valor * $gestorCommissionRate) / 100;
+                                    } else {
+                                        $gestorCommissionRate = 0; // Se usou valor fixo, rate é 0
                                     }
-                                    
+                                } else {
                                     $gestorAmount = ($pagamento->valor * $gestorCommissionRate) / 100;
                                 }
                             }

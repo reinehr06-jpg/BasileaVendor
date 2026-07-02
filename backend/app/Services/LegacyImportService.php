@@ -422,6 +422,13 @@ class LegacyImportService
                         ? ($vendedor->comissao_gestor_primeira ?? 0)
                         : ($vendedor->comissao_gestor_recorrencia ?? 0);
 
+                    if ($gestorPercentual == 0 && !empty($vendedor->gestor_id)) {
+                        $perfilGestor = \App\Models\Vendedor::where('usuario_id', $vendedor->gestor_id)->first();
+                        if ($perfilGestor && $perfilGestor->comissao_gestor_primeira > 0) {
+                            $gestorPercentual = $isInitial ? $perfilGestor->comissao_gestor_primeira : $perfilGestor->comissao_gestor_recorrencia;
+                        }
+                    }
+
                     if ($vendedor->is_gestor && $gestorPercentual == 0) {
                         $sub = \App\Models\Vendedor::where('gestor_id', $vendedor->usuario_id)->where('comissao_gestor_primeira', '>', 0)->first();
                         $gestorPercentual = $sub ? ($isInitial ? $sub->comissao_gestor_primeira : $sub->comissao_gestor_recorrencia) : 5;
