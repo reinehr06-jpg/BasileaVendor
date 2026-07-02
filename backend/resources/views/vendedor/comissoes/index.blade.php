@@ -60,6 +60,25 @@
             <option value="recorrencia" {{ isset($tipo) && $tipo == 'recorrencia' ? 'selected' : '' }}>Recorrência</option>
         </select>
     </div>
+    @if(Auth::user()->perfil === 'gestor' || Auth::user()->perfil === 'master')
+    <div style="flex: 1;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);"><i class="fas fa-user-tag"></i> Visão</label>
+        <select name="papel" class="form-control" onchange="this.form.submit()">
+            <option value="">Minhas Vendas e Equipe</option>
+            <option value="vendedor" {{ isset($papel) && $papel == 'vendedor' ? 'selected' : '' }}>Apenas Minhas Vendas</option>
+            <option value="gestor" {{ isset($papel) && $papel == 'gestor' ? 'selected' : '' }}>Apenas Vendas da Equipe</option>
+        </select>
+    </div>
+    @endif
+    <div style="flex: 1;">
+        <label style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);"><i class="fas fa-info-circle"></i> Status</label>
+        <select name="status" class="form-control" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            <option value="pendente" {{ isset($status) && $status == 'pendente' ? 'selected' : '' }}>Pendente</option>
+            <option value="confirmada" {{ isset($status) && $status == 'confirmada' ? 'selected' : '' }}>Confirmada</option>
+            <option value="paga" {{ isset($status) && $status == 'paga' ? 'selected' : '' }}>Paga</option>
+        </select>
+    </div>
     <div style="display: flex; gap: 8px;">
         <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Filtrar</button>
         <a href="{{ route('vendedor.comissoes') }}" class="btn btn-ghost btn-sm">Limpar</a>
@@ -82,6 +101,14 @@
         <tbody>
             @if(isset($comissoes) && $comissoes->count() > 0)
                 @foreach($comissoes as $c)
+                    @php
+                        $ehVendaMinha = $c->vendedor_id == ($vendedor->id ?? 0);
+                        if (isset($papel) && $papel === 'gestor') $ehVendaMinha = false;
+                        if (isset($papel) && $papel === 'vendedor') $ehVendaMinha = true;
+                        
+                        $valorComissaoLinha = $ehVendaMinha ? $c->valor_comissao : $c->valor_gerente;
+                        $percentualLinha = $ehVendaMinha ? $c->percentual_aplicado : $c->percentual_gerente;
+                    @endphp
                     <tr style="border-bottom: 1px solid var(--border-light); transition: background 0.2s;">
                         <td style="padding: 14px 16px;">
                             <div style="font-weight: 600; color: var(--text-primary);">{{ $c->cliente?->nome_igreja ?? $c->cliente?->nome ?? 'N/A' }}</div>
@@ -89,8 +116,8 @@
                         </td>
                         <td style="padding: 14px 16px; font-weight: 600;">#{{ $c->venda_id }}</td>
                         <td style="padding: 14px 16px; text-align: right; font-weight: 600;">R$ {{ number_format((float)($c->valor_venda ?? 0), 2, ',', '.') }}</td>
-                        <td style="padding: 14px 16px; text-align: center; font-weight: 700;">{{ number_format((float)($c->percentual_aplicado ?? 0), 1) }}%</td>
-                        <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: var(--primary);">R$ {{ number_format((float)($c->valor_comissao ?? 0), 2, ',', '.') }}</td>
+                        <td style="padding: 14px 16px; text-align: center; font-weight: 700;">{{ number_format((float)($percentualLinha ?? 0), 1) }}%</td>
+                        <td style="padding: 14px 16px; text-align: right; font-weight: 700; color: var(--primary);">R$ {{ number_format((float)($valorComissaoLinha ?? 0), 2, ',', '.') }}</td>
                         <td style="padding: 14px 16px; text-align: center;">
                             <span class="badge badge-{{ $c->status ?? 'pendente' }}">{{ ucfirst($c->status ?? 'pendente') }}</span>
                         </td>

@@ -31,12 +31,19 @@ class ComissaoController extends Controller
         $mes = $request->get('mes', Carbon::now()->format('Y-m'));
         $tipo = $request->get('tipo');
         $status = $request->get('status');
+        $papel = $request->get('papel'); // 'vendedor' ou 'gestor'
         $vendedorId = $vendedor ? $vendedor->id : 0;
 
         // Query base para listagem com paginação (Sempre instanciar do zero para evitar clone issues)
-        $queryList = Comissao::where(function($q) use ($user, $vendedorId) {
-            $q->where('vendedor_id', $vendedorId)
-              ->orWhere('gerente_id', $user->id);
+        $queryList = Comissao::where(function($q) use ($user, $vendedorId, $papel) {
+            if ($papel === 'vendedor') {
+                $q->where('vendedor_id', $vendedorId);
+            } elseif ($papel === 'gestor') {
+                $q->where('gerente_id', $user->id);
+            } else {
+                $q->where('vendedor_id', $vendedorId)
+                  ->orWhere('gerente_id', $user->id);
+            }
         })->where('competencia', $mes)
           ->with(['cliente', 'venda', 'vendedor.user']);
 
@@ -76,7 +83,7 @@ class ComissaoController extends Controller
                 ->value('total') ?? 0,
         ];
 
-        return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'vendedor'));
+        return view('vendedor.comissoes.index', compact('comissoes', 'resumo', 'mes', 'tipo', 'status', 'papel', 'vendedor'));
     }
 
     /**
