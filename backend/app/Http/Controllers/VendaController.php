@@ -1245,14 +1245,8 @@ class VendaController extends Controller
                 return response()->json(['error' => 'Cliente não encontrado para esta venda.'], 404);
             }
 
-            // USAR SEMPRE o checkout próprio configurado nas integrações
             $checkoutBaseUrl = Setting::get('checkout_external_url');
-
-            if (! $checkoutBaseUrl) {
-                return response()->json([
-                    'error' => 'Checkout não configurado. Configure a URL do checkout nas Integrações.',
-                ], 400);
-            }
+            // Removemos o bloqueio aqui para permitir o fallback para o Asaas
 
             // Verificar se link expirou (15 dias para Pix/Cartão)
             $linkValidoAte = $venda->link_valido_ate;
@@ -1387,9 +1381,25 @@ class VendaController extends Controller
             $apiKey = Setting::get('checkout_api_key', '');
             $webhookSecret = Setting::get('checkout_webhook_secret', '');
 
-            if (!$apiUrl) {
+            // Fallback para o Asaas se a URL não estiver configurada
+            if (!$apiUrl || !$checkoutBaseUrl) {
+                try {
+                    $paymentData = $asaasService->getPayment($asaasId);
+                    $asaasInvoiceUrl = $paymentData['invoiceUrl'] ?? null;
+                    
+                    if ($asaasInvoiceUrl) {
+                        return response()->json([
+                            'success' => true,
+                            'url' => $asaasInvoiceUrl,
+                            'message' => 'Link do Asaas gerado (checkout externo não configurado).',
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Checkout: Falha ao obter invoiceUrl do Asaas no fallback', ['error' => $e->getMessage()]);
+                }
+                
                 return response()->json([
-                    'error' => 'URL do checkout não configurada.',
+                    'error' => 'URL do checkout externo não configurada e falha ao obter link do Asaas.',
                 ], 400);
             }
 
@@ -1439,8 +1449,20 @@ class VendaController extends Controller
                     'body' => $response->body(),
                 ]);
 
-                // Fallback: se a API falhar, podemos decidir se usamos o link antigo ou retornamos erro
-                // Por segurança, vamos retornar erro para evitar URLs inseguras se o usuário explicitamente quer a API
+                // Fallback para Asaas se a API do checkout próprio falhar
+                try {
+                    $paymentData = $asaasService->getPayment($asaasId);
+                    if (!empty($paymentData['invoiceUrl'])) {
+                        return response()->json([
+                            'success' => true,
+                            'url' => $paymentData['invoiceUrl'],
+                            'message' => 'Link do Asaas gerado (API de checkout externo falhou).',
+                        ]);
+                    }
+                } catch (\Exception $fallbackEx) {
+                    // Ignora o erro e retorna a mensagem original
+                }
+
                 return response()->json([
                     'error' => 'O servidor de checkout não retornou um link válido. ' . ($response->json('message') ?? ''),
                 ], 500);
@@ -1449,6 +1471,20 @@ class VendaController extends Controller
                 Log::error('Checkout: Falha na comunicação com a API', [
                     'error' => $e->getMessage(),
                 ]);
+                
+                // Fallback para Asaas se a API estiver fora do ar
+                try {
+                    $paymentData = $asaasService->getPayment($asaasId);
+                    if (!empty($paymentData['invoiceUrl'])) {
+                        return response()->json([
+                            'success' => true,
+                            'url' => $paymentData['invoiceUrl'],
+                            'message' => 'Link do Asaas gerado (servidor de checkout externo inacessível).',
+                        ]);
+                    }
+                } catch (\Exception $fallbackEx) {
+                    // Ignora
+                }
 
                 return response()->json([
                     'error' => 'Falha ao conectar ao servidor de checkout: ' . $e->getMessage(),
