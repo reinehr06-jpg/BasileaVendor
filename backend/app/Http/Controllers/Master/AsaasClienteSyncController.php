@@ -881,40 +881,27 @@ class AsaasClienteSyncController extends Controller
             $vendedor = Vendedor::with('user')->find($vendedorId);
             if ($vendedor) {
                 $isGestor = $vendedor->is_gestor ?? false;
-                $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
+                $gestorId = !empty($vendedor->gestor_id) ? $vendedor->gestor_id : null;
                 
                 // Para clientes antigos, usa valor_plano_mensal como base da comissão
                 // Mesmo que já tenha sido paga antes, mostra o valor histórico
                 if ($valorBase > 0) {
                     [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
                     
-                    if ($isGestor) {
-                        Comissao::create([
-                            'vendedor_id' => $vendedorId,
-                            'gerente_id' => null,
-                            'tipo_comissao' => $comissaoTipo,
-                            'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
-                            'percentual_gerente' => 0,
-                            'valor_venda' => $valorTotalHistorico,
-                            'valor_comissao' => $comissaoVendedor,
-                            'valor_gerente' => 0,
-                            'status' => 'pendente',
-                            'competencia' => $mesRef,
-                        ]);
-                    } else {
-                        Comissao::create([
-                            'vendedor_id' => $vendedorId,
-                            'gerente_id' => $gestorId,
-                            'tipo_comissao' => $comissaoTipo,
-                            'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
-                            'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
-                            'valor_venda' => $valorTotalHistorico,
-                            'valor_comissao' => $comissaoVendedor,
-                            'valor_gerente' => $comissaoGestor,
-                            'status' => 'pendente',
-                            'competencia' => $mesRef,
-                        ]);
-                    }
+                    $gestorIdReal = !empty($vendedor->gestor_id) ? $vendedor->gestor_id : null;
+                    
+                    Comissao::create([
+                        'vendedor_id' => $vendedorId,
+                        'gerente_id' => $gestorIdReal,
+                        'tipo_comissao' => $comissaoTipo,
+                        'percentual_aplicado' => $vendedor->comissao_inicial ?? 0,
+                        'percentual_gerente' => $vendedor->comissao_gestor_primeira ?? 0,
+                        'valor_venda' => $valorTotalHistorico,
+                        'valor_comissao' => $comissaoVendedor,
+                        'valor_gerente' => $comissaoGestor,
+                        'status' => 'pendente',
+                        'competencia' => $mesRef,
+                    ]);
                 }
             }
         }
@@ -960,7 +947,7 @@ class AsaasClienteSyncController extends Controller
         }
 
         $isGestor = $vendedor->is_gestor ?? false;
-        $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
+        $gestorId = !empty($vendedor->gestor_id) ? $vendedor->gestor_id : null;
 
         $totalComissaoVendedor = 0;
         $totalComissaoGestor = 0;
@@ -994,12 +981,8 @@ class AsaasClienteSyncController extends Controller
                 [$comissaoVendedor, $comissaoGestor] = $this->calcularComissao($import, $vendedor);
             }
 
-            if ($isGestor) {
-                $totalComissaoVendedor += $comissaoVendedor;
-            } else {
-                $totalComissaoVendedor += $comissaoVendedor;
-                $totalComissaoGestor += $comissaoGestor;
-            }
+            $totalComissaoVendedor += $comissaoVendedor;
+            $totalComissaoGestor += $comissaoGestor;
             $totalClientes++;
         }
 
@@ -1105,8 +1088,8 @@ class AsaasClienteSyncController extends Controller
         // Verificar se é gestor
         $isGestor = $vendedor->is_gestor ?? false;
         
-        // Buscar o gestor do vendedor (se for vendedor, pega o gestor; se for gestor, usa ele mesmo)
-        $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
+        // Buscar o gestor do vendedor (apenas se o vendedor tem um gestor acima)
+        $gestorId = !empty($vendedor->gestor_id) ? $vendedor->gestor_id : null;
 
         foreach ($customerIds as $customerId) {
             $import = DB::table('legacy_customer_imports')->where('id', $customerId)->first();
@@ -1139,7 +1122,7 @@ class AsaasClienteSyncController extends Controller
                 'updated_at' => now(),
             ]);
 
-            $totalComissaoVendedor += $isGestor ? $comissaoGestor : $comissaoVendedor;
+            $totalComissaoVendedor += $comissaoVendedor;
             $totalComissaoGestor += $comissaoGestor;
             $atribuidos++;
         }
@@ -1304,7 +1287,7 @@ class AsaasClienteSyncController extends Controller
             if ($vendedor) {
                 [$cv, $cg] = $this->calcularComissao($import, $vendedor);
                 
-                $gestorId = $vendedor->gestor_id ?? $vendedor->usuario_id;
+                $gestorId = !empty($vendedor->gestor_id) ? $vendedor->gestor_id : null;
                 
                 Comissao::updateOrCreate(
                     [

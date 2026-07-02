@@ -110,7 +110,7 @@ export default function Pagination({
           >
             <ChevronLeft className="w-[15px] h-[15px]" strokeWidth={2.4} />
           </button>
-          <button className="w-[30px] h-[30px] flex items-center justify-center rounded-[6px] border border-[#7C3AED] text-[#6D28D9] text-[13px] font-[600]">
+          <button className="w-[30px] h-[30px] flex items-center justify-center rounded-[6px] border border-[#6D28D9] text-[#6D28D9] text-[13px] font-[600]">
             {currentPage}
           </button>
           <button

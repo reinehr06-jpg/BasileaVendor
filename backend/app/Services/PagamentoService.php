@@ -18,17 +18,12 @@ class PagamentoService
 {
     /**
      * Determina a janela (ciclo) de comissão para uma determinada data.
-     * O ciclo vai do dia 06 de um mês até o dia 05 do mês subsequente.
+     * O ciclo vai do dia 01 ao último dia do mês.
      */
     public static function getCicloDeComissao(\Carbon\Carbon $dataReferencia): array
     {
-        if ($dataReferencia->day <= 5) {
-            $inicio = $dataReferencia->copy()->subMonth()->setDay(6)->startOfDay();
-            $fim = $dataReferencia->copy()->setDay(5)->endOfDay();
-        } else {
-            $inicio = $dataReferencia->copy()->setDay(6)->startOfDay();
-            $fim = $dataReferencia->copy()->addMonth()->setDay(5)->endOfDay();
-        }
+        $inicio = $dataReferencia->copy()->startOfMonth()->startOfDay();
+        $fim = $dataReferencia->copy()->endOfMonth()->endOfDay();
 
         return ['inicio' => $inicio, 'fim' => $fim];
     }
@@ -384,7 +379,7 @@ class PagamentoService
                             }
 
                             if ($gestorAmount > 0) {
-                                $idDoGestor = $vendedor->gestor_id ?? $vendedor->usuario_id;
+                                $idDoGestor = $vendedor->gestor_id;
                                 
                                 Comissao::create([
                                     'vendedor_id' => $vendedor->id,

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -26,17 +27,18 @@ import { useTranslation } from "react-i18next";
 //
 // COMPORTAMENTOS:
 //   - Calendário com grid 7xN (dias da semana em português)
-//   - Dia selecionado: fundo roxo (#7C3AED) com texto branco
+//   - Dia selecionado: fundo roxo (#6D28D9) com texto branco
 //   - Dia atual: fundo roxo claro (#F4EEFF) com texto roxo
 //   - Desabilitado: fundo cinza, cursor not-allowed, opacidade 80
 //
 // #pag71 — CustomDatePicker
 // ============================================================
-interface CustomDatePickerProps {
+export interface CustomDatePickerProps {
   value?: string;
   onChange?: (date: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  className?: string;
 }
 
 export default function CustomDatePicker({
@@ -44,24 +46,59 @@ export default function CustomDatePicker({
   onChange,
   placeholder = "DD/MM/AAAA",
   disabled = false,
+  className = "",
 }: CustomDatePickerProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const portalRef = useRef<HTMLDivElement>(null);
 
   // Parse string value (YYYY-MM-DD) to Date object for selection
   const selectedDate = value ? new Date(value + "T00:00:00") : null;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(target) &&
+        (!portalRef.current || !portalRef.current.contains(target))
+      ) {
         setIsOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Fecha o dropdown ao scrollar para não descolar do input
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      if (portalRef.current && portalRef.current.contains(e.target as Node)) return;
+      if (isOpen) setIsOpen(false);
+    };
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownMaxHeight = 300; 
+      
+      const shouldOpenUpwards = spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow;
+
+      setDropdownStyle({
+        position: "fixed",
+        top: shouldOpenUpwards ? undefined : rect.bottom + 4,
+        bottom: shouldOpenUpwards ? window.innerHeight - rect.top + 4 : undefined,
+        left: rect.left,
+      });
+    }
+  }, [isOpen]);
 
   const toggleDropdown = () => {
     if (!disabled) setIsOpen(!isOpen);
@@ -134,8 +171,8 @@ export default function CustomDatePicker({
             handleSelectDate(d);
           }}
           className={`w-[30px] h-[30px] flex items-center justify-center rounded-full text-[13px] cursor-pointer transition-colors
-            ${isSelected ? "bg-[#7C3AED] text-white font-[600] shadow-sm" : 
-              isToday ? "bg-[#F4EEFF] text-[#7C3AED] font-[600]" : 
+            ${isSelected ? "bg-[#6D28D9] text-white font-[600] shadow-sm" : 
+              isToday ? "bg-[#F4EEFF] text-[#6D28D9] font-[600]" : 
               "text-[#374151] hover:bg-[#F3F4F6]"}
           `}
         >
@@ -171,33 +208,38 @@ export default function CustomDatePicker({
   };
 
   return (
-    <div className="relative w-full" ref={dropdownRef}>
+    <div className={`relative w-full ${className}`} ref={dropdownRef}>
       {/* MAPA DO TESOURO: Gatilho — exibe data formatada ou placeholder */}
       <div
         onClick={toggleDropdown}
         className={`h-[38px] px-[12px] flex items-center justify-between bg-white border rounded-[8px] transition-all cursor-pointer select-none
           ${disabled ? "bg-[#F3F4F6] border-[#E5E7EB] cursor-not-allowed opacity-80" : "hover:border-[#D1D5DB]"}
-           ${isOpen ? "border-[#D1D5DB]" : "border-[#E5E7EB]"}
+          ${isOpen ? "border-[#6D28D9] ring-1 ring-[#6D28D9]" : "border-[#E5E7EB]"}
         `}
       >
-        <div className="flex-1 overflow-hidden pr-2">
+        <div className="flex-1 overflow-hidden pr-2 text-[13px]">
           {value ? (
-            <span className="text-[#1A1A2E]">{formatDisplayDate(value)}</span>
+            <span className="text-[#111827]">{formatDisplayDate(value)}</span>
           ) : (
             <span className="text-[#9CA3AF]">{placeholder}</span>
           )}
         </div>
         <Calendar
-          className={`w-[16px] h-[16px] shrink-0 transition-colors duration-300 ${isOpen ? "text-[#7C3AED]" : "text-[#9CA3AF]"}`}
+          className={`w-[16px] h-[16px] shrink-0 transition-colors duration-300 ${isOpen ? "text-[#6D28D9]" : "text-[#9CA3AF]"}`}
           strokeWidth={2.4}
         />
       </div>
 
-      {/* MAPA DO TESOURO: Dropdown do calendário */}
-      {isOpen && (
-        <div className="absolute z-[50] top-[calc(100%+4px)] left-0 bg-white border border-[#E5E7EB] rounded-[10px] shadow-[0_10px_30px_rgba(0,0,0,0.06)] overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+      {/* MAPA DO TESOURO: Dropdown do calendário com Portal */}
+      {isOpen && typeof document !== "undefined" && createPortal(
+        <div 
+          ref={portalRef}
+          style={dropdownStyle}
+          className="z-[9999] bg-white border border-[#E5E7EB] rounded-[10px] shadow-[0_10px_30px_rgba(0,0,0,0.06)] overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+        >
           {renderCalendar()}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

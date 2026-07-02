@@ -54,6 +54,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   /**
    * INTEGRAÇÃO BACKEND:
@@ -77,68 +78,29 @@ export default function Sidebar() {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Sincroniza o menu lateral com a URL atual (Next.js App Router)
-    if (pathname === '/dashboard') {
-      setActiveItem('Dashboard');
-    } else if (pathname.includes('/filiais')) {
-      setActiveItem('Filiais');
-    } else if (pathname.includes('/assistente/perfil')) {
-      setActiveItem('Perfil da Assistente');
-      if (!openSubmenus.includes('Assistente Virtual')) setOpenSubmenus(['Assistente Virtual']);
-    } else if (pathname.includes('/assistente/notificacoes')) {
-      setActiveItem('Tipos de Notificação');
-      if (!openSubmenus.includes('Assistente Virtual')) setOpenSubmenus(['Assistente Virtual']);
-    } else if (pathname.includes('/cultos/agenda')) {
-      setActiveItem('Agenda de Cultos');
-      if (!openSubmenus.includes('Cultos')) setOpenSubmenus(['Cultos']);
-    } else if (pathname.includes('/cultos/registro')) {
-      setActiveItem('Registro de Presença');
-      if (!openSubmenus.includes('Cultos')) setOpenSubmenus(['Cultos']);
-    } else if (pathname.includes('/cultos/aceitou-jesus')) {
-      setActiveItem('Aceitou Jesus');
-      if (!openSubmenus.includes('Cuidados')) setOpenSubmenus(['Cuidados']);
-    } else if (pathname.includes('/cadastros/redes')) {
-      setActiveItem('Redes');
-      if (!openSubmenus.includes('Cadastros')) setOpenSubmenus(['Cadastros']);
-    } else if (pathname.includes('/cadastros/visitantes')) {
-      setActiveItem('Visitantes');
-      if (!openSubmenus.includes('Cadastros')) setOpenSubmenus(['Cadastros']);
-    } else if (pathname.includes('/cadastros/ministerios')) {
-      setActiveItem('Ministérios');
-      if (!openSubmenus.includes('Cadastros')) setOpenSubmenus(['Cadastros']);
-    } else if (pathname.includes('/cadastros/cargos')) {
-      setActiveItem('Cargos');
-      if (!openSubmenus.includes('Cadastros')) setOpenSubmenus(['Cadastros']);
-    } else if (pathname.includes('/cadastros/membros')) {
-      setActiveItem('Membros');
-      if (!openSubmenus.includes('Cadastros')) setOpenSubmenus(['Cadastros']);
-    } else if (pathname.includes('/celulas/cadastro')) {
-      setActiveItem('Gerenciamento de Células');
-      if (!openSubmenus.includes('Células')) setOpenSubmenus(['Células']);
-    } else if (pathname.includes('/celulas/metricas/novo')) {
-      setActiveItem('Gerenciamento de Células');
-      if (!openSubmenus.includes('Células')) setOpenSubmenus(['Células']);
-    } else if (pathname.includes('/celulas/perfil')) {
-      setActiveItem('Perfil');
-      if (!openSubmenus.includes('Células')) setOpenSubmenus(['Células']);
-    } else if (pathname.includes('/celulas/metricas')) {
-      setActiveItem('Métricas de Células');
-      if (!openSubmenus.includes('Células')) setOpenSubmenus(['Células']);
-    } else if (pathname.includes('/atendimentos')) {
-      setActiveItem('Atendimentos');
-      if (!openSubmenus.includes('Cuidados')) setOpenSubmenus(['Cuidados']);
-    } else if (pathname.includes('/cursos/inscritos')) {
-      setActiveItem('Inscritos');
-      if (!openSubmenus.includes('Cursos')) setOpenSubmenus(['Cursos']);
-    } else if (pathname.includes('/cursos')) {
-      setActiveItem('Cursos');
-      if (!openSubmenus.includes('Cursos')) setOpenSubmenus(['Cursos']);
-    } else if (pathname.includes('/eventos/inscritos')) {
-      setActiveItem('Inscritos');
-      if (!openSubmenus.includes('Eventos')) setOpenSubmenus(['Eventos']);
-    } else if (pathname.includes('/eventos')) {
-      setActiveItem('Eventos');
-      if (!openSubmenus.includes('Eventos')) setOpenSubmenus(['Eventos']);
+    // Sincroniza o menu lateral com a URL atual
+    let found = "Painel";
+    let foundParent: string | null = null;
+
+    for (const section of navSections) {
+      for (const item of section.items) {
+        if ('isAccordion' in item && item.isAccordion && 'subItems' in item) {
+          for (const subItem of (item as any).subItems) {
+             if (pathname && (pathname === subItem.href || (subItem.href !== "/" && pathname.startsWith(subItem.href)))) {
+               found = subItem.label;
+               foundParent = item.label;
+             }
+          }
+        } else {
+          if ((item as any).href && pathname && (pathname === (item as any).href || ((item as any).href !== "/" && pathname.startsWith((item as any).href)))) {
+            found = item.label;
+          }
+        }
+      }
+    }
+    setActiveItem(found);
+    if (foundParent) {
+      setOpenSubmenus(prev => prev.includes(foundParent as string) ? prev : [...prev, foundParent as string]);
     }
   }, [pathname]);
 
@@ -179,13 +141,12 @@ export default function Sidebar() {
               }`}
               style={{ height: 'auto', filter: 'brightness(0) invert(1)' }}
             />
-            {/* INTEGRAÇÃO BACKEND: Nome do sistema ativo — futuro: vir do contexto/tenant */}
             <span
               className={`ml-[38px] mt-[-2px] font-[500] text-[12px] tracking-[0.02em] text-text-muted leading-tight transition-all duration-300 ${
                 isCollapsed ? "opacity-0 h-0" : "opacity-100"
               }`}
             >
-              {t("Church OS")}
+              {t("Finance OS")}
             </span>
           </Link>
           
@@ -245,8 +206,8 @@ export default function Sidebar() {
                     >
                       <div className="flex-shrink-0 flex items-center justify-center w-6 h-6">
                         <item.icon
-                          size={20}
-                          strokeWidth={2}
+                          size={18}
+                          strokeWidth={2.2}
                           className="text-[#F8F7FF]"
                         />
                       </div>
@@ -256,24 +217,24 @@ export default function Sidebar() {
                           isCollapsed ? "opacity-0 w-0 ml-0" : "opacity-100 w-auto ml-2"
                         }`}
                       >
-                        <span className="font-[600] text-[13px] text-text-primary">
+                        <span className="font-[500] text-[13px] text-text-primary">
                           {t(item.label)}
                         </span>
                         
-                        {Boolean('isAccordion' in item && item.isAccordion) && (
+                        {('isAccordion' in item && Boolean((item as any).isAccordion)) && (
                           <ChevronRight
                             size={16}
                             strokeWidth={2.4}
-                            className={`transition-transform duration-300 ml-auto ${
-                              isAccordionOpen ? "rotate-90 text-[#432E6A]" : "text-[#7B8798]"
-                            } ${isCollapsed ? "hidden" : "block"}`}
+                            className={`text-text-secondary transition-transform duration-300 ${
+                              isAccordionOpen ? "rotate-90" : "rotate-0"
+                            }`}
                           />
                         )}
                       </div>
                     </button>
 
                     {/* MAPA DO TESOURO: Submenus do accordion (expansível) */}
-                    {Boolean('isAccordion' in item && item.isAccordion && 'subItems' in item && item.subItems) && (
+                    {('isAccordion' in item && Boolean((item as any).isAccordion) && 'subItems' in item && Boolean((item as any).subItems)) && (
                       <div
                         className={`flex flex-col w-full overflow-hidden transition-all duration-300 ${
                           isAccordionOpen && !isCollapsed ? "max-h-[500px] mt-1" : "max-h-0"
@@ -424,12 +385,12 @@ export default function Sidebar() {
                 {t("Ajuda")}
               </a>
               <div className="h-px bg-divider mx-3" />
-              {/* INTEGRAÇÃO BACKEND: Sair — chama logout e redireciona para tela de login. */}
+              {/* INTEGRAÇÃO BACKEND: Sair — desabilitado no finance. */}
               <button
                 type="button"
                 onClick={async () => {
                   setUserMenuOpen(false);
-                  await logout();
+                  logout();
                 }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-white/10 transition-colors text-text-primary text-[13px] font-[500]"
               >
@@ -456,7 +417,7 @@ export default function Sidebar() {
           background: rgba(255, 255, 255, 0.2);
         }
         
-        aside .group:hover {
+        .group:hover {
           background: var(--color-item-hover) !important;
         }
       `}} />
