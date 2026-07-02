@@ -343,7 +343,7 @@ class PagamentoService
                                 'valor' => $sellerAmount,
                             ]);
                         // Comissão do Gestor
-                        $hasGestor = !empty($vendedor->gestor_id) || $vendedor->is_gestor;
+                        $hasGestor = !empty($vendedor->gestor_id);
                         if ($hasGestor) {
                             if ($venda->isPagamentoParcelado() && !$isComissaoAntecipada) {
                                 $gestorAmount = 0; // SEM COMISSÃO parcelas futuras

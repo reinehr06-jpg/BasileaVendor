@@ -1434,7 +1434,7 @@ class AsaasClienteSyncController extends Controller
                     }
                 }
                 
-                if (empty($vendedor->gestor_id) && !$vendedor->is_gestor) {
+                if (empty($vendedor->gestor_id)) {
                     $cg = 0;
                 }
                 return [round($cv, 2), round($cg, 2)];
@@ -1454,8 +1454,8 @@ class AsaasClienteSyncController extends Controller
             $cg = $valorPlano * ($percGstRec / 100);
         }
 
-        // Se o vendedor não tem gestor acima dele E não é gestor, a comissão de gestão é zero
-        if (empty($vendedor->gestor_id) && !$vendedor->is_gestor) {
+        // Se o vendedor não tem gestor acima dele, a comissão de gestão é zero
+        if (empty($vendedor->gestor_id)) {
             $cg = 0;
         }
 
