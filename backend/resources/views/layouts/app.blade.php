@@ -431,6 +431,7 @@
                     <i class="fas fa-check-double"></i> <span class="menu-item-text">Aprovações</span>
                 </a>
 
+                {{--
                 <div class="menu-section">Marketing</div>
                 <a href="{{ route('admin.campanhas.index') }}" class="menu-item {{ request()->routeIs('admin.campanhas*') ? 'active' : '' }}">
                     <i class="fas fa-bullhorn"></i> <span class="menu-item-text">Campanhas</span>
@@ -449,6 +450,7 @@
                 <a href="{{ route('admin.chat.contatos') }}" class="menu-item {{ request()->routeIs('admin.chat.contatos') ? 'active' : '' }}">
                     <i class="fas fa-id-card"></i> <span class="menu-item-text">Chat Contatos</span>
                 </a>
+                --}}
 
                 <div class="menu-section">Financeiro</div>
                 <a href="{{ route('master.pagamentos') }}" class="menu-item {{ request()->routeIs('master.pagamentos') ? 'active' : '' }}">
@@ -500,10 +502,12 @@
                     <i class="fas fa-users-cog"></i> Minha Equipe
                 </a>
 
+                {{--
                 <div class="menu-section">Comunicação</div>
                 <a href="{{ route('gestor.chat.index') }}" class="menu-item {{ request()->routeIs('gestor.chat*') ? 'active' : '' }}">
                     <i class="fab fa-whatsapp"></i> Chat Conversas
                 </a>
+                --}}
 
                 <div class="menu-section">Financeiro</div>
                 <a href="{{ route('vendedor.comissoes') }}" class="menu-item {{ request()->routeIs('vendedor.comissoes*') ? 'active' : '' }}">
@@ -533,6 +537,7 @@
                     <i class="fas fa-credit-card"></i> Pagamentos
                 </a>
 
+                {{--
                 <div class="menu-section">Comunicação</div>
                 <a href="{{ route('vendedor.chat') }}" class="menu-item {{ request()->routeIs('vendedor.chat') || request()->routeIs('vendedor.chat.*') ? 'active' : '' }}">
                     <i class="fab fa-whatsapp"></i> Chat WhatsApp
@@ -548,6 +553,7 @@
                 <a href="{{ route('vendedor.primeira-mensagem') }}" class="menu-item {{ request()->routeIs('vendedor.primeira-mensagem*') ? 'active' : '' }}">
                     <i class="fas fa-comment-dots"></i> Primeira Mensagem
                 </a>
+                --}}
 
                 <div class="menu-section">Financeiro</div>
                 <a href="{{ route('vendedor.comissoes') }}" class="menu-item {{ request()->routeIs('vendedor.comissoes*') ? 'active' : '' }}">
