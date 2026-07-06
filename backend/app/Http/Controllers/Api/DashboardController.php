@@ -16,8 +16,8 @@ class DashboardController extends Controller
         
         // Verifica as permissões (vendedor vs gestor vs admin)
         // Para simplificar, vou assumir que o Admin vê tudo e Vendedor vê só o seu
-        $vendedorId = $user->vendedor->id ?? null;
-        $isGestor = $user->role === 'gestor' || $user->role === 'admin' || $user->role === 'master';
+        $vendedorId = $user->vendedor?->id ?? null;
+        $isGestor = $user->perfil === 'gestor' || $user->perfil === 'admin' || $user->perfil === 'master';
 
         $queryVendas = Venda::query();
         $queryClientes = Cliente::query();

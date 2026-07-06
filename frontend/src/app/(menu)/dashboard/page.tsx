@@ -37,7 +37,10 @@ const desempenhoComercialData = [
 
 export default function DashboardPage() {
   const { t } = useTranslation();
-
+  const { user } = useAuth();
+  
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [greeting, setGreeting] = useState("Bom dia");
   
   useEffect(() => {
@@ -45,6 +48,14 @@ export default function DashboardPage() {
     if (hour >= 5 && hour < 12) setGreeting("Bom dia");
     else if (hour >= 12 && hour < 18) setGreeting("Boa tarde");
     else setGreeting("Boa noite");
+    
+    DashboardService.obterDados().then(res => {
+      setData(res);
+      setLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
   }, []);
 
   const getGreetingConfig = () => {
@@ -66,6 +77,19 @@ export default function DashboardPage() {
     }
   };
   const greetingConfig = getGreetingConfig();
+  
+  const formatCurrency = (val: number) => 
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+  // Fallback values se loading ou erro
+  const receita = data?.kpis.receita_bruta || 0;
+  const vendas = data?.kpis.total_vendas || 0;
+  const clientes = data?.kpis.total_clientes || 0;
+  
+  const chartData = data?.charts.receita_mensal.labels.map((label, index) => ({
+    name: label,
+    valor: data.charts.receita_mensal.data[index]
+  })) || [];
 
   return (
     <div className="flex min-h-screen font-inter bg-[#F5F5F7]">
@@ -84,7 +108,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex flex-col">
                 <h1 className="text-[28px] font-[800] text-white leading-tight drop-shadow-sm tracking-tight">
-                  {greeting}, Vini
+                  {greeting}, {user?.name ? user.name.split(' ')[0] : 'Admin'}
                 </h1>
                 <p className="text-[14px] text-purple-200 mt-1">{t("Aqui está o resumo da sua operação comercial hoje.")}</p>
               </div>
@@ -98,29 +122,56 @@ export default function DashboardPage() {
             
             {/* KPI 1: Faturamento */}
             <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-[16px] flex flex-col shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-[36px] h-[36px] rounded-[8px] bg-green-50 flex items-center justify-center mb-3">
-                <DollarSign className="w-[18px] h-[18px] text-green-500" strokeWidth={2.5} />
+              <div className="flex items-center justify-between mb-[8px]">
+                <div className="flex items-center gap-[8px]">
+                  <div className="w-[32px] h-[32px] rounded-[8px] bg-green-50 flex items-center justify-center">
+                    <DollarSign className="w-[16px] h-[16px] text-green-600" />
+                  </div>
+                  <span className="text-[14px] font-[600] text-[#4B5563]">{t("Faturamento")}</span>
+                </div>
               </div>
-              <span className="text-[20px] font-[800] text-[#1A1A2E] leading-none mb-1">R$ 30.512</span>
-              <span className="text-[10px] font-[700] text-[#9CA3AF] uppercase tracking-wider">{t("Faturamento")}</span>
+              <div className="flex flex-col">
+                <span className="text-[24px] font-[700] text-[#111827]">
+                  {loading ? '...' : formatCurrency(receita)}
+                </span>
+                <span className="text-[12px] text-green-600 font-[500] mt-1">+12% vs. mês anterior</span>
+              </div>
             </div>
 
             {/* KPI 2: Vendas */}
             <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-[16px] flex flex-col shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-[36px] h-[36px] rounded-[8px] bg-purple-50 flex items-center justify-center mb-3">
-                <ShoppingCart className="w-[18px] h-[18px] text-[#6D28D9]" strokeWidth={2.5} />
+              <div className="flex items-center justify-between mb-[8px]">
+                <div className="flex items-center gap-[8px]">
+                  <div className="w-[32px] h-[32px] rounded-[8px] bg-blue-50 flex items-center justify-center">
+                    <ShoppingCart className="w-[16px] h-[16px] text-blue-600" />
+                  </div>
+                  <span className="text-[14px] font-[600] text-[#4B5563]">{t("Vendas Realizadas")}</span>
+                </div>
               </div>
-              <span className="text-[20px] font-[800] text-[#1A1A2E] leading-none mb-1">4</span>
-              <span className="text-[10px] font-[700] text-[#9CA3AF] uppercase tracking-wider">{t("Vendas")}</span>
+              <div className="flex flex-col">
+                <span className="text-[24px] font-[700] text-[#111827]">
+                  {loading ? '...' : vendas}
+                </span>
+                <span className="text-[12px] text-green-600 font-[500] mt-1">+5% vs. mês anterior</span>
+              </div>
             </div>
 
             {/* KPI 3: Clientes */}
             <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-[16px] flex flex-col shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-[36px] h-[36px] rounded-[8px] bg-blue-50 flex items-center justify-center mb-3">
-                <Users className="w-[18px] h-[18px] text-blue-500" strokeWidth={2.5} />
+              <div className="flex items-center justify-between mb-[8px]">
+                <div className="flex items-center gap-[8px]">
+                  <div className="w-[32px] h-[32px] rounded-[8px] bg-purple-50 flex items-center justify-center">
+                    <Users className="w-[16px] h-[16px] text-purple-600" />
+                  </div>
+                  <span className="text-[14px] font-[600] text-[#4B5563]">{t("Clientes Ativos")}</span>
+                </div>
               </div>
-              <span className="text-[20px] font-[800] text-[#1A1A2E] leading-none mb-1">158</span>
-              <span className="text-[10px] font-[700] text-[#9CA3AF] uppercase tracking-wider">{t("Clientes")}</span>
+              <div className="flex flex-col">
+                <span className="text-[24px] font-[700] text-[#111827]">
+                  {loading ? '...' : clientes}
+                </span>
+                <span className="text-[12px] text-purple-600 font-[500] mt-1">Estável</span>
+              </div>
             </div>
 
           </div>
@@ -145,7 +196,7 @@ export default function DashboardPage() {
               
               <div className="flex-1 w-full min-h-0 ml-[-20px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={desempenhoComercialData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                  <AreaChart data={chartData.length > 0 ? chartData : desempenhoComercialData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#A78BFA" stopOpacity={0.4}/>
@@ -172,7 +223,9 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-[800] text-[#9CA3AF] uppercase tracking-widest">{t("Ticket Médio")}</span>
-                  <span className="text-[22px] font-[800] text-[#1A1A2E] leading-tight">R$ 191,90</span>
+                  <span className="text-[22px] font-[800] text-[#1A1A2E] leading-tight">
+                    {loading ? '...' : formatCurrency(vendas > 0 ? (receita / vendas) : 0)}
+                  </span>
                 </div>
               </div>
 
