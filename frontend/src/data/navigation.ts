@@ -32,8 +32,7 @@ export const navSections = [
         isAccordion: true, 
         subItems: [
           { label: "Métricas de Vendas", href: "/gestao-comercial/metricas-vendas" },
-          { label: "Todas as Vendas", href: "/gestao-comercial/vendas" },
-          { label: "Minhas Vendas (Vendedor)", href: "/vendedor/minhas-vendas" }
+          { label: "Todas as Vendas", href: "/gestao-comercial/vendas" }
         ]
       },
       { label: "Clientes", icon: Contact, href: "/gestao-comercial/clientes" },
