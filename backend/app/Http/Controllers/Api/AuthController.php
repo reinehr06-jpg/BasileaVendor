@@ -39,7 +39,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role ?? 'vendedor',
-                'vendedor_id' => $user->vendedor->id ?? null,
+                'vendedor_id' => $user->vendedor?->id ?? null,
             ]
         ]);
     }
@@ -54,7 +54,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role ?? 'vendedor',
-                'vendedor_id' => $user->vendedor->id ?? null,
+                'vendedor_id' => $user->vendedor?->id ?? null,
             ]
         ]);
     }
