@@ -5,35 +5,44 @@ import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import Link from "next/link";
 import { 
-  ArrowLeft,
-  Cloud,
-  History,
-  RefreshCw,
-  Search,
-  Filter,
-  Users,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
-  UserX,
-  DollarSign,
-  ChevronDown,
-  Eye,
-  Edit2,
-  UserCheck
+  ArrowLeft, Cloud, History, RefreshCw, Search, Filter, Users, 
+  CheckCircle2, AlertTriangle, XCircle, UserX, DollarSign, 
+  ChevronDown, Eye, Edit2, UserCheck, AlertCircle, UserMinus, 
+  ChevronLeft, ChevronRight, MoreHorizontal, ArrowUpRight, Check
 } from "lucide-react";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 import CustomSelect from "@/components/CustomSelect";
 
-type Tab = "todos" | "ativos" | "churn" | "cancelados" | "sem-vendedor";
+type Tab = "todos" | "ativos" | "churn" | "cancelados" | "sem_vendedor";
 
 export default function ClientesAsaasPage() {
   const [activeTab, setActiveTab] = useState<Tab>("todos");
   const [selectedClients, setSelectedClients] = useState<number[]>([]);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Filtros
   const [busca, setBusca] = useState("");
   const [vendedorFilter, setVendedorFilter] = useState("todos");
   const [tipoFilter, setTipoFilter] = useState("todas");
+
+  const handleSyncAsaas = async () => {
+    setIsSyncing(true);
+    const toastId = toast.loading("Iniciando sincronização com Asaas...");
+    try {
+      const res = await api.post('/clientes-asaas/sincronizar', { offset: 0 });
+      if (res.data.success) {
+        toast.success(res.data.message || "Sincronização concluída com sucesso!", { id: toastId });
+      } else {
+        toast.error("Erro na sincronização.", { id: toastId });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Falha ao comunicar com o servidor.", { id: toastId });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const vendedorOptions = [
     { value: "todos", label: "Vendedor: Todos" },
@@ -143,9 +152,12 @@ export default function ClientesAsaasPage() {
                   <History className="w-[16px] h-[16px]" />
                   Auditoria Retroativa
                 </button>
-                <button className="flex items-center gap-[8px] px-[16px] py-[10px] bg-white text-[#312E81] hover:bg-[#F8FAFC] transition-all rounded-[10px] text-[13px] font-[700] shadow-sm">
-                  <RefreshCw className="w-[16px] h-[16px]" />
-                  Sincronizar com Asaas
+                <button 
+                  onClick={handleSyncAsaas}
+                  disabled={isSyncing}
+                  className="flex items-center gap-[8px] px-[16px] py-[10px] bg-white text-[#312E81] hover:bg-[#F8FAFC] transition-all rounded-[10px] text-[13px] font-[700] shadow-sm disabled:opacity-70 disabled:cursor-not-allowed">
+                  <RefreshCw className={`w-[16px] h-[16px] ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Sincronizando...' : 'Sincronizar com Asaas'}
                 </button>
               </div>
             </div>
