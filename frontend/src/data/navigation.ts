@@ -18,7 +18,7 @@ export const navSections = [
   {
     title: "VISÃO GERAL",
     items: [
-      { label: "Painel de Controle", icon: PieChart, href: "/dashboard" },
+      { label: "Dashboard", icon: PieChart, href: "/dashboard" },
     ],
   },
   {
