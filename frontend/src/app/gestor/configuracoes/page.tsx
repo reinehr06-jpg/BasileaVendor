@@ -19,7 +19,8 @@ export default function ConfiguracoesPage() {
   const { t } = useTranslation();
   const [busca, setBusca] = useState("");
 
-  const modulos = [
+  type Modulo = { id: string; title: string; description: string; icon: React.ReactNode; iconBg: string; highlight: boolean; badge?: string };
+  const modulos: Modulo[] = [
     {
       id: "conta",
       title: "Perfil & Conta",

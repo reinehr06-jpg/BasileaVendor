@@ -27,6 +27,11 @@ export default function VendedorMinhasVendasPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = 5;
 
+  const vendas = [
+    { id: 1, cliente: "Marcos Silva", plano: "Plano Premium", valor: "R$ 199,90", tipo: "Cartão", status: "Aprovada", badgeBg: "bg-[#DCFCE7]", statusColor: "text-[#15803D]", subStatus: "Pago", pagamento: "10/05/2026", data: "10/05/2026" },
+    { id: 2, cliente: "Ana Lima", plano: "Plano Basico", valor: "R$ 99,90", tipo: "Boleto", status: "Pendente", badgeBg: "bg-[#FEF9C3]", statusColor: "text-[#A16207]", subStatus: "Aguardando", pagamento: "12/05/2026", data: "11/05/2026" }
+  ];
+
   return (
     <main className="p-[24px_32px_32px_32px] flex-1 flex flex-col">
       <div className="w-full flex flex-col gap-[24px]">
@@ -147,11 +152,11 @@ export default function VendedorMinhasVendasPage() {
           <div className="w-full h-px bg-[#E5E7EB]"></div>
 
           <Pagination
+            total={vendas.length}
             currentPage={currentPage}
-            totalPages={totalPages}
+            pageSize={10}
             onPageChange={setCurrentPage}
-            itemsPerPage={10}
-            totalItems={50}
+            onPageSizeChange={() => {}}
           />
         </div>
       </div>
