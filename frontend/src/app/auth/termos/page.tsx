@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { FileText, Loader2, Check } from "lucide-react";
 
@@ -13,14 +14,22 @@ export default function TermosPage() {
   const [accepted, setAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const { user } = useAuth();
+  
   const handleContinue = () => {
     setIsLoading(true);
     // Simula salvamento da aceitação
     setTimeout(() => {
       setIsLoading(false);
       toast.success(t("Acesso liberado!"));
-      // Direcionar para a página principal (ex: gestor)
-      router.push("/gestor");
+      
+      if (user?.role === 'vendedor') {
+        router.push("/vendedor/minhas-vendas");
+      } else if (user?.role === 'gestor') {
+        router.push("/gestor/metricas-vendas");
+      } else {
+        router.push("/dashboard");
+      }
     }, 1000);
   };
 

@@ -16,6 +16,12 @@ import {
 
 export const navSections = [
   {
+    title: "VISÃO GERAL",
+    items: [
+      { label: "Painel de Controle", icon: PieChart, href: "/dashboard" },
+    ],
+  },
+  {
     title: "GESTÃO COMERCIAL",
     items: [
       { label: "Vendedores", icon: User, href: "/gestao-comercial/vendedores" },
