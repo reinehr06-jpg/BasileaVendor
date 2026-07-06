@@ -20,8 +20,7 @@ import {
   HelpCircle,
   LogOut,
 } from "lucide-react";
-import { navSections } from "@/data/navigation";
-import { useAuth } from "@/context/AuthContext";
+import { navSections, sellerNavSections, gestorNavSections } from "@/data/navigation";
 
 // ============================================================
 // MAPA DO TESOURO — Gestão / Sidebar (Principal)
@@ -53,8 +52,6 @@ export default function Sidebar() {
   const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
-  const { logout } = useAuth();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   /**
    * INTEGRAÇÃO BACKEND:
@@ -78,11 +75,12 @@ export default function Sidebar() {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const currentSections = pathname?.startsWith("/gestor") ? gestorNavSections : (pathname?.startsWith("/vendedor") ? sellerNavSections : navSections);
     // Sincroniza o menu lateral com a URL atual
     let found = "Painel";
     let foundParent: string | null = null;
 
-    for (const section of navSections) {
+    for (const section of currentSections) {
       for (const item of section.items) {
         if ('isAccordion' in item && item.isAccordion && 'subItems' in item) {
           for (const subItem of (item as any).subItems) {
@@ -132,7 +130,7 @@ export default function Sidebar() {
         <div className="flex flex-col w-full">
         {/* TOPO */}
         <div className="flex items-center justify-between px-3 pt-6 pb-4 relative h-20">
-          <Link href="/dashboard" className="flex flex-col overflow-hidden hover:opacity-80 transition-opacity">{/* MAPA DO TESOURO: Logo / Branding — link para Dashboard */}
+          <Link href={pathname?.startsWith("/gestor") ? "/gestor" : (pathname?.startsWith("/vendedor") ? "/vendedor" : "/dashboard")} className="flex flex-col overflow-hidden hover:opacity-80 transition-opacity">{/* MAPA DO TESOURO: Logo / Branding — link para Dashboard */}
             <img 
               src="https://dash.basileia.global/images/logo-basileia.png?0b669f9a5d54a07b37941d0c8db9ac64" 
               alt="Basileia" 
@@ -146,7 +144,7 @@ export default function Sidebar() {
                 isCollapsed ? "opacity-0 h-0" : "opacity-100"
               }`}
             >
-              {t("Finance OS")}
+              {t("Vendor OS")}
             </span>
           </Link>
           
@@ -165,7 +163,7 @@ export default function Sidebar() {
 
         {/* MAPA DO TESOURO: Seções de navegação (Gestão, Cuidados, Configurações) */}
         <div className="flex flex-col px-3 gap-4 mt-2 pb-4">
-          {navSections.map((section, idx) => (
+          {(pathname?.startsWith("/gestor") ? gestorNavSections : (pathname?.startsWith("/vendedor") ? sellerNavSections : navSections)).map((section, idx) => (
             <div key={idx} className="flex flex-col gap-1 w-full">
               {/* MAPA DO TESOURO: Título da seção (Gestão, Cuidados, Configurações) */}
               <div
@@ -206,7 +204,7 @@ export default function Sidebar() {
                     >
                       <div className="flex-shrink-0 flex items-center justify-center w-6 h-6">
                         <item.icon
-                          size={18}
+                          size={20}
                           strokeWidth={2.2}
                           className="text-[#F8F7FF]"
                         />
@@ -217,7 +215,7 @@ export default function Sidebar() {
                           isCollapsed ? "opacity-0 w-0 ml-0" : "opacity-100 w-auto ml-2"
                         }`}
                       >
-                        <span className="font-[500] text-[13px] text-text-primary">
+                        <span className="font-[500] text-[14px] text-text-primary">
                           {t(item.label)}
                         </span>
                         
@@ -390,7 +388,7 @@ export default function Sidebar() {
                 type="button"
                 onClick={async () => {
                   setUserMenuOpen(false);
-                  logout();
+                  router.push("/");
                 }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-white/10 transition-colors text-text-primary text-[13px] font-[500]"
               >

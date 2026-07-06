@@ -5,7 +5,7 @@ import { loginSchema } from "@/lib/schemas/auth.schema";
 
 import { toast } from "sonner";
 
-import { Captcha } from "./Captcha";
+
 
 export function LoginForm({ setIsRegistering }: { setIsRegistering: (val: boolean) => void }) {
   const [email, setEmail] = useState("");
@@ -21,7 +21,7 @@ export function LoginForm({ setIsRegistering }: { setIsRegistering: (val: boolea
     e.preventDefault();
     
     // Zod validation
-    const result = loginSchema.safeParse({ email, password, remember, captcha: captchaToken || "" });
+    const result = loginSchema.safeParse({ email, password, remember, captcha: "dummy" });
     if (!result.success) {
       toast.error("Erro de validação", {
         description: result.error.issues.map(err => err.message).join(", ")
@@ -34,7 +34,7 @@ export function LoginForm({ setIsRegistering }: { setIsRegistering: (val: boolea
       toast.success("Login realizado com sucesso!", {
         description: "Redirecionando para o painel..."
       });
-      router.push("/dashboard");
+      router.push("/auth/2fa");
     } catch (err: any) {
       console.error("Erro no login", err);
       toast.error("Acesso negado", {
@@ -47,8 +47,8 @@ export function LoginForm({ setIsRegistering }: { setIsRegistering: (val: boolea
   return (
               <div className="fade-in" style={{width: '100%'}}>
                 <div className="card-header">
-                  <h1>Entrar no Basileia</h1>
-                  <p>Acesse sua igreja para continuar.</p>
+                  <h1>Basiléia Vendor OS</h1>
+                  <p>Acesse seu portal de gestão para continuar.</p>
                 </div>
 
                 <div className="field">
@@ -121,7 +121,7 @@ export function LoginForm({ setIsRegistering }: { setIsRegistering: (val: boolea
                   <button type="button" className="forgot">Esqueci minha senha</button>
                 </div>
 
-                <Captcha onVerify={setCaptchaToken} />
+                
 
                 <button type="submit" className="btn" onClick={handleSubmit}>Entrar no sistema</button>
 

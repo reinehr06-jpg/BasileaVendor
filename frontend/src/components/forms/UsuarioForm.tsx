@@ -89,7 +89,7 @@ export default function UsuarioForm({ editId }: { editId?: string }) {
           {/* CABEÇALHO DA PÁGINA */}
           <div className="flex items-center gap-[14px] py-[16px] pb-[16px]">
             <div className="w-[44px] h-[44px] rounded-[10px] bg-[#F4EEFF] flex items-center justify-center shrink-0 shadow-inner shadow-white/50">
-              <UsersRound className="w-[20px] h-[20px] text-[#7C3AED]" strokeWidth={2.2} />
+              <UsersRound className="w-[20px] h-[20px] text-[#6D28D9]" strokeWidth={2.2} />
             </div>
             <div className="flex flex-col justify-center">
               <h1 className="text-[24px] font-[700] text-[#1A1A2E] leading-tight">{editId ? t("Editar usuário") : t("Novo usuário")}</h1>
@@ -112,12 +112,7 @@ export default function UsuarioForm({ editId }: { editId?: string }) {
                 {value:"administrador", label:"Administrador"}, 
                 {value:"operario", label:"Operário"},
                 {value:"financeiro", label:"Financeiro"},
-                {value:"cuidado", label:"Cuidado"},
-                {value:"pastor_rede", label:"Pastor de Rede"},
-                {value:"gestor_rede", label:"Gestor de Rede"},
-                {value:"lider_celula", label:"Líder de Célula"},
-                {value:"professor_curso", label:"Professor de Curso"},
-                {value:"responsavel_eventos", label:"Responsável de Eventos"}
+                {value:"cuidado", label:"Cuidado"}
               ]} />
 
               {/* Flag Ativo/Inativo */}
@@ -137,34 +132,6 @@ export default function UsuarioForm({ editId }: { editId?: string }) {
                 </button>
               </div>
             </div>
-
-            {/* Acesso Temporário de Eventos */}
-            {nivelAcesso === "responsavel_eventos" && (
-              <div className="flex flex-col gap-[16px] animate-in fade-in slide-in-from-top-2 duration-300 p-[16px] bg-[#F4EEFF] border border-[#DDD6FE] rounded-[8px] mt-2">
-                <div className="flex items-center gap-2 text-[#6D28D9]">
-                  <AlertCircle className="w-[16px] h-[16px]" strokeWidth={2.4} />
-                  <span className="text-[13px] font-[700] uppercase tracking-wider">Acesso Temporário e Vinculação</span>
-                </div>
-                <p className="text-[13px] text-[#5B21B6] leading-relaxed">
-                  Este perfil possui acesso <strong>restrito e temporário</strong>. Enquanto o usuário não for vinculado a um evento ativo através do módulo de Eventos, ele <strong>não terá acesso ao sistema</strong>.<br/><br/>
-                  O login será desativado automaticamente (o cadastro ficará inativo, e não excluído) <strong>24 horas após o último dia do evento</strong> ao qual ele for vinculado.
-                </p>
-              </div>
-            )}
-
-            {/* Acesso de Professores */}
-            {nivelAcesso === "professor_curso" && (
-              <div className="flex flex-col gap-[16px] animate-in fade-in slide-in-from-top-2 duration-300 p-[16px] bg-[#F4EEFF] border border-[#DDD6FE] rounded-[8px] mt-2">
-                <div className="flex items-center gap-2 text-[#6D28D9]">
-                  <AlertCircle className="w-[16px] h-[16px]" strokeWidth={2.4} />
-                  <span className="text-[13px] font-[700] uppercase tracking-wider">Acesso Condicionado (Turma)</span>
-                </div>
-                <p className="text-[13px] text-[#5B21B6] leading-relaxed">
-                  Este perfil possui acesso <strong>condicionado</strong>. O usuário será criado como <strong>inativo</strong> por padrão e só terá acesso liberado ao sistema após ser vinculado a uma turma ativa no <strong>Módulo de Cursos</strong>.<br/><br/>
-                  Diferente do Responsável de Eventos, o acesso do Professor <strong>não expira automaticamente</strong> e deve ser gerenciado de forma manual, ou ele continuará inativo quando não estiver alocado em nenhuma turma.
-                </p>
-              </div>
-            )}
 
             {/* Campos Condicionais de Inativação */}
             {!isAtivo && (
@@ -206,7 +173,7 @@ export default function UsuarioForm({ editId }: { editId?: string }) {
                 <Link href="/usuarios" className="px-[20px] py-[10px] bg-white border border-[#E5E7EB] text-[#374151] text-[14px] font-[600] rounded-[8px] hover:bg-[#F9FAFB] transition-colors">
                   {t("Cancelar")}
                 </Link>
-                <button className="flex items-center gap-[6px] px-[20px] py-[10px] bg-gradient-to-r from-[#6D28D9] to-[#7C3AED] text-white text-[14px] font-[600] rounded-[8px] shadow-[0_4px_14px_rgba(109,40,217,0.22)] hover:opacity-95 transition-all">
+                <button className="flex items-center gap-[6px] px-[20px] py-[10px] bg-gradient-to-r from-[#6D28D9] to-[#6D28D9] text-white text-[14px] font-[600] rounded-[8px] shadow-[0_4px_14px_rgba(109,40,217,0.22)] hover:opacity-95 transition-all">
                   <Save className="w-[16px] h-[16px]" strokeWidth={2.2} />
                   Salvar usuário
                 </button>

@@ -63,10 +63,10 @@ import {
 // #pag26 — Visitantes (Novo)
 // ============================================================
 
-export default function NovoVisitantePage() {
+export default function NovoVisitantePage({ editId }: { editId?: string } = {}) {
   return (
     <Suspense fallback={<div className="p-8 text-center text-[#6B7280]">Carregando formulário...</div>}>
-      <NovoVisitanteContent />
+      <NovoVisitanteContent editId={editId} />
     </Suspense>
   );
 }
@@ -180,7 +180,7 @@ function NovoVisitanteContent({ editId }: { editId?: string }) {
           <div className="flex items-center gap-[14px] py-[16px] pb-[16px]">
             {/* MAPA DO TESOURO: Page header icon - UserPlus */}
             <div className="w-[44px] h-[44px] rounded-[10px] bg-[#F4EEFF] flex items-center justify-center shrink-0 shadow-inner shadow-white/50">
-              <UserPlus className="w-[20px] h-[20px] text-[#7C3AED]" strokeWidth={2.2} />
+              <UserPlus className="w-[20px] h-[20px] text-[#6D28D9]" strokeWidth={2.2} />
             </div>
             <div className="flex flex-col justify-center">
               {/* MAPA DO TESOURO: Page title "Novo visitante" */}
@@ -196,7 +196,7 @@ function NovoVisitanteContent({ editId }: { editId?: string }) {
 
             {/* SEÇÃO 1: INFORMAÇÕES BÁSICAS */}
             {/* MAPA DO TESOURO: Accordion section "Informações Básicas" */}
-            <div className={`border rounded-[10px] bg-white transition-all duration-300 ${openSection === "obrigatorias" ? "border-[#D1D5DB] shadow-sm overflow-visible" : "border-[#E5E7EB] hover:border-[#D1D5DB] hover:shadow-sm overflow-hidden"}`}>
+            <div className={`border rounded-[10px] bg-white transition-all duration-300 ${openSection === "obrigatorias" ? "border-[#6D28D9]/30 shadow-[0_4px_20px_rgba(124,58,237,0.05)] overflow-visible" : "border-[#E5E7EB] hover:border-[#D1D5DB] hover:shadow-sm overflow-hidden"}`}>
               {/* MAPA DO TESOURO: Accordion toggle button for basic info */}
               <button 
                 onClick={() => toggleSection("obrigatorias")}
@@ -204,8 +204,8 @@ function NovoVisitanteContent({ editId }: { editId?: string }) {
               >
                 <div className="flex items-center gap-[14px]">
                   {/* MAPA DO TESOURO: Accordion icon - UserRound */}
-                  <div className={`w-[40px] h-[40px] rounded-[8px] flex items-center justify-center shrink-0 transition-colors ${openSection === "obrigatorias" ? "bg-gradient-to-br from-[#6D28D9] to-[#7C3AED] shadow-md shadow-[#7C3AED]/20" : "bg-[#F4EEFF] group-hover:bg-[#EAE0FF]"}`}>
-                    <UserRound className={`w-[18px] h-[18px] transition-colors ${openSection === "obrigatorias" ? "text-white" : "text-[#7C3AED]"}`} strokeWidth={2.2} />
+                  <div className={`w-[40px] h-[40px] rounded-[8px] flex items-center justify-center shrink-0 transition-colors ${openSection === "obrigatorias" ? "bg-gradient-to-br from-[#6D28D9] to-[#6D28D9] shadow-md shadow-[#6D28D9]/20" : "bg-[#F4EEFF] group-hover:bg-[#EAE0FF]"}`}>
+                    <UserRound className={`w-[18px] h-[18px] transition-colors ${openSection === "obrigatorias" ? "text-white" : "text-[#6D28D9]"}`} strokeWidth={2.2} />
                   </div>
                   <div className="flex flex-col items-start text-left">
                     {/* MAPA DO TESOURO: Accordion title "Informações Básicas" (obrigatório) */}
@@ -217,7 +217,7 @@ function NovoVisitanteContent({ editId }: { editId?: string }) {
                 </div>
                 {/* MAPA DO TESOURO: Accordion expand/collapse chevron */}
                 <div className="shrink-0 ml-4">
-                  <ChevronDown className={`w-[18px] h-[18px] text-[#9CA3AF] transition-transform duration-300 ${openSection === "obrigatorias" ? "rotate-180 text-[#7C3AED]" : "group-hover:text-[#6B7280]"}`} strokeWidth={2.4} />
+                  <ChevronDown className={`w-[18px] h-[18px] text-[#9CA3AF] transition-transform duration-300 ${openSection === "obrigatorias" ? "rotate-180 text-[#6D28D9]" : "group-hover:text-[#6B7280]"}`} strokeWidth={2.4} />
                 </div>
               </button>
               
@@ -240,7 +240,7 @@ function NovoVisitanteContent({ editId }: { editId?: string }) {
 
             {/* SEÇÃO 2: INFORMAÇÕES ADICIONAIS */}
             {/* MAPA DO TESOURO: Accordion section "Informações Adicionais" */}
-            <div className={`border rounded-[10px] bg-white transition-all duration-300 ${openSection === "adicionais" ? "border-[#D1D5DB] shadow-sm overflow-visible" : "border-[#E5E7EB] hover:border-[#D1D5DB] hover:shadow-sm overflow-hidden"}`}>
+            <div className={`border rounded-[10px] bg-white transition-all duration-300 ${openSection === "adicionais" ? "border-[#6D28D9]/30 shadow-[0_4px_20px_rgba(124,58,237,0.05)] overflow-visible" : "border-[#E5E7EB] hover:border-[#D1D5DB] hover:shadow-sm overflow-hidden"}`}>
               {/* MAPA DO TESOURO: Accordion toggle button for additional info */}
               <button 
                 onClick={() => toggleSection("adicionais")}
@@ -248,8 +248,8 @@ function NovoVisitanteContent({ editId }: { editId?: string }) {
               >
                 <div className="flex items-center gap-[14px]">
                   {/* MAPA DO TESOURO: Accordion icon - ClipboardList */}
-                  <div className={`w-[40px] h-[40px] rounded-[8px] flex items-center justify-center shrink-0 transition-colors ${openSection === "adicionais" ? "bg-gradient-to-br from-[#6D28D9] to-[#7C3AED] shadow-md shadow-[#7C3AED]/20" : "bg-[#F4EEFF] group-hover:bg-[#EAE0FF]"}`}>
-                    <ClipboardList className={`w-[18px] h-[18px] transition-colors ${openSection === "adicionais" ? "text-white" : "text-[#7C3AED]"}`} strokeWidth={2.2} />
+                  <div className={`w-[40px] h-[40px] rounded-[8px] flex items-center justify-center shrink-0 transition-colors ${openSection === "adicionais" ? "bg-gradient-to-br from-[#6D28D9] to-[#6D28D9] shadow-md shadow-[#6D28D9]/20" : "bg-[#F4EEFF] group-hover:bg-[#EAE0FF]"}`}>
+                    <ClipboardList className={`w-[18px] h-[18px] transition-colors ${openSection === "adicionais" ? "text-white" : "text-[#6D28D9]"}`} strokeWidth={2.2} />
                   </div>
                   <div className="flex flex-col items-start text-left">
                     {/* MAPA DO TESOURO: Accordion title "Informações Adicionais" */}
@@ -259,7 +259,7 @@ function NovoVisitanteContent({ editId }: { editId?: string }) {
                 </div>
                 {/* MAPA DO TESOURO: Accordion expand/collapse chevron */}
                 <div className="shrink-0 ml-4">
-                  <ChevronDown className={`w-[18px] h-[18px] text-[#9CA3AF] transition-transform duration-300 ${openSection === "adicionais" ? "rotate-180 text-[#7C3AED]" : "group-hover:text-[#6B7280]"}`} strokeWidth={2.4} />
+                  <ChevronDown className={`w-[18px] h-[18px] text-[#9CA3AF] transition-transform duration-300 ${openSection === "adicionais" ? "rotate-180 text-[#6D28D9]" : "group-hover:text-[#6B7280]"}`} strokeWidth={2.4} />
                 </div>
               </button>
               
@@ -380,7 +380,7 @@ function NovoVisitanteContent({ editId }: { editId?: string }) {
                   {t("Cancelar")}
                 </Link>
                 {/* MAPA DO TESOURO: Save button - submits via POST /api/visitantes */}
-                <button className="flex items-center gap-[6px] px-[20px] py-[10px] bg-gradient-to-r from-[#6D28D9] to-[#7C3AED] hover:opacity-95 text-white text-[14px] font-[600] rounded-[8px] shadow-[0_4px_14px_rgba(109,40,217,0.22)] transition-all">
+                <button className="flex items-center gap-[6px] px-[20px] py-[10px] bg-gradient-to-r from-[#6D28D9] to-[#6D28D9] hover:opacity-95 text-white text-[14px] font-[600] rounded-[8px] shadow-[0_4px_14px_rgba(109,40,217,0.22)] transition-all">
                   <Save className="w-[16px] h-[16px]" strokeWidth={2.2} />
                   Salvar visitante
                 </button>

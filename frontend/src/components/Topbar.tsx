@@ -10,7 +10,7 @@
  *    Barra horizontal fixa no topo da área de conteúdo (à direita da sidebar).
  *    Contém:
  *      1. Campo de busca global (⌘K) — busca por transações, contas, relatórios
- *      2. Seletor de sistemas (dropdown) — alterna entre Church OS e Finance OS
+ *      2. Seletor de sistemas (dropdown) — alterna entre Church OS e Vendor OS
  *
  * 🔗 INTEGRAÇÕES COM O BACK-END:
  *    1. GET /api/busca-global?q=termo → Busca unificada em transações, contas e relatórios
@@ -109,12 +109,12 @@ export default function Topbar() {
          * 📱 SELETOR DE SISTEMAS (Dropdown)
          * Permite ao usuário alternar entre os módulos do ecossistema Basileia:
          *   - Basileia Church OS (gestão eclesiástica — membros, cultos, etc.)
-         *   - Basileia Finance OS (gestão financeira — este sistema atual)
+         *   - Basileia Vendor OS (gestão financeira — este sistema atual)
          *
          * 🔗 BACK-END: GET /api/auth/sistemas-disponiveis
          *    Resposta: [
          *      { id: "church", nome: "Basileia Church OS", descricao: "Gestão eclesiástica", url: "/church" },
-         *      { id: "finance", nome: "Basileia Finance OS", descricao: "Gestão financeira", url: "/" }
+         *      { id: "finance", nome: "Basileia Vendor OS", descricao: "Gestão financeira", url: "/" }
          *    ]
          * 📌 REGRA: Só mostrar sistemas onde o usuário tem permissão de acesso
          * 📌 REGRA: Ao clicar num sistema, redirecionar para a URL dele
@@ -152,7 +152,7 @@ export default function Topbar() {
                 </button>
 
                 {/*
-                 * SISTEMA 2: Basileia Finance OS (este sistema — ativo)
+                 * SISTEMA 2: Basileia Vendor OS (este sistema — ativo)
                  * 🔗 BACK-END: Ao clicar, redirecionar para / (Dashboard financeiro)
                  */}
                 <button 
@@ -163,7 +163,7 @@ export default function Topbar() {
                     <DollarSign className="w-[18px] h-[18px] text-green-600" strokeWidth={2.5} />
                   </div>
                   <div className="flex flex-col items-start">
-                    <span className="text-[13px] font-[600] text-[#1A1A2E]">{t("Basileia Finance OS")}</span>
+                    <span className="text-[13px] font-[600] text-[#1A1A2E]">{t("Basileia Vendor OS")}</span>
                     <span className="text-[11px] font-[500] text-[#6B7280]">{t("Gestão financeira")}</span>
                   </div>
                 </button>

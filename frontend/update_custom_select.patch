@@ -1,0 +1,45 @@
+--- src/components/CustomSelect.tsx
++++ src/components/CustomSelect.tsx
+@@ -1,7 +1,8 @@
+ "use client";
+ 
+ import React, { useState, useRef, useEffect } from "react";
++import { createPortal } from "react-dom";
+ import { ChevronDown, Check, X, Search } from "lucide-react";
+ import { useTranslation } from "react-i18next";
+ 
+@@ -69,6 +70,8 @@
+   const [isOpen, setIsOpen] = useState(false);
+   const [searchTerm, setSearchTerm] = useState("");
++  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+   const dropdownRef = useRef<HTMLDivElement>(null);
+   const searchInputRef = useRef<HTMLInputElement>(null);
+ 
+@@ -98,6 +101,17 @@
+   };
+ 
++  useEffect(() => {
++    if (isOpen && dropdownRef.current) {
++      const rect = dropdownRef.current.getBoundingClientRect();
++      setDropdownStyle({
++        position: "fixed",
++        top: placement === "top" ? undefined : rect.bottom + 4,
++        bottom: placement === "top" ? window.innerHeight - rect.top + 4 : undefined,
++        left: rect.left,
++        width: rect.width,
++      });
++    }
++  }, [isOpen, placement]);
++
+   const handleSelect = (optionValue: string) => {
+@@ -179,10 +193,8 @@
+ 
+       {/* MAPA DO TESOURO: Dropdown com busca e lista de opções */}
+-      {isOpen && (
+-        <div className={`absolute z-[50] left-0 w-full bg-white border border-[#E5E7EB] rounded-[10px] shadow-[0_10px_30px_rgba(0,0,0,0.06)] overflow-hidden animate-in fade-in zoom-in-95 duration-100 ${
+-          placement === "top" ? "bottom-[calc(100%+4px)]" : "top-[calc(100%+4px)]"
+-        }`}>
++      {isOpen && typeof document !== "undefined" && createPortal(
++        <div style={dropdownStyle} className="z-[9999] bg-white border border-[#E5E7EB] rounded-[10px] shadow-[0_10px_30px_rgba(0,0,0,0.06)] overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+           
+           {searchable && (

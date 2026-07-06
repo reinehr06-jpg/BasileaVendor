@@ -68,7 +68,7 @@ export default function MinisterioForm({ editId }: { editId?: string }) {
           <div className="flex items-center gap-[14px] py-[16px] pb-[16px]">
             {/* MAPA DO TESOURO: Page header icon - UsersRound */}
             <div className="w-[44px] h-[44px] rounded-[10px] bg-[#F4EEFF] flex items-center justify-center shrink-0 shadow-inner shadow-white/50">
-              <UsersRound className="w-[20px] h-[20px] text-[#7C3AED]" strokeWidth={2.2} />
+              <UsersRound className="w-[20px] h-[20px] text-[#6D28D9]" strokeWidth={2.2} />
             </div>
             <div className="flex flex-col justify-center">
               {/* MAPA DO TESOURO: Page title */}

@@ -20,16 +20,13 @@ export interface LoginPayload {
   email: string;
   password?: string;
   remember?: boolean;
-  captcha?: string;
-  [key: string]: any;
 }
 
 export interface RegisterPayload {
-  nome?: string;
-  email?: string;
-  telefone?: string;
+  nome: string;
+  email: string;
+  telefone: string;
   password?: string;
-  [key: string]: any; // fallback provisório
 }
 
 export interface AuthResponse {

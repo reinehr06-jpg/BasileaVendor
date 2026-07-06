@@ -144,7 +144,7 @@ export default function CelulaForm({ editId }: { editId?: string }) {
           {/* MAPA DO TESOURO: Cabeçalho da página — ícone, título e subtítulo */}
           <div className="flex items-center gap-[14px] py-[16px] pb-[16px]">
             <div className="w-[44px] h-[44px] rounded-[10px] bg-[#F4EEFF] flex items-center justify-center shrink-0 shadow-inner shadow-white/50">
-              <Users className="w-[20px] h-[20px] text-[#7C3AED]" strokeWidth={2.2} />
+              <Users className="w-[20px] h-[20px] text-[#6D28D9]" strokeWidth={2.2} />
             </div>
             <div className="flex flex-col justify-center">
               <h1 className="text-[24px] font-[700] text-[#1A1A2E] leading-tight">{editId ? t("Editar célula") : t("Nova célula")}</h1>
