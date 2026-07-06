@@ -36,8 +36,8 @@ export default function VendedoresPage() {
   const [modalDesativar, setModalDesativar] = useState<{ isOpen: boolean; id: number | null; nome: string }>({ isOpen: false, id: null, nome: "" });
 
   const filteredVendedores = vendedores.filter(v =>
-    v.nome.toLowerCase().includes(buscaNome.toLowerCase()) &&
-    v.cpfCnpj.includes(buscaCpfCnpj)
+    v.nome?.toLowerCase().includes(buscaNome.toLowerCase()) &&
+    (v.cpfCnpj || "").includes(buscaCpfCnpj)
   );
   const paginatedVendedores = filteredVendedores.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   

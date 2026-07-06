@@ -33,8 +33,8 @@ export default function EquipesPage() {
   const [modalDesativar, setModalDesativar] = useState<{ isOpen: boolean; id: number | null; nome: string }>({ isOpen: false, id: null, nome: "" });
 
   const filteredEquipes = equipes.filter(e =>
-    e.nome.toLowerCase().includes(buscaNome.toLowerCase()) &&
-    e.gestor.toLowerCase().includes(buscaGestor.toLowerCase())
+    e.nome?.toLowerCase().includes(buscaNome.toLowerCase()) &&
+    (e.lider || "").toLowerCase().includes(buscaGestor.toLowerCase())
   );
   const paginatedEquipes = filteredEquipes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   
