@@ -9,7 +9,8 @@
 // ============================================================
 
 export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
-const BASE_URL = USE_MOCK ? "/api" : (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api");
+// Usa sempre caminho relativo para que o Next.js proxy (next.config.ts) assuma o roteamento
+const BASE_URL = "/api";
 
 // Função helper simples para pegar cookies do lado do cliente se necessário
 function getCookie(name: string) {
