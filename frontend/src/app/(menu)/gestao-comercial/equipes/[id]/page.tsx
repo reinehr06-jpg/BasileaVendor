@@ -20,10 +20,25 @@ import {
 } from "lucide-react";
 import ModalDesativar from "@/components/ModalDesativar";
 
-export default function EquipeProfilePage() {
+import { EquipesService, Equipe } from "@/services/equipes.service";
+
+export default function EquipeProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = React.use(params);
+  const id = Number(resolvedParams.id);
+
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("Todos");
   const [modalDesativarOpen, setModalDesativarOpen] = useState(false);
+  
+  const [equipe, setEquipe] = useState<Equipe | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    EquipesService.obter(id).then(res => {
+      setEquipe(res);
+      setLoading(false);
+    });
+  }, [id]);
 
   const tabs = ["Todos", "Membros", "Vendas", "Metas", "Reuniões"];
 
@@ -47,8 +62,15 @@ export default function EquipeProfilePage() {
             <div className="flex items-center text-[13px] text-[#6B7280] mb-[20px]">
               <Link href="/gestao-comercial/equipes" className="hover:text-[#6D28D9] transition-colors">{t("Equipes")}</Link>
               <span className="mx-[8px]">/</span>
-              <span className="text-[#1A1A2E] font-[600]">Vendas Corporativas</span>
+              <span className="text-[#1A1A2E] font-[600]">{equipe?.nome}</span>
             </div>
+
+            {loading && <div className="p-8 text-center">{t("Carregando...")}</div>}
+            
+            {!loading && !equipe && <div className="p-8 text-center text-red-500">{t("Equipe não encontrada")}</div>}
+            
+            {!loading && equipe && (
+              <>
 
             {/* HEADER DA PÁGINA */}
             <div className="flex items-center justify-between mb-[24px]">
@@ -63,7 +85,7 @@ export default function EquipeProfilePage() {
               </div>
               <div className="flex items-center gap-[12px]">
                 <Link 
-                  href="/gestao-comercial/equipes/1/editar"
+                  href={`/gestao-comercial/equipes/${id}/editar`}
                   className="h-[40px] px-[20px] bg-[#6D28D9] text-white font-[600] text-[13px] rounded-[8px] hover:bg-[#5B21B6] transition-colors shadow-sm flex items-center gap-[8px]"
                 >
                   <Pencil className="w-[16px] h-[16px]" strokeWidth={2.5} />
@@ -78,25 +100,25 @@ export default function EquipeProfilePage() {
               {/* Info Left */}
               <div className="flex items-center gap-[20px]">
                 <div className="w-[80px] h-[80px] rounded-[16px] bg-[#1A1A2E] flex items-center justify-center border-4 border-[#F9FAFB] shadow-sm text-[28px] font-[800] text-white">
-                  VC
+                  {equipe.nome?.substring(0, 2).toUpperCase()}
                 </div>
                 <div className="flex flex-col">
                   <div className="flex items-center gap-[12px] mb-[8px]">
-                    <h2 className="text-[20px] font-[800] text-[#1A1A2E]">Vendas Corporativas</h2>
-                    <span className="flex items-center gap-[4px] px-[8px] py-[2px] bg-[#ECFDF5] text-[#059669] text-[10px] font-[800] uppercase tracking-wide rounded-[4px]">
-                      <div className="w-[6px] h-[6px] rounded-full bg-[#059669]"></div>
-                      {t("Ativa")}
+                    <h2 className="text-[20px] font-[800] text-[#1A1A2E]">{equipe.nome}</h2>
+                    <span className={`flex items-center gap-[4px] px-[8px] py-[2px] text-[10px] font-[800] uppercase tracking-wide rounded-[4px] ${equipe.status?.toLowerCase() === 'ativa' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'}`}>
+                      <div className={`w-[6px] h-[6px] rounded-full ${equipe.status?.toLowerCase() === 'ativa' ? 'bg-[#059669]' : 'bg-[#DC2626]'}`}></div>
+                      {t(equipe.status || 'Ativa')}
                     </span>
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-x-[32px] gap-y-[8px]">
                     <div className="flex items-center gap-[6px] text-[#4B5563] text-[13px] font-[500]">
                       <Briefcase className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                      Gestor: Carlos Silva
+                      {equipe.gestor?.name ? `Gestor: ${equipe.gestor.name}` : 'Sem gestor vinculado'}
                     </div>
                     <div className="flex items-center gap-[6px] text-[#4B5563] text-[13px] font-[500]">
-                      <Calendar className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                      Criada em 15/03/2021
+                      <Users className="w-[14px] h-[14px] text-[#9CA3AF]" />
+                      {equipe.vendedores?.length || 0} {t("Membros")}
                     </div>
                   </div>
                 </div>
@@ -106,13 +128,12 @@ export default function EquipeProfilePage() {
               <div className="flex items-center gap-[16px] shrink-0">
                 <div className="bg-[#F9FAFB] border border-[#F1F1F4] rounded-[12px] p-[12px_16px] min-w-[140px]">
                   <p className="text-[10px] font-[700] text-[#6B7280] uppercase tracking-wider mb-[4px]">{t("Membros Ativos")}</p>
-                  <p className="text-[18px] font-[800] text-[#1A1A2E]">12</p>
+                  <p className="text-[18px] font-[800] text-[#1A1A2E]">{equipe.vendedores?.length || 0}</p>
                 </div>
                 <div className="bg-[#F0FDF4] border border-[#DCFCE7] rounded-[12px] p-[12px_16px] min-w-[140px]">
-                  <p className="text-[10px] font-[700] text-[#059669] uppercase tracking-wider mb-[4px]">{t("Desempenho 3M")}</p>
+                  <p className="text-[10px] font-[700] text-[#059669] uppercase tracking-wider mb-[4px]">{t("Meta Mensal")}</p>
                   <div className="flex items-baseline gap-[6px]">
-                    <p className="text-[18px] font-[800] text-[#059669]">105%</p>
-                    <span className="text-[12px] font-[600] text-[#34D399]">{t("da meta")}</span>
+                    <p className="text-[18px] font-[800] text-[#059669]">R$ {Number(equipe.meta_mensal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
                 </div>
                 <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-[12px] p-[12px_16px] min-w-[140px]">
@@ -321,6 +342,9 @@ export default function EquipeProfilePage() {
               </div>
 
             </div>
+
+              </>
+            )}
 
           </div>
         </main>

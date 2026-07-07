@@ -15,14 +15,61 @@ import {
   Save
 } from "lucide-react";
 
+import { EquipesService } from "@/services/equipes.service";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { VendedoresService, Vendedor } from "@/services/vendedores.service";
+
 type SectionType = "dados-equipe" | "metas" | null;
 
 export default function NovaEquipePage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [openSection, setOpenSection] = useState<SectionType>("dados-equipe");
 
-  const [status, setStatus] = useState("Ativa");
-  const [gestor, setGestor] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [gestores, setGestores] = useState<Vendedor[]>([]);
+
+  const [formData, setFormData] = useState({
+    nome: "",
+    status: "ativa",
+    gestor_id: "",
+    meta_mensal: ""
+  });
+
+  React.useEffect(() => {
+    // Busca apenas vendedores que são gestores para preencher o select
+    VendedoresService.listar().then(vendedores => {
+      setGestores(vendedores.filter(v => v.is_gestor || v.gestor === 'Gestor' || v.perfil === 'Gestor' || v.gestor === 'Sim' || true)); 
+      // Observação: v.is_gestor precisa ser adicionado ao response do VendedorController index, 
+      // mas vamos listar todos temporariamente para não travar a UI.
+    });
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const toastId = toast.loading("Salvando...");
+    
+    const payload = {
+      ...formData,
+      gestor_id: formData.gestor_id ? Number(formData.gestor_id) : undefined,
+      meta_mensal: formData.meta_mensal ? Number(formData.meta_mensal.replace(/\D/g, '')) / 100 : 0
+    };
+
+    try {
+      const res = await EquipesService.criar(payload as any);
+      if (res.success) {
+        toast.success("Equipe criada com sucesso!", { id: toastId });
+        router.push("/gestao-comercial/equipes");
+      } else {
+        toast.error("Erro ao salvar", { id: toastId });
+      }
+    } catch (e) {
+      toast.error("Erro de comunicação", { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const toggleSection = (section: SectionType) => {
     setOpenSection((prev) => (prev === section ? null : section));
@@ -110,7 +157,9 @@ export default function NovaEquipePage() {
                       <InputField 
                         label={t("Nome da Equipe")} 
                         placeholder="Ex: Vendas Corporativas" 
-                        required 
+                        required
+                        value={formData.nome}
+                        onChange={(v: string) => setFormData(f => ({ ...f, nome: v }))}
                       />
                       
                       <div className="flex flex-col gap-[6px]">
@@ -119,11 +168,11 @@ export default function NovaEquipePage() {
                         </label>
                         <CustomSelect
                           options={[
-                            { label: "Ativa", value: "Ativa" },
-                            { label: "Inativa", value: "Inativa" }
+                            { label: "Ativa", value: "ativa" },
+                            { label: "Inativa", value: "inativa" }
                           ]}
-                          value={status}
-                          onChange={setStatus}
+                          value={formData.status}
+                          onChange={(v) => setFormData(f => ({ ...f, status: v }))}
                           placeholder="Selecione..."
                           triggerClassName="h-[40px] bg-white border-[#E5E7EB] text-[14px]"
                         />
@@ -136,12 +185,11 @@ export default function NovaEquipePage() {
                       </label>
                       <CustomSelect
                         options={[
-                          { label: "Carlos Silva", value: "carlos_silva" },
-                          { label: "Ana Clara Souza", value: "ana_clara" },
-                          { label: "Sem gestor", value: "" }
+                          { label: "Sem gestor", value: "" },
+                          ...gestores.map(g => ({ label: g.nome, value: g.id.toString() }))
                         ]}
-                        value={gestor}
-                        onChange={setGestor}
+                        value={formData.gestor_id}
+                        onChange={(v) => setFormData(f => ({ ...f, gestor_id: v }))}
                         placeholder="Selecione o gestor desta equipe"
                         triggerClassName="h-[40px] bg-white border-[#E5E7EB] text-[14px]"
                       />
@@ -182,10 +230,11 @@ export default function NovaEquipePage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-[24px]">
                       <div className="flex flex-col gap-[6px]">
                         <InputField 
-                          type="text"
+                          type="number"
                           label={t("Meta de Vendas")} 
                           placeholder="0,00" 
-                          iconLeft="R$"
+                          value={formData.meta_mensal}
+                          onChange={(v: string) => setFormData(f => ({ ...f, meta_mensal: v }))}
                         />
                         <p className="text-[12px] text-[#9CA3AF] mt-1">
                           {t("Valor esperado de produção do time.")}
@@ -214,10 +263,12 @@ export default function NovaEquipePage() {
               {t("Cancelar")}
             </Link>
             <button 
-              className="h-[44px] px-[24px] bg-[#6D28D9] text-white font-[600] text-[14px] rounded-[8px] hover:bg-[#5B21B6] transition-colors flex items-center justify-center gap-[8px]"
+              disabled={saving}
+              onClick={handleSave}
+              className="h-[44px] px-[24px] bg-[#6D28D9] text-white font-[600] text-[14px] rounded-[8px] hover:bg-[#5B21B6] transition-colors flex items-center justify-center gap-[8px] disabled:opacity-70"
             >
               <Save className="w-[16px] h-[16px]" strokeWidth={2.5} />
-              {t("Salvar Equipe")}
+              {saving ? t("Salvando...") : t("Criar Equipe")}
             </button>
           </div>
         </div>

@@ -45,4 +45,74 @@ class EquipeController extends Controller
 
         return response()->json($equipes);
     }
+
+    public function show($id)
+    {
+        $equipe = Equipe::with(['gestor', 'vendedores.user'])->findOrFail($id);
+        
+        return response()->json([
+            'id' => $equipe->id,
+            'nome' => $equipe->nome,
+            'gestor_id' => $equipe->gestor_id,
+            'meta_mensal' => $equipe->meta_mensal,
+            'cor' => $equipe->cor,
+            'status' => $equipe->status,
+            'vendedores' => $equipe->vendedores->map(function($v) {
+                return [
+                    'id' => $v->id,
+                    'nome' => $v->user->name ?? '',
+                ];
+            })
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'nome' => 'required|string|max:255',
+            'gestor_id' => 'nullable|exists:users,id',
+            'meta_mensal' => 'nullable|numeric',
+            'cor' => 'nullable|string',
+        ]);
+
+        $equipe = Equipe::create([
+            'nome' => $validated['nome'],
+            'gestor_id' => $validated['gestor_id'] ?? null,
+            'meta_mensal' => $validated['meta_mensal'] ?? 0,
+            'cor' => $validated['cor'] ?? '#6D28D9',
+            'status' => 'ativa',
+        ]);
+
+        return response()->json(['success' => true, 'id' => $equipe->id], 201);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $equipe = Equipe::findOrFail($id);
+
+        $validated = $request->validate([
+            'nome' => 'required|string|max:255',
+            'gestor_id' => 'nullable|exists:users,id',
+            'meta_mensal' => 'nullable|numeric',
+            'cor' => 'nullable|string',
+            'status' => 'string'
+        ]);
+
+        $equipe->update($validated);
+
+        return response()->json(['success' => true, 'id' => $equipe->id]);
+    }
+
+    public function destroy($id)
+    {
+        $equipe = Equipe::findOrFail($id);
+        
+        // Mover todos os vendedores dessa equipe para 'Sem Equipe'
+        $equipe->vendedores()->update(['equipe_id' => null]);
+        
+        // Desativar equipe
+        $equipe->update(['status' => 'inativa']);
+
+        return response()->json(['success' => true]);
+    }
 }

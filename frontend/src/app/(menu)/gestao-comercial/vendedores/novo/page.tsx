@@ -18,15 +18,61 @@ import {
   Lock
 } from "lucide-react";
 
+import { VendedoresService } from "@/services/vendedores.service";
+import { EquipesService, Equipe } from "@/services/equipes.service";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
 type SectionType = "dados-pessoais" | "funcao" | "comissoes" | null;
 
 export default function NovoVendedorPage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [openSection, setOpenSection] = useState<SectionType>("dados-pessoais");
 
-  const [perfil, setPerfil] = useState("Vendedor");
-  const [status, setStatus] = useState("Ativo");
-  const [gestor, setGestor] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
+
+  const [formData, setFormData] = useState({
+    nome: "",
+    email: "",
+    telefone: "",
+    senha: "",
+    is_gestor: false,
+    status: "Ativo",
+    equipe_id: "",
+    percentual_comissao: "0"
+  });
+
+  React.useEffect(() => {
+    EquipesService.listar().then(setEquipes);
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const toastId = toast.loading("Salvando...");
+    
+    const payload = {
+      ...formData,
+      is_gestor: formData.is_gestor,
+      equipe_id: formData.equipe_id ? Number(formData.equipe_id) : undefined,
+      percentual_comissao: formData.percentual_comissao ? Number(formData.percentual_comissao) : undefined,
+    };
+
+    try {
+      const res = await VendedoresService.criar(payload as any);
+      if (res.success) {
+        toast.success("Vendedor criado com sucesso!", { id: toastId });
+        router.push("/gestao-comercial/vendedores");
+      } else {
+        toast.error("Erro ao salvar", { id: toastId });
+      }
+    } catch (e) {
+      toast.error("Erro de comunicação", { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const toggleSection = (section: SectionType) => {
     setOpenSection((prev) => (prev === section ? null : section));
@@ -108,30 +154,35 @@ export default function NovoVendedorPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
                       <InputField 
                         label={t("Nome completo")} 
-                        placeholder="Ex: João da Silva" 
+                        placeholder="Ex: João da Silva"
                         required 
+                        value={formData.nome}
+                        onChange={(v: string) => setFormData(f => ({ ...f, nome: v }))}
                       />
                       <InputField 
                         type="email"
                         label={t("E-mail (Acesso)")} 
-                        placeholder="vendedor@email.com" 
+                        placeholder="vendedor@email.com"
                         required 
+                        value={formData.email}
+                        onChange={(v: string) => setFormData(f => ({ ...f, email: v }))}
                       />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
                       <div className="flex flex-col gap-[6px]">
                         <label className="text-[13px] font-[600] text-[#4B5563]">
-                          {t("Telefone")}
+                          {t("WhatsApp / Telefone")}
                         </label>
-                        <div className="flex h-[40px]">
-                          <div className="flex items-center justify-center bg-white border border-[#E5E7EB] border-r-0 rounded-l-[8px] px-[12px] shrink-0 text-[14px] text-[#6B7280] gap-[8px]">
-                            <span role="img" aria-label="BR">🇧🇷</span>
-                            <span>+55</span>
+                        <div className="flex items-center h-[40px]">
+                          <div className="h-full px-[12px] bg-[#F9FAFB] border border-[#E5E7EB] border-r-0 rounded-l-[8px] flex items-center justify-center text-[#6B7280] text-[14px]">
+                            +55
                           </div>
                           <input 
                             type="text" 
                             placeholder="(00) 00000-0000"
+                            value={formData.telefone}
+                            onChange={(e) => setFormData(f => ({ ...f, telefone: e.target.value }))}
                             className="w-full h-full bg-white border border-[#E5E7EB] rounded-r-[8px] border-l-0 px-[12px] text-[14px] text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB]"
                           />
                         </div>
@@ -189,11 +240,11 @@ export default function NovoVendedorPage() {
                         </label>
                         <CustomSelect
                           options={[
-                            { label: "Vendedor", value: "Vendedor" },
-                            { label: "Gerente", value: "Gerente" }
+                            { label: "Vendedor", value: "false" },
+                            { label: "Gestor", value: "true" }
                           ]}
-                          value={perfil}
-                          onChange={setPerfil}
+                          value={formData.is_gestor.toString()}
+                          onChange={(v) => setFormData(f => ({ ...f, is_gestor: v === "true" }))}
                           placeholder="Selecione..."
                           triggerClassName="h-[40px] bg-white border-[#E5E7EB] text-[14px]"
                         />
@@ -208,8 +259,8 @@ export default function NovoVendedorPage() {
                             { label: "Ativo", value: "Ativo" },
                             { label: "Inativo", value: "Inativo" }
                           ]}
-                          value={status}
-                          onChange={setStatus}
+                          value={formData.status}
+                          onChange={(v) => setFormData(f => ({ ...f, status: v }))}
                           placeholder="Selecione..."
                           triggerClassName="h-[40px] bg-white border-[#E5E7EB] text-[14px]"
                         />
@@ -218,15 +269,16 @@ export default function NovoVendedorPage() {
 
                     <div className="flex flex-col gap-[6px]">
                       <label className="text-[13px] font-[600] text-[#4B5563]">
-                        {t("Gestor Responsável")}
+                        {t("Equipe")}
                       </label>
                       <CustomSelect
                         options={[
-                          { label: "Nenhum (equipe do Admin)", value: "" }
+                          { label: "Sem Equipe", value: "" },
+                          ...equipes.map(eq => ({ label: eq.nome, value: eq.id.toString() }))
                         ]}
-                        value={gestor}
-                        onChange={setGestor}
-                        placeholder="Nenhum (equipe do Admin)"
+                        value={formData.equipe_id}
+                        onChange={(v) => setFormData(f => ({ ...f, equipe_id: v }))}
+                        placeholder="Selecione uma equipe"
                         triggerClassName="h-[40px] bg-white border-[#E5E7EB] text-[14px]"
                       />
                     </div>
@@ -263,28 +315,14 @@ export default function NovoVendedorPage() {
                   <div className="p-[0_24px_24px_24px] flex flex-col gap-[20px] animate-in slide-in-from-top-4 fade-in duration-300">
                     <div className="w-full h-[1px] bg-[#F3F4F6] mb-[4px]"></div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-[24px]">
-                      <div className="flex flex-col gap-[6px]">
-                        <InputField 
-                          type="number"
-                          label={t("Comissão Inicial (%)")} 
-                          placeholder="10" 
-                          value="10"
-                          required 
-                          icon="%"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-[6px]">
-                        <InputField 
-                          type="number"
-                          label={t("Comissão Recorrência (%)")} 
-                          placeholder="5" 
-                          value="5"
-                          required 
-                          icon="%"
-                        />
-                      </div>
+                    <div className="max-w-md">
+                      <InputField 
+                        label={t("Percentual Base (%)")}
+                        type="number"
+                        placeholder="Ex: 5"
+                        value={formData.percentual_comissao}
+                        onChange={(v: string) => setFormData(f => ({ ...f, percentual_comissao: v }))}
+                      />
                     </div>
 
                   </div>
@@ -308,10 +346,12 @@ export default function NovoVendedorPage() {
               {t("Cancelar")}
             </Link>
             <button 
-              className="h-[44px] px-[24px] bg-[#6D28D9] text-white font-[600] text-[14px] rounded-[8px] hover:bg-[#5B21B6] transition-colors flex items-center justify-center gap-[8px]"
+              disabled={saving}
+              onClick={handleSave}
+              className="h-[44px] px-[24px] bg-[#6D28D9] text-white font-[600] text-[14px] rounded-[8px] hover:bg-[#5B21B6] transition-colors flex items-center justify-center gap-[8px] disabled:opacity-70"
             >
               <Save className="w-[16px] h-[16px]" strokeWidth={2.5} />
-              {t("Salvar Vendedor")}
+              {saving ? t("Salvando...") : t("Salvar")}
             </button>
           </div>
         </div>

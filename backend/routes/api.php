@@ -36,9 +36,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // Vendas API
     Route::get('/vendas', [\App\Http\Controllers\Api\VendasController::class, 'index']);
 
-    // Vendedores e Equipes API
+    // Vendedores API
     Route::get('/vendedores', [\App\Http\Controllers\Api\VendedorController::class, 'index']);
+    Route::post('/vendedores', [\App\Http\Controllers\Api\VendedorController::class, 'store']);
+    Route::get('/vendedores/{id}', [\App\Http\Controllers\Api\VendedorController::class, 'show']);
+    Route::put('/vendedores/{id}', [\App\Http\Controllers\Api\VendedorController::class, 'update']);
+    Route::delete('/vendedores/{id}', [\App\Http\Controllers\Api\VendedorController::class, 'destroy']);
+
+    // Equipes API
     Route::get('/equipes', [\App\Http\Controllers\Api\EquipeController::class, 'index']);
+    Route::post('/equipes', [\App\Http\Controllers\Api\EquipeController::class, 'store']);
+    Route::get('/equipes/{id}', [\App\Http\Controllers\Api\EquipeController::class, 'show']);
+    Route::put('/equipes/{id}', [\App\Http\Controllers\Api\EquipeController::class, 'update']);
+    Route::delete('/equipes/{id}', [\App\Http\Controllers\Api\EquipeController::class, 'destroy']);
 
     // Sincronizar status do cliente com Asaas (consulta API mês a mês)
     Route::post('/clientes/{id}/sync-asaas', [\App\Http\Controllers\ClienteController::class, 'syncAsaas']);

@@ -18,15 +18,83 @@ import {
   KeyRound
 } from "lucide-react";
 
+import { VendedoresService, Vendedor } from "@/services/vendedores.service";
+import { EquipesService, Equipe } from "@/services/equipes.service";
+import { toast } from "sonner";
+
 type SectionType = "dados-pessoais" | "funcao" | "comissoes" | null;
 
-export default function EditarVendedorPage() {
+export default function EditarVendedorPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = React.use(params);
+  const id = Number(resolvedParams.id);
+
   const { t } = useTranslation();
   const [openSection, setOpenSection] = useState<SectionType>("dados-pessoais");
+  
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
+  
+  const [formData, setFormData] = useState({
+    nome: "",
+    email: "",
+    telefone: "",
+    senha: "",
+    is_gestor: false,
+    status: "Ativo",
+    equipe_id: "",
+    percentual_comissao: "0"
+  });
 
-  const [perfil, setPerfil] = useState("Vendedor");
-  const [status, setStatus] = useState("Ativo");
-  const [gestor, setGestor] = useState("");
+  React.useEffect(() => {
+    Promise.all([
+      VendedoresService.obter(id),
+      EquipesService.listar()
+    ]).then(([vendedor, eqps]) => {
+      if (vendedor) {
+        setFormData({
+          nome: vendedor.nome || "",
+          email: vendedor.email || "",
+          telefone: vendedor.telefone || "",
+          senha: "",
+          is_gestor: vendedor.is_gestor || false,
+          status: vendedor.status === "inativo" ? "Inativo" : "Ativo",
+          equipe_id: vendedor.equipe_id?.toString() || "",
+          percentual_comissao: vendedor.percentual_comissao?.toString() || "0"
+        });
+      }
+      setEquipes(eqps);
+      setLoading(false);
+    });
+  }, [id]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const toastId = toast.loading("Salvando...");
+    
+    const payload = {
+      ...formData,
+      is_gestor: formData.is_gestor,
+      equipe_id: formData.equipe_id ? Number(formData.equipe_id) : undefined,
+      percentual_comissao: formData.percentual_comissao ? Number(formData.percentual_comissao) : undefined,
+    };
+
+    if (!payload.senha) delete (payload as any).senha;
+
+    try {
+      const res = await VendedoresService.atualizar(id, payload as any);
+      if (res.success) {
+        toast.success("Vendedor atualizado com sucesso!", { id: toastId });
+      } else {
+        toast.error("Erro ao salvar", { id: toastId });
+      }
+    } catch (e) {
+      toast.error("Erro de comunicação", { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const toggleSection = (section: SectionType) => {
     setOpenSection((prev) => (prev === section ? null : section));
@@ -107,17 +175,20 @@ export default function EditarVendedorPage() {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
                       <InputField 
-                        label={t("Nome completo")} 
-                        placeholder="Ex: João da Silva"
-                        value="João Pedro Silva" 
-                        required 
+                        label={t("Nome Completo")}
+                        placeholder="Ex: João Pedro Silva"
+                        required
+                        value={formData.nome}
+                        onChange={(v: string) => setFormData(f => ({ ...f, nome: v }))}
+                        icon={<User className="w-[16px] h-[16px]" />}
                       />
                       <InputField 
+                        label={t("E-mail de Acesso")}
                         type="email"
-                        label={t("E-mail (Acesso)")} 
-                        placeholder="vendedor@email.com"
-                        value="joao.silva@basileia.global" 
-                        required 
+                        placeholder="joao.silva@email.com"
+                        required
+                        value={formData.email}
+                        onChange={(v: string) => setFormData(f => ({ ...f, email: v }))}
                       />
                     </div>
                     
@@ -134,7 +205,8 @@ export default function EditarVendedorPage() {
                           <input 
                             type="text" 
                             placeholder="(00) 00000-0000"
-                            defaultValue="47999871234"
+                            value={formData.telefone}
+                            onChange={(e) => setFormData(f => ({ ...f, telefone: e.target.value }))}
                             className="w-full h-full bg-white border border-[#E5E7EB] rounded-r-[8px] border-l-0 px-[12px] text-[14px] text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB]"
                           />
                         </div>
@@ -191,11 +263,11 @@ export default function EditarVendedorPage() {
                         </label>
                         <CustomSelect
                           options={[
-                            { label: "Vendedor", value: "Vendedor" },
-                            { label: "Gerente", value: "Gerente" }
+                            { label: "Vendedor", value: "false" },
+                            { label: "Gestor", value: "true" }
                           ]}
-                          value={perfil}
-                          onChange={setPerfil}
+                          value={formData.is_gestor.toString()}
+                          onChange={(v) => setFormData(f => ({ ...f, is_gestor: v === "true" }))}
                           placeholder="Selecione..."
                           triggerClassName="h-[40px] bg-white border-[#E5E7EB] text-[14px]"
                         />
@@ -210,8 +282,8 @@ export default function EditarVendedorPage() {
                             { label: "Ativo", value: "Ativo" },
                             { label: "Inativo", value: "Inativo" }
                           ]}
-                          value={status}
-                          onChange={setStatus}
+                          value={formData.status}
+                          onChange={(v) => setFormData(f => ({ ...f, status: v }))}
                           placeholder="Selecione..."
                           triggerClassName="h-[40px] bg-white border-[#E5E7EB] text-[14px]"
                         />
@@ -220,15 +292,16 @@ export default function EditarVendedorPage() {
 
                     <div className="flex flex-col gap-[6px]">
                       <label className="text-[13px] font-[600] text-[#4B5563]">
-                        {t("Gestor Responsável")}
+                        {t("Equipe")}
                       </label>
                       <CustomSelect
                         options={[
-                          { label: "Nenhum (equipe do Admin)", value: "" }
+                          { label: "Sem Equipe", value: "" },
+                          ...equipes.map(eq => ({ label: eq.nome, value: eq.id.toString() }))
                         ]}
-                        value={gestor}
-                        onChange={setGestor}
-                        placeholder="Nenhum (equipe do Admin)"
+                        value={formData.equipe_id}
+                        onChange={(v) => setFormData(f => ({ ...f, equipe_id: v }))}
+                        placeholder="Selecione uma equipe"
                         triggerClassName="h-[40px] bg-white border-[#E5E7EB] text-[14px]"
                       />
                     </div>
@@ -266,24 +339,13 @@ export default function EditarVendedorPage() {
                     <div className="w-full h-[1px] bg-[#F3F4F6] mb-[4px]"></div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-[24px]">
-                      <div className="flex flex-col gap-[6px]">
+                      <div className="max-w-md">
                         <InputField 
+                          label={t("Percentual Base (%)")}
                           type="number"
-                          label={t("Comissão Inicial (%)")} 
-                          placeholder="10" 
-                          value="10"
-                          required 
-                          icon="%"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-[6px]">
-                        <InputField 
-                          type="number"
-                          label={t("Comissão Recorrência (%)")} 
-                          placeholder="5" 
-                          value="5"
-                          required 
+                          placeholder="Ex: 5"
+                          value={formData.percentual_comissao}
+                          onChange={(v: string) => setFormData(f => ({ ...f, percentual_comissao: v }))}
                           icon="%"
                         />
                       </div>
@@ -310,10 +372,12 @@ export default function EditarVendedorPage() {
               {t("Cancelar")}
             </Link>
             <button 
-              className="h-[44px] px-[24px] bg-[#6D28D9] text-white font-[600] text-[14px] rounded-[8px] hover:bg-[#5B21B6] transition-colors flex items-center justify-center gap-[8px]"
+              disabled={saving}
+              onClick={handleSave}
+              className="h-[48px] px-[32px] bg-[#6D28D9] text-white font-[600] text-[15px] rounded-[10px] hover:bg-[#5B21B6] transition-colors shadow-[0_4px_12px_rgba(109,40,217,0.2)] flex items-center gap-[8px] disabled:opacity-70"
             >
-              <Save className="w-[16px] h-[16px]" strokeWidth={2.5} />
-              {t("Salvar Alterações")}
+              <Save className="w-[18px] h-[18px]" />
+              {saving ? t("Salvando...") : t("Salvar Alterações")}
             </button>
           </div>
         </div>

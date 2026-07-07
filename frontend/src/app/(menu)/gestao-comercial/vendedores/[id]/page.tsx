@@ -20,12 +20,25 @@ import {
   Calendar,
   ExternalLink
 } from "lucide-react";
+import { VendedoresService, Vendedor } from "@/services/vendedores.service";
 import ModalDesativar from "@/components/ModalDesativar";
+export default function VendedorProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = React.use(params);
+  const id = Number(resolvedParams.id);
 
-export default function VendedorProfilePage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("Todos");
   const [modalDesativarOpen, setModalDesativarOpen] = useState(false);
+  
+  const [vendedor, setVendedor] = useState<Vendedor | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    VendedoresService.obter(id).then(res => {
+      setVendedor(res);
+      setLoading(false);
+    });
+  }, [id]);
 
   const tabs = ["Todos", "Alterações cadastrais", "Vendas", "Comissões", "Ocorrências", "Contratos"];
 
@@ -33,6 +46,14 @@ export default function VendedorProfilePage() {
     alert(`Vendedor desativado com sucesso!\nMotivo registrado no histórico: ${motivo}`);
     setModalDesativarOpen(false);
   };
+
+  if (loading) {
+    return <div className="p-8 text-center">Carregando perfil...</div>;
+  }
+
+  if (!vendedor) {
+    return <div className="p-8 text-center text-red-500">Vendedor não encontrado.</div>;
+  }
 
   return (
     <div className="flex min-h-screen font-inter bg-[#F5F5F7]">
@@ -49,7 +70,7 @@ export default function VendedorProfilePage() {
             <div className="flex items-center text-[13px] text-[#6B7280] mb-[20px]">
               <Link href="/gestao-comercial/vendedores" className="hover:text-[#6D28D9] transition-colors">{t("Vendedores")}</Link>
               <span className="mx-[8px]">/</span>
-              <span className="text-[#1A1A2E] font-[600]">João Pedro Silva</span>
+              <span className="text-[#1A1A2E] font-[600]">{vendedor.nome}</span>
             </div>
 
             {/* HEADER DA PÁGINA */}
@@ -65,7 +86,7 @@ export default function VendedorProfilePage() {
               </div>
               <div className="flex items-center gap-[12px]">
                 <Link 
-                  href="/gestao-comercial/vendedores/1/editar"
+                  href={`/gestao-comercial/vendedores/${id}/editar`}
                   className="h-[40px] px-[20px] bg-[#6D28D9] text-white font-[600] text-[13px] rounded-[8px] hover:bg-[#5B21B6] transition-colors shadow-sm flex items-center gap-[8px]"
                 >
                   <Pencil className="w-[16px] h-[16px]" strokeWidth={2.5} />
@@ -80,35 +101,31 @@ export default function VendedorProfilePage() {
               {/* Profile Info Left */}
               <div className="flex items-center gap-[20px]">
                 <img 
-                  src="https://ui-avatars.com/api/?name=João+Pedro+Silva&background=F3F4F6&color=1A1A2E&size=128" 
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(vendedor.nome)}&background=F3F4F6&color=1A1A2E&size=128`} 
                   alt="Avatar" 
                   className="w-[80px] h-[80px] rounded-full object-cover border-4 border-[#F9FAFB] shadow-sm"
                 />
                 <div className="flex flex-col">
                   <div className="flex items-center gap-[12px] mb-[8px]">
-                    <h2 className="text-[20px] font-[800] text-[#1A1A2E]">João Pedro Silva</h2>
-                    <span className="flex items-center gap-[4px] px-[8px] py-[2px] bg-[#ECFDF5] text-[#059669] text-[10px] font-[800] uppercase tracking-wide rounded-[4px]">
-                      <div className="w-[6px] h-[6px] rounded-full bg-[#059669]"></div>
-                      {t("Ativo")}
+                    <h2 className="text-[20px] font-[800] text-[#1A1A2E]">{vendedor.nome}</h2>
+                    <span className={`flex items-center gap-[4px] px-[8px] py-[2px] text-[10px] font-[800] uppercase tracking-wide rounded-[4px] ${vendedor.status?.toLowerCase() === 'ativo' ? 'bg-[#ECFDF5] text-[#059669]' : 'bg-[#FEF2F2] text-[#DC2626]'}`}>
+                      <div className={`w-[6px] h-[6px] rounded-full ${vendedor.status?.toLowerCase() === 'ativo' ? 'bg-[#059669]' : 'bg-[#DC2626]'}`}></div>
+                      {t(vendedor.status || 'Ativo')}
                     </span>
                   </div>
                   
                   <div className="flex flex-wrap items-center gap-x-[32px] gap-y-[8px]">
                     <div className="flex items-center gap-[6px] text-[#4B5563] text-[13px] font-[500]">
                       <Phone className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                      (47) 99987-1234
+                      {vendedor.telefone || 'Sem telefone'}
                     </div>
                     <div className="flex items-center gap-[6px] text-[#4B5563] text-[13px] font-[500]">
                       <Users className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                      Vendas Corporativas
+                      {vendedor.equipe_id ? `Equipe #${vendedor.equipe_id}` : 'Sem Equipe'}
                     </div>
                     <div className="flex items-center gap-[6px] text-[#4B5563] text-[13px] font-[500]">
                       <Briefcase className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                      Vendedor Pleno
-                    </div>
-                    <div className="flex items-center gap-[6px] text-[#4B5563] text-[13px] font-[500]">
-                      <Calendar className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                      Desde 15/03/2021
+                      {vendedor.is_gestor ? 'Gestor' : 'Vendedor'}
                     </div>
                   </div>
                 </div>
