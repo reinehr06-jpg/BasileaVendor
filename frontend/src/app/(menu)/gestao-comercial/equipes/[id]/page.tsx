@@ -133,12 +133,8 @@ export default function EquipeProfilePage({ params }: { params: Promise<{ id: st
                 <div className="bg-[#F0FDF4] border border-[#DCFCE7] rounded-[12px] p-[12px_16px] min-w-[140px]">
                   <p className="text-[10px] font-[700] text-[#059669] uppercase tracking-wider mb-[4px]">{t("Meta Mensal")}</p>
                   <div className="flex items-baseline gap-[6px]">
-                    <p className="text-[18px] font-[800] text-[#059669]">R$ {Number(equipe.meta_mensal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-[18px] font-[800] text-[#059669]">R$ {Number(equipe.meta_mensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                   </div>
-                </div>
-                <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-[12px] p-[12px_16px] min-w-[140px]">
-                  <p className="text-[10px] font-[700] text-[#D97706] uppercase tracking-wider mb-[4px]">{t("Meta Atual")}</p>
-                  <p className="text-[18px] font-[800] text-[#D97706]">R$ 500k</p>
                 </div>
               </div>
 
@@ -194,8 +190,8 @@ export default function EquipeProfilePage({ params }: { params: Promise<{ id: st
                   {/* Item 1 */}
                   <div className="flex items-start gap-[16px] relative mb-[24px]">
                     <div className="w-[84px] shrink-0 text-right pt-[12px]">
-                      <p className="text-[12px] font-[700] text-[#1A1A2E]">01/06/2026</p>
-                      <p className="text-[11px] text-[#6B7280]">09:00</p>
+                      <p className="text-[12px] font-[700] text-[#1A1A2E]">{equipe.created_at ? new Date(equipe.created_at).toLocaleDateString('pt-BR') : '---'}</p>
+                      <p className="text-[11px] text-[#6B7280]">{equipe.created_at ? new Date(equipe.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '---'}</p>
                     </div>
                     
                     <div className="relative shrink-0 mt-[8px]">
@@ -208,80 +204,16 @@ export default function EquipeProfilePage({ params }: { params: Promise<{ id: st
                       <div className="flex items-start justify-between mb-[8px]">
                         <div className="flex items-center gap-[12px]">
                           <span className="px-[8px] py-[2px] bg-[#EFF6FF] text-[#2563EB] text-[10px] font-[800] uppercase tracking-wide rounded-[4px]">
-                            {t("Membros")}
+                            {t("Cadastro")}
                           </span>
-                          <h3 className="text-[14px] font-[700] text-[#1A1A2E]">{t("Novo membro na equipe")}</h3>
+                          <h3 className="text-[14px] font-[700] text-[#1A1A2E]">{t("Equipe Cadastrada")}</h3>
                         </div>
-                        <span className="text-[12px] font-[600] text-[#6D28D9] hover:underline cursor-pointer">{t("Ver perfil")}</span>
                       </div>
                       <div className="flex items-end justify-between">
-                        <p className="text-[13px] text-[#4B5563]">{t("O vendedor João Pedro Silva foi adicionado a esta equipe.")}</p>
+                        <p className="text-[13px] text-[#4B5563]">{t("A equipe foi registrada no sistema.")}</p>
                         <div className="text-right">
                           <p className="text-[12px] font-[600] text-[#1A1A2E]">{t("Sistema")}</p>
-                          <p className="text-[10px] text-[#9CA3AF]">{t("Por Admin")}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Item 2 */}
-                  <div className="flex items-start gap-[16px] relative mb-[24px]">
-                    <div className="w-[84px] shrink-0 text-right pt-[12px]">
-                      <p className="text-[12px] font-[700] text-[#1A1A2E]">25/05/2026</p>
-                      <p className="text-[11px] text-[#6B7280]">18:00</p>
-                    </div>
-                    
-                    <div className="relative shrink-0 mt-[8px]">
-                      <div className="w-[32px] h-[32px] rounded-full bg-white border-[2px] border-[#6EE7B7] flex items-center justify-center z-10 relative">
-                        <CheckCircle2 className="w-[14px] h-[14px] text-[#059669]" />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 bg-white border border-[#E5E7EB] rounded-[12px] p-[16px] shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-[8px]">
-                        <div className="flex items-center gap-[12px]">
-                          <span className="px-[8px] py-[2px] bg-[#ECFDF5] text-[#059669] text-[10px] font-[800] uppercase tracking-wide rounded-[4px]">
-                            {t("Metas")}
-                          </span>
-                          <h3 className="text-[14px] font-[700] text-[#1A1A2E]">{t("Meta do mês batida!")}</h3>
-                        </div>
-                      </div>
-                      <div className="flex items-end justify-between">
-                        <p className="text-[13px] text-[#4B5563]">{t("A equipe alcançou 100% da meta de R$ 500.000,00.")}</p>
-                        <div className="text-right">
-                          <p className="text-[12px] font-[600] text-[#1A1A2E]">{t("Automático")}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Item 3 */}
-                  <div className="flex items-start gap-[16px] relative mb-[24px]">
-                    <div className="w-[84px] shrink-0 text-right pt-[12px]">
-                      <p className="text-[12px] font-[700] text-[#1A1A2E]">01/05/2026</p>
-                      <p className="text-[11px] text-[#6B7280]">10:00</p>
-                    </div>
-                    
-                    <div className="relative shrink-0 mt-[8px]">
-                      <div className="w-[32px] h-[32px] rounded-full bg-white border-[2px] border-[#C4B5FD] flex items-center justify-center z-10 relative">
-                        <Pencil className="w-[14px] h-[14px] text-[#6D28D9]" />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 bg-white border border-[#E5E7EB] rounded-[12px] p-[16px] shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-[8px]">
-                        <div className="flex items-center gap-[12px]">
-                          <span className="px-[8px] py-[2px] bg-[#F4EEFF] text-[#6D28D9] text-[10px] font-[800] uppercase tracking-wide rounded-[4px]">
-                            {t("Configurações")}
-                          </span>
-                          <h3 className="text-[14px] font-[700] text-[#1A1A2E]">{t("Nova meta definida")}</h3>
-                        </div>
-                      </div>
-                      <div className="flex items-end justify-between">
-                        <p className="text-[13px] text-[#4B5563]">{t("A meta foi atualizada para R$ 500.000,00 para este trimestre.")}</p>
-                        <div className="text-right">
-                          <p className="text-[12px] font-[600] text-[#1A1A2E]">{t("Carlos Silva")}</p>
-                          <p className="text-[10px] text-[#9CA3AF]">{t("Gestor")}</p>
+                          <p className="text-[10px] text-[#9CA3AF]">{t("Registro automático")}</p>
                         </div>
                       </div>
                     </div>
@@ -303,29 +235,12 @@ export default function EquipeProfilePage({ params }: { params: Promise<{ id: st
                         <Users className="w-[14px] h-[14px] text-[#9CA3AF]" />
                         {t("Total de Membros")}
                       </div>
-                      <span className="text-[14px] font-[800] text-[#1A1A2E]">12</span>
+                      <span className="text-[14px] font-[800] text-[#1A1A2E]">{equipe.vendedores?.length || 0}</span>
                     </div>
                     
-                    <div className="flex items-center justify-between pb-[12px] border-b border-[#F1F1F4]">
-                      <div className="flex items-center gap-[8px] text-[13px] text-[#4B5563] font-[500]">
-                        <Target className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                        {t("Metas Alcançadas")}
-                      </div>
-                      <span className="text-[14px] font-[800] text-[#1A1A2E]">8</span>
-                    </div>
-
-                    <div className="flex items-center justify-between pb-[12px] border-b border-[#F1F1F4]">
-                      <div className="flex items-center gap-[8px] text-[13px] text-[#4B5563] font-[500]">
-                        <CheckCircle2 className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                        {t("Vendas no mês")}
-                      </div>
-                      <span className="text-[14px] font-[800] text-[#1A1A2E]">45</span>
-                    </div>
-
                     <div className="flex items-center justify-between pt-[4px]">
                       <Link href="#" className="flex items-center gap-[6px] text-[13px] font-[700] text-[#6D28D9] hover:underline">
-                        {t("Ver painel de controle")}
-                        <ExternalLink className="w-[14px] h-[14px]" />
+                        {t("Sem mais estatísticas no momento")}
                       </Link>
                     </div>
                   </div>

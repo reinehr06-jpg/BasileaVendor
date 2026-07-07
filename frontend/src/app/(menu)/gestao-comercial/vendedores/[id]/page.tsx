@@ -134,22 +134,8 @@ export default function VendedorProfilePage({ params }: { params: Promise<{ id: 
               {/* Metrics Right */}
               <div className="flex items-center gap-[16px] shrink-0">
                 <div className="bg-[#F9FAFB] border border-[#F1F1F4] rounded-[12px] p-[12px_16px] min-w-[140px]">
-                  <p className="text-[10px] font-[700] text-[#6B7280] uppercase tracking-wider mb-[4px]">{t("Tempo de Equipe")}</p>
-                  <p className="text-[18px] font-[800] text-[#1A1A2E]">4a 2m</p>
-                </div>
-                <div className="bg-[#F0FDF4] border border-[#DCFCE7] rounded-[12px] p-[12px_16px] min-w-[140px]">
-                  <p className="text-[10px] font-[700] text-[#059669] uppercase tracking-wider mb-[4px]">{t("Metas 3M")}</p>
-                  <div className="flex items-baseline gap-[6px]">
-                    <p className="text-[18px] font-[800] text-[#059669]">82%</p>
-                    <span className="text-[12px] font-[600] text-[#34D399]">32/39</span>
-                  </div>
-                </div>
-                <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-[12px] p-[12px_16px] min-w-[140px]">
-                  <p className="text-[10px] font-[700] text-[#D97706] uppercase tracking-wider mb-[4px]">{t("Pendências")}</p>
-                  <div className="flex items-baseline gap-[6px]">
-                    <p className="text-[18px] font-[800] text-[#D97706]">2</p>
-                    <span className="text-[12px] font-[600] text-[#F59E0B] hover:text-[#D97706] cursor-pointer">{t("Visualizar")}</span>
-                  </div>
+                  <p className="text-[10px] font-[700] text-[#6B7280] uppercase tracking-wider mb-[4px]">{t("Data de Cadastro")}</p>
+                  <p className="text-[18px] font-[800] text-[#1A1A2E]">{vendedor.created_at ? new Date(vendedor.created_at).toLocaleDateString('pt-BR') : '---'}</p>
                 </div>
               </div>
 
@@ -205,41 +191,8 @@ export default function VendedorProfilePage({ params }: { params: Promise<{ id: 
                   {/* Item 1 */}
                   <div className="flex items-start gap-[16px] relative mb-[24px]">
                     <div className="w-[84px] shrink-0 text-right pt-[12px]">
-                      <p className="text-[12px] font-[700] text-[#1A1A2E]">24/05/2026</p>
-                      <p className="text-[11px] text-[#6B7280]">20:14</p>
-                    </div>
-                    
-                    <div className="relative shrink-0 mt-[8px]">
-                      <div className="w-[32px] h-[32px] rounded-full bg-white border-[2px] border-[#C4B5FD] flex items-center justify-center z-10 relative">
-                        <Pencil className="w-[14px] h-[14px] text-[#6D28D9]" />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 bg-white border border-[#E5E7EB] rounded-[12px] p-[16px] shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-[8px]">
-                        <div className="flex items-center gap-[12px]">
-                          <span className="px-[8px] py-[2px] bg-[#F4EEFF] text-[#6D28D9] text-[10px] font-[800] uppercase tracking-wide rounded-[4px]">
-                            {t("Alterações Cadastrais")}
-                          </span>
-                          <h3 className="text-[14px] font-[700] text-[#1A1A2E]">{t("Telefone atualizado")}</h3>
-                        </div>
-                        <span className="text-[12px] font-[600] text-[#6D28D9] hover:underline cursor-pointer">{t("Ver detalhes")}</span>
-                      </div>
-                      <div className="flex items-end justify-between">
-                        <p className="text-[13px] text-[#4B5563]">{t("O número foi alterado de (47) 99111-2233 para (47) 99987-1234.")}</p>
-                        <div className="text-right">
-                          <p className="text-[12px] font-[600] text-[#1A1A2E]">{t("Secretaria")}</p>
-                          <p className="text-[10px] text-[#9CA3AF]">{t("Por Ana Souza")}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Item 2 */}
-                  <div className="flex items-start gap-[16px] relative mb-[24px]">
-                    <div className="w-[84px] shrink-0 text-right pt-[12px]">
-                      <p className="text-[12px] font-[700] text-[#1A1A2E]">24/05/2026</p>
-                      <p className="text-[11px] text-[#6B7280]">19:05</p>
+                      <p className="text-[12px] font-[700] text-[#1A1A2E]">{vendedor.created_at ? new Date(vendedor.created_at).toLocaleDateString('pt-BR') : '---'}</p>
+                      <p className="text-[11px] text-[#6B7280]">{vendedor.created_at ? new Date(vendedor.created_at).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : '---'}</p>
                     </div>
                     
                     <div className="relative shrink-0 mt-[8px]">
@@ -252,80 +205,17 @@ export default function VendedorProfilePage({ params }: { params: Promise<{ id: 
                       <div className="flex items-start justify-between mb-[8px]">
                         <div className="flex items-center gap-[12px]">
                           <span className="px-[8px] py-[2px] bg-[#ECFDF5] text-[#059669] text-[10px] font-[800] uppercase tracking-wide rounded-[4px]">
-                            {t("Venda")}
+                            {t("Cadastro")}
                           </span>
-                          <h3 className="text-[14px] font-[700] text-[#1A1A2E]">{t("Nova venda registrada")}</h3>
+                          <h3 className="text-[14px] font-[700] text-[#1A1A2E]">{t("Vendedor Cadastrado")}</h3>
                         </div>
-                        <span className="text-[12px] font-[600] text-[#6D28D9] hover:underline cursor-pointer">{t("Ver detalhes")}</span>
                       </div>
                       <div className="flex items-end justify-between">
-                        <p className="text-[13px] text-[#4B5563]">{t("Venda do Plano Enterprise para cliente Tech Corp (R$ 15.000,00).")}</p>
+                        <p className="text-[13px] text-[#4B5563]">{t("O cadastro deste vendedor foi criado no sistema.")}</p>
                         <div className="text-right">
                           <p className="text-[12px] font-[600] text-[#1A1A2E]">{t("Sistema")}</p>
                           <p className="text-[10px] text-[#9CA3AF]">{t("Registro automático")}</p>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Item 3 */}
-                  <div className="flex items-start gap-[16px] relative mb-[24px]">
-                    <div className="w-[84px] shrink-0 text-right pt-[12px]">
-                      <p className="text-[12px] font-[700] text-[#1A1A2E]">22/05/2026</p>
-                      <p className="text-[11px] text-[#6B7280]">16:30</p>
-                    </div>
-                    
-                    <div className="relative shrink-0 mt-[8px]">
-                      <div className="w-[32px] h-[32px] rounded-full bg-white border-[2px] border-[#93C5FD] flex items-center justify-center z-10 relative">
-                        <MessageCircle className="w-[14px] h-[14px] text-[#2563EB]" />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 bg-white border border-[#E5E7EB] rounded-[12px] p-[16px] shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-[8px]">
-                        <div className="flex items-center gap-[12px]">
-                          <span className="px-[8px] py-[2px] bg-[#EFF6FF] text-[#2563EB] text-[10px] font-[800] uppercase tracking-wide rounded-[4px]">
-                            {t("Suporte")}
-                          </span>
-                          <h3 className="text-[14px] font-[700] text-[#1A1A2E]">{t("Acompanhamento realizado")}</h3>
-                        </div>
-                        <span className="text-[12px] font-[600] text-[#6D28D9] hover:underline cursor-pointer">{t("Ver detalhes")}</span>
-                      </div>
-                      <div className="flex items-end justify-between">
-                        <p className="text-[13px] text-[#4B5563]">{t("Conversa com gestor registrada com observação interna.")}</p>
-                        <div className="text-right">
-                          <p className="text-[12px] font-[600] text-[#1A1A2E]">{t("Carlos Silva")}</p>
-                          <p className="text-[10px] text-[#9CA3AF]">{t("Gestor responsável")}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Item 4 */}
-                  <div className="flex items-start gap-[16px] relative mb-[24px]">
-                    <div className="w-[84px] shrink-0 text-right pt-[12px]">
-                      <p className="text-[12px] font-[700] text-[#1A1A2E]">13/05/2026</p>
-                      <p className="text-[11px] text-[#6B7280]">10:00</p>
-                    </div>
-                    
-                    <div className="relative shrink-0 mt-[8px]">
-                      <div className="w-[32px] h-[32px] rounded-full bg-white border-[2px] border-[#FCD34D] flex items-center justify-center z-10 relative">
-                        <AlertTriangle className="w-[14px] h-[14px] text-[#D97706]" />
-                      </div>
-                    </div>
-
-                    <div className="flex-1 bg-white border border-[#E5E7EB] rounded-[12px] p-[16px] shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between mb-[8px]">
-                        <div className="flex items-center gap-[12px]">
-                          <span className="px-[8px] py-[2px] bg-[#FFFBEB] text-[#D97706] text-[10px] font-[800] uppercase tracking-wide rounded-[4px]">
-                            {t("Ocorrência")}
-                          </span>
-                          <h3 className="text-[14px] font-[700] text-[#1A1A2E]">{t("Baixa produtividade")}</h3>
-                        </div>
-                        <span className="text-[12px] font-[600] text-[#D97706] hover:underline cursor-pointer">{t("Ver detalhes")}</span>
-                      </div>
-                      <div className="flex items-end justify-between">
-                        <p className="text-[13px] text-[#4B5563]">{t("Não atingiu a cota mínima de contatos nas últimas 2 semanas.")}</p>
                       </div>
                     </div>
                   </div>
@@ -346,37 +236,12 @@ export default function VendedorProfilePage({ params }: { params: Promise<{ id: 
                         <FileText className="w-[14px] h-[14px] text-[#9CA3AF]" />
                         {t("Total de registros")}
                       </div>
-                      <span className="text-[14px] font-[800] text-[#1A1A2E]">128</span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between pb-[12px] border-b border-[#F1F1F4]">
-                      <div className="flex items-center gap-[8px] text-[13px] text-[#4B5563] font-[500]">
-                        <Pencil className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                        {t("Alterações cadastrais")}
-                      </div>
-                      <span className="text-[14px] font-[800] text-[#1A1A2E]">18</span>
-                    </div>
-
-                    <div className="flex items-center justify-between pb-[12px] border-b border-[#F1F1F4]">
-                      <div className="flex items-center gap-[8px] text-[13px] text-[#4B5563] font-[500]">
-                        <MessageCircle className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                        {t("Suporte e Atendimentos")}
-                      </div>
-                      <span className="text-[14px] font-[800] text-[#1A1A2E]">12</span>
-                    </div>
-
-                    <div className="flex items-center justify-between pb-[12px] border-b border-[#F1F1F4]">
-                      <div className="flex items-center gap-[8px] text-[13px] text-[#4B5563] font-[500]">
-                        <CheckCircle2 className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                        {t("Vendas convertidas")}
-                      </div>
-                      <span className="text-[14px] font-[800] text-[#1A1A2E]">32</span>
+                      <span className="text-[14px] font-[800] text-[#1A1A2E]">1</span>
                     </div>
 
                     <div className="flex items-center justify-between pt-[4px]">
                       <Link href="#" className="flex items-center gap-[6px] text-[13px] font-[700] text-[#6D28D9] hover:underline">
-                        {t("Ver relatório completo")}
-                        <ExternalLink className="w-[14px] h-[14px]" />
+                        {t("Sem mais registros disponíveis no momento")}
                       </Link>
                     </div>
                   </div>
