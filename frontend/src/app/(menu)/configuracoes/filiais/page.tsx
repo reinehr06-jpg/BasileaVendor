@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -13,12 +13,27 @@ import {
   Users
 } from "lucide-react";
 
+import { FiliaisService } from "@/services/filiais.service";
+
 export default function FiliaisPage() {
-  const mockFiliais = [
-    { id: 1, nome: "Igreja Sede - Central", doc: "00.000.000/0001-00", local: "São Paulo, SP", contas: 3, responsaveis: 2, status: "Ativa" },
-    { id: 2, nome: "Filial Zona Sul", doc: "00.000.000/0002-00", local: "São Paulo, SP", contas: 1, responsaveis: 1, status: "Ativa" },
-    { id: 3, nome: "Missão Nordeste", doc: "-", local: "Recife, PE", contas: 1, responsaveis: 1, status: "Inativa" },
-  ];
+  const [filiais, setFiliais] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    carregarFiliais();
+  }, []);
+
+  const carregarFiliais = async () => {
+    try {
+      setLoading(true);
+      const res: any = await FiliaisService.listar();
+      setFiliais(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -51,7 +66,7 @@ export default function FiliaisPage() {
           <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-4 pb-10">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               
-              {mockFiliais.map((filial) => (
+              {filiais.map((filial) => (
                 <div key={filial.id} className={`bg-white rounded-[12px] border ${filial.status === 'Ativa' ? 'border-[#E5E7EB] hover:border-[#C4B5FD]' : 'border-[#F3F4F6] opacity-75'} shadow-sm p-5 transition-colors relative group`}>
                   
                   <div className="absolute top-4 right-4 flex items-center gap-2">

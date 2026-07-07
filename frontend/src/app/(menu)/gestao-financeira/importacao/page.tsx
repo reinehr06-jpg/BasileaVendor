@@ -35,21 +35,24 @@ import {
   UploadCloud, FileText, CheckCircle2, AlertCircle, ArrowRight, Database, Trash2, X, Link as LinkIcon, Plus
 } from "lucide-react";
 
+import { ImportacaoService } from "@/services/importacao.service";
+
 export default function ImportacaoPage() {
   const [step, setStep] = useState(1); // 1 = Upload, 2 = Conciliação
+  const [mockOfx, setMockOfx] = useState<any[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const mockOfx = [
-    { id: 1, data: "20/05/2024", desc: "PIX RECEBIDO - JOAO SILVA", valor: "500,00", tipo: "receita", acaoDefault: "novo", sugerido: "Dízimos", status: "pendente", duplicado: false },
-    { id: 2, data: "21/05/2024", desc: "PAG BOLETO - SABESP", valor: "150,00", tipo: "despesa", acaoDefault: "vincular", sugerido: "Energia/Água", status: "pendente", duplicado: false, match: "Despesa #1042 (R$ 150,00)" },
-    { id: 3, data: "21/05/2024", desc: "PAG BOLETO - SABESP", valor: "150,00", tipo: "despesa", acaoDefault: "", sugerido: "", status: "duplicado", duplicado: true },
-    { id: 4, data: "22/05/2024", desc: "TARIFA BANCARIA", valor: "19,90", tipo: "despesa", acaoDefault: "novo", sugerido: "Taxas Bancárias", status: "pendente", duplicado: false },
-  ];
-
-  const handleSimulateUpload = () => {
-    // Simulando o delay do upload
-    setTimeout(() => {
+  const handleSimulateUpload = async () => {
+    setIsUploading(true);
+    try {
+      const res: any = await ImportacaoService.uploadOfx(new File([], 'mock.ofx'));
+      setMockOfx(res.data.data);
       setStep(2);
-    }, 800);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -103,11 +106,13 @@ export default function ImportacaoPage() {
                   <p className="text-[14px] text-[#6B7280] mb-8">Arraste e solte o arquivo aqui ou clique para selecionar do seu computador. Aceitamos os formatos OFX, CSV e XLSX.</p>
                   
                   <div 
-                    onClick={handleSimulateUpload}
-                    className="w-full h-[180px] border-2 border-dashed border-[#D1D5DB] rounded-[16px] bg-[#F9FAFB] flex flex-col items-center justify-center cursor-pointer hover:bg-[#F3F4F6] hover:border-[#10B981] transition-all group"
+                    onClick={!isUploading ? handleSimulateUpload : undefined}
+                    className={`w-full h-[180px] border-2 border-dashed border-[#D1D5DB] rounded-[16px] bg-[#F9FAFB] flex flex-col items-center justify-center transition-all group ${isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-[#F3F4F6] hover:border-[#10B981]'}`}
                   >
-                    <FileText className="w-[32px] h-[32px] text-[#9CA3AF] group-hover:text-[#10B981] transition-colors mb-3" />
-                    <span className="text-[14px] font-[700] text-[#4B5563] group-hover:text-[#10B981] transition-colors">Clique para importar arquivo</span>
+                    <FileText className={`w-[32px] h-[32px] mb-3 transition-colors ${isUploading ? 'text-[#9CA3AF]' : 'text-[#9CA3AF] group-hover:text-[#10B981]'}`} />
+                    <span className={`text-[14px] font-[700] transition-colors ${isUploading ? 'text-[#9CA3AF]' : 'text-[#4B5563] group-hover:text-[#10B981]'}`}>
+                      {isUploading ? "Enviando..." : "Clique para importar arquivo"}
+                    </span>
                     <span className="text-[12px] font-[500] text-[#9CA3AF] mt-1">.ofx, .csv ou .xlsx (Max 10MB)</span>
                   </div>
 

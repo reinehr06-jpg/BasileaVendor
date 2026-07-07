@@ -37,7 +37,7 @@
 "use client"; // Obrigatório: componente interativo com estados
 
 // ─── IMPORTAÇÕES ─────────────────────────────────────────────────────────────
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";                 // Navegação Next.js (Link para /despesas/nova)
 import Sidebar from "@/components/Sidebar";   // Menu lateral (navegação principal)
 import Topbar from "@/components/Topbar";     // Barra superior (busca global)
@@ -91,15 +91,31 @@ const despesasCategoriaData = [
 /* 🎨 Cores para o gráfico de barras (tons de roxo — identidade visual do sistema) */
 const COLORS = ["#6D28D9", "#8B5CF6", "#A78BFA", "#C4B5FD"];
 
+import { DespesasService } from "@/services/despesas.service";
+
 export default function DespesasPage() {
   const [viewMode, setViewMode] = useState<"dashboard" | "lista">("dashboard");
   const [activeTab, setActiveTab] = useState("Todas");
+  const [despesas, setDespesas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockDespesas = [
-    { id: 1, venc: "20/05/2024", pagto: "20/05/2024", desc: "Conta de Energia", conta: "Itaú - CC 1234", cat: "Energia", fornecedor: "Enel", valor: "R$ 450,00", status: "Pago", nf: "NF-0442" },
-    { id: 2, venc: "28/05/2024", pagto: "-", desc: "Aluguel Prédio Sede", conta: "Itaú - CC 1234", cat: "Imóveis", fornecedor: "Imobiliária XP", valor: "R$ 4.500,00", status: "Agendado", nf: "-" },
-    { id: 3, venc: "10/05/2024", pagto: "-", desc: "Compra de Microfones", conta: "Caixa Físico", cat: "Equipamentos", fornecedor: "AudioTech", valor: "R$ 1.200,00", status: "Vencido", nf: "NF-8921" },
-  ];
+  useEffect(() => {
+    carregarDespesas();
+  }, [activeTab]);
+
+  const carregarDespesas = async () => {
+    try {
+      setLoading(true);
+      const res = await DespesasService.listar();
+      // Em uma aplicação real, aqui filtraríamos por activeTab se necessário, 
+      // ou passaríamos na query. Para simplificar, setamos os dados
+      setDespesas(res.data.data || []);
+    } catch (error) {
+      console.error("Erro ao carregar despesas", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -287,15 +303,15 @@ export default function DespesasPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {mockDespesas.map((despesa) => (
+                      {despesas.slice(0, 3).map((despesa) => (
                         <tr key={despesa.id} className="border-b border-[#F1F1F4] last:border-0 hover:bg-[#F9FAFB]">
-                          <td className="py-2.5 text-[12px] font-[600] text-[#4B5563]">{despesa.venc}</td>
-                          <td className="py-2.5 text-[12px] font-[600] text-[#1A1A2E]">{despesa.desc}</td>
-                          <td className="py-2.5 text-[11px] font-[500] text-[#4B5563]">{despesa.fornecedor}</td>
-                          <td className="py-2.5 text-[12px] font-[800] text-[#DC2626] text-right">{despesa.valor}</td>
+                          <td className="py-2.5 text-[12px] font-[600] text-[#4B5563]">{despesa.data_vencimento ? new Date(despesa.data_vencimento).toLocaleDateString('pt-BR') : '-'}</td>
+                          <td className="py-2.5 text-[12px] font-[600] text-[#1A1A2E]">{despesa.descricao}</td>
+                          <td className="py-2.5 text-[11px] font-[500] text-[#4B5563]">{despesa.fornecedor?.nome || '-'}</td>
+                          <td className="py-2.5 text-[12px] font-[800] text-[#DC2626] text-right">R$ {Number(despesa.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
                           <td className="py-2.5 text-center">
-                            <span className={`inline-block px-2 py-0.5 rounded-[4px] text-[10px] font-[700] ${despesa.status === 'Pago' ? 'bg-[#ECFDF5] text-[#10B981]' : despesa.status === 'Vencido' ? 'bg-[#FEF2F2] text-[#6D28D9]' : 'bg-[#EFF6FF] text-[#3B82F6]'}`}>
-                              {despesa.status}
+                            <span className={`inline-block px-2 py-0.5 rounded-[4px] text-[10px] font-[700] ${despesa.status?.toLowerCase() === 'pago' ? 'bg-[#ECFDF5] text-[#10B981]' : despesa.status?.toLowerCase() === 'vencido' ? 'bg-[#FEF2F2] text-[#6D28D9]' : 'bg-[#EFF6FF] text-[#3B82F6]'}`}>
+                              {despesa.status || 'Pendente'}
                             </span>
                           </td>
                         </tr>
@@ -363,31 +379,30 @@ export default function DespesasPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockDespesas.map((despesa) => (
+                    {despesas.map((despesa) => (
                       <tr key={despesa.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
                         <td className="py-3 px-5">
                           <div className="flex flex-col">
-                            <span className="text-[13px] font-[700] text-[#111827]">V: {despesa.venc}</span>
-                            <span className="text-[11px] text-[#6B7280]">P: {despesa.pagto}</span>
+                            <span className="text-[13px] font-[700] text-[#111827]">V: {despesa.data_vencimento ? new Date(despesa.data_vencimento).toLocaleDateString('pt-BR') : '-'}</span>
+                            <span className="text-[11px] text-[#6B7280]">P: {despesa.data_pagamento ? new Date(despesa.data_pagamento).toLocaleDateString('pt-BR') : '-'}</span>
                           </div>
                         </td>
                         <td className="py-3 px-5">
-                          <div className="flex flex-col">
-                            <span className="text-[13px] font-[700] text-[#111827]">{despesa.desc}</span>
-                            {despesa.nf !== "-" && <span className="text-[11px] text-[#6B7280] flex items-center gap-1 mt-0.5"><FileText className="w-[10px] h-[10px]" /> NF: {despesa.nf}</span>}
-                          </div>
+                          <span className="text-[13px] font-[600] text-[#111827]">{despesa.descricao}</span>
                         </td>
                         <td className="py-3 px-5">
-                          <span className="text-[13px] font-[600] text-[#4B5563]">{despesa.fornecedor}</span>
+                          <span className="text-[13px] font-[600] text-[#4B5563]">{despesa.fornecedor?.nome || '-'}</span>
                         </td>
                         <td className="py-3 px-5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">{despesa.cat}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">
+                            {despesa.centro_custo?.nome || '-'}
+                          </span>
                         </td>
                         <td className="py-3 px-5">
-                          <span className="text-[13px] text-[#6B7280]">{despesa.conta}</span>
+                          <span className="text-[12px] font-[500] text-[#6B7280]">{despesa.conta_bancaria?.nome || '-'}</span>
                         </td>
                         <td className="py-3 px-5 text-right">
-                          <span className="text-[14px] font-[800] text-[#DC2626]">{despesa.valor}</span>
+                          <span className="text-[13px] font-[800] text-[#DC2626]">R$ {Number(despesa.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
                         </td>
                         <td className="py-3 px-5 text-center">
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-[700] ${

@@ -35,6 +35,7 @@ export default function FornecedorHistoricoPage({ params: paramsPromise }: { par
   const [timelinePeriod, setTimelinePeriod] = useState("30dias");
   const [fornecedor, setFornecedor] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<any[]>([]);
 
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [motivoInativacao, setMotivoInativacao] = useState("");
@@ -53,6 +54,8 @@ export default function FornecedorHistoricoPage({ params: paramsPromise }: { par
       setLoading(true);
       const res = await FornecedoresService.obterPorId(params.id);
       setFornecedor(res.data);
+      const resHistorico: any = await FornecedoresService.historico(params.id);
+      setEvents(resHistorico.data.data || []);
     } catch (error) {
       console.error("Erro ao carregar fornecedor", error);
     } finally {
@@ -66,12 +69,7 @@ export default function FornecedorHistoricoPage({ params: paramsPromise }: { par
     return new Intl.DateTimeFormat('pt-BR').format(date);
   };
 
-  const MOCK_EVENTS = [
-    { id: 1, type: "Alterações cadastrais", date: "20/06/2024", time: "14:30", title: "Endereço atualizado", desc: "Logradouro atualizado.", author: "Financeiro", authorName: "Por Maria Santos", icon: "edit", color: "#8B5CF6", bgTag: "#F4EEFF", textTag: "#6D28D9" },
-    { id: 4, type: "Alterações cadastrais", date: "15/03/2024", time: "10:00", title: "Fornecedor criado no sistema", desc: "Cadastro inicial realizado.", author: "Admin", authorName: "Usuário principal", icon: "check", color: "#3B82F6", bgTag: "#EFF6FF", textTag: "#2563EB" }
-  ];
-
-  const filteredEvents = activeFilter === "Todos" ? MOCK_EVENTS : MOCK_EVENTS.filter(e => e.type === activeFilter);
+  const filteredEvents = activeFilter === "Todos" ? events : events.filter(e => e.type === activeFilter);
 
   if (loading) {
     return (

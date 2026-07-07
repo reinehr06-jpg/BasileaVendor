@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import { 
@@ -19,17 +19,29 @@ const fluxoData = [
   { name: 'Ter', value: 450 },
 ];
 
+import { DespesasService } from "@/services/despesas.service";
+
 export default function ContasAPagarPage() {
   const [viewMode, setViewMode] = useState<"dashboard" | "lista">("dashboard");
   const [activeTab, setActiveTab] = useState("Todas");
+  const [despesas, setDespesas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockContas = [
-    { id: 1, data: "10/05/2024", desc: "Compra de Microfones", fornecedor: "AudioTech", cat: "Equipamentos", conta: "Caixa Físico", valor: "R$ 1.200,00", status: "Vencida", diasAtraso: 14, nf: "NF-8921" },
-    { id: 2, data: "20/05/2024", desc: "Conta de Água", fornecedor: "Sabesp", cat: "Despesas Fixas", conta: "Itaú - CC 1234", valor: "R$ 250,00", status: "Vencida", diasAtraso: 4, nf: "-" },
-    { id: 3, data: "24/05/2024", desc: "Internet Corporativa", fornecedor: "Vivo Empresas", cat: "Despesas Fixas", conta: "Itaú - CC 1234", valor: "R$ 850,00", status: "Vence Hoje", diasAtraso: 0, nf: "NF-112" },
-    { id: 4, data: "26/05/2024", desc: "Energia Elétrica", fornecedor: "Enel Distribuição", cat: "Despesas Fixas", conta: "Bradesco", valor: "R$ 620,00", status: "A Vencer", diasAtraso: 0, nf: "-" },
-    { id: 5, data: "27/05/2024", desc: "Licença de Software", fornecedor: "Adobe Systems", cat: "Tecnologia", conta: "Cartão de Crédito", valor: "R$ 530,00", status: "A Vencer", diasAtraso: 0, nf: "IN-442" },
-  ];
+  React.useEffect(() => {
+    carregarDespesas();
+  }, [activeTab]);
+
+  const carregarDespesas = async () => {
+    try {
+      setLoading(true);
+      const res = await DespesasService.listar();
+      setDespesas(res.data.data || []);
+    } catch (error) {
+      console.error("Erro ao carregar contas a pagar", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -176,28 +188,20 @@ export default function ContasAPagarPage() {
                     <button onClick={() => setViewMode("lista")} className="text-[12px] font-[600] text-[#7C3AED] hover:underline">Ver todas</button>
                   </div>
                   <div className="flex-1 overflow-auto custom-scrollbar p-0">
-                    {mockContas.filter(c => c.status === "Vencida" || c.status === "Vence Hoje").map(conta => (
-                      <div key={conta.id} className="p-4 border-b border-[#F1F1F4] last:border-0 hover:bg-[#F9FAFB] flex flex-col gap-2 transition-colors">
-                        <div className="flex justify-between items-start">
-                          <div className="flex flex-col">
-                            <span className="text-[14px] font-[700] text-[#1A1A2E]">{conta.desc}</span>
-                            <span className="text-[12px] text-[#6B7280]">{conta.fornecedor} • {conta.conta}</span>
+                    {despesas.slice(0, 3).map(conta => (
+                      <div key={conta.id} className="bg-white border border-[#E5E7EB] rounded-[10px] p-3 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-[#D1D5DB] transition-colors cursor-pointer group">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="text-[13px] font-[700] text-[#1A1A2E] block">{conta.descricao}</span>
+                            <span className="text-[11px] text-[#6B7280]">{conta.fornecedor?.nome || '-'}</span>
                           </div>
-                          <span className={`text-[15px] font-[800] ${conta.status === 'Vencida' ? 'text-[#EF4444]' : 'text-[#F59E0B]'}`}>{conta.valor}</span>
+                          <span className="text-[13px] font-[800] text-[#EF4444]">R$ {Number(conta.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
                         </div>
-                        <div className="flex justify-between items-center mt-1">
-                          {conta.status === 'Vencida' ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-[700] text-[#EF4444] bg-[#FEF2F2] px-2 py-0.5 rounded-[4px]">
-                              <AlertTriangle className="w-[12px] h-[12px]" /> Vencida há {conta.diasAtraso} dias
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-[700] text-[#F59E0B] bg-[#FFFBEB] px-2 py-0.5 rounded-[4px]">
-                              <Calendar className="w-[12px] h-[12px]" /> Vence Hoje
-                            </span>
-                          )}
-                          <button className="flex items-center gap-1 text-[12px] font-[700] text-[#10B981] hover:underline">
-                            <CheckCircle2 className="w-[14px] h-[14px]" /> Baixar
-                          </button>
+                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#F1F1F4]">
+                          <span className="text-[11px] font-[600] text-[#EF4444] flex items-center gap-1 bg-[#FEF2F2] px-1.5 py-0.5 rounded-[4px]">
+                            {conta.status || 'Pendente'}
+                          </span>
+                          <span className="text-[11px] font-[600] text-[#4B5563]">Venc: {conta.data_vencimento ? new Date(conta.data_vencimento).toLocaleDateString('pt-BR') : '-'}</span>
                         </div>
                       </div>
                     ))}
@@ -258,43 +262,35 @@ export default function ContasAPagarPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockContas.map((conta) => (
+                    {despesas.map((conta) => (
                       <tr key={conta.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
                         <td className="py-3 px-5">
-                          <span className={`text-[13px] font-[700] ${conta.status === 'Vencida' ? 'text-[#EF4444]' : conta.status === 'Vence Hoje' ? 'text-[#F59E0B]' : 'text-[#4B5563]'}`}>{conta.data}</span>
+                          <span className={`text-[13px] font-[700] text-[#111827]`}>{conta.data_vencimento ? new Date(conta.data_vencimento).toLocaleDateString('pt-BR') : '-'}</span>
                         </td>
                         <td className="py-3 px-5">
                           <div className="flex flex-col">
-                            <span className="text-[13px] font-[700] text-[#111827]">{conta.desc}</span>
-                            {conta.nf !== "-" && <span className="text-[11px] text-[#6B7280] flex items-center gap-1 mt-0.5"><FileText className="w-[10px] h-[10px]" /> NF: {conta.nf}</span>}
+                            <span className="text-[13px] font-[700] text-[#111827]">{conta.descricao}</span>
                           </div>
                         </td>
                         <td className="py-3 px-5">
-                          <span className="text-[13px] text-[#4B5563]">{conta.fornecedor}</span>
+                          <span className="text-[13px] font-[600] text-[#4B5563]">{conta.fornecedor?.nome || '-'}</span>
                         </td>
                         <td className="py-3 px-5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">{conta.cat}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">{conta.centro_custo?.nome || '-'}</span>
                         </td>
                         <td className="py-3 px-5">
-                          <span className="text-[13px] text-[#6B7280]">{conta.conta}</span>
+                          <span className="text-[13px] text-[#6B7280]">{conta.conta_bancaria?.nome || '-'}</span>
                         </td>
-                        <td className="py-3 px-5">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[700] ${
-                            conta.status === 'Vencida' ? 'bg-[#FEF2F2] text-[#EF4444]' : 
-                            conta.status === 'Vence Hoje' ? 'bg-[#FFFBEB] text-[#F59E0B]' : 
-                            'bg-[#F3F4F6] text-[#4B5563]'
-                          }`}>
-                            {conta.status}
+                        <td className="py-3 px-5 text-center">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-[700] ${conta.status?.toLowerCase() === 'pago' ? 'bg-[#ECFDF5] text-[#10B981]' : conta.status?.toLowerCase() === 'vencido' ? 'bg-[#FEF2F2] text-[#6D28D9]' : 'bg-[#EFF6FF] text-[#3B82F6]'}`}>
+                            {conta.status || 'Pendente'}
                           </span>
                         </td>
                         <td className="py-3 px-5 text-right">
-                          <span className="text-[14px] font-[800] text-[#111827]">{conta.valor}</span>
+                          <span className={`text-[14px] font-[800] text-[#DC2626]`}>R$ {Number(conta.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
                         </td>
-                        <td className="py-3 px-5 text-right flex items-center justify-end gap-1">
-                          <button className="h-[32px] px-3 rounded-[6px] flex items-center justify-center gap-1.5 text-[#10B981] font-[600] text-[12px] border border-[#10B981]/20 hover:bg-[#ECFDF5] transition-colors bg-white">
-                            <CheckCircle2 className="w-[14px] h-[14px]" /> Baixar
-                          </button>
-                          <button className="w-[32px] h-[32px] rounded-[6px] flex items-center justify-center text-[#9CA3AF] hover:text-[#111827] hover:bg-[#E5E7EB] transition-colors">
+                        <td className="py-3 px-5 text-right">
+                          <button className="w-[32px] h-[32px] rounded-[6px] flex items-center justify-center text-[#9CA3AF] hover:text-[#111827] hover:bg-[#E5E7EB] transition-colors ml-auto">
                             <MoreVertical className="w-[16px] h-[16px]" />
                           </button>
                         </td>

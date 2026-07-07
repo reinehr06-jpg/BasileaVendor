@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import { 
@@ -19,16 +19,29 @@ const fluxoData = [
   { name: 'Ter', value: 500 },
 ];
 
+import { ReceitasService } from "@/services/receitas.service";
+
 export default function ContasAReceberPage() {
   const [viewMode, setViewMode] = useState<"dashboard" | "lista">("dashboard");
   const [activeTab, setActiveTab] = useState("Todas");
+  const [receitas, setReceitas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockContas = [
-    { id: 1, data: "15/05/2024", desc: "Venda de Livros - Palestra", cliente: "Livraria", cat: "Vendas", conta: "Caixa Físico", valor: "R$ 350,00", status: "Atrasado", diasAtraso: 9, nf: "NF-112" },
-    { id: 2, data: "24/05/2024", desc: "Doação Evento de Jovens", cliente: "Depto. de Jovens", cat: "Doações", conta: "Banco Itaú", valor: "R$ 200,00", status: "Para Hoje", diasAtraso: 0, nf: "-" },
-    { id: 3, data: "26/05/2024", desc: "Campanha de Reforma", cliente: "Matriz (Sede)", cat: "Campanhas", conta: "Bradesco", valor: "R$ 1.200,00", status: "A Receber", diasAtraso: 0, nf: "-" },
-    { id: 4, data: "28/05/2024", desc: "Mensalidade Curso Liderança", cliente: "Alunos do Curso", cat: "Educação", conta: "Banco do Brasil", valor: "R$ 800,00", status: "A Receber", diasAtraso: 0, nf: "MB-23" },
-  ];
+  React.useEffect(() => {
+    carregarReceitas();
+  }, [activeTab]);
+
+  const carregarReceitas = async () => {
+    try {
+      setLoading(true);
+      const res = await ReceitasService.listar();
+      setReceitas(res.data.data || []);
+    } catch (error) {
+      console.error("Erro ao carregar contas a receber", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -175,28 +188,20 @@ export default function ContasAReceberPage() {
                     <button onClick={() => setViewMode("lista")} className="text-[12px] font-[600] text-[#7C3AED] hover:underline">Ver todas</button>
                   </div>
                   <div className="flex-1 overflow-auto custom-scrollbar p-0">
-                    {mockContas.filter(c => c.status === "Atrasado" || c.status === "Para Hoje").map(conta => (
-                      <div key={conta.id} className="p-4 border-b border-[#F1F1F4] last:border-0 hover:bg-[#F9FAFB] flex flex-col gap-2 transition-colors">
-                        <div className="flex justify-between items-start">
-                          <div className="flex flex-col">
-                            <span className="text-[14px] font-[700] text-[#1A1A2E]">{conta.desc}</span>
-                            <span className="text-[12px] text-[#6B7280]">{conta.cliente} • {conta.conta}</span>
+                    {receitas.slice(0, 3).map(conta => (
+                      <div key={conta.id} className="bg-white border-b border-[#F1F1F4] p-3 hover:bg-[#F9FAFB] transition-colors cursor-pointer group">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <span className="text-[13px] font-[700] text-[#1A1A2E] block">{conta.descricao}</span>
+                            <span className="text-[11px] text-[#6B7280]">{conta.cliente?.nome || conta.origem || '-'}</span>
                           </div>
-                          <span className={`text-[15px] font-[800] ${conta.status === 'Atrasado' ? 'text-[#EF4444]' : 'text-[#F59E0B]'}`}>{conta.valor}</span>
+                          <span className="text-[13px] font-[800] text-[#EF4444]">R$ {Number(conta.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
                         </div>
-                        <div className="flex justify-between items-center mt-1">
-                          {conta.status === 'Atrasado' ? (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-[700] text-[#EF4444] bg-[#FEF2F2] px-2 py-0.5 rounded-[4px]">
-                              <AlertTriangle className="w-[12px] h-[12px]" /> Atrasado há {conta.diasAtraso} dias
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-[700] text-[#F59E0B] bg-[#FFFBEB] px-2 py-0.5 rounded-[4px]">
-                              <Calendar className="w-[12px] h-[12px]" /> Para Hoje
-                            </span>
-                          )}
-                          <button className="flex items-center gap-1 text-[12px] font-[700] text-[#3B82F6] hover:underline">
-                            <CheckCircle2 className="w-[14px] h-[14px]" /> Confirmar Recebimento
-                          </button>
+                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#F1F1F4]">
+                          <span className="text-[11px] font-[600] text-[#EF4444] flex items-center gap-1 bg-[#FEF2F2] px-1.5 py-0.5 rounded-[4px]">
+                            {conta.status || 'Pendente'}
+                          </span>
+                          <span className="text-[11px] font-[600] text-[#4B5563]">Venc: {conta.data_recebimento ? new Date(conta.data_recebimento).toLocaleDateString('pt-BR') : '-'}</span>
                         </div>
                       </div>
                     ))}
@@ -257,43 +262,35 @@ export default function ContasAReceberPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockContas.map((conta) => (
+                    {receitas.map((conta) => (
                       <tr key={conta.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
                         <td className="py-3 px-5">
-                          <span className={`text-[13px] font-[700] ${conta.status === 'Atrasado' ? 'text-[#EF4444]' : conta.status === 'Para Hoje' ? 'text-[#F59E0B]' : 'text-[#4B5563]'}`}>{conta.data}</span>
+                          <span className={`text-[13px] font-[700] text-[#111827]`}>{conta.data_recebimento ? new Date(conta.data_recebimento).toLocaleDateString('pt-BR') : '-'}</span>
                         </td>
                         <td className="py-3 px-5">
                           <div className="flex flex-col">
-                            <span className="text-[13px] font-[700] text-[#111827]">{conta.desc}</span>
-                            {conta.nf !== "-" && <span className="text-[11px] text-[#6B7280] flex items-center gap-1 mt-0.5"><FileText className="w-[10px] h-[10px]" /> NF: {conta.nf}</span>}
+                            <span className="text-[13px] font-[700] text-[#111827]">{conta.descricao}</span>
                           </div>
                         </td>
                         <td className="py-3 px-5">
-                          <span className="text-[13px] text-[#4B5563]">{conta.cliente}</span>
+                          <span className="text-[13px] font-[600] text-[#4B5563]">{conta.cliente?.nome || conta.origem || '-'}</span>
                         </td>
                         <td className="py-3 px-5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">{conta.cat}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">{conta.centro_custo?.nome || '-'}</span>
                         </td>
                         <td className="py-3 px-5">
-                          <span className="text-[13px] text-[#6B7280]">{conta.conta}</span>
+                          <span className="text-[13px] text-[#6B7280]">{conta.conta_bancaria?.nome || '-'}</span>
                         </td>
-                        <td className="py-3 px-5">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[700] ${
-                            conta.status === 'Atrasado' ? 'bg-[#FEF2F2] text-[#EF4444]' : 
-                            conta.status === 'Para Hoje' ? 'bg-[#FFFBEB] text-[#F59E0B]' : 
-                            'bg-[#F3F4F6] text-[#4B5563]'
-                          }`}>
-                            {conta.status}
+                        <td className="py-3 px-5 text-center">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-[700] ${conta.status?.toLowerCase() === 'recebido' ? 'bg-[#ECFDF5] text-[#10B981]' : 'bg-[#EFF6FF] text-[#3B82F6]'}`}>
+                            {conta.status || 'Pendente'}
                           </span>
                         </td>
                         <td className="py-3 px-5 text-right">
-                          <span className="text-[14px] font-[800] text-[#111827]">{conta.valor}</span>
+                          <span className={`text-[14px] font-[800] text-[#10B981]`}>R$ {Number(conta.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
                         </td>
-                        <td className="py-3 px-5 text-right flex items-center justify-end gap-1">
-                          <button className="h-[32px] px-3 rounded-[6px] flex items-center justify-center gap-1.5 text-[#3B82F6] font-[600] text-[12px] border border-[#3B82F6]/20 hover:bg-[#EFF6FF] transition-colors bg-white">
-                            <CheckCircle2 className="w-[14px] h-[14px]" /> Receber
-                          </button>
-                          <button className="w-[32px] h-[32px] rounded-[6px] flex items-center justify-center text-[#9CA3AF] hover:text-[#111827] hover:bg-[#E5E7EB] transition-colors">
+                        <td className="py-3 px-5 text-right">
+                          <button className="w-[32px] h-[32px] rounded-[6px] flex items-center justify-center text-[#9CA3AF] hover:text-[#111827] hover:bg-[#E5E7EB] transition-colors ml-auto">
                             <MoreVertical className="w-[16px] h-[16px]" />
                           </button>
                         </td>

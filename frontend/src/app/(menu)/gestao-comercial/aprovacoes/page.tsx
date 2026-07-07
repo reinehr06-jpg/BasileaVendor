@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -15,13 +15,7 @@ import {
   Clock
 } from "lucide-react";
 
-const MOCK_APROVACOES = [
-  { id: "#00012", vendedor: "Bruno Santana da Hora", cliente: "Empresa Alpha Ltda", tipo: "Desconto", valor: "15.00%", status: "Pendente", por: "-", data: "02/07/2026 10:30" },
-  { id: "#00011", vendedor: "Carolina de Souza", cliente: "Marcos Antônio Rodrigues", tipo: "Plano Especial", valor: "R$ 900,00", status: "Aprovado", por: "Administrador", data: "01/07/2026 14:15" },
-  { id: "#00010", vendedor: "Roger Guilherme", cliente: "Tech Solutions ME", tipo: "Desconto", valor: "20.00%", status: "Rejeitado", por: "Diretor Comercial", data: "29/06/2026 09:45" },
-  { id: "#00009", vendedor: "Guilherme Guth Betim", cliente: "Amanda Vasconcelos", tipo: "Isenção Adesão", valor: "100%", status: "Aprovado", por: "Administrador", data: "28/06/2026 16:20" },
-  { id: "#00008", vendedor: "Vendedor de Testes", cliente: "Teste Final de PIX", tipo: "Desconto", valor: "97.40%", status: "Aprovado", por: "Administrador Master", data: "28/04/2026 15:05" },
-];
+import { AprovacoesService } from "@/services/aprovacoes.service";
 
 export default function AprovacoesPage() {
   const { t } = useTranslation();
@@ -29,7 +23,24 @@ export default function AprovacoesPage() {
   const [buscaCliente, setBuscaCliente] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [aprovacoes, setAprovacoes] = useState(MOCK_APROVACOES);
+  const [aprovacoes, setAprovacoes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    carregarAprovacoes();
+  }, []);
+
+  const carregarAprovacoes = async () => {
+    try {
+      setLoading(true);
+      const res: any = await AprovacoesService.listar();
+      setAprovacoes(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredAprovacoes = aprovacoes.filter(a =>
     a.vendedor.toLowerCase().includes(buscaVendedor.toLowerCase()) &&

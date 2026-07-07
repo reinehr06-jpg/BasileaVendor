@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
@@ -18,13 +18,7 @@ import {
   Download
 } from "lucide-react";
 
-const MOCK_PAGAMENTOS = [
-  { id: 1, igreja: "Comunidade Evangelica Atos 1", vendedor: "Vendedor de Testes", valor: "R$ 197,00", forma: "Cartão de Crédito", status: "Pago", pagamento: "04/05/2026" },
-  { id: 2, igreja: "Igreja do Evangelho Quadrangular", vendedor: "Vendedor de Testes", valor: "R$ 297,00", forma: "Pix", status: "Pago", pagamento: "07/04/2026" },
-  { id: 3, igreja: "Church Comunidade Jesus Água e Vida", vendedor: "Vendedor de Testes", valor: "R$ 197,00", forma: "Pix", status: "Pago", pagamento: "08/04/2026" },
-  { id: 4, igreja: "Primeira Igreja Batista", vendedor: "Bruno Santana da Hora", valor: "R$ 350,00", forma: "Boleto", status: "Pendente", pagamento: "10/05/2026" },
-  { id: 5, igreja: "Igreja Presbiteriana Central", vendedor: "Carolina de Souza", valor: "R$ 497,00", forma: "Cartão de Crédito", status: "Pago", pagamento: "15/05/2026" },
-];
+import { ReceitasService } from "@/services/receitas.service";
 
 export default function PagamentosPage() {
   const { t } = useTranslation();
@@ -33,12 +27,28 @@ export default function PagamentosPage() {
   const [formaFiltro, setFormaFiltro] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [pagamentos, setPagamentos] = useState(MOCK_PAGAMENTOS);
+  const [pagamentos, setPagamentos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    carregarPagamentos();
+  }, []);
+
+  const carregarPagamentos = async () => {
+    try {
+      setLoading(true);
+      const res = await ReceitasService.listar();
+      setPagamentos(res.data.data || []);
+    } catch (error) {
+      console.error("Erro ao carregar pagamentos", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredPagamentos = pagamentos.filter(p =>
-    (p.igreja.toLowerCase().includes(busca.toLowerCase()) || p.vendedor.toLowerCase().includes(busca.toLowerCase())) &&
-    (statusFiltro === "" || p.status.toLowerCase() === statusFiltro.toLowerCase()) &&
-    (formaFiltro === "" || p.forma.toLowerCase() === formaFiltro.toLowerCase())
+    ((p.cliente?.nome || '').toLowerCase().includes(busca.toLowerCase()) || (p.origem || '').toLowerCase().includes(busca.toLowerCase())) &&
+    (statusFiltro === "" || (p.status || '').toLowerCase() === statusFiltro.toLowerCase())
   );
   
   const paginatedPagamentos = filteredPagamentos.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -187,28 +197,28 @@ export default function PagamentosPage() {
               {paginatedPagamentos.length > 0 ? paginatedPagamentos.map((p, i) => (
                 <div key={i} className="grid grid-cols-[1.8fr_1fr_100px_140px_100px_100px_80px] items-center px-[24px] h-[52px] bg-white border-b border-[#F1F1F4] hover:bg-[#FAFAFC] transition-colors last:border-b-0 min-w-[900px]">
                   
-                  <span className="text-[12px] font-[600] text-[#111827] truncate pr-4">{p.igreja}</span>
-                  <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{p.vendedor}</span>
+                  <span className="text-[12px] font-[600] text-[#111827] truncate pr-4">{p.cliente?.nome || p.origem || '-'}</span>
+                  <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{p.origem || '-'}</span>
                   
-                  <span className="text-[12px] font-[700] text-[#111827]">{p.valor}</span>
+                  <span className="text-[12px] font-[700] text-[#111827]">R$ {Number(p.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
                   
                   <div>
                     <span className="inline-flex items-center px-[8px] py-[2px] text-[10px] font-[700] rounded-full bg-[#F3E8FF] text-[#7C3AED] uppercase tracking-wide whitespace-nowrap">
-                      {p.forma}
+                      {p.conta_bancaria?.nome || '-'}
                     </span>
                   </div>
 
                   <div>
                     <span className={`inline-flex items-center px-[8px] py-[2px] text-[10px] font-[700] rounded-full uppercase tracking-wide whitespace-nowrap ${
-                      p.status === "Pago" ? "bg-[#D1FAE5] text-[#059669]" : 
-                      p.status === "Pendente" ? "bg-[#FEF3C7] text-[#D97706]" : 
+                      p.status?.toLowerCase() === "pago" || p.status?.toLowerCase() === "recebido" ? "bg-[#D1FAE5] text-[#059669]" : 
+                      p.status?.toLowerCase() === "pendente" ? "bg-[#FEF3C7] text-[#D97706]" : 
                       "bg-[#FEE2E2] text-[#DC2626]"
                     }`}>
-                      {p.status}
+                      {p.status || 'Pendente'}
                     </span>
                   </div>
 
-                  <span className="text-[12px] font-[500] text-[#6B7280]">{p.pagamento}</span>
+                  <span className="text-[12px] font-[500] text-[#6B7280]">{p.data_recebimento ? new Date(p.data_recebimento).toLocaleDateString('pt-BR') : '-'}</span>
                   
                   <div className="flex items-center justify-center">
                     <button title={t("Baixar comprovante")} onClick={() => toast.success(t("O download do comprovante foi iniciado!"))} className="w-[30px] h-[30px] rounded-[8px] border border-[#E5E7EB] bg-white flex items-center justify-center hover:bg-[#F3F4F6] hover:text-[#6D28D9] transition-colors">

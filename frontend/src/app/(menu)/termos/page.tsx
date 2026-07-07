@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -15,22 +15,31 @@ import {
   Search
 } from "lucide-react";
 
+import { TermosService } from "@/services/termos.service";
+
 export default function TermosPage() {
   const { t } = useTranslation();
   const [busca, setBusca] = useState("");
+  const [termos, setTermos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockTermos = [
-    {
-      id: 1,
-      tipo: "USO",
-      titulo: "Contrato padrao",
-      versao: "2.0",
-      criadoEm: "05/05/2026",
-      status: "Ativo"
+  React.useEffect(() => {
+    carregarTermos();
+  }, []);
+
+  const carregarTermos = async () => {
+    try {
+      setLoading(true);
+      const res: any = await TermosService.listar();
+      setTermos(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const filteredTermos = mockTermos.filter(termo => 
+  const filteredTermos = termos.filter(termo => 
     termo.titulo.toLowerCase().includes(busca.toLowerCase())
   );
 

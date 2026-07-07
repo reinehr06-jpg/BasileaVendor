@@ -1,18 +1,24 @@
 /*
  * ═══════════════════════════════════════════════════════════════════════════════
- * 🗺️ MAPA DO TESOURO — TELA: FUNCIONÁRIOS E PAGAMENTOS
+ * 🗺️ MAPA DO TESOURO — TELA: FUNCIONÁRIOS E PREBENDAS
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * 📍 ROTA: /funcionarios
- * 📁 ARQUIVO: src/app/funcionarios/page.tsx
+ * 📍 ROTA: /cadastros/funcionarios
+ * 📁 ARQUIVO: src/app/(menu)/cadastros/funcionarios/page.tsx
  *
- * 🎯 OBJETIVO DESTA TELA:
- *    Gestão de folha de pagamento, cadastro de funcionários/pastores e geração de recibos.
+ * 🎯 OBJETIVO DA TELA:
+ *    Gestão do quadro de pessoal da igreja. Serve para cadastrar Pastores (que recebem 
+ *    Prebenda Ministerial) e Funcionários CLT (Zelador, Secretária). Facilita a 
+ *    geração de folha de pagamento no final do mês.
  *
- * 🔗 INTEGRAÇÕES COM O BACK-END:
- *    1. GET /api/funcionarios?page=1&limit=10 → Lista funcionários e salários
- *    2. POST /api/funcionarios/pagamentos → Gerar pagamento em lote (folha)
- *    3. GET /api/funcionarios/{id}/recibo → Gerar PDF de recibo de pagamento
+ * ⚙️ REGRAS DE NEGÓCIO E COMPORTAMENTO:
+ *    - É possível gerar um recibo automático (PDF) para os salários/prebendas.
+ *    - Pode-se criar uma "Despesa Recorrente" automática todo mês baseada neste cadastro.
+ *
+ * 🔗 INTEGRAÇÕES COM O BACK-END (APIs):
+ *    1. GET /api/funcionarios → Lista todos os colaboradores ativos.
+ *    2. POST /api/funcionarios/folha → Gera em lote os pagamentos do mês atual.
+ *    3. GET /api/funcionarios/{id}/recibo → Retorna buffer do PDF gerado.
  *
  * ═══════════════════════════════════════════════════════════════════════════════
  */
@@ -20,7 +26,7 @@
 "use client";
 
 // ─── IMPORTAÇÕES ─────────────────────────────────────────────────────────────
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -28,15 +34,29 @@ import {
   Users, User, Plus, Search, Filter, Download, FileText, Printer, X, CheckCircle2, AlertCircle
 } from "lucide-react";
 
+import { FuncionariosService } from "@/services/funcionarios.service";
+
 export default function FuncionariosPage() {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [selectedFuncionario, setSelectedFuncionario] = useState<any>(null);
+  const [funcionarios, setFuncionarios] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockFuncionarios = [
-    { id: 1, nome: "Carlos Almeida", documento: "123.456.789-00", cargo: "Zelador", salario: "R$ 2.500,00", pgtoData: "05/05/2024", conta: "Itaú - CC 1234", forma: "PIX", status: "Pago", filial: "Igreja Sede" },
-    { id: 2, nome: "Mariana Souza", documento: "987.654.321-11", cargo: "Secretária", salario: "R$ 3.200,00", pgtoData: "05/05/2024", conta: "Itaú - CC 1234", forma: "Transferência", status: "Pendente", filial: "Igreja Sede" },
-    { id: 3, nome: "Pr. João Silva", documento: "444.555.666-77", cargo: "Pastor Auxiliar", salario: "R$ 4.500,00", pgtoData: "05/05/2024", conta: "Caixa Físico", forma: "Dinheiro", status: "Pago", filial: "Filial Zona Sul" },
-  ];
+  React.useEffect(() => {
+    carregarFuncionarios();
+  }, []);
+
+  const carregarFuncionarios = async () => {
+    try {
+      setLoading(true);
+      const res: any = await FuncionariosService.listar();
+      setFuncionarios(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOpenReceipt = (func: any) => {
     setSelectedFuncionario(func);
@@ -101,8 +121,8 @@ export default function FuncionariosPage() {
                     <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {mockFuncionarios.map((func) => (
+                  <tbody className="divide-y divide-[#E5E7EB]">
+                    {funcionarios.map((func) => (
                     <tr key={func.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-3">

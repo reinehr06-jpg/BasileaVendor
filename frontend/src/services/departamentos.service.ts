@@ -1,4 +1,4 @@
-import api from '@/lib/api';
+import { api } from '@/lib/api';
 
 export const DepartamentosService = {
   listar: async (params?: { search?: string; page?: number }) => {

@@ -32,6 +32,7 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
   const [timelinePeriod, setTimelinePeriod] = useState("todo");
   const [compra, setCompra] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [events, setEvents] = useState<any[]>([]);
 
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [motivoInativacao, setMotivoInativacao] = useState("");
@@ -48,6 +49,8 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
       setLoading(true);
       const res = await ComprasService.obterPorId(params.id);
       setCompra(res.data);
+      const resHistorico: any = await ComprasService.historico(params.id);
+      setEvents(resHistorico.data.data || []);
     } catch (error) {
       console.error("Erro ao carregar compra", error);
     } finally {
@@ -86,13 +89,7 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
     return new Intl.DateTimeFormat('pt-BR').format(date);
   };
 
-  const MOCK_EVENTS = [
-    { id: 1, type: "Fluxo de aprovação", date: "20/05/2024", time: "11:00", title: "Enviado para aprovação", desc: "O pedido está aguardando a aprovação do Pastor Presidente ou Diretor Financeiro devido ao valor estar acima de R$ 300,00.", author: "Sistema", authorName: "Fluxo automático", icon: "clock", color: "#F59E0B", bgTag: "#FEF3C7", textTag: "#B45309", isWarning: true },
-    { id: 2, type: "Cotações", date: "20/05/2024", time: "10:50", title: "Orçamento anexado: Kalunga", desc: "Arquivo Orcamento_Kalunga.pdf enviado por Lucas Almeida para análise.", author: "Lucas Almeida", authorName: "Solicitante", icon: "edit", color: "#3B82F6", bgTag: "#EFF6FF", textTag: "#2563EB" },
-    { id: 3, type: "Fluxo de aprovação", date: "20/05/2024", time: "10:45", title: "Pedido de compra solicitado", desc: "Solicitação criada.", author: "Lucas Almeida", authorName: "Solicitante", icon: "check", color: "#8B5CF6", bgTag: "#F4EEFF", textTag: "#6D28D9" }
-  ];
-
-  const filteredEvents = activeFilter === "Todos" ? MOCK_EVENTS : MOCK_EVENTS.filter(e => e.type === activeFilter);
+  const filteredEvents = activeFilter === "Todos" ? events : events.filter(e => e.type === activeFilter);
 
   if (loading) {
     return (

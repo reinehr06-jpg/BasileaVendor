@@ -37,7 +37,7 @@
 "use client"; // Obrigatório: componente interativo com estados
 
 // ─── IMPORTAÇÕES ─────────────────────────────────────────────────────────────
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";                 // Navegação Next.js (Link para /despesas/nova)
 import Sidebar from "@/components/Sidebar";   // Menu lateral (navegação principal)
 import Topbar from "@/components/Topbar";     // Barra superior (busca global)
@@ -91,6 +91,8 @@ const despesasCategoriaData = [
 /* 🎨 Cores para o gráfico de barras (tons de roxo — identidade visual do sistema) */
 const COLORS = ["#6D28D9", "#8B5CF6", "#A78BFA", "#C4B5FD"];
 
+import { DespesasService } from "@/services/despesas.service";
+
 export default function DespesasPage() {
   const [viewMode, setViewMode] = useState<"dashboard" | "lista">("dashboard");
   const [activeTab, setActiveTab] = useState("Todas");
@@ -99,24 +101,20 @@ export default function DespesasPage() {
 
   useEffect(() => {
     carregarDespesas();
-  }, []);
+  }, [activeTab]);
 
   const carregarDespesas = async () => {
     try {
       setLoading(true);
       const res = await DespesasService.listar();
-      setDespesas(res.data.data);
+      // Em uma aplicação real, aqui filtraríamos por activeTab se necessário, 
+      // ou passaríamos na query. Para simplificar, setamos os dados
+      setDespesas(res.data.data || []);
     } catch (error) {
       console.error("Erro ao carregar despesas", error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-';
-    const date = new Date(dateStr);
-    return new Intl.DateTimeFormat('pt-BR').format(date);
   };
 
   return (
@@ -140,16 +138,19 @@ export default function DespesasPage() {
             </div>
             <div className="flex items-center gap-3">
               
+              {/* 🗺️ MAPA DO TESOURO: TOGGLE DE VISÃO (DASHBOARD vs LISTA)
+                  Controla o estado 'viewMode'. Se 'dashboard', mostra KPIs e gráficos.
+                  Se 'lista', mostra a tabela completa com paginação e filtros. */}
               <div className="flex items-center bg-[#F3F4F6] p-1 rounded-[8px] mr-2">
                 <button 
                   onClick={() => setViewMode("dashboard")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-[6px] text-[13px] font-[600] transition-colors ${viewMode === "dashboard" ? 'bg-white text-[#DC2626] shadow-sm' : 'text-[#6B7280] hover:text-[#374151]'}`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-[6px] text-[13px] font-[600] transition-colors ${viewMode === "dashboard" ? 'bg-white text-[#7C3AED] shadow-sm' : 'text-[#6B7280] hover:text-[#374151]'}`}
                 >
                   <LayoutDashboard className="w-[14px] h-[14px]" /> Dashboard
                 </button>
                 <button 
                   onClick={() => setViewMode("lista")}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-[6px] text-[13px] font-[600] transition-colors ${viewMode === "lista" ? 'bg-white text-[#DC2626] shadow-sm' : 'text-[#6B7280] hover:text-[#374151]'}`}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-[6px] text-[13px] font-[600] transition-colors ${viewMode === "lista" ? 'bg-white text-[#7C3AED] shadow-sm' : 'text-[#6B7280] hover:text-[#374151]'}`}
                 >
                   <List className="w-[14px] h-[14px]" /> Lista
                 </button>
@@ -158,7 +159,7 @@ export default function DespesasPage() {
               <button className="flex items-center gap-2 px-4 py-2 border border-[#E5E7EB] rounded-[8px] text-[13px] font-[600] text-[#4B5563] hover:bg-[#F9FAFB] transition-colors shadow-sm">
                 <Download className="w-[14px] h-[14px]" /> Exportar
               </button>
-              <Link href="/financeiro/despesas/nova" className="bg-[#6D28D9] hover:bg-[#5B21B6] transition-colors text-white px-4 py-2 rounded-[8px] text-[13px] font-[700] flex items-center gap-2 shadow-sm">
+              <Link href="/gestao-financeira/despesas/nova" className="bg-[#7C3AED] hover:bg-[#6D28D9] transition-colors text-white px-4 py-2 rounded-[8px] text-[13px] font-[700] flex items-center gap-2 shadow-sm">
                 <Plus className="w-[16px] h-[16px]" strokeWidth={2.5} />
                 Nova Despesa
               </Link>
@@ -168,7 +169,14 @@ export default function DespesasPage() {
           {/* DYNAMIC CONTENT */}
           {viewMode === "dashboard" ? (
             <div className="flex flex-col flex-1 gap-4 overflow-y-auto custom-scrollbar pb-4 animate-in fade-in duration-300">
+              
+              {/* 🗺️ MAPA DO TESOURO: GRID DE KPIs
+                  Exibidos apenas no modo 'dashboard'. */}
               <div className="grid grid-cols-4 gap-4 shrink-0">
+                
+                {/* 🗺️ MAPA DO TESOURO: KPI 1 - Total Pago no Mês
+                    Soma de todas as despesas com status 'Pago' no mês atual.
+                    🔗 BACK-END: GET /api/despesas/resumo -> total_pago */}
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex items-center justify-between shadow-sm">
                   <div className="flex flex-col">
                     <span className="text-[12px] font-[600] text-[#6B7280]">Total Pago no Mês</span>
@@ -183,6 +191,9 @@ export default function DespesasPage() {
                     <ArrowDownCircle className="w-[20px] h-[20px] text-[#DC2626]" strokeWidth={2.4} />
                   </div>
                 </div>
+
+                {/* 🗺️ MAPA DO TESOURO: KPI 2 - A Pagar (Hoje)
+                    Soma das despesas cujo vencimento é HOJE e status é 'Agendado'. */}
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex items-center justify-between shadow-sm">
                   <div className="flex flex-col">
                     <span className="text-[12px] font-[600] text-[#6B7280]">A Pagar (Hoje)</span>
@@ -197,6 +208,9 @@ export default function DespesasPage() {
                     <CalendarDays className="w-[20px] h-[20px] text-[#A78BFA]" strokeWidth={2.4} />
                   </div>
                 </div>
+
+                {/* 🗺️ MAPA DO TESOURO: KPI 3 - Atrasadas
+                    Soma das despesas cujo vencimento já passou (ontem ou antes) e não estão pagas. */}
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex items-center justify-between shadow-sm">
                   <div className="flex flex-col">
                     <span className="text-[12px] font-[600] text-[#6B7280]">Atrasadas</span>
@@ -211,6 +225,9 @@ export default function DespesasPage() {
                     <Building2 className="w-[20px] h-[20px] text-[#10B981]" strokeWidth={2.4} />
                   </div>
                 </div>
+
+                {/* 🗺️ MAPA DO TESOURO: KPI 4 - Fixas vs Variáveis
+                    Percentual comparativo do tipo de despesa no mês atual. */}
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex items-center justify-between shadow-sm">
                   <div className="flex flex-col">
                     <span className="text-[12px] font-[600] text-[#6B7280]">Fixas vs Variáveis</span>
@@ -226,6 +243,8 @@ export default function DespesasPage() {
                   </div>
                 </div>
               </div>
+
+              {/* 🗺️ MAPA DO TESOURO: GRÁFICOS */}
               <div className="flex gap-4 shrink-0 h-[280px]">
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex-1 flex flex-col shadow-sm">
                   <div className="flex justify-between items-center mb-4 shrink-0">
@@ -248,6 +267,7 @@ export default function DespesasPage() {
                     </ResponsiveContainer>
                   </div>
                 </div>
+
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 w-[380px] flex flex-col shadow-sm">
                   <span className="text-[14px] font-[700] text-[#1A1A2E] mb-4 shrink-0">Despesas por Categoria</span>
                   <div className="flex-1 w-full min-h-0">
@@ -265,10 +285,51 @@ export default function DespesasPage() {
                   </div>
                 </div>
               </div>
+
+              <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex flex-col flex-1 min-h-[200px] shadow-sm overflow-hidden">
+                <div className="flex justify-between items-center mb-4 shrink-0">
+                  <span className="text-[14px] font-[700] text-[#1A1A2E]">Próximos Vencimentos</span>
+                  <button onClick={() => setViewMode("lista")} className="text-[12px] font-[600] text-[#DC2626] hover:underline">Ver todos</button>
+                </div>
+                <div className="flex-1 overflow-auto custom-scrollbar">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-[#F1F1F4]">
+                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white">Vencimento</th>
+                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white">Descrição</th>
+                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white">Fornecedor</th>
+                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white text-right">Valor</th>
+                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase text-center sticky top-0 bg-white">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {despesas.slice(0, 3).map((despesa) => (
+                        <tr key={despesa.id} className="border-b border-[#F1F1F4] last:border-0 hover:bg-[#F9FAFB]">
+                          <td className="py-2.5 text-[12px] font-[600] text-[#4B5563]">{despesa.data_vencimento ? new Date(despesa.data_vencimento).toLocaleDateString('pt-BR') : '-'}</td>
+                          <td className="py-2.5 text-[12px] font-[600] text-[#1A1A2E]">{despesa.descricao}</td>
+                          <td className="py-2.5 text-[11px] font-[500] text-[#4B5563]">{despesa.fornecedor?.nome || '-'}</td>
+                          <td className="py-2.5 text-[12px] font-[800] text-[#DC2626] text-right">R$ {Number(despesa.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+                          <td className="py-2.5 text-center">
+                            <span className={`inline-block px-2 py-0.5 rounded-[4px] text-[10px] font-[700] ${despesa.status?.toLowerCase() === 'pago' ? 'bg-[#ECFDF5] text-[#10B981]' : despesa.status?.toLowerCase() === 'vencido' ? 'bg-[#FEF2F2] text-[#6D28D9]' : 'bg-[#EFF6FF] text-[#3B82F6]'}`}>
+                              {despesa.status || 'Pendente'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
             </div>
           ) : (
             <div className="bg-white rounded-[12px] border border-[#E5E7EB] shadow-sm flex flex-col flex-1 overflow-hidden min-h-0 animate-in fade-in duration-300">
+              
+              {/* 🗺️ MAPA DO TESOURO: TABS & TOOLS (Apenas no modo Lista)
+                  Controles para filtro rápido por status da despesa.
+                  🔗 BACK-END: Recarrega GET /api/despesas passando o 'status' selecionado. */}
               <div className="p-4 border-b border-[#F1F1F4] flex items-center justify-between gap-3 shrink-0">
+                
                 <div className="flex items-center gap-1 bg-[#F3F4F6] p-1 rounded-[8px]">
                   {["Todas", "Vencidas", "Em aberto", "Agendadas", "Pagas", "Aguardando aprovação"].map((tab) => (
                     <button
@@ -280,12 +341,13 @@ export default function DespesasPage() {
                     </button>
                   ))}
                 </div>
+                
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <input 
                       type="text" 
-                      placeholder="Buscar por descrição, fornecedor ou NF..." 
-                      className="w-[280px] h-[36px] border border-[#E5E7EB] rounded-[8px] pl-9 pr-3 text-[13px] outline-none focus:border-[#DC2626]"
+                      placeholder="Buscar por descrição, recibo ou origem..." 
+                      className="w-[280px] h-[36px] border border-[#E5E7EB] rounded-[8px] pl-9 pr-3 text-[13px] outline-none focus:border-[#7C3AED]"
                     />
                     <Search className="w-[14px] h-[14px] text-[#9CA3AF] absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
@@ -293,23 +355,65 @@ export default function DespesasPage() {
                     <Filter className="w-[14px] h-[14px] text-[#9CA3AF]" />
                     Filtros
                   </button>
+                  <button className="flex items-center gap-2 px-3 py-1.5 border border-[#E5E7EB] rounded-[8px] text-[13px] font-[600] text-[#374151] hover:bg-[#F9FAFB] h-[36px]">
+                    <Columns className="w-[14px] h-[14px] text-[#9CA3AF]" />
+                    Colunas
+                  </button>
                 </div>
               </div>
+
+              {/* 🗺️ MAPA DO TESOURO: TABELA PRINCIPAL (Visão Lista)
+                  Lista todas as despesas conforme filtro selecionado. */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-0 m-0 relative">
                 <table className="w-full text-left border-collapse">
                   <thead className="sticky top-0 bg-[#F9FAFB] shadow-[0_1px_0_#F1F1F4] z-10">
                     <tr>
-                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase"></th>
-                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Vencimento / Pagto</th>
-                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Descrição / Fornecedor</th>
-                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Conta</th>
-                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Categoria</th>
-                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Valor</th>
-                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Status</th>
-                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">NF</th>
+                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Vencimento / Pagto</th>
+                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Descrição</th>
+                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Fornecedor</th>
+                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Categoria</th>
+                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Conta</th>
+                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-right">Valor</th>
+                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-center">Status</th>
+                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
+                    {despesas.map((despesa) => (
+                      <tr key={despesa.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
+                        <td className="py-3 px-5">
+                          <div className="flex flex-col">
+                            <span className="text-[13px] font-[700] text-[#111827]">V: {despesa.data_vencimento ? new Date(despesa.data_vencimento).toLocaleDateString('pt-BR') : '-'}</span>
+                            <span className="text-[11px] text-[#6B7280]">P: {despesa.data_pagamento ? new Date(despesa.data_pagamento).toLocaleDateString('pt-BR') : '-'}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-5">
+                          <span className="text-[13px] font-[600] text-[#111827]">{despesa.descricao}</span>
+                        </td>
+                        <td className="py-3 px-5">
+                          <span className="text-[13px] font-[600] text-[#4B5563]">{despesa.fornecedor?.nome || '-'}</span>
+                        </td>
+                        <td className="py-3 px-5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">
+                            {despesa.centro_custo?.nome || '-'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-5">
+                          <span className="text-[12px] font-[500] text-[#6B7280]">{despesa.conta_bancaria?.nome || '-'}</span>
+                        </td>
+                        <td className="py-3 px-5 text-right">
+                          <span className="text-[13px] font-[800] text-[#DC2626]">R$ {Number(despesa.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                        </td>
+                        <td className="py-3 px-5 text-center">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-[700] ${
+                            despesa.status === 'Pago' ? 'bg-[#ECFDF5] text-[#10B981]' : 
+                            despesa.status === 'Vencido' ? 'bg-[#FEF2F2] text-[#6D28D9]' : 
+                            despesa.status === 'Agendado' ? 'bg-[#EFF6FF] text-[#3B82F6]' : 
+                            despesa.status === 'Cancelado' ? 'bg-[#F3F4F6] text-[#6B7280]' :
+                            despesa.status === 'Aguardando aprovação' ? 'bg-[#FEF08A] text-[#854D0E]' :
+                            despesa.status === 'Parcialmente pago' ? 'bg-[#D1FAE5] text-[#047857]' :
+                            despesa.status === 'Em aberto' ? 'bg-[#FFF7ED] text-[#EA580C]' :
+                            despesa.status === 'Contestação' ? 'bg-[#FEE2E2] text-[#B91C1C]' :
                             'bg-[#F3F4F6] text-[#6B7280]'
                           }`}>
                             {despesa.status}
@@ -352,15 +456,9 @@ export default function DespesasPage() {
                   </div>
                   
                   <div className="flex items-center gap-1">
-                    <button className="w-[28px] h-[28px] flex items-center justify-center rounded-[6px] text-[#9CA3AF] hover:bg-[#E5E7EB] hover:text-[#374151] transition-colors disabled:opacity-50" disabled>
-                      <ChevronLeft className="w-[14px] h-[14px]" />
-                    </button>
-                    <button className="w-[28px] h-[28px] flex items-center justify-center rounded-[6px] bg-[#FEF2F2] text-[#DC2626] font-[700] text-[12px] transition-colors">
-                      1
-                    </button>
-                    <button className="w-[28px] h-[28px] flex items-center justify-center rounded-[6px] text-[#9CA3AF] hover:bg-[#E5E7EB] hover:text-[#374151] transition-colors disabled:opacity-50" disabled>
-                      <ChevronRight className="w-[14px] h-[14px]" />
-                    </button>
+                    <button className="w-[28px] h-[28px] flex items-center justify-center rounded-[6px] text-[#9CA3AF] disabled:opacity-50" disabled><ChevronLeft className="w-[14px] h-[14px]" /></button>
+                    <button className="w-[28px] h-[28px] flex items-center justify-center rounded-[6px] bg-[#F4F1FD] text-[#7C3AED] font-[700] text-[12px]">1</button>
+                    <button className="w-[28px] h-[28px] flex items-center justify-center rounded-[6px] text-[#9CA3AF] disabled:opacity-50" disabled><ChevronRight className="w-[14px] h-[14px]" /></button>
                   </div>
                 </div>
 

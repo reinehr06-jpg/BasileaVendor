@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -28,15 +28,29 @@ const receitasCategoriaData = [
 
 const COLORS = ["#10B981", "#34D399", "#6EE7B7", "#A7F3D0"];
 
+import { ReceitasService } from "@/services/receitas.service";
+
 export default function ReceitasPage() {
   const [viewMode, setViewMode] = useState<"dashboard" | "lista">("dashboard");
   const [activeTab, setActiveTab] = useState("Contribuições");
+  const [receitas, setReceitas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockReceitas = [
-    { id: 1, data: "24/05/2024", desc: "Contribuição Mensal - Sede", conta: "Itaú - CC 1234", cat: "Contribuições", origem: "João Silva", valor: "R$ 1.500,00", nf: "-" },
-    { id: 2, data: "24/05/2024", desc: "Doação - Evento Principal", conta: "Itaú - CC 1234", cat: "Doações", origem: "Evento Principal", valor: "R$ 845,50", nf: "-" },
-    { id: 3, data: "25/05/2024", desc: "Venda de Livros - Conferência", conta: "Caixa Físico", cat: "Vendas", origem: "Livraria", valor: "R$ 320,00", nf: "NF-0012" },
-  ];
+  React.useEffect(() => {
+    carregarReceitas();
+  }, [activeTab]);
+
+  const carregarReceitas = async () => {
+    try {
+      setLoading(true);
+      const res = await ReceitasService.listar();
+      setReceitas(res.data.data || []);
+    } catch (error) {
+      console.error("Erro ao carregar receitas", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -208,11 +222,12 @@ export default function ReceitasPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {mockReceitas.slice(0, 3).map((receita) => (
+                      {receitas.slice(0, 3).map((receita) => (
                         <tr key={receita.id} className="border-b border-[#F1F1F4] last:border-0 hover:bg-[#F9FAFB]">
-                          <td className="py-2.5 text-[12px] font-[600] text-[#1A1A2E]">{receita.desc}</td>
-                          <td className="py-2.5 text-[11px] font-[500] text-[#4B5563]">{receita.origem}</td>
-                          <td className="py-2.5 text-[12px] font-[800] text-[#10B981] text-right">{receita.valor}</td>
+                          <td className="py-2.5 text-[12px] font-[600] text-[#4B5563]">{receita.data_recebimento ? new Date(receita.data_recebimento).toLocaleDateString('pt-BR') : '-'}</td>
+                          <td className="py-2.5 text-[12px] font-[600] text-[#1A1A2E]">{receita.descricao}</td>
+                          <td className="py-2.5 text-[11px] font-[500] text-[#4B5563]">{receita.cliente?.nome || receita.origem || '-'}</td>
+                          <td className="py-2.5 text-[12px] font-[800] text-[#10B981] text-right">R$ {Number(receita.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -270,37 +285,44 @@ export default function ReceitasPage() {
                       <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Categoria</th>
                       <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Conta</th>
                       <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-right">Valor</th>
+                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-center">Status</th>
                       <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {mockReceitas.map((receita) => (
+                    {receitas.map((receita) => (
                       <tr key={receita.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
                         <td className="py-3 px-5">
-                          <span className="text-[13px] font-[600] text-[#4B5563]">{receita.data}</span>
+                          <span className="text-[13px] font-[700] text-[#111827]">{receita.data_recebimento ? new Date(receita.data_recebimento).toLocaleDateString('pt-BR') : '-'}</span>
                         </td>
                         <td className="py-3 px-5">
-                          <div className="flex flex-col">
-                            <span className="text-[13px] font-[700] text-[#111827]">{receita.desc}</span>
-                            {receita.nf !== "-" && <span className="text-[11px] text-[#6B7280] flex items-center gap-1 mt-0.5"><FileText className="w-[10px] h-[10px]" /> NF: {receita.nf}</span>}
+                          <span className="text-[13px] font-[600] text-[#111827]">{receita.descricao}</span>
+                        </td>
+                        <td className="py-3 px-5">
+                          <span className="text-[13px] font-[600] text-[#4B5563]">{receita.cliente?.nome || receita.origem || '-'}</span>
+                        </td>
+                        <td className="py-3 px-5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">
+                            {receita.centro_custo?.nome || '-'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-5">
+                          <span className="text-[12px] font-[500] text-[#6B7280]">{receita.conta_bancaria?.nome || '-'}</span>
+                        </td>
+                        <td className="py-3 px-5 text-right">
+                          <span className="text-[13px] font-[800] text-[#10B981]">R$ {Number(receita.valor).toLocaleString('pt-BR', {minimumFractionDigits:2})}</span>
+                        </td>
+                        <td className="py-3 px-5 text-center">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-[700] ${receita.status?.toLowerCase() === 'recebido' ? 'bg-[#ECFDF5] text-[#10B981]' : 'bg-[#EFF6FF] text-[#3B82F6]'}`}>
+                            {receita.status || 'Recebido'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-5 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button className="w-[32px] h-[32px] rounded-[6px] flex items-center justify-center text-[#9CA3AF] hover:text-[#7C3AED] hover:bg-[#F5F3FF] transition-colors">
+                              <MoreVertical className="w-[16px] h-[16px]" />
+                            </button>
                           </div>
-                        </td>
-                        <td className="py-3 px-5">
-                          <span className="text-[13px] text-[#4B5563]">{receita.origem}</span>
-                        </td>
-                        <td className="py-3 px-5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">{receita.cat}</span>
-                        </td>
-                        <td className="py-3 px-5">
-                          <span className="text-[13px] text-[#6B7280]">{receita.conta}</span>
-                        </td>
-                        <td className="py-3 px-5 text-right">
-                          <span className="text-[14px] font-[800] text-[#10B981]">{receita.valor}</span>
-                        </td>
-                        <td className="py-3 px-5 text-right">
-                          <button className="w-[32px] h-[32px] rounded-[6px] flex items-center justify-center text-[#9CA3AF] hover:text-[#111827] hover:bg-[#E5E7EB] transition-colors ml-auto">
-                            <MoreVertical className="w-[16px] h-[16px]" />
-                          </button>
                         </td>
                       </tr>
                     ))}

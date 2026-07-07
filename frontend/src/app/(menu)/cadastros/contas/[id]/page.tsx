@@ -21,12 +21,31 @@ import {
   Ban,
   RefreshCw
 } from "lucide-react";
+import { ContasService } from "@/services/contas.service";
 
 export default function ContaHistoricoPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const { t } = useTranslation();
   const params = use(paramsPromise);
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [timelinePeriod, setTimelinePeriod] = useState("30dias");
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    carregarHistorico();
+  }, []);
+
+  const carregarHistorico = async () => {
+    try {
+      setLoading(true);
+      const res: any = await ContasService.historico(params.id || "1");
+      setEvents(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [motivoEncerramento, setMotivoEncerramento] = useState("");
@@ -36,14 +55,7 @@ export default function ContaHistoricoPage({ params: paramsPromise }: { params: 
     "Todos", "Movimentações", "Conciliações", "Alterações cadastrais"
   ];
 
-  const MOCK_EVENTS = [
-    { id: 1, type: "Movimentações", date: "20/05/2024", time: "14:30", title: "Dízimo Recebido — R$ 1.500,00", desc: "Receita registrada automaticamente via integração bancária.", author: "Sistema", authorName: "Registro automático", icon: "up", color: "#10B981", bgTag: "#ECFDF5", textTag: "#059669" },
-    { id: 2, type: "Movimentações", date: "19/05/2024", time: "09:00", title: "Pagamento Enel — R$ 450,00", desc: "Despesa #1031 paga via débito automático.", author: "Sistema", authorName: "Registro automático", icon: "down", color: "#DC2626", bgTag: "#FEE2E2", textTag: "#DC2626" },
-    { id: 3, type: "Conciliações", date: "01/05/2024", time: "08:30", title: "Conciliação bancária realizada", desc: "Lote OFX processado com 42 lançamentos conciliados. Saldo atualizado.", author: "Financeiro", authorName: "Por Maria Santos", icon: "refresh", color: "#3B82F6", bgTag: "#EFF6FF", textTag: "#2563EB" },
-    { id: 4, type: "Alterações cadastrais", date: "01/01/2024", time: "10:00", title: "Abertura de conta no sistema", desc: "Conta cadastrada com saldo inicial de R$ 0,00.", author: "Admin", authorName: "Usuário principal", icon: "check", color: "#8B5CF6", bgTag: "#F4EEFF", textTag: "#6D28D9" }
-  ];
-
-  const filteredEvents = activeFilter === "Todos" ? MOCK_EVENTS : MOCK_EVENTS.filter(e => e.type === activeFilter);
+  const filteredEvents = activeFilter === "Todos" ? events : events.filter(e => e.type === activeFilter);
 
   return (
     <div className="flex min-h-screen font-inter bg-[#F8F9FA]">

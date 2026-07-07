@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import Link from "next/link";
@@ -20,88 +20,39 @@ import {
   ChevronUp
 } from "lucide-react";
 
-// MOCK DATA
-const mockLogs = [
-  {
-    id: "evt_109283019",
-    timestamp: "10:45:22 05/07/2026",
-    event: "PAYMENT_RECEIVED",
-    source: "Asaas",
-    status: 200,
-    customer: "Tabernáculo Church",
-    amount: "R$ 197,00",
-    payload: {
-      "event": "PAYMENT_RECEIVED",
-      "payment": {
-        "id": "pay_982374982374",
-        "customer": "cus_000005123412",
-        "value": 197.00,
-        "netValue": 191.09,
-        "billingType": "CREDIT_CARD",
-        "status": "RECEIVED"
-      }
-    }
-  },
-  {
-    id: "evt_109283020",
-    timestamp: "10:42:15 05/07/2026",
-    event: "SUBSCRIPTION_CREATED",
-    source: "Asaas",
-    status: 200,
-    customer: "Igreja Batista Central",
-    amount: "R$ 299,00",
-    payload: {
-      "event": "SUBSCRIPTION_CREATED",
-      "subscription": {
-        "id": "sub_4985734958",
-        "customer": "cus_000005123499",
-        "value": 299.00,
-        "cycle": "MONTHLY",
-        "status": "ACTIVE"
-      }
-    }
-  },
-  {
-    id: "evt_109283021",
-    timestamp: "10:30:05 05/07/2026",
-    event: "WEBHOOK_FAILED",
-    source: "System",
-    status: 500,
-    customer: "Desconhecido",
-    amount: "-",
-    payload: {
-      "error": "Timeout connection to Database",
-      "code": 504,
-      "stack": "Error: Timeout connection... at /src/services/webhook.js:45"
-    }
-  },
-  {
-    id: "evt_109283022",
-    timestamp: "09:15:44 05/07/2026",
-    event: "PAYMENT_REFUNDED",
-    source: "Stripe",
-    status: 200,
-    customer: "Comunidade da Graça",
-    amount: "R$ 50,00",
-    payload: {
-      "event": "charge.refunded",
-      "data": {
-        "object": {
-          "id": "ch_3M4X...",
-          "amount_refunded": 5000,
-          "status": "succeeded"
-        }
-      }
-    }
-  }
-];
+import { MonitorService } from "@/services/monitor.service";
 
 export default function MonitorVendasPage() {
   const { t } = useTranslation();
-  const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+  const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    carregarLogs();
+  }, []);
+
+  const carregarLogs = async () => {
+    try {
+      setLoading(true);
+      const res: any = await MonitorService.logs();
+      setLogs(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredLogs = logs.filter(log => 
+    log.event.toLowerCase().includes(busca.toLowerCase()) || 
+    log.customer.toLowerCase().includes(busca.toLowerCase()) ||
+    log.id.toLowerCase().includes(busca.toLowerCase())
+  );
 
   const toggleRow = (id: string) => {
-    setExpandedRow(expandedRow === id ? null : id);
+    setExpandedLog(expandedLog === id ? null : id);
   };
 
   return (
@@ -215,12 +166,12 @@ export default function MonitorVendasPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E5E7EB]">
-                    {mockLogs.map((log) => (
+                    {filteredLogs.map((log) => (
                       <React.Fragment key={log.id}>
                         {/* MAIN ROW */}
                         <tr 
                           onClick={() => toggleRow(log.id)}
-                          className={`hover:bg-[#F9FAFB] transition-colors cursor-pointer ${expandedRow === log.id ? 'bg-[#F9FAFB]' : ''}`}
+                          className={`hover:bg-[#F9FAFB] transition-colors cursor-pointer ${expandedLog === log.id ? 'bg-[#F9FAFB]' : ''}`}
                         >
                           <td className="p-[16px_24px] whitespace-nowrap">
                             <span className="text-[13px] font-[600] text-[#4B5563] font-mono">{log.timestamp}</span>
@@ -257,13 +208,13 @@ export default function MonitorVendasPage() {
                           </td>
                           <td className="p-[16px_24px] text-right">
                             <button className="w-[32px] h-[32px] rounded-[8px] bg-white border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:bg-[#F3F4F6] hover:text-[#111827] transition-all ml-auto shadow-sm">
-                              {expandedRow === log.id ? <ChevronUp className="w-[16px] h-[16px]" /> : <ChevronDown className="w-[16px] h-[16px]" />}
+                              {expandedLog === log.id ? <ChevronUp className="w-[16px] h-[16px]" /> : <ChevronDown className="w-[16px] h-[16px]" />}
                             </button>
                           </td>
                         </tr>
 
                         {/* EXPANDED PAYLOAD ROW */}
-                        {expandedRow === log.id && (
+                        {expandedLog === log.id && (
                           <tr>
                             <td colSpan={6} className="p-0 border-b-0">
                               <div className="bg-[#1E293B] p-[24px] border-y border-[#334155] shadow-inner flex flex-col gap-[12px] animate-in slide-in-from-top-2 duration-200">

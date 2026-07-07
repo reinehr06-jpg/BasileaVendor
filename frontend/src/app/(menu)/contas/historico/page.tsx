@@ -18,7 +18,7 @@
 "use client";
 
 // ─── IMPORTAÇÕES ─────────────────────────────────────────────────────────────
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -27,13 +27,27 @@ import {
   FileText, Search, Filter, Download, ArrowUpRight, ArrowDownRight, RefreshCw, Wallet, Calendar
 } from "lucide-react";
 
+import { ContasService } from "@/services/contas.service";
+
 export default function ExtratosPage() {
-  const mockExtrato = [
-    { id: 1, data: "20/05/2024", historico: "Dízimos e Ofertas (Culto Domingo)", doc: "REC-001", cat: "Dízimos", tipo: "receita", valor: "R$ 4.500,00", saldo: "R$ 14.500,00" },
-    { id: 2, data: "20/05/2024", historico: "Conta de Energia (Enel)", doc: "NF-0442", cat: "Energia", tipo: "despesa", valor: "R$ 450,00", saldo: "R$ 14.050,00" },
-    { id: 3, data: "21/05/2024", historico: "Transferência para Caixa Físico", doc: "TRF-991", cat: "Transferência", tipo: "despesa", valor: "R$ 1.000,00", saldo: "R$ 13.050,00" },
-    { id: 4, data: "22/05/2024", historico: "Doação Anônima", doc: "REC-002", cat: "Ofertas", tipo: "receita", valor: "R$ 200,00", saldo: "R$ 13.250,00" },
-  ];
+  const [extrato, setExtrato] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    carregarExtrato();
+  }, []);
+
+  const carregarExtrato = async () => {
+    try {
+      setLoading(true);
+      const res: any = await ContasService.extrato();
+      setExtrato(res.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -163,9 +177,9 @@ export default function ExtratosPage() {
                       <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-right">Saldo</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {mockExtrato.map((item) => (
-                      <tr key={item.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
+                      <tbody>
+                        {extrato.map((item) => (
+                          <tr key={item.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4] last:border-b-0">
                         <td className="py-3 px-5">
                           <span className="text-[13px] font-[600] text-[#4B5563] flex items-center gap-1.5">
                             <Calendar className="w-[14px] h-[14px] text-[#9CA3AF]" /> {item.data}

@@ -21,7 +21,7 @@ function getCookie(name: string) {
   return null;
 }
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function request<T = any>(path: string, options?: RequestInit): Promise<T> {
   const token = getCookie("auth_token") || localStorage.getItem("auth_token");
   
   if (process.env.NODE_ENV === "development") {
@@ -63,8 +63,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  get:    <T>(path: string) => request<T>(path),
-  post:   <T>(path: string, body: unknown) => request<T>(path, { method: "POST", body: JSON.stringify(body) }),
-  put:    <T>(path: string, body: unknown) => request<T>(path, { method: "PUT",  body: JSON.stringify(body) }),
-  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  get:    <T = any>(path: string, options?: any) => request<T>(path, options),
+  post:   <T = any>(path: string, body: unknown, options?: any) => request<T>(path, { method: "POST", body: JSON.stringify(body), ...options }),
+  put:    <T = any>(path: string, body: unknown, options?: any) => request<T>(path, { method: "PUT",  body: JSON.stringify(body), ...options }),
+  delete: <T = any>(path: string, options?: any) => request<T>(path, { method: "DELETE", ...options }),
 };
