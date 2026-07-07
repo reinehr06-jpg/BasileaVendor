@@ -30,9 +30,9 @@ export default function ClientesAsaasPage() {
     setIsSyncing(true);
     const toastId = toast.loading("Iniciando sincronização com Asaas...");
     try {
-      const res = await api.post('/clientes-asaas/sincronizar', { offset: 0 });
-      if (res.data.success) {
-        toast.success(res.data.message || "Sincronização concluída com sucesso!", { id: toastId });
+      const res = await api.post<{ success: boolean; message?: string }>('/clientes-asaas/sincronizar', { offset: 0 });
+      if (res.success) {
+        toast.success(res.message || "Sincronização concluída com sucesso!", { id: toastId });
       } else {
         toast.error("Erro na sincronização.", { id: toastId });
       }

@@ -16,8 +16,7 @@ export interface Vendedor {
 export const VendedoresService = {
   listar: async (): Promise<Vendedor[]> => {
     try {
-      const response = await api.get('/vendedores');
-      return response.data;
+      return await api.get<Vendedor[]>('/vendedores');
     } catch (err) {
       console.error(err);
       return [];

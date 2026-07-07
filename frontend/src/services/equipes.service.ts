@@ -13,8 +13,7 @@ export interface Equipe {
 export const EquipesService = {
   listar: async (): Promise<Equipe[]> => {
     try {
-      const response = await api.get('/equipes');
-      return response.data;
+      return await api.get<Equipe[]>('/equipes');
     } catch (err) {
       console.error(err);
       return [];

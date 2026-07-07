@@ -27,8 +27,8 @@ export interface DashboardData {
 export const DashboardService = {
   obterDados: async (): Promise<DashboardData> => {
     try {
-      const response = await api.get('/dashboard');
-      return response.data;
+      const data = await api.get<DashboardData>('/dashboard');
+      return data;
     } catch (error) {
       console.error("Erro ao carregar dashboard:", error);
       throw error;

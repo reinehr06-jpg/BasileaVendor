@@ -23,6 +23,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { useTranslation } from "react-i18next";
+import { DashboardService, DashboardData } from "@/services/dashboard.service";
+import { useAuth } from "@/context/AuthContext";
 
 // MOCK DATA
 const desempenhoComercialData = [
@@ -108,7 +110,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex flex-col">
                 <h1 className="text-[28px] font-[800] text-white leading-tight drop-shadow-sm tracking-tight">
-                  {greeting}, {user?.name ? user.name.split(' ')[0] : 'Admin'}
+                  {greeting}, {user?.nome ? user.nome.split(' ')[0] : 'Admin'}
                 </h1>
                 <p className="text-[14px] text-purple-200 mt-1">{t("Aqui está o resumo da sua operação comercial hoje.")}</p>
               </div>
