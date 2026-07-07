@@ -35,6 +35,74 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Vendas API
     Route::get('/vendas', [\App\Http\Controllers\Api\VendasController::class, 'index']);
+    Route::post('/vendas', [\App\Http\Controllers\Api\VendasController::class, 'store']);
+    Route::get('/vendas/{id}', [\App\Http\Controllers\Api\VendasController::class, 'show']);
+
+    // Clientes API (CRUD Front-end)
+    Route::get('/clientes', [\App\Http\Controllers\Api\ClienteController::class, 'index']);
+    Route::post('/clientes', [\App\Http\Controllers\Api\ClienteController::class, 'store']);
+    Route::get('/clientes/{id}', [\App\Http\Controllers\Api\ClienteController::class, 'show']);
+    Route::put('/clientes/{id}', [\App\Http\Controllers\Api\ClienteController::class, 'update']);
+    Route::delete('/clientes/{id}', [\App\Http\Controllers\Api\ClienteController::class, 'destroy']);
+
+    // Fornecedores API
+    Route::get('/fornecedores', [\App\Http\Controllers\Api\FornecedorController::class, 'index']);
+    Route::post('/fornecedores', [\App\Http\Controllers\Api\FornecedorController::class, 'store']);
+    Route::get('/fornecedores/{id}', [\App\Http\Controllers\Api\FornecedorController::class, 'show']);
+    Route::put('/fornecedores/{id}', [\App\Http\Controllers\Api\FornecedorController::class, 'update']);
+    Route::delete('/fornecedores/{id}', [\App\Http\Controllers\Api\FornecedorController::class, 'destroy']);
+
+    // Compras API
+    Route::get('/compras', [\App\Http\Controllers\Api\CompraController::class, 'index']);
+    Route::post('/compras', [\App\Http\Controllers\Api\CompraController::class, 'store']);
+    Route::get('/compras/{id}', [\App\Http\Controllers\Api\CompraController::class, 'show']);
+    Route::put('/compras/{id}', [\App\Http\Controllers\Api\CompraController::class, 'update']);
+    Route::delete('/compras/{id}', [\App\Http\Controllers\Api\CompraController::class, 'destroy']);
+
+    // Despesas API
+    Route::get('/despesas', [\App\Http\Controllers\Api\DespesaController::class, 'index']);
+    Route::post('/despesas', [\App\Http\Controllers\Api\DespesaController::class, 'store']);
+    Route::get('/despesas/{id}', [\App\Http\Controllers\Api\DespesaController::class, 'show']);
+    Route::put('/despesas/{id}', [\App\Http\Controllers\Api\DespesaController::class, 'update']);
+    Route::delete('/despesas/{id}', [\App\Http\Controllers\Api\DespesaController::class, 'destroy']);
+
+    // Receitas API
+    Route::get('/receitas', [\App\Http\Controllers\Api\ReceitaController::class, 'index']);
+    Route::post('/receitas', [\App\Http\Controllers\Api\ReceitaController::class, 'store']);
+    Route::get('/receitas/{id}', [\App\Http\Controllers\Api\ReceitaController::class, 'show']);
+    Route::put('/receitas/{id}', [\App\Http\Controllers\Api\ReceitaController::class, 'update']);
+    Route::delete('/receitas/{id}', [\App\Http\Controllers\Api\ReceitaController::class, 'destroy']);
+
+    // Módulo 8: Departamentos
+    Route::get('/departamentos', [\App\Http\Controllers\Api\DepartamentoController::class, 'index']);
+    Route::post('/departamentos', [\App\Http\Controllers\Api\DepartamentoController::class, 'store']);
+    Route::get('/departamentos/{id}', [\App\Http\Controllers\Api\DepartamentoController::class, 'show']);
+    Route::put('/departamentos/{id}', [\App\Http\Controllers\Api\DepartamentoController::class, 'update']);
+    Route::delete('/departamentos/{id}', [\App\Http\Controllers\Api\DepartamentoController::class, 'destroy']);
+
+    // Módulo 8: Centros de Custo
+    Route::get('/centros-custo', [\App\Http\Controllers\Api\CentroCustoController::class, 'index']);
+    Route::post('/centros-custo', [\App\Http\Controllers\Api\CentroCustoController::class, 'store']);
+    Route::get('/centros-custo/{id}', [\App\Http\Controllers\Api\CentroCustoController::class, 'show']);
+    Route::put('/centros-custo/{id}', [\App\Http\Controllers\Api\CentroCustoController::class, 'update']);
+    Route::delete('/centros-custo/{id}', [\App\Http\Controllers\Api\CentroCustoController::class, 'destroy']);
+
+    // Módulo 8: Contas Bancárias
+    Route::get('/contas-bancarias', [\App\Http\Controllers\Api\ContaBancariaController::class, 'index']);
+    Route::post('/contas-bancarias', [\App\Http\Controllers\Api\ContaBancariaController::class, 'store']);
+    Route::get('/contas-bancarias/{id}', [\App\Http\Controllers\Api\ContaBancariaController::class, 'show']);
+    Route::put('/contas-bancarias/{id}', [\App\Http\Controllers\Api\ContaBancariaController::class, 'update']);
+    Route::delete('/contas-bancarias/{id}', [\App\Http\Controllers\Api\ContaBancariaController::class, 'destroy']);
+
+    // Módulo 8: Transferências
+    Route::get('/transferencias', [\App\Http\Controllers\Api\TransferenciaController::class, 'index']);
+    Route::post('/transferencias', [\App\Http\Controllers\Api\TransferenciaController::class, 'store']);
+    Route::get('/transferencias/{id}', [\App\Http\Controllers\Api\TransferenciaController::class, 'show']);
+    Route::put('/transferencias/{id}', [\App\Http\Controllers\Api\TransferenciaController::class, 'update']);
+    Route::delete('/transferencias/{id}', [\App\Http\Controllers\Api\TransferenciaController::class, 'destroy']);
+
+    // Métricas de Vendas API
+    Route::get('/metricas-vendas', [\App\Http\Controllers\Api\MetricasVendasController::class, 'index']);
 
     // Vendedores API
     Route::get('/vendedores', [\App\Http\Controllers\Api\VendedorController::class, 'index']);
@@ -49,6 +117,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/equipes/{id}', [\App\Http\Controllers\Api\EquipeController::class, 'show']);
     Route::put('/equipes/{id}', [\App\Http\Controllers\Api\EquipeController::class, 'update']);
     Route::delete('/equipes/{id}', [\App\Http\Controllers\Api\EquipeController::class, 'destroy']);
+
+    // Financeiro API
+    Route::get('/financeiro/comissoes', [\App\Http\Controllers\Api\FinanceiroController::class, 'comissoes']);
+    Route::get('/financeiro/pagamentos', [\App\Http\Controllers\Api\FinanceiroController::class, 'pagamentos']);
 
     // Sincronizar status do cliente com Asaas (consulta API mês a mês)
     Route::post('/clientes/{id}/sync-asaas', [\App\Http\Controllers\ClienteController::class, 'syncAsaas']);

@@ -32,7 +32,7 @@ export default function VendasPage() {
   const [vendas, setVendas] = useState<any[]>([]);
 
   useEffect(() => {
-    VendasService.listar().then(setVendas);
+    VendasService.listar().then(res => setVendas(res.data));
   }, []);
 
   const filteredVendas = vendas.filter(v => {

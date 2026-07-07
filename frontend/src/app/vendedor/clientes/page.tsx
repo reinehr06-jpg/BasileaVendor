@@ -18,19 +18,17 @@ export default function ClientesPage() {
   const { t } = useTranslation();
   const [buscaNome, setBuscaNome] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(15);
   const [clientes, setClientes] = useState<any[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
-    ClientesService.listar().then(setClientes);
-  }, []);
+    ClientesService.listar({ page: currentPage, search: buscaNome }).then((res: any) => {
+      setClientes(res.data || []);
+      setTotalItems(res.total || res.meta?.total || 0);
+    });
+  }, [currentPage, buscaNome]);
 
-  const filteredClientes = clientes.filter(c =>
-    c.nome.toLowerCase().includes(buscaNome.toLowerCase())
-  );
-  
-  const paginatedClientes = filteredClientes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
 
@@ -55,7 +53,7 @@ export default function ClientesPage() {
         <div className="p-[24px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-[16px]">
           <div className="flex items-center gap-[12px]">
             <span className="text-[13px] font-[500] text-[#6B7280] hidden sm:inline-block">
-              {filteredClientes.length} {filteredClientes.length === 1 ? t("cliente encontrado") : t("clientes encontrados")}
+              {totalItems} {totalItems === 1 ? t("cliente encontrado") : t("clientes encontrados")}
             </span>
           </div>
           
@@ -65,7 +63,10 @@ export default function ClientesPage() {
               <input
                 type="text"
                 value={buscaNome}
-                onChange={(e) => setBuscaNome(e.target.value)}
+                onChange={(e) => {
+                  setBuscaNome(e.target.value);
+                  setCurrentPage(1);
+                }}
                 placeholder={t("Buscar clientes...")}
                 className="bg-transparent border-none outline-none text-[12px] text-[#1A1A2E] placeholder-[#9CA3AF] w-full"
               />
@@ -86,7 +87,7 @@ export default function ClientesPage() {
               </tr>
             </thead>
             <tbody>
-              {paginatedClientes.map((c) => (
+              {clientes.map((c) => (
                 <tr key={c.id} className="border-b border-[#F1F1F4] hover:bg-[#FAFAFC] transition-colors last:border-b-0">
                   <td className="p-[12px_24px] align-middle">
                     <span className="text-[13px] font-[600] text-[#111827]">{c.nome}</span>
@@ -133,7 +134,7 @@ export default function ClientesPage() {
             onPageChange={handlePageChange}
             pageSize={pageSize}
             onPageSizeChange={handlePageSizeChange}
-            total={filteredClientes.length}
+            total={totalItems}
           />
         </div>
       </div>

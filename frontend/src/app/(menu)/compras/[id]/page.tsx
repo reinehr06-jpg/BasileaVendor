@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, use } from "react";
+import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -20,12 +20,18 @@ import {
   Check,
   AlertTriangle
 } from "lucide-react";
+import { ComprasService } from "@/services/compras.service";
+import { useRouter } from "next/navigation";
 
 export default function CompraHistoricoPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const { t } = useTranslation();
   const params = use(paramsPromise);
+  const router = useRouter();
+  
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [timelinePeriod, setTimelinePeriod] = useState("todo");
+  const [compra, setCompra] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [motivoInativacao, setMotivoInativacao] = useState("");
@@ -33,13 +39,82 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
 
   const filters = ["Todos", "Fluxo de aprovação", "Cotações", "Alterações", "Recebimento"];
 
+  useEffect(() => {
+    carregarCompra();
+  }, [params.id]);
+
+  const carregarCompra = async () => {
+    try {
+      setLoading(true);
+      const res = await ComprasService.obterPorId(params.id);
+      setCompra(res.data);
+    } catch (error) {
+      console.error("Erro ao carregar compra", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAprovar = async () => {
+    try {
+      await ComprasService.atualizar(params.id, { status: "Aprovada" });
+      carregarCompra();
+    } catch (error) {
+      console.error("Erro ao aprovar compra", error);
+      alert("Erro ao aprovar compra.");
+    }
+  };
+
+  const handleReprovar = async () => {
+    try {
+      await ComprasService.atualizar(params.id, { status: "Reprovada" });
+      setIsClosingModalOpen(false);
+      carregarCompra();
+    } catch (error) {
+      console.error("Erro ao reprovar compra", error);
+      alert("Erro ao reprovar compra.");
+    }
+  };
+
+  const formatCurrency = (valor: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor || 0);
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('pt-BR').format(date);
+  };
+
   const MOCK_EVENTS = [
     { id: 1, type: "Fluxo de aprovação", date: "20/05/2024", time: "11:00", title: "Enviado para aprovação", desc: "O pedido está aguardando a aprovação do Pastor Presidente ou Diretor Financeiro devido ao valor estar acima de R$ 300,00.", author: "Sistema", authorName: "Fluxo automático", icon: "clock", color: "#F59E0B", bgTag: "#FEF3C7", textTag: "#B45309", isWarning: true },
     { id: 2, type: "Cotações", date: "20/05/2024", time: "10:50", title: "Orçamento anexado: Kalunga", desc: "Arquivo Orcamento_Kalunga.pdf enviado por Lucas Almeida para análise.", author: "Lucas Almeida", authorName: "Solicitante", icon: "edit", color: "#3B82F6", bgTag: "#EFF6FF", textTag: "#2563EB" },
-    { id: 3, type: "Fluxo de aprovação", date: "20/05/2024", time: "10:45", title: "Pedido de compra solicitado", desc: "Solicitação criada com 3 itens no valor total de R$ 450,00 para o Centro de Custo Sede Administrativa.", author: "Lucas Almeida", authorName: "Solicitante", icon: "check", color: "#8B5CF6", bgTag: "#F4EEFF", textTag: "#6D28D9" }
+    { id: 3, type: "Fluxo de aprovação", date: "20/05/2024", time: "10:45", title: "Pedido de compra solicitado", desc: "Solicitação criada.", author: "Lucas Almeida", authorName: "Solicitante", icon: "check", color: "#8B5CF6", bgTag: "#F4EEFF", textTag: "#6D28D9" }
   ];
 
   const filteredEvents = activeFilter === "Todos" ? MOCK_EVENTS : MOCK_EVENTS.filter(e => e.type === activeFilter);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen font-inter bg-[#F8F9FA]">
+        <Sidebar />
+        <div className="flex-1 ml-[240px] flex items-center justify-center">
+          <p className="text-gray-500">Carregando dados da compra...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!compra) {
+    return (
+      <div className="flex min-h-screen font-inter bg-[#F8F9FA]">
+        <Sidebar />
+        <div className="flex-1 ml-[240px] flex items-center justify-center">
+          <p className="text-red-500">Compra não encontrada.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen font-inter bg-[#F8F9FA]">
@@ -54,7 +129,7 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
                 <div className="flex items-center gap-2 text-[13px] font-[500] text-[#6B7280]">
                   <Link href="/compras" className="hover:text-[#1A1A2E] transition-colors">Compras</Link>
                   <span>/</span>
-                  <span className="text-[#1A1A2E]">Pedido COMP-2024-001</span>
+                  <span className="text-[#1A1A2E]">Pedido {compra.numero}</span>
                 </div>
                 <div className="flex items-center gap-3 mt-1">
                   <div className="w-[32px] h-[32px] rounded-[8px] bg-[#F4EEFF] flex items-center justify-center shrink-0">
@@ -64,16 +139,19 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
                 </div>
                 <p className="text-[13px] text-[#6B7280] font-[400] mt-0.5">Acompanhe cotações, fluxo de aprovação e recebimento deste pedido.</p>
               </div>
-              <div className="flex items-center gap-3">
-                <button onClick={() => setIsClosingModalOpen(true)} className="flex items-center gap-2 px-[20px] py-[10px] bg-white border border-[#C4B5FD] text-[#6D28D9] text-[13px] font-[600] rounded-[8px] hover:bg-[#F3E8FF] transition-colors">
-                  <Ban className="w-[14px] h-[14px]" strokeWidth={2.4} />
-                  Reprovar
-                </button>
-                <button className="flex items-center gap-2 px-[20px] py-[10px] bg-[#6D28D9] text-white text-[13px] font-[700] rounded-[8px] hover:bg-[#5B21B6] transition-colors shadow-sm">
-                  <Check className="w-[14px] h-[14px]" strokeWidth={2.4} />
-                  Aprovar pedido
-                </button>
-              </div>
+              
+              {compra.status === "Aguardando aprovação" && (
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setIsClosingModalOpen(true)} className="flex items-center gap-2 px-[20px] py-[10px] bg-white border border-[#C4B5FD] text-[#6D28D9] text-[13px] font-[600] rounded-[8px] hover:bg-[#F3E8FF] transition-colors">
+                    <Ban className="w-[14px] h-[14px]" strokeWidth={2.4} />
+                    Reprovar
+                  </button>
+                  <button onClick={handleAprovar} className="flex items-center gap-2 px-[20px] py-[10px] bg-[#6D28D9] text-white text-[13px] font-[700] rounded-[8px] hover:bg-[#5B21B6] transition-colors shadow-sm">
+                    <Check className="w-[14px] h-[14px]" strokeWidth={2.4} />
+                    Aprovar pedido
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -84,18 +162,29 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
               </div>
               <div className="flex flex-col flex-1">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <h2 className="text-[16px] font-[800] text-[#1A1A2E] leading-none">COMP-2024-001</h2>
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#FEF3C7] rounded-full">
-                    <div className="w-[5px] h-[5px] rounded-full bg-[#F59E0B]"></div>
-                    <span className="text-[10px] font-[700] text-[#D97706] uppercase tracking-wide">Aguardando Aprovação</span>
+                  <h2 className="text-[16px] font-[800] text-[#1A1A2E] leading-none">{compra.numero}</h2>
+                  <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full ${
+                    compra.status === 'Aprovada' ? 'bg-[#D1FAE5]' :
+                    compra.status === 'Reprovada' ? 'bg-[#FEE2E2]' :
+                    'bg-[#FEF3C7]'
+                  }`}>
+                    <div className={`w-[5px] h-[5px] rounded-full ${
+                      compra.status === 'Aprovada' ? 'bg-[#059669]' :
+                      compra.status === 'Reprovada' ? 'bg-[#DC2626]' :
+                      'bg-[#F59E0B]'
+                    }`}></div>
+                    <span className={`text-[10px] font-[700] uppercase tracking-wide ${
+                      compra.status === 'Aprovada' ? 'text-[#047857]' :
+                      compra.status === 'Reprovada' ? 'text-[#B91C1C]' :
+                      'text-[#D97706]'
+                    }`}>{compra.status}</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-1.5 gap-x-3">
-                  <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]"><span className="text-[#9CA3AF]">Solicitante:</span> <span className="font-[600] text-[#1A1A2E]">Lucas Almeida</span></div>
-                  <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]"><span className="text-[#9CA3AF]">Fornecedor:</span> <span className="font-[600] text-[#1A1A2E]">Kalunga</span></div>
-                  <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]"><span className="text-[#9CA3AF]">Data:</span> <span className="font-[600] text-[#1A1A2E]">20/05/2024</span></div>
-                  <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]"><span className="text-[#9CA3AF]">Centro Custo:</span> <span className="font-[600] text-[#1A1A2E]">Sede Administrativa</span></div>
-                  <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]"><span className="text-[#9CA3AF]">Itens:</span> <span className="font-[600] text-[#1A1A2E]">3 produtos</span></div>
+                  <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]"><span className="text-[#9CA3AF]">Solicitante:</span> <span className="font-[600] text-[#1A1A2E]">{compra.solicitante}</span></div>
+                  <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]"><span className="text-[#9CA3AF]">Fornecedor:</span> <span className="font-[600] text-[#1A1A2E]">{compra.fornecedor?.nome || '-'}</span></div>
+                  <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]"><span className="text-[#9CA3AF]">Data:</span> <span className="font-[600] text-[#1A1A2E]">{formatDate(compra.data_solicitacao)}</span></div>
+                  <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]"><span className="text-[#9CA3AF]">Centro Custo:</span> <span className="font-[600] text-[#1A1A2E]">-</span></div>
                 </div>
               </div>
             </div>
@@ -103,12 +192,28 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
               <div className="flex-1 bg-[#FAFAFC] rounded-[10px] p-3 flex flex-col justify-center border border-[#F1F1F4] relative overflow-hidden group hover:border-[#9333EA]/30 transition-colors">
                 <DollarSign className="absolute right-[-8px] bottom-[-8px] w-[32px] h-[32px] text-[#9333EA]/10 group-hover:text-[#9333EA]/20 transition-colors" strokeWidth={2} />
                 <p className="text-[10px] font-[700] text-[#6B7280] uppercase tracking-wider mb-0.5">Valor total</p>
-                <p className="text-[15px] font-[800] text-[#1A1A2E] leading-none">R$ 450,00</p>
+                <p className="text-[15px] font-[800] text-[#1A1A2E] leading-none">{formatCurrency(compra.valor)}</p>
               </div>
-              <div className="flex-1 bg-[#FFFBEB] rounded-[10px] p-3 flex flex-col justify-center border border-[#FEF3C7] relative overflow-hidden group hover:border-[#F59E0B]/30 transition-colors">
-                <AlertTriangle className="absolute right-[-8px] bottom-[-8px] w-[32px] h-[32px] text-[#F59E0B]/10 group-hover:text-[#F59E0B]/20 transition-colors" strokeWidth={2} />
-                <p className="text-[10px] font-[700] text-[#B45309] uppercase tracking-wider mb-0.5">Status</p>
-                <p className="text-[15px] font-[800] text-[#92400E] leading-none">Pendente</p>
+              <div className={`flex-1 rounded-[10px] p-3 flex flex-col justify-center border relative overflow-hidden group transition-colors ${
+                compra.status === 'Aprovada' ? 'bg-[#ECFDF5] border-[#D1FAE5] hover:border-[#059669]/30' :
+                compra.status === 'Reprovada' ? 'bg-[#FEF2F2] border-[#FEE2E2] hover:border-[#DC2626]/30' :
+                'bg-[#FFFBEB] border-[#FEF3C7] hover:border-[#F59E0B]/30'
+              }`}>
+                <AlertTriangle className={`absolute right-[-8px] bottom-[-8px] w-[32px] h-[32px] transition-colors ${
+                  compra.status === 'Aprovada' ? 'text-[#059669]/10 group-hover:text-[#059669]/20' :
+                  compra.status === 'Reprovada' ? 'text-[#DC2626]/10 group-hover:text-[#DC2626]/20' :
+                  'text-[#F59E0B]/10 group-hover:text-[#F59E0B]/20'
+                }`} strokeWidth={2} />
+                <p className={`text-[10px] font-[700] uppercase tracking-wider mb-0.5 ${
+                  compra.status === 'Aprovada' ? 'text-[#047857]' :
+                  compra.status === 'Reprovada' ? 'text-[#B91C1C]' :
+                  'text-[#B45309]'
+                }`}>Status</p>
+                <p className={`text-[15px] font-[800] leading-none ${
+                  compra.status === 'Aprovada' ? 'text-[#064E3B]' :
+                  compra.status === 'Reprovada' ? 'text-[#7F1D1D]' :
+                  'text-[#92400E]'
+                }`}>{compra.status}</p>
               </div>
             </div>
           </div>
@@ -187,20 +292,12 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
                 <h3 className="text-[14px] font-[800] text-[#1A1A2E] mb-3">Itens do pedido</h3>
                 <div className="flex flex-col gap-2.5">
                   <div className="flex justify-between items-center text-[12px]">
-                    <span className="text-[#4B5563]">10x Papel A4 Chamex</span>
-                    <span className="font-[700] text-[#1A1A2E]">R$ 250,00</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[12px]">
-                    <span className="text-[#4B5563]">2x Cartucho HP 664</span>
-                    <span className="font-[700] text-[#1A1A2E]">R$ 160,00</span>
-                  </div>
-                  <div className="flex justify-between items-center text-[12px]">
-                    <span className="text-[#4B5563]">1x Canetas Azul (50un)</span>
-                    <span className="font-[700] text-[#1A1A2E]">R$ 40,00</span>
+                    <span className="text-[#4B5563]">Verba Aprovada</span>
+                    <span className="font-[700] text-[#1A1A2E]">{formatCurrency(compra.valor)}</span>
                   </div>
                   <div className="border-t border-[#F1F1F4] pt-2 mt-1 flex justify-between items-center">
                     <span className="text-[12px] font-[700] text-[#6B7280] uppercase">Total</span>
-                    <span className="text-[14px] font-[800] text-[#9333EA]">R$ 450,00</span>
+                    <span className="text-[14px] font-[800] text-[#9333EA]">{formatCurrency(compra.valor)}</span>
                   </div>
                 </div>
               </div>
@@ -215,7 +312,7 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
             <div className="flex flex-col gap-2">
               <h2 className="text-[18px] font-[800] text-[#1A1A2E]">Reprovar Pedido?</h2>
               <p className="text-[14px] text-[#4B5563] leading-relaxed">
-                Você está prestes a reprovar o pedido <strong>COMP-2024-001</strong>. Por favor, informe o motivo abaixo para notificar o solicitante.
+                Você está prestes a reprovar o pedido <strong>{compra.numero}</strong>. Por favor, informe o motivo abaixo para notificar o solicitante.
               </p>
             </div>
             
@@ -277,7 +374,7 @@ export default function CompraHistoricoPage({ params: paramsPromise }: { params:
               </button>
               <button 
                 disabled={!motivoInativacao || obsInativacao.length < 15}
-                onClick={() => setIsClosingModalOpen(false)} 
+                onClick={handleReprovar} 
                 className="px-5 py-2.5 rounded-[8px] bg-[#6D28D9] hover:bg-[#5B21B6] disabled:bg-[#C4B5FD] disabled:cursor-not-allowed text-white text-[13px] font-[700] transition-colors shadow-sm"
               >
                 Reprovar Pedido

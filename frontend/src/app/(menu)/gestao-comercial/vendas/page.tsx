@@ -25,34 +25,37 @@ import {
 export default function VendasPage() {
   const { t } = useTranslation();
   const [buscaCliente, setBuscaCliente] = useState("");
-  const [buscaVendedor, setBuscaVendedor] = useState("");
   const [buscaStatus, setBuscaStatus] = useState("");
-  const [buscaData, setBuscaData] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [vendas, setVendas] = useState<any[]>([]);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
-    VendasService.listar().then(setVendas);
-  }, []);
+    carregarVendas();
+  }, [currentPage, buscaCliente, buscaStatus]);
 
-  const filteredVendas = vendas.filter(v => {
-    const matchCliente = v.cliente.toLowerCase().includes(buscaCliente.toLowerCase());
-    const matchVendedor = v.vendedor.toLowerCase().includes(buscaVendedor.toLowerCase());
-    const matchStatus = buscaStatus ? v.status === buscaStatus : true;
-    // Simple date string matching for mock purposes
-    const matchData = buscaData ? v.data.includes(buscaData.split("-").reverse().join("/")) : true; 
-    
-    return matchCliente && matchVendedor && matchStatus && matchData;
-  });
-  const paginatedVendas = filteredVendas.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  
+  const carregarVendas = async () => {
+    try {
+      const res = await VendasService.listar({
+        page: currentPage,
+        search: buscaCliente,
+        status: buscaStatus
+      });
+      setVendas(res.data);
+      setTotalItems(res.meta.total);
+    } catch (e) {
+      toast.error("Erro ao carregar vendas");
+    }
+  };
+
   const handlePageChange = (page: number) => setCurrentPage(page);
-  const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
+  const handlePageSizeChange = (size: number) => { setCurrentPage(1); };
 
   const handleExcluir = (id: number) => {
     if (window.confirm(t("Tem certeza que deseja excluir este registro de venda?"))) {
+      // call delete API
       setVendas(prev => prev.filter(v => v.id !== id));
+      toast.success(t("Venda excluída."));
     }
   };
 
@@ -91,7 +94,7 @@ export default function VendasPage() {
               <div className="flex items-center gap-[12px]">
                 {/* Contador Visual de Vendas Filtradas */}
                 <span className="text-[13px] font-[500] text-[#6B7280] hidden sm:inline-block">
-                  {filteredVendas.length} {filteredVendas.length === 1 ? t("venda encontrada") : t("vendas encontradas")}
+                  {totalItems} {totalItems === 1 ? t("venda encontrada") : t("vendas encontradas")}
                 </span>
               </div>
               
@@ -110,16 +113,6 @@ export default function VendasPage() {
                   triggerClassName="h-[36px] min-w-[150px] bg-white text-[12px]"
                 />
 
-                {/* Filtro de Data */}
-                <div className="h-[36px]">
-                  <CustomDatePicker
-                    value={buscaData}
-                    onChange={setBuscaData}
-                    placeholder={t("Filtrar por data")}
-                    className="w-[140px] h-[36px] text-[12px] bg-white"
-                  />
-                </div>
-
                 <div className="relative flex items-center w-full sm:w-auto h-[36px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] transition-all">
                   <Search className="text-[#9CA3AF] w-[16px] h-[16px] mr-[8px] shrink-0" strokeWidth={2.4} />
                   <input
@@ -127,16 +120,6 @@ export default function VendasPage() {
                     value={buscaCliente}
                     onChange={(e) => setBuscaCliente(e.target.value)}
                     placeholder={t("Buscar por Cliente")}
-                    className="bg-transparent border-none outline-none text-[12px] text-[#1A1A2E] placeholder-[#9CA3AF] w-full sm:w-[150px]"
-                  />
-                </div>
-                <div className="relative flex items-center w-full sm:w-auto h-[36px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] transition-all">
-                  <Search className="text-[#9CA3AF] w-[16px] h-[16px] mr-[8px] shrink-0" strokeWidth={2.4} />
-                  <input
-                    type="text"
-                    value={buscaVendedor}
-                    onChange={(e) => setBuscaVendedor(e.target.value)}
-                    placeholder={t("Buscar por Vendedor")}
                     className="bg-transparent border-none outline-none text-[12px] text-[#1A1A2E] placeholder-[#9CA3AF] w-full sm:w-[150px]"
                   />
                 </div>
@@ -160,52 +143,44 @@ export default function VendasPage() {
                 </div>
 
                 {/* Linhas */}
-                {paginatedVendas.map((venda) => (
+                {vendas.map((venda) => (
                   <div key={venda.id} className="grid grid-cols-[110px_1.8fr_1.3fr_1.4fr_100px_100px_90px_120px] items-center px-[24px] py-[12px] min-h-[56px] bg-white border-b border-[#F1F1F4] hover:bg-[#FAFAFC] transition-colors last:border-b-0">
                     
-                    {/* STATUS (Condicional para Parcelado) */}
+                    {/* STATUS */}
                     <div className="flex flex-col items-start pr-4">
                       <span className={`inline-flex items-center px-[8px] py-[2px] text-[11px] font-[700] rounded-full ${
-                        venda.status === "Pago" ? "bg-[#D1FAE5] text-[#059669]" :
-                        venda.status === "Churn" ? "bg-[#FEE2E2] text-[#DC2626]" :
-                        venda.status === "Parcelado" ? "bg-[#DBEAFE] text-[#2563EB]" :
+                        venda.status === "concluida" ? "bg-[#D1FAE5] text-[#059669]" :
+                        venda.status === "cancelada" ? "bg-[#FEE2E2] text-[#DC2626]" :
+                        venda.status === "pendente" ? "bg-[#FEF3C7] text-[#D97706]" :
                         "bg-[#F3F4F6] text-[#6B7280]"
                       }`}>
-                        {venda.status === "Parcelado" ? t("Parcelado") :
-                         venda.status === "Pago" ? t("Pago") :
-                         venda.status === "Churn" ? t("Churn") : t(venda.status)}
+                        {venda.status === "concluida" ? t("Concluída") :
+                         venda.status === "pendente" ? t("Pendente") :
+                         venda.status === "cancelada" ? t("Cancelada") : t(venda.status)}
                       </span>
-                      {venda.status === "Parcelado" && venda.parcelas && (
-                        <span className="text-[10px] font-[600] text-[#6B7280] mt-1 ml-1">
-                          {venda.parcelas}
-                        </span>
-                      )}
                     </div>
 
-                    {/* CLIENTE (Nome grande + CPF/CNPJ pequeno) */}
+                    {/* CLIENTE */}
                     <div className="flex flex-col pr-4">
-                      <Link href={`/gestao-comercial/clientes/${venda.id}`} className="text-[13px] font-[600] text-[#6D28D9] truncate cursor-pointer hover:underline mb-0.5">
-                        {venda.cliente}
+                      <Link href={`/gestao-comercial/vendas/${venda.id}`} className="text-[13px] font-[600] text-[#6D28D9] truncate cursor-pointer hover:underline mb-0.5">
+                        {venda.cliente?.nome || '---'}
                       </Link>
-                      <span className="text-[11px] font-[500] text-[#9CA3AF] truncate">
-                        {venda.cpf}
-                      </span>
                     </div>
 
                     {/* VENDEDOR */}
-                    <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{venda.vendedor}</span>
+                    <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{venda.vendedor?.user?.name || '---'}</span>
                     
                     {/* PLANO */}
-                    <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{venda.plano}</span>
+                    <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{venda.plano || '---'}</span>
                     
                     {/* VALOR */}
-                    <span className="text-[12px] font-[600] text-[#111827] truncate pr-4">{venda.valor}</span>
+                    <span className="text-[12px] font-[600] text-[#111827] truncate pr-4">R$ {Number(venda.valor_final || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                     
                     {/* PAGAMENTO */}
-                    <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{venda.pagamento}</span>
+                    <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{venda.forma_pagamento || '---'}</span>
                     
                     {/* DATA */}
-                    <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{venda.data}</span>
+                    <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{venda.created_at ? new Date(venda.created_at).toLocaleDateString('pt-BR') : '---'}</span>
 
                     {/* AÇÕES (Recriar, Editar, Excluir) */}
                     <div className="flex items-center justify-center gap-[6px]">
@@ -233,9 +208,9 @@ export default function VendasPage() {
               <Pagination
                 currentPage={currentPage}
                 onPageChange={handlePageChange}
-                pageSize={pageSize}
+                pageSize={15}
                 onPageSizeChange={handlePageSizeChange}
-                total={filteredVendas.length}
+                total={totalItems}
               />
             </div>
           </div>

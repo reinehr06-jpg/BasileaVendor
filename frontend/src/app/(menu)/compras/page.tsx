@@ -24,11 +24,14 @@
 "use client";
 
 // ─── IMPORTAÇÕES ─────────────────────────────────────────────────────────────
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import CustomSelect from "@/components/CustomSelect";
+import Pagination from "@/components/Pagination";
+import { ComprasService } from "@/services/compras.service";
+import { FornecedoresService } from "@/services/fornecedores.service";
 import { 
   ShoppingCart, Plus, Search, MoreVertical, Filter, FileText
 } from "lucide-react";
@@ -36,13 +39,40 @@ import {
 export default function ComprasPage() {
   const [fornecedorFilter, setFornecedorFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [buscaGeral, setBuscaGeral] = useState("");
+  
+  const [compras, setCompras] = useState<any[]>([]);
+  const [fornecedores, setFornecedores] = useState<any[]>([]);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [totalItems, setTotalItems] = useState(0);
 
-  const mockCompras = [
-    { id: 1, numero: "COMP-2024-001", data: "20/05/2024", solicitante: "Lucas Almeida", fornecedor: "Kalunga", valor: "R$ 450,00", status: "Aguardando aprovação" },
-    { id: 2, numero: "COMP-2024-002", data: "21/05/2024", solicitante: "Pr. Marcos", fornecedor: "Loja de Instrumentos", valor: "R$ 2.500,00", status: "Aprovada" },
-    { id: 3, numero: "COMP-2024-003", data: "22/05/2024", solicitante: "Ana Silva", fornecedor: "Supermercado Extra", valor: "R$ 320,00", status: "Recebida" },
-    { id: 4, numero: "COMP-2024-004", data: "23/05/2024", solicitante: "Carlos Souza", fornecedor: "Construtora X", valor: "R$ 15.000,00", status: "Em cotação" },
-  ];
+  useEffect(() => {
+    // Carregar compras
+    const params = {
+      page: currentPage,
+      search: buscaGeral,
+      status: statusFilter,
+      // Se houver busca por fornecedor (id) e precisarmos, ajustamos na API depois.
+      // Atualmente o select de fornecedor poderia filtrar pelo nome do fornecedor (search).
+    };
+    
+    // Se o fornecedorFilter for passado, podemos injetar na busca geral ou adicionar param.
+    // Vamos adicionar como param adicional, mas a API não trata 'fornecedor_id' ainda, então
+    // deixaremos de lado ou usaremos search para nome.
+    
+    ComprasService.listar(params).then((res: any) => {
+      setCompras(res.data || []);
+      setTotalItems(res.total || res.meta?.total || 0);
+    });
+  }, [currentPage, buscaGeral, statusFilter, pageSize]);
+
+  useEffect(() => {
+    FornecedoresService.listar({ page: 1 }).then((res: any) => {
+      setFornecedores(res.data || []);
+    });
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -57,6 +87,26 @@ export default function ComprasPage() {
       case 'Reprovada': return 'bg-[#7F1D1D] text-white';
       default: return 'bg-[#F3F4F6] text-[#6B7280]';
     }
+  };
+  
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+  };
+  
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  const handlePageChange = (page: number) => setCurrentPage(page);
+  const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
+
+  const handleClearFilters = () => {
+    setBuscaGeral("");
+    setStatusFilter("");
+    setFornecedorFilter("");
+    setCurrentPage(1);
   };
 
   return (
@@ -97,6 +147,8 @@ export default function ComprasPage() {
               <div className="relative w-full max-w-[300px]">
                 <input 
                   type="text" 
+                  value={buscaGeral}
+                  onChange={(e) => { setBuscaGeral(e.target.value); setCurrentPage(1); }}
                   placeholder="Buscar nº pedido, solicitante..." 
                   className="w-full h-[36px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-[8px] pl-[36px] pr-[12px] text-[13px] text-[#111827] placeholder-[#9CA3AF] outline-none hover:border-[#D1D5DB] focus:bg-white focus:border-[#6D28D9] focus:ring-1 focus:ring-[#6D28D9] transition-all"
                 />
@@ -106,35 +158,21 @@ export default function ComprasPage() {
               <div className="w-[200px]">
                 <CustomSelect 
                   options={[
-                    {label: "Todos os Fornecedores", value: ""},
-                    {label: "Kalunga", value: "kalunga"},
-                    {label: "Supermercado Extra", value: "extra"}
-                  ]}
-                  value={fornecedorFilter}
-                  onChange={setFornecedorFilter}
-                  placeholder="Fornecedor"
-                  className="h-[36px]"
-                />
-              </div>
-
-              <div className="w-[200px]">
-                <CustomSelect 
-                  options={[
                     {label: "Todos os Status", value: ""},
-                    {label: "Em cotação", value: "cotacao"},
-                    {label: "Aguardando aprovação", value: "aprovacao"},
-                    {label: "Aprovada", value: "aprovada"},
-                    {label: "Recebida", value: "recebida"}
+                    {label: "Em cotação", value: "Em cotação"},
+                    {label: "Aguardando aprovação", value: "Aguardando aprovação"},
+                    {label: "Aprovada", value: "Aprovada"},
+                    {label: "Recebida", value: "Recebida"}
                   ]}
                   value={statusFilter}
-                  onChange={setStatusFilter}
+                  onChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}
                   placeholder="Status"
                   className="h-[36px]"
                 />
               </div>
             </div>
 
-            <button className="h-[36px] px-4 rounded-[8px] text-[12px] font-[600] text-[#6B7280] hover:text-[#1A1A2E] hover:bg-[#F3F4F6] transition-colors shrink-0 border border-transparent hover:border-[#E5E7EB]">
+            <button onClick={handleClearFilters} className="h-[36px] px-4 rounded-[8px] text-[12px] font-[600] text-[#6B7280] hover:text-[#1A1A2E] hover:bg-[#F3F4F6] transition-colors shrink-0 border border-transparent hover:border-[#E5E7EB]">
               Limpar
             </button>
           </div>
@@ -155,7 +193,13 @@ export default function ComprasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockCompras.map((item) => (
+                  {compras.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-[13px] text-[#6B7280]">
+                        Nenhuma compra encontrada.
+                      </td>
+                    </tr>
+                  ) : compras.map((item) => (
                     <tr key={item.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
                       <td className="py-4 px-5">
                         <div className="flex items-center gap-3">
@@ -164,18 +208,18 @@ export default function ComprasPage() {
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[13px] font-[700] text-[#111827]">{item.numero}</span>
-                            <span className="text-[11px] text-[#6B7280]">{item.data}</span>
+                            <span className="text-[11px] text-[#6B7280]">{formatDate(item.data_solicitacao)}</span>
                           </div>
                         </div>
                       </td>
                       <td className="py-4 px-5">
-                        <span className="text-[13px] font-[600] text-[#374151]">{item.solicitante}</span>
+                        <span className="text-[13px] font-[600] text-[#374151]">{item.solicitante || "-"}</span>
                       </td>
                       <td className="py-4 px-5">
-                        <span className="text-[13px] font-[600] text-[#374151]">{item.fornecedor}</span>
+                        <span className="text-[13px] font-[600] text-[#374151]">{item.fornecedor?.nome || "-"}</span>
                       </td>
                       <td className="py-4 px-5">
-                        <span className="text-[14px] font-[800] text-[#111827]">{item.valor}</span>
+                        <span className="text-[14px] font-[800] text-[#111827]">{formatCurrency(item.valor)}</span>
                       </td>
                       <td className="py-4 px-5 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-[700] ${getStatusColor(item.status)}`}>
@@ -184,7 +228,7 @@ export default function ComprasPage() {
                       </td>
                       <td className="py-4 px-5 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <Link href="/compras/1" className="w-[32px] h-[32px] rounded-[6px] flex items-center justify-center text-[#9CA3AF] hover:text-[#6D28D9] hover:bg-[#F3E8FF] transition-colors">
+                          <Link href={`/compras/${item.id}`} className="w-[32px] h-[32px] rounded-[6px] flex items-center justify-center text-[#9CA3AF] hover:text-[#6D28D9] hover:bg-[#F3E8FF] transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pencil"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
                           </Link>
                           <button className="w-[32px] h-[32px] rounded-[6px] flex items-center justify-center text-[#9CA3AF] hover:text-[#111827] hover:bg-[#E5E7EB] transition-colors">
@@ -197,6 +241,18 @@ export default function ComprasPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Paginacao */}
+            <div className="border-t border-[#F1F1F4] bg-[#FCFCFD]">
+              <Pagination
+                currentPage={currentPage}
+                onPageChange={handlePageChange}
+                pageSize={pageSize}
+                onPageSizeChange={handlePageSizeChange}
+                total={totalItems}
+              />
+            </div>
+
           </div>
           
         </main>

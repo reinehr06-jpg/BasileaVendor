@@ -94,12 +94,30 @@ const COLORS = ["#6D28D9", "#8B5CF6", "#A78BFA", "#C4B5FD"];
 export default function DespesasPage() {
   const [viewMode, setViewMode] = useState<"dashboard" | "lista">("dashboard");
   const [activeTab, setActiveTab] = useState("Todas");
+  const [despesas, setDespesas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockDespesas = [
-    { id: 1, venc: "20/05/2024", pagto: "20/05/2024", desc: "Conta de Energia", conta: "Itaú - CC 1234", cat: "Energia", fornecedor: "Enel", valor: "R$ 450,00", status: "Pago", nf: "NF-0442" },
-    { id: 2, venc: "28/05/2024", pagto: "-", desc: "Aluguel Prédio Sede", conta: "Itaú - CC 1234", cat: "Imóveis", fornecedor: "Imobiliária XP", valor: "R$ 4.500,00", status: "Agendado", nf: "-" },
-    { id: 3, venc: "10/05/2024", pagto: "-", desc: "Compra de Microfones", conta: "Caixa Físico", cat: "Equipamentos", fornecedor: "AudioTech", valor: "R$ 1.200,00", status: "Vencido", nf: "NF-8921" },
-  ];
+  useEffect(() => {
+    carregarDespesas();
+  }, []);
+
+  const carregarDespesas = async () => {
+    try {
+      setLoading(true);
+      const res = await DespesasService.listar();
+      setDespesas(res.data.data);
+    } catch (error) {
+      console.error("Erro ao carregar despesas", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('pt-BR').format(date);
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -122,9 +140,6 @@ export default function DespesasPage() {
             </div>
             <div className="flex items-center gap-3">
               
-              {/* 🗺️ MAPA DO TESOURO: TOGGLE DE VISÃO (DASHBOARD vs LISTA)
-                  Controla o estado 'viewMode'. Se 'dashboard', mostra KPIs e gráficos.
-                  Se 'lista', mostra a tabela completa com paginação e filtros. */}
               <div className="flex items-center bg-[#F3F4F6] p-1 rounded-[8px] mr-2">
                 <button 
                   onClick={() => setViewMode("dashboard")}
@@ -153,14 +168,7 @@ export default function DespesasPage() {
           {/* DYNAMIC CONTENT */}
           {viewMode === "dashboard" ? (
             <div className="flex flex-col flex-1 gap-4 overflow-y-auto custom-scrollbar pb-4 animate-in fade-in duration-300">
-              
-              {/* 🗺️ MAPA DO TESOURO: GRID DE KPIs
-                  Exibidos apenas no modo 'dashboard'. */}
               <div className="grid grid-cols-4 gap-4 shrink-0">
-                
-                {/* 🗺️ MAPA DO TESOURO: KPI 1 - Total Pago no Mês
-                    Soma de todas as despesas com status 'Pago' no mês atual.
-                    🔗 BACK-END: GET /api/despesas/resumo -> total_pago */}
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex items-center justify-between shadow-sm">
                   <div className="flex flex-col">
                     <span className="text-[12px] font-[600] text-[#6B7280]">Total Pago no Mês</span>
@@ -175,9 +183,6 @@ export default function DespesasPage() {
                     <ArrowDownCircle className="w-[20px] h-[20px] text-[#DC2626]" strokeWidth={2.4} />
                   </div>
                 </div>
-
-                {/* 🗺️ MAPA DO TESOURO: KPI 2 - A Pagar (Hoje)
-                    Soma das despesas cujo vencimento é HOJE e status é 'Agendado'. */}
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex items-center justify-between shadow-sm">
                   <div className="flex flex-col">
                     <span className="text-[12px] font-[600] text-[#6B7280]">A Pagar (Hoje)</span>
@@ -192,9 +197,6 @@ export default function DespesasPage() {
                     <CalendarDays className="w-[20px] h-[20px] text-[#A78BFA]" strokeWidth={2.4} />
                   </div>
                 </div>
-
-                {/* 🗺️ MAPA DO TESOURO: KPI 3 - Atrasadas
-                    Soma das despesas cujo vencimento já passou (ontem ou antes) e não estão pagas. */}
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex items-center justify-between shadow-sm">
                   <div className="flex flex-col">
                     <span className="text-[12px] font-[600] text-[#6B7280]">Atrasadas</span>
@@ -209,9 +211,6 @@ export default function DespesasPage() {
                     <Building2 className="w-[20px] h-[20px] text-[#10B981]" strokeWidth={2.4} />
                   </div>
                 </div>
-
-                {/* 🗺️ MAPA DO TESOURO: KPI 4 - Fixas vs Variáveis
-                    Percentual comparativo do tipo de despesa no mês atual. */}
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex items-center justify-between shadow-sm">
                   <div className="flex flex-col">
                     <span className="text-[12px] font-[600] text-[#6B7280]">Fixas vs Variáveis</span>
@@ -227,8 +226,6 @@ export default function DespesasPage() {
                   </div>
                 </div>
               </div>
-
-              {/* 🗺️ MAPA DO TESOURO: GRÁFICOS */}
               <div className="flex gap-4 shrink-0 h-[280px]">
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex-1 flex flex-col shadow-sm">
                   <div className="flex justify-between items-center mb-4 shrink-0">
@@ -251,7 +248,6 @@ export default function DespesasPage() {
                     </ResponsiveContainer>
                   </div>
                 </div>
-
                 <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 w-[380px] flex flex-col shadow-sm">
                   <span className="text-[14px] font-[700] text-[#1A1A2E] mb-4 shrink-0">Despesas por Categoria</span>
                   <div className="flex-1 w-full min-h-0">
@@ -269,51 +265,10 @@ export default function DespesasPage() {
                   </div>
                 </div>
               </div>
-
-              <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-5 flex flex-col flex-1 min-h-[200px] shadow-sm overflow-hidden">
-                <div className="flex justify-between items-center mb-4 shrink-0">
-                  <span className="text-[14px] font-[700] text-[#1A1A2E]">Próximos Vencimentos</span>
-                  <button onClick={() => setViewMode("lista")} className="text-[12px] font-[600] text-[#DC2626] hover:underline">Ver todos</button>
-                </div>
-                <div className="flex-1 overflow-auto custom-scrollbar">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b border-[#F1F1F4]">
-                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white">Vencimento</th>
-                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white">Descrição</th>
-                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white">Fornecedor</th>
-                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white text-right">Valor</th>
-                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase text-center sticky top-0 bg-white">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mockDespesas.map((despesa) => (
-                        <tr key={despesa.id} className="border-b border-[#F1F1F4] last:border-0 hover:bg-[#F9FAFB]">
-                          <td className="py-2.5 text-[12px] font-[600] text-[#4B5563]">{despesa.venc}</td>
-                          <td className="py-2.5 text-[12px] font-[600] text-[#1A1A2E]">{despesa.desc}</td>
-                          <td className="py-2.5 text-[11px] font-[500] text-[#4B5563]">{despesa.fornecedor}</td>
-                          <td className="py-2.5 text-[12px] font-[800] text-[#DC2626] text-right">{despesa.valor}</td>
-                          <td className="py-2.5 text-center">
-                            <span className={`inline-block px-2 py-0.5 rounded-[4px] text-[10px] font-[700] ${despesa.status === 'Pago' ? 'bg-[#ECFDF5] text-[#10B981]' : despesa.status === 'Vencido' ? 'bg-[#FEF2F2] text-[#6D28D9]' : 'bg-[#EFF6FF] text-[#3B82F6]'}`}>
-                              {despesa.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
             </div>
           ) : (
             <div className="bg-white rounded-[12px] border border-[#E5E7EB] shadow-sm flex flex-col flex-1 overflow-hidden min-h-0 animate-in fade-in duration-300">
-              
-              {/* 🗺️ MAPA DO TESOURO: TABS & TOOLS (Apenas no modo Lista)
-                  Controles para filtro rápido por status da despesa.
-                  🔗 BACK-END: Recarrega GET /api/despesas passando o 'status' selecionado. */}
               <div className="p-4 border-b border-[#F1F1F4] flex items-center justify-between gap-3 shrink-0">
-                
                 <div className="flex items-center gap-1 bg-[#F3F4F6] p-1 rounded-[8px]">
                   {["Todas", "Vencidas", "Em aberto", "Agendadas", "Pagas", "Aguardando aprovação"].map((tab) => (
                     <button
@@ -325,7 +280,6 @@ export default function DespesasPage() {
                     </button>
                   ))}
                 </div>
-                
                 <div className="flex items-center gap-2">
                   <div className="relative">
                     <input 
@@ -339,66 +293,23 @@ export default function DespesasPage() {
                     <Filter className="w-[14px] h-[14px] text-[#9CA3AF]" />
                     Filtros
                   </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-[#E5E7EB] rounded-[8px] text-[13px] font-[600] text-[#374151] hover:bg-[#F9FAFB] h-[36px]">
-                    <Columns className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                    Colunas
-                  </button>
                 </div>
               </div>
-
-              {/* 🗺️ MAPA DO TESOURO: TABELA PRINCIPAL (Visão Lista)
-                  Lista todas as despesas conforme filtro selecionado. */}
               <div className="flex-1 overflow-y-auto custom-scrollbar p-0 m-0 relative">
                 <table className="w-full text-left border-collapse">
                   <thead className="sticky top-0 bg-[#F9FAFB] shadow-[0_1px_0_#F1F1F4] z-10">
                     <tr>
-                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Vencimento / Pagto</th>
-                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Descrição</th>
-                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Fornecedor</th>
-                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Categoria</th>
-                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4]">Conta</th>
-                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-right">Valor</th>
-                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-center">Status</th>
-                      <th className="py-3 px-5 text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider border-b border-[#F1F1F4] text-right">Ações</th>
+                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase"></th>
+                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Vencimento / Pagto</th>
+                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Descrição / Fornecedor</th>
+                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Conta</th>
+                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Categoria</th>
+                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Valor</th>
+                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">Status</th>
+                      <th className="px-4 py-3 text-[11px] font-[700] text-[#6B7280] uppercase">NF</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {mockDespesas.map((despesa) => (
-                      <tr key={despesa.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
-                        <td className="py-3 px-5">
-                          <div className="flex flex-col">
-                            <span className="text-[13px] font-[700] text-[#111827]">V: {despesa.venc}</span>
-                            <span className="text-[11px] text-[#6B7280]">P: {despesa.pagto}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-5">
-                          <div className="flex flex-col">
-                            <span className="text-[13px] font-[700] text-[#111827]">{despesa.desc}</span>
-                            {despesa.nf !== "-" && <span className="text-[11px] text-[#6B7280] flex items-center gap-1 mt-0.5"><FileText className="w-[10px] h-[10px]" /> NF: {despesa.nf}</span>}
-                          </div>
-                        </td>
-                        <td className="py-3 px-5">
-                          <span className="text-[13px] font-[600] text-[#4B5563]">{despesa.fornecedor}</span>
-                        </td>
-                        <td className="py-3 px-5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">{despesa.cat}</span>
-                        </td>
-                        <td className="py-3 px-5">
-                          <span className="text-[13px] text-[#6B7280]">{despesa.conta}</span>
-                        </td>
-                        <td className="py-3 px-5 text-right">
-                          <span className="text-[14px] font-[800] text-[#DC2626]">{despesa.valor}</span>
-                        </td>
-                        <td className="py-3 px-5 text-center">
-                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-[700] ${
-                            despesa.status === 'Pago' ? 'bg-[#ECFDF5] text-[#10B981]' : 
-                            despesa.status === 'Vencido' ? 'bg-[#FEF2F2] text-[#6D28D9]' : 
-                            despesa.status === 'Agendado' ? 'bg-[#EFF6FF] text-[#3B82F6]' : 
-                            despesa.status === 'Cancelado' ? 'bg-[#F3F4F6] text-[#6B7280]' :
-                            despesa.status === 'Aguardando aprovação' ? 'bg-[#FEF08A] text-[#854D0E]' :
-                            despesa.status === 'Parcialmente pago' ? 'bg-[#D1FAE5] text-[#047857]' :
-                            despesa.status === 'Em aberto' ? 'bg-[#FFF7ED] text-[#EA580C]' :
-                            despesa.status === 'Contestação' ? 'bg-[#FEE2E2] text-[#B91C1C]' :
                             'bg-[#F3F4F6] text-[#6B7280]'
                           }`}>
                             {despesa.status}

@@ -1,23 +1,60 @@
 import { api } from "@/lib/api";
 
-export const MOCK_VENDAS = [
-  { id: 1, cliente: "Marcos Antônio", plano: "Plano Anual", status: "Aprovado", comissao: "R$ 150,00", vendedor: "Bruno Santana da Hora", equipe: "Equipe Alpha", data: "12/05/2026", metodo: "Cartão", tipo: "Novo" },
-  { id: 2, cliente: "Amanda Vasconcelos", plano: "Plano Mensal", status: "Pendente", comissao: "R$ 45,00", vendedor: "Carolina de Souza", equipe: "Vendas Corporativas", data: "10/05/2026", metodo: "Boleto", tipo: "Novo" },
-  { id: 3, cliente: "Tech Solutions ME", plano: "Plano Enterprise", status: "Aprovado", comissao: "R$ 450,00", vendedor: "Roger Guilherme", equipe: "Equipe Alpha", data: "08/05/2026", metodo: "Pix", tipo: "Upgrade" },
-  { id: 4, cliente: "João Pedro Silva", plano: "Plano Semestral", status: "Cancelado", comissao: "R$ 0,00", vendedor: "Ainara Perez Diaz", equipe: "Varejo B2B", data: "05/05/2026", metodo: "Cartão", tipo: "Novo" },
-  { id: 5, cliente: "Startup Beta SA", plano: "Plano Anual", status: "Aprovado", comissao: "R$ 150,00", vendedor: "Bruno Santana da Hora", equipe: "Equipe Alpha", data: "01/05/2026", metodo: "Pix", tipo: "Novo" },
-];
+export interface Venda {
+  id: number;
+  cliente_id: number;
+  vendedor_id?: number | null;
+  plano?: string | null;
+  status: string;
+  valor: string | number;
+  valor_final: string | number;
+  forma_pagamento?: string | null;
+  modo_cobranca?: string | null;
+  observacao?: string | null;
+  data_venda?: string;
+  created_at?: string;
+  updated_at?: string;
+  cliente?: {
+    id: number;
+    nome: string;
+    nome_igreja?: string;
+  };
+  vendedor?: {
+    id: number;
+    user?: {
+      id: number;
+      name: string;
+    };
+  };
+}
 
 export const VendasService = {
-  listar: async () => {
-    return Promise.resolve(MOCK_VENDAS);
+  listar: async (params?: { page?: number; search?: string; status?: string }): Promise<{ data: Venda[], meta: any }> => {
+    let url = "/vendas";
+    if (params) {
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.append("page", String(params.page));
+      if (params.search) searchParams.append("search", params.search);
+      if (params.status) searchParams.append("status", params.status);
+      const qs = searchParams.toString();
+      if (qs) url += `?${qs}`;
+    }
+    const response = await api.get<any>(url);
+    return response.data;
   },
-  listarPorEquipe: async (equipe: string) => {
-    const vendas = await VendasService.listar();
-    return vendas.filter(v => v.equipe === equipe);
+  
+  obter: async (id: number): Promise<Venda> => {
+    const response = await api.get<any>(`/vendas/${id}`);
+    return response.data;
   },
-  listarPorVendedor: async (vendedor: string) => {
-    const vendas = await VendasService.listar();
-    return vendas.filter(v => v.vendedor === vendedor);
+
+  criar: async (data: any): Promise<Venda> => {
+    const response = await api.post<any>("/vendas", data);
+    return response.data;
+  },
+
+  metricas: async (): Promise<any> => {
+    const response = await api.get<any>("/metricas-vendas");
+    return response;
   }
 };

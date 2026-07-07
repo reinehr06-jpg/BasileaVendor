@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import Pagination from "@/components/Pagination";
@@ -16,13 +16,7 @@ import {
   Download
 } from "lucide-react";
 
-const MOCK_PAGAMENTOS = [
-  { id: 1, igreja: "Comunidade Evangelica Atos 1", vendedor: "Vendedor de Testes", valor: "R$ 197,00", forma: "Cartão de Crédito", status: "Pago", pagamento: "04/05/2026" },
-  { id: 2, igreja: "Igreja do Evangelho Quadrangular", vendedor: "Vendedor de Testes", valor: "R$ 297,00", forma: "Pix", status: "Pago", pagamento: "07/04/2026" },
-  { id: 3, igreja: "Church Comunidade Jesus Água e Vida", vendedor: "Vendedor de Testes", valor: "R$ 197,00", forma: "Pix", status: "Pago", pagamento: "08/04/2026" },
-  { id: 4, igreja: "Primeira Igreja Batista", vendedor: "Bruno Santana da Hora", valor: "R$ 350,00", forma: "Boleto", status: "Pendente", pagamento: "10/05/2026" },
-  { id: 5, igreja: "Igreja Presbiteriana Central", vendedor: "Carolina de Souza", valor: "R$ 497,00", forma: "Cartão de Crédito", status: "Pago", pagamento: "15/05/2026" },
-];
+import { FinanceiroService } from "@/services/financeiro.service";
 
 export default function PagamentosPage() {
   const { t } = useTranslation();
@@ -30,26 +24,30 @@ export default function PagamentosPage() {
   const [statusFiltro, setStatusFiltro] = useState("");
   const [formaFiltro, setFormaFiltro] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [pagamentos, setPagamentos] = useState(MOCK_PAGAMENTOS);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize, setPageSize] = useState(15);
+  const [pagamentos, setPagamentos] = useState<any[]>([]);
 
-  const filteredPagamentos = pagamentos.filter(p =>
-    (p.igreja.toLowerCase().includes(busca.toLowerCase())) &&
-    (statusFiltro === "" || p.status.toLowerCase() === statusFiltro.toLowerCase()) &&
-    (formaFiltro === "" || p.forma.toLowerCase() === formaFiltro.toLowerCase())
-  );
-  
-  const paginatedPagamentos = filteredPagamentos.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  useEffect(() => {
+    FinanceiroService.listarPagamentos({ page: currentPage, search: busca }).then((res) => {
+      setPagamentos(res.data);
+      if (res.meta) {
+        setTotalPages(res.meta.last_page || 1);
+        setTotalItems(res.meta.total || res.data.length);
+      }
+    });
+  }, [currentPage, busca]);
   
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
 
-  // Cálculos de KPI mockados
+  // KPIs mockados da imagem (idealmente devem vir de um endpoint meta ou de resumo do backend)
   const kpis = {
-    total: pagamentos.length,
-    pagos: pagamentos.filter(p => p.status === "Pago").length,
-    pendentes: pagamentos.filter(p => p.status === "Pendente").length,
-    recebido: "R$ 65.066,05"
+    total: totalItems,
+    pagos: 0,
+    pendentes: 0,
+    recebido: "R$ 0,00"
   };
 
   return (
@@ -110,7 +108,7 @@ export default function PagamentosPage() {
               {/* Lado Esquerdo: Contador */}
               <div className="flex items-center gap-[12px]">
                 <span className="text-[13px] font-[500] text-[#6B7280] hidden sm:inline-block">
-                  {filteredPagamentos.length} {filteredPagamentos.length === 1 ? t("registro encontrado") : t("registros encontrados")}
+                  {totalItems} {totalItems === 1 ? t("registro encontrado") : t("registros encontrados")}
                 </span>
               </div>
               
@@ -121,7 +119,10 @@ export default function PagamentosPage() {
                   <input
                     type="text"
                     value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
+                    onChange={(e) => {
+                      setBusca(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     placeholder={t("Buscar por cliente...")}
                     className="bg-transparent border-none outline-none text-[12px] text-[#1A1A2E] placeholder-[#9CA3AF] w-full sm:w-[220px]"
                   />
@@ -171,36 +172,41 @@ export default function PagamentosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedPagamentos.length > 0 ? paginatedPagamentos.map((p, i) => (
-                    <tr key={i} className="border-b border-[#F1F1F4] hover:bg-[#FAFAFC]">
+                  {pagamentos.map((p, i) => (
+                    <tr key={p.id || i} className="border-b border-[#F1F1F4] hover:bg-[#FAFAFC]">
                       <td className="p-[12px_24px] align-middle">
-                        <span className="text-[13px] font-[600] text-[#111827]">{p.igreja}</span>
+                        <span className="text-[13px] font-[600] text-[#111827]">{p.cliente?.nome || '-'}</span>
                       </td>
                       <td className="p-[12px_24px] align-middle">
                         <div className="flex flex-col gap-1">
-                          <span className="text-[13px] font-[700] text-[#111827]">{p.valor}</span>
+                          <span className="text-[13px] font-[700] text-[#111827]">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.valor || 0))}
+                          </span>
                           <span className="inline-flex items-center px-[8px] py-[2px] text-[10px] font-[700] rounded-full bg-[#F3E8FF] text-[#7C3AED] uppercase tracking-wide w-fit">
-                            {p.forma}
+                            {p.forma_pagamento_real || p.forma_pagamento || '-'}
                           </span>
                         </div>
                       </td>
                       <td className="p-[12px_24px] align-middle">
                         <span className={`inline-flex items-center px-[8px] py-[2px] text-[10px] font-[700] rounded-full uppercase tracking-wide ${
-                          p.status === "Pago" ? "bg-[#D1FAE5] text-[#059669]" : 
-                          p.status === "Pendente" ? "bg-[#FEF3C7] text-[#D97706]" : 
-                          "bg-[#FEE2E2] text-[#DC2626]"
+                          (p.status === "RECEIVED" || p.status === "RECEIVED_IN_CASH") ? "bg-[#D1FAE5] text-[#059669]" : 
+                          p.status === "PENDING" ? "bg-[#FEF3C7] text-[#D97706]" : 
+                          "bg-[#F3F4F6] text-[#6B7280]"
                         }`}>
-                          {p.status}
+                          {p.status || 'PENDENTE'}
                         </span>
                       </td>
-                      <td className="p-[12px_24px] align-middle text-[13px] font-[500] text-[#6B7280]">{p.pagamento}</td>
+                      <td className="p-[12px_24px] align-middle text-[13px] font-[500] text-[#6B7280]">
+                        {p.data_pagamento ? new Date(p.data_pagamento).toLocaleDateString('pt-BR') : '-'}
+                      </td>
                       <td className="p-[12px_24px] align-middle text-center">
                         <button title={t("Baixar comprovante")} onClick={() => toast.success(t("O download do comprovante foi iniciado!"))} className="w-[30px] h-[30px] rounded-[8px] border border-[#E5E7EB] bg-white flex items-center justify-center hover:bg-[#F3F4F6] hover:text-[#6D28D9] transition-colors mx-auto">
                           <Download className="w-[14px] h-[14px] text-[#6B7280] hover:text-[#6D28D9]" strokeWidth={2.2} />
                         </button>
                       </td>
                     </tr>
-                  )) : (
+                  ))}
+                  {pagamentos.length === 0 && (
                     <tr>
                       <td colSpan={5} className="text-center p-8 text-[#6B7280] text-[13px]">{t("Nenhum pagamento encontrado")}</td>
                     </tr>
@@ -210,14 +216,14 @@ export default function PagamentosPage() {
             </div>
 
             {/* Paginação */}
-            {paginatedPagamentos.length > 0 && (
+            {pagamentos.length > 0 && (
               <div className="p-[12px_24px] border-t border-[#E5E7EB]">
                 <Pagination
                   currentPage={currentPage}
                   onPageChange={handlePageChange}
                   pageSize={pageSize}
                   onPageSizeChange={handlePageSizeChange}
-                  total={filteredPagamentos.length}
+                  total={totalItems}
                 />
               </div>
             )}

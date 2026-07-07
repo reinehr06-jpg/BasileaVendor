@@ -10,7 +10,29 @@ export const MOCK_COMISSOES = [
 ];
 
 export const FinanceiroService = {
-  listarComissoes: async () => {
-    return Promise.resolve(MOCK_COMISSOES);
+  listarComissoes: async (params?: { page?: number; search?: string }): Promise<{ data: any[], meta: any }> => {
+    let url = "/financeiro/comissoes";
+    if (params) {
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.append("page", String(params.page));
+      if (params.search) searchParams.append("search", params.search);
+      const qs = searchParams.toString();
+      if (qs) url += `?${qs}`;
+    }
+    const response = await api.get<any>(url);
+    return response;
+  },
+
+  listarPagamentos: async (params?: { page?: number; search?: string }): Promise<{ data: any[], meta: any }> => {
+    let url = "/financeiro/pagamentos";
+    if (params) {
+      const searchParams = new URLSearchParams();
+      if (params.page) searchParams.append("page", String(params.page));
+      if (params.search) searchParams.append("search", params.search);
+      const qs = searchParams.toString();
+      if (qs) url += `?${qs}`;
+    }
+    const response = await api.get<any>(url);
+    return response;
   }
 };

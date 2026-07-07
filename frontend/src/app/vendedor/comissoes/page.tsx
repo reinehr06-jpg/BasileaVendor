@@ -24,19 +24,21 @@ export default function ComissoesPage() {
   const [busca, setBusca] = useState("");
   const [mesFiltro, setMesFiltro] = useState<string>("2026-07-01");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [pageSize, setPageSize] = useState(15);
   const [comissoes, setComissoes] = useState<any[]>([]);
 
   useEffect(() => {
-    FinanceiroService.listarComissoes().then(setComissoes);
-  }, []);
+    FinanceiroService.listarComissoes({ page: currentPage, search: busca }).then((res) => {
+      setComissoes(res.data);
+      if (res.meta) {
+        setTotalPages(res.meta.last_page || 1);
+        setTotalItems(res.meta.total || res.data.length);
+      }
+    });
+  }, [currentPage, busca]);
 
-  const filteredComissoes = comissoes.filter(c =>
-    c.cliente.toLowerCase().includes(busca.toLowerCase())
-  );
-  
-  const paginatedComissoes = filteredComissoes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
 
@@ -110,7 +112,7 @@ export default function ComissoesPage() {
               {/* Lado Esquerdo: Contador */}
               <div className="flex items-center gap-[12px]">
                 <span className="text-[13px] font-[500] text-[#6B7280] hidden sm:inline-block">
-                  {filteredComissoes.length} {filteredComissoes.length === 1 ? t("registro encontrado") : t("registros encontrados")}
+                  {totalItems} {totalItems === 1 ? t("registro encontrado") : t("registros encontrados")}
                 </span>
               </div>
               
@@ -121,7 +123,10 @@ export default function ComissoesPage() {
                   <input
                     type="text"
                     value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
+                    onChange={(e) => {
+                      setBusca(e.target.value);
+                      setCurrentPage(1);
+                    }}
                     placeholder={t("Buscar por cliente...")}
                     className="bg-transparent border-none outline-none text-[12px] text-[#1A1A2E] placeholder-[#9CA3AF] w-full sm:w-[220px]"
                   />
@@ -142,35 +147,62 @@ export default function ComissoesPage() {
             <div className="flex-1 flex flex-col overflow-x-auto">
               
               {/* Cabeçalho */}
-              <div className="grid grid-cols-[100px_2fr_120px_120px_100px] items-center px-[24px] h-[40px] border-t border-b border-[#F1F1F4] bg-[#FCFCFD] min-w-[700px]">
-                <span className="text-[12px] font-[700] text-[#6B7280]">{t("Data")}</span>
+              <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_80px] items-center px-[24px] h-[40px] border-t border-b border-[#F1F1F4] bg-[#FCFCFD] min-w-[700px]">
                 <span className="text-[12px] font-[700] text-[#6B7280]">{t("Cliente")}</span>
-                <span className="text-[12px] font-[700] text-[#6B7280]">{t("Venda")}</span>
+                <span className="text-[12px] font-[700] text-[#6B7280]">{t("Plano")}</span>
                 <span className="text-[12px] font-[700] text-[#6B7280]">{t("Comissão")}</span>
+                <span className="text-[12px] font-[700] text-[#6B7280]">{t("Valor Venda")}</span>
                 <span className="text-[12px] font-[700] text-[#6B7280]">{t("Status")}</span>
+                <span className="text-[12px] font-[700] text-[#6B7280]">{t("Pagamento")}</span>
+                <span className="text-[12px] font-[700] text-[#6B7280] text-center">{t("Ações")}</span>
               </div>
-
               {/* Linhas */}
-              {paginatedComissoes.map((c) => (
-                <div key={c.id} className="grid grid-cols-[100px_2fr_120px_120px_100px] items-center px-[24px] h-[52px] bg-white border-b border-[#F1F1F4] hover:bg-[#FAFAFC] transition-colors last:border-b-0 min-w-[700px]">
+              {comissoes.map((c, i) => (
+                <div key={c.id || i} className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_80px] items-center px-[24px] py-[16px] border-b border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors last:border-b-0 min-h-[72px]">
                   
-                  <span className="text-[12px] font-[500] text-[#6B7280]">{c.data}</span>
-                  
-                  <span className="text-[13px] font-[600] text-[#111827] truncate pr-4">{c.cliente}</span>
-                  
-                  <span className="text-[12px] font-[500] text-[#4B5563]">{c.venda}</span>
-                  
-                  <span className="text-[12px] font-[700] text-[#059669]">{c.comissao}</span>
-                  
-                  <div>
-                    <span className="inline-flex items-center px-[8px] py-[2px] text-[10px] font-[700] rounded-full bg-[#D1FAE5] text-[#059669] uppercase tracking-wide">
-                      {c.status}
-                    </span>
+                  {/* Cliente */}
+                  <div className="flex items-center gap-[12px] truncate pr-4">
+                    <div className="flex flex-col truncate">
+                      <span className="text-[14px] font-[600] text-[#111827] truncate">{c.cliente?.nome || '-'}</span>
+                    </div>
                   </div>
-                  
-                </div>
-              ))}
-            </div>
+
+                    {/* Venda/Plano */}
+                    <div className="flex flex-col items-start truncate text-[14px] font-[500] text-[#374151]">
+                      {c.venda?.plano || '-'}
+                    </div>
+
+                    {/* Comissão */}
+                    <div className="flex flex-col items-start truncate">
+                      <span className="text-[14px] font-[700] text-[#059669]">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(c.valor_comissao || 0))}
+                      </span>
+                    </div>
+
+                    {/* Valor Venda */}
+                    <div className="flex items-center truncate text-[14px] font-[500] text-[#374151]">
+                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(c.valor_venda || 0))}
+                    </div>
+
+                    {/* Status */}
+                    <div className="flex items-center truncate text-[14px] font-[500] text-[#374151]">
+                      <span className="bg-[#E5E7EB] text-[#374151] px-2 py-1 rounded-full text-xs font-semibold uppercase">{c.status || 'pendente'}</span>
+                    </div>
+
+                    {/* Data Pagamento */}
+                    <div className="flex items-center truncate text-[14px] font-[500] text-[#6B7280]">
+                      {c.data_pagamento ? new Date(c.data_pagamento).toLocaleDateString('pt-BR') : '-'}
+                    </div>
+
+                    {/* Ações */}
+                    <div className="flex items-center justify-center">
+                      <button className="w-[32px] h-[32px] flex items-center justify-center rounded-[8px] hover:bg-[#E5E7EB] text-[#6B7280] transition-colors">
+                        <Eye className="w-[16px] h-[16px]" />
+                      </button>
+                    </div>
+
+                  </div>
+                ))}</div>
 
             {/* Paginação */}
             <div className="p-[12px_24px] border-t border-[#E5E7EB]">
@@ -179,7 +211,7 @@ export default function ComissoesPage() {
                 onPageChange={handlePageChange}
                 pageSize={pageSize}
                 onPageSizeChange={handlePageSizeChange}
-                total={filteredComissoes.length}
+                total={totalItems}
               />
             </div>
 

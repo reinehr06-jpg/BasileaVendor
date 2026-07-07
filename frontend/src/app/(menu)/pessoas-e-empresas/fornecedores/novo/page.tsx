@@ -22,9 +22,12 @@ import {
   Trash2
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { FornecedoresService } from "@/services/fornecedores.service";
 
 export default function NovoFornecedorPage() {
   const { t } = useTranslation();
+  const router = useRouter();
 
   // Estados dos Accordions (Exclusividade Mútua)
   const [openAccordion, setOpenAccordion] = useState<string | null>("basico");
@@ -174,6 +177,26 @@ export default function NovoFornecedorPage() {
       {t(text)} {required && <span className="text-[#EF4444] ml-0.5">*</span>}
     </label>
   );
+
+  const handleSave = async () => {
+    try {
+      const payload = {
+        nome: tipoPessoa === "PJ" ? (razaoSocial || nomeFantasia) : nomeFantasia,
+        documento: cpfCnpj,
+        email: contatos[0]?.email || "",
+        telefone: contatos[0]?.telefone || "",
+        contato_responsavel: contatos[0]?.nome || responsavel || "",
+        endereco: `${rua} ${numero} ${bairro} ${cidade} ${uf}`.trim() || null,
+        status: status
+      };
+      
+      await FornecedoresService.criar(payload);
+      router.push('/pessoas-e-empresas/fornecedores');
+    } catch (error) {
+      console.error("Erro ao salvar fornecedor", error);
+      alert("Erro ao salvar fornecedor.");
+    }
+  };
 
   return (
     <div className="flex min-h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -525,7 +548,7 @@ export default function NovoFornecedorPage() {
               <Link href="/pessoas-e-empresas/fornecedores" className="px-[20px] py-[10px] bg-white border border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors text-[#4B5563] text-[12px] font-[700] rounded-[8px]">
                 CANCELAR
               </Link>
-              <button type="button" className="px-[20px] py-[10px] bg-[#6D28D9] hover:bg-[#5B21B6] transition-colors text-white text-[12px] font-[700] uppercase tracking-wider rounded-[8px] shadow-sm shadow-[#6D28D9]/20">
+              <button type="button" onClick={handleSave} className="px-[20px] py-[10px] bg-[#6D28D9] hover:bg-[#5B21B6] transition-colors text-white text-[12px] font-[700] uppercase tracking-wider rounded-[8px] shadow-sm shadow-[#6D28D9]/20">
                 SALVAR E CONCLUIR
               </button>
             </div>

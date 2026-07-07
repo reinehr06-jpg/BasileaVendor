@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, use } from "react";
+import React, { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -23,12 +23,18 @@ import {
   DollarSign,
   Ban
 } from "lucide-react";
+import { FornecedoresService } from "@/services/fornecedores.service";
+import { useRouter } from "next/navigation";
 
 export default function FornecedorHistoricoPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const { t } = useTranslation();
   const params = use(paramsPromise);
+  const router = useRouter();
+
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [timelinePeriod, setTimelinePeriod] = useState("30dias");
+  const [fornecedor, setFornecedor] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const [isClosingModalOpen, setIsClosingModalOpen] = useState(false);
   const [motivoInativacao, setMotivoInativacao] = useState("");
@@ -38,14 +44,56 @@ export default function FornecedorHistoricoPage({ params: paramsPromise }: { par
     "Todos", "Alterações cadastrais", "Lançamentos", "Notas Fiscais", "Contatos"
   ];
 
+  useEffect(() => {
+    carregarFornecedor();
+  }, [params.id]);
+
+  const carregarFornecedor = async () => {
+    try {
+      setLoading(true);
+      const res = await FornecedoresService.obterPorId(params.id);
+      setFornecedor(res.data);
+    } catch (error) {
+      console.error("Erro ao carregar fornecedor", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('pt-BR').format(date);
+  };
+
   const MOCK_EVENTS = [
-    { id: 1, type: "Alterações cadastrais", date: "20/06/2024", time: "14:30", title: "Endereço atualizado", desc: "CEP alterado de 01234-567 para 04567-890. Logradouro atualizado.", author: "Financeiro", authorName: "Por Maria Santos", icon: "edit", color: "#8B5CF6", bgTag: "#F4EEFF", textTag: "#6D28D9" },
-    { id: 2, type: "Lançamentos", date: "20/05/2024", time: "09:15", title: "Despesa vinculada: Aluguel Templo Maio/24", desc: "Lançamento #1029 no valor de R$ 4.500,00 associado a este fornecedor.", author: "Sistema", authorName: "Registro automático", icon: "dollar", color: "#DC2626", bgTag: "#FEE2E2", textTag: "#DC2626" },
-    { id: 3, type: "Lançamentos", date: "20/04/2024", time: "09:10", title: "Despesa vinculada: Aluguel Templo Abril/24", desc: "Lançamento #1015 no valor de R$ 4.500,00 associado a este fornecedor.", author: "Sistema", authorName: "Registro automático", icon: "dollar", color: "#DC2626", bgTag: "#FEE2E2", textTag: "#DC2626" },
-    { id: 4, type: "Alterações cadastrais", date: "15/03/2024", time: "10:00", title: "Fornecedor criado no sistema", desc: "Cadastro inicial realizado pela secretaria administrativa.", author: "Admin", authorName: "Usuário principal", icon: "check", color: "#3B82F6", bgTag: "#EFF6FF", textTag: "#2563EB" }
+    { id: 1, type: "Alterações cadastrais", date: "20/06/2024", time: "14:30", title: "Endereço atualizado", desc: "Logradouro atualizado.", author: "Financeiro", authorName: "Por Maria Santos", icon: "edit", color: "#8B5CF6", bgTag: "#F4EEFF", textTag: "#6D28D9" },
+    { id: 4, type: "Alterações cadastrais", date: "15/03/2024", time: "10:00", title: "Fornecedor criado no sistema", desc: "Cadastro inicial realizado.", author: "Admin", authorName: "Usuário principal", icon: "check", color: "#3B82F6", bgTag: "#EFF6FF", textTag: "#2563EB" }
   ];
 
   const filteredEvents = activeFilter === "Todos" ? MOCK_EVENTS : MOCK_EVENTS.filter(e => e.type === activeFilter);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen font-inter bg-[#F8F9FA]">
+        <Sidebar />
+        <div className="flex-1 ml-[240px] flex items-center justify-center">
+          <p className="text-gray-500">Carregando dados do fornecedor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!fornecedor) {
+    return (
+      <div className="flex min-h-screen font-inter bg-[#F8F9FA]">
+        <Sidebar />
+        <div className="flex-1 ml-[240px] flex items-center justify-center">
+          <p className="text-red-500">Fornecedor não encontrado.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen font-inter bg-[#F8F9FA]">
@@ -63,7 +111,7 @@ export default function FornecedorHistoricoPage({ params: paramsPromise }: { par
                 <div className="flex items-center gap-2 text-[13px] font-[500] text-[#6B7280]">
                   <Link href="/cadastros/fornecedores" className="hover:text-[#1A1A2E] transition-colors">Fornecedores</Link>
                   <span>/</span>
-                  <span className="text-[#1A1A2E]">Imobiliária Souza Ltda</span>
+                  <span className="text-[#1A1A2E]">{fornecedor.nome}</span>
                 </div>
                 
                 <div className="flex items-center gap-3 mt-1">
@@ -76,10 +124,10 @@ export default function FornecedorHistoricoPage({ params: paramsPromise }: { par
               </div>
 
               <div className="flex items-center gap-3">
-                <Link href={`/fornecedores/${params.id || 1}/editar`} className="flex items-center gap-2 px-[20px] py-[10px] bg-[#6D28D9] text-white text-[13px] font-[600] rounded-[8px] hover:bg-[#5B21B6] transition-colors shadow-sm shadow-[#6D28D9]/20">
+                <button disabled className="flex items-center gap-2 px-[20px] py-[10px] bg-[#6D28D9] text-white text-[13px] font-[600] rounded-[8px] hover:bg-[#5B21B6] opacity-50 transition-colors shadow-sm shadow-[#6D28D9]/20">
                   <Pencil className="w-[14px] h-[14px]" strokeWidth={2.4} />
                   Editar fornecedor
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -94,34 +142,34 @@ export default function FornecedorHistoricoPage({ params: paramsPromise }: { par
               </div>
               <div className="flex flex-col flex-1">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <h2 className="text-[16px] font-[800] text-[#1A1A2E] leading-none">Imobiliária Souza Ltda</h2>
-                  <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#10B981]/10 rounded-full">
-                    <div className="w-[5px] h-[5px] rounded-full bg-[#10B981]"></div>
-                    <span className="text-[10px] font-[700] text-[#10B981] uppercase tracking-wide">Ativo</span>
+                  <h2 className="text-[16px] font-[800] text-[#1A1A2E] leading-none">{fornecedor.nome}</h2>
+                  <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full ${fornecedor.status === 'Ativo' ? 'bg-[#10B981]/10' : 'bg-[#F3F4F6]'}`}>
+                    <div className={`w-[5px] h-[5px] rounded-full ${fornecedor.status === 'Ativo' ? 'bg-[#10B981]' : 'bg-[#6B7280]'}`}></div>
+                    <span className={`text-[10px] font-[700] uppercase tracking-wide ${fornecedor.status === 'Ativo' ? 'text-[#10B981]' : 'text-[#4B5563]'}`}>{fornecedor.status}</span>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-y-1.5 gap-x-3">
                   <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]">
                     <Phone className="w-[12px] h-[12px] text-[#9CA3AF]" />
-                    (11) 98765-4321
+                    {fornecedor.telefone || '-'}
                   </div>
                   <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]">
-                    <span className="text-[#9CA3AF]">CNPJ:</span> <span className="font-[600] text-[#1A1A2E]">12.345.678/0001-90</span>
+                    <span className="text-[#9CA3AF]">CNPJ/CPF:</span> <span className="font-[600] text-[#1A1A2E]">{fornecedor.documento || '-'}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]">
                     <Mail className="w-[12px] h-[12px] text-[#9CA3AF]" />
-                    contato@imobilsouza.com.br
+                    {fornecedor.email || '-'}
                   </div>
                   <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]">
-                    <span className="text-[#9CA3AF]">Tipo:</span> <span className="font-[600] text-[#1A1A2E]">Pessoa Jurídica</span>
+                    <span className="text-[#9CA3AF]">Responsável:</span> <span className="font-[600] text-[#1A1A2E]">{fornecedor.contato_responsavel || '-'}</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]">
                     <MapPin className="w-[12px] h-[12px] text-[#9CA3AF]" />
-                    São Paulo - SP
+                    {fornecedor.endereco || '-'}
                   </div>
                   <div className="flex items-center gap-1.5 text-[12px] text-[#4B5563]">
-                    <span className="text-[#9CA3AF]">Desde:</span> <span className="font-[600] text-[#1A1A2E]">15/03/2024</span>
+                    <span className="text-[#9CA3AF]">Desde:</span> <span className="font-[600] text-[#1A1A2E]">{formatDate(fornecedor.created_at)}</span>
                   </div>
                 </div>
               </div>
@@ -132,19 +180,18 @@ export default function FornecedorHistoricoPage({ params: paramsPromise }: { par
               <div className="flex-1 bg-[#FAFAFC] rounded-[10px] p-3 flex flex-col justify-center border border-[#F1F1F4] relative overflow-hidden group hover:border-[#DC2626]/30 transition-colors">
                 <DollarSign className="absolute right-[-8px] bottom-[-8px] w-[32px] h-[32px] text-[#DC2626]/10 group-hover:text-[#DC2626]/20 transition-colors" strokeWidth={2} />
                 <p className="text-[10px] font-[700] text-[#6B7280] uppercase tracking-wider mb-0.5">Total pago</p>
-                <p className="text-[15px] font-[800] text-[#DC2626] leading-none">R$ 27.000,00</p>
+                <p className="text-[15px] font-[800] text-[#DC2626] leading-none">R$ 0,00</p>
               </div>
               <div className="flex-1 bg-[#FAFAFC] rounded-[10px] p-3 flex flex-col justify-center border border-[#F1F1F4] relative overflow-hidden group hover:border-[#3B82F6]/30 transition-colors">
                 <CreditCard className="absolute right-[-8px] bottom-[-8px] w-[32px] h-[32px] text-[#3B82F6]/10 group-hover:text-[#3B82F6]/20 transition-colors" strokeWidth={2} />
                 <p className="text-[10px] font-[700] text-[#6B7280] uppercase tracking-wider mb-0.5">Lançamentos</p>
-                <p className="text-[15px] font-[800] text-[#1A1A2E] leading-none">6</p>
+                <p className="text-[15px] font-[800] text-[#1A1A2E] leading-none">0</p>
               </div>
               <div className="flex-1 bg-[#FFFBEB] rounded-[10px] p-3 flex flex-col justify-center border border-[#FEF3C7] relative overflow-hidden group hover:border-[#F59E0B]/30 transition-colors">
                 <AlertTriangle className="absolute right-[-8px] bottom-[-8px] w-[32px] h-[32px] text-[#F59E0B]/10 group-hover:text-[#F59E0B]/20 transition-colors" strokeWidth={2} />
                 <p className="text-[10px] font-[700] text-[#B45309] uppercase tracking-wider mb-0.5">Pendentes</p>
                 <div className="flex items-center gap-2">
-                  <p className="text-[15px] font-[800] text-[#92400E] leading-none">1</p>
-                  <button className="text-[10px] font-[700] text-[#D97706] hover:underline leading-none relative z-10">Visualizar</button>
+                  <p className="text-[15px] font-[800] text-[#92400E] leading-none">0</p>
                 </div>
               </div>
             </div>
@@ -199,40 +246,43 @@ export default function FornecedorHistoricoPage({ params: paramsPromise }: { par
                 </div>
               </div>
 
-              {/* TIMELINE LIST (SCROLLABLE) */}
+              {/* Linha do Tempo (Scrollable) */}
               <div className="relative flex-1 overflow-y-auto overflow-x-hidden pr-4 custom-scrollbar pb-10">
-                {/* Linha vertical central */}
                 <div className="absolute left-[104px] top-2 bottom-0 w-[2px] bg-[#F1F1F4] border-l border-dashed border-[#D1D5DB]"></div>
 
                 {filteredEvents.map(event => (
                   <div key={event.id} className="relative flex items-start mb-6">
-                    {/* Data & Hora */}
+                    {/* Timestamp */}
                     <div className="w-[104px] pr-5 text-right mt-1 shrink-0 relative z-10">
-                      <p className="text-[12px] font-[600] text-[#1A1A2E]">{event.date}</p>
-                      <p className="text-[11px] font-[500] text-[#6B7280]">{event.time}</p>
+                      <p className={`text-[12px] font-[600] text-[#1A1A2E]`}>{event.date}</p>
+                      <p className={`text-[11px] font-[500] text-[#6B7280]`}>{event.time}</p>
                     </div>
-                    {/* Ícone Redondo */}
+
+                    {/* Ícone */}
                     <div className="absolute left-[104px] -ml-[12px] w-[24px] h-[24px] rounded-full bg-white border-2 flex items-center justify-center shadow-sm z-20 mt-1" style={{ borderColor: event.color }}>
+                      {event.icon === "clock" && <Clock className="w-[10px] h-[10px]" style={{ color: event.color }} strokeWidth={3} />}
+                      {event.icon === "dollar" && <DollarSign className="w-[10px] h-[10px]" style={{ color: event.color }} strokeWidth={3} />}
                       {event.icon === "edit" && <Edit2 className="w-[10px] h-[10px]" style={{ color: event.color }} strokeWidth={3} />}
                       {event.icon === "check" && <CheckCircle2 className="w-[10px] h-[10px]" style={{ color: event.color }} strokeWidth={3} />}
-                      {event.icon === "dollar" && <DollarSign className="w-[10px] h-[10px]" style={{ color: event.color }} strokeWidth={3} />}
                     </div>
-                    
-                    {/* Card Content */}
+
+                    {/* Card de Conteúdo */}
                     <div className="flex-1 pl-6">
-                      <div className="w-full bg-white border rounded-[10px] p-3 shadow-sm hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow border-[#E5E7EB]">
+                      <div className={`w-full bg-white border rounded-[10px] p-3 shadow-sm hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-shadow border-[#E5E7EB]`}>
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center gap-2.5">
-                            <span className="px-2 py-0.5 rounded-[4px] text-[9px] font-[800] uppercase tracking-wide border" style={{ backgroundColor: event.bgTag, color: event.textTag, borderColor: 'transparent' }}>{event.type}</span>
-                            <h3 className="text-[13px] font-[800] text-[#1A1A2E]">{event.title}</h3>
+                            <span className="px-2 py-0.5 rounded-[4px] text-[9px] font-[800] uppercase tracking-wide border" style={{ backgroundColor: event.bgTag, color: event.textTag, borderColor: 'transparent' }}>
+                              {event.type}
+                            </span>
+                            <h3 className={`text-[13px] font-[800] text-[#1A1A2E]`}>{event.title}</h3>
                           </div>
-                          <button className="text-[11px] font-[700] hover:underline shrink-0 ml-2 text-[#6D28D9]">Ver detalhes</button>
+                          <button className="text-[11px] font-[700] hover:underline shrink-0 ml-2" style={{ color: '#6D28D9' }}>Ver detalhes</button>
                         </div>
                         <div className="flex items-start justify-between">
-                          <p className="text-[12px] leading-relaxed max-w-[80%] text-[#4B5563]">{event.desc}</p>
+                          <p className={`text-[12px] leading-relaxed max-w-[80%] text-[#4B5563]`}>{event.desc}</p>
                           <div className="text-right shrink-0 ml-4">
-                            <p className="text-[11px] font-[700] text-[#374151]">{event.author}</p>
-                            <p className="text-[10px] font-[500] text-[#9CA3AF]">{event.authorName}</p>
+                            <p className={`text-[11px] font-[700] text-[#374151]`}>{event.author}</p>
+                            <p className={`text-[10px] font-[500] text-[#9CA3AF]`}>{event.authorName}</p>
                           </div>
                         </div>
                       </div>
@@ -244,145 +294,47 @@ export default function FornecedorHistoricoPage({ params: paramsPromise }: { par
                   <div className="flex flex-col items-center justify-center p-10 text-center border-2 border-dashed border-[#E5E7EB] rounded-[12px] mt-4 bg-[#FAFAFC]">
                     <Search className="w-[24px] h-[24px] text-[#9CA3AF] mb-3" />
                     <p className="text-[14px] font-[700] text-[#1A1A2E]">Nenhum registro encontrado</p>
-                    <p className="text-[12px] text-[#6B7280] mt-1">Não há dados para o filtro &quot;{activeFilter}&quot;.</p>
+                    <p className="text-[12px] text-[#6B7280] mt-1">Não há movimentações para o filtro &quot;{activeFilter}&quot;.</p>
                   </div>
                 )}
               </div>
-
             </div>
 
-            {/* DIREITA: SIDEBAR DO HISTÓRICO */}
+            {/* DIREITA: PAINEL DE RESUMO E NOTAS */}
             <div className="w-full xl:w-[300px] shrink-0 flex flex-col gap-5">
               
-              {/* Resumo do histórico */}
               <div className="bg-white rounded-[14px] border border-[#E5E7EB] p-5 shadow-sm">
-                <h3 className="text-[14px] font-[800] text-[#1A1A2E] mb-4">Resumo do histórico</h3>
+                <h3 className="text-[14px] font-[800] text-[#1A1A2E] mb-4">Resumo operacional</h3>
+                
                 <div className="flex flex-col gap-3">
                   <div className="flex justify-between items-center pb-3 border-b border-[#F1F1F4]">
                     <div className="flex items-center gap-2 text-[13px] text-[#4B5563]">
                       <FileText className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                      Total de registros
+                      Total de compras
                     </div>
-                    <span className="font-[700] text-[#1A1A2E]">24</span>
+                    <span className="font-[700] text-[#1A1A2E]">0</span>
                   </div>
+
                   <div className="flex justify-between items-center pb-3 border-b border-[#F1F1F4]">
                     <div className="flex items-center gap-2 text-[13px] text-[#4B5563]">
-                      <Edit2 className="w-[14px] h-[14px] text-[#8B5CF6]" />
-                      Alterações cadastrais
+                      <Clock className="w-[14px] h-[14px] text-[#F59E0B]" />
+                      Dias médio p/ pgto
                     </div>
-                    <span className="font-[700] text-[#1A1A2E]">5</span>
-                  </div>
-                  <div className="flex justify-between items-center pb-3 border-b border-[#F1F1F4]">
-                    <div className="flex items-center gap-2 text-[13px] text-[#4B5563]">
-                      <DollarSign className="w-[14px] h-[14px] text-[#DC2626]" />
-                      Lançamentos financeiros
-                    </div>
-                    <span className="font-[700] text-[#1A1A2E]">6</span>
-                  </div>
-                  <div className="flex justify-between items-center pb-3 border-b border-[#F1F1F4]">
-                    <div className="flex items-center gap-2 text-[13px] text-[#4B5563]">
-                      <CheckCircle2 className="w-[14px] h-[14px] text-[#10B981]" />
-                      Notas Fiscais
-                    </div>
-                    <span className="font-[700] text-[#1A1A2E]">3</span>
+                    <span className="font-[700] text-[#1A1A2E]">0</span>
                   </div>
                 </div>
+
                 <button className="mt-4 flex items-center gap-1.5 text-[12px] font-[700] text-[#6D28D9] hover:underline">
-                  Ver relatório completo <ExternalLink className="w-[12px] h-[12px]" />
+                  Ver relatório financeiro
+                  <ExternalLink className="w-[12px] h-[12px]" />
                 </button>
               </div>
 
-              {/* Inativar fornecedor */}
-              <button onClick={() => setIsClosingModalOpen(true)} className="flex items-center justify-center gap-2.5 p-3 border rounded-[10px] transition-colors text-[13px] font-[700] bg-white border-[#C4B5FD] text-[#6D28D9] hover:bg-[#F3E8FF] cursor-pointer">
-                <Ban className="w-[16px] h-[16px]" strokeWidth={2.4} />
-                Inativar fornecedor
-              </button>
-
             </div>
-
           </div>
-
+          
         </main>
       </div>
-
-      {isClosingModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-8 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[16px] w-full max-w-[480px] p-6 shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col gap-6">
-            <div className="flex flex-col gap-2">
-              <h2 className="text-[18px] font-[800] text-[#1A1A2E]">Inativar Fornecedor?</h2>
-              <p className="text-[14px] text-[#4B5563] leading-relaxed">
-                Você está prestes a inativar o fornecedor <strong>Imobiliária Souza Ltda</strong>. Por favor, informe o motivo abaixo.
-              </p>
-            </div>
-            
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-[6px]">
-                <label className="text-[13px] font-[600] text-[#4B5563]">
-                  {t("Motivo da Inativação")} <span className="text-[#EF4444] ml-0.5">*</span>
-                </label>
-                <CustomSelect
-                  value={motivoInativacao}
-                  onChange={setMotivoInativacao}
-                  placeholder="Selecione o motivo"
-                  searchable={false}
-                  className="h-[42px]"
-                  options={[
-                    { value: "qualidade", label: "Baixa Qualidade" },
-                    { value: "preco", label: "Preço Incompatível" },
-                    { value: "falencia", label: "Empresa Fechou/Faliu" },
-                    { value: "outros", label: "Outros" }
-                  ]}
-                />
-              </div>
-
-              {motivoInativacao && (
-                <div className="flex flex-col gap-[6px] animate-in fade-in slide-in-from-top-2 duration-300">
-                  <label className="text-[13px] font-[600] text-[#4B5563]">
-                    {t("Observação")} <span className="text-[#EF4444] ml-0.5">*</span>
-                  </label>
-                  <textarea 
-                    value={obsInativacao}
-                    onChange={(e) => setObsInativacao(e.target.value)}
-                    placeholder="Descreva detalhadamente o motivo da inativação (mínimo 15 caracteres)..."
-                    className={`w-full min-h-[100px] bg-white border rounded-[8px] p-3 text-[13px] text-[#111827] placeholder-[#9CA3AF] outline-none transition-all resize-none ${obsInativacao.length > 0 && obsInativacao.length < 15 ? 'border-[#EF4444] focus:border-[#EF4444] focus:ring-1 focus:ring-[#EF4444]' : 'border-[#E5E7EB] hover:border-[#D1D5DB] focus:border-[#6D28D9] focus:ring-1 focus:ring-[#6D28D9]'}`}
-                  />
-                  {obsInativacao.length > 0 && obsInativacao.length < 15 && (
-                    <span className="text-[11px] font-[500] text-[#EF4444]">
-                      A observação deve ter no mínimo 15 caracteres. Faltam {15 - obsInativacao.length}.
-                    </span>
-                  )}
-                  {obsInativacao.length >= 15 && (
-                    <span className="text-[11px] font-[500] text-[#10B981]">
-                      Observação válida.
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-3 mt-2">
-              <button 
-                onClick={() => {
-                  setIsClosingModalOpen(false);
-                  setMotivoInativacao("");
-                  setObsInativacao("");
-                }} 
-                className="px-5 py-2.5 rounded-[8px] text-[13px] font-[600] text-[#4B5563] hover:bg-[#F3F4F6] transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                disabled={!motivoInativacao || obsInativacao.length < 15}
-                onClick={() => setIsClosingModalOpen(false)} 
-                className="px-5 py-2.5 rounded-[8px] bg-[#6D28D9] hover:bg-[#5B21B6] disabled:bg-[#C4B5FD] disabled:cursor-not-allowed text-white text-[13px] font-[700] transition-colors shadow-sm"
-              >
-                Inativar Fornecedor
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }

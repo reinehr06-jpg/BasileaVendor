@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import CustomSelect from "@/components/CustomSelect";
@@ -20,9 +20,13 @@ import {
   Upload
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ComprasService } from "@/services/compras.service";
+import { FornecedoresService } from "@/services/fornecedores.service";
 
 export default function NovaCompraPage() {
   const { t } = useTranslation();
+  const router = useRouter();
 
   // Estados dos Accordions
   const [openAccordion, setOpenAccordion] = useState<string | null>("info");
@@ -34,9 +38,23 @@ export default function NovaCompraPage() {
   const [formaPagamento, setFormaPagamento] = useState("");
   const [maxParcelas, setMaxParcelas] = useState("1");
   
+  const [solicitante, setSolicitante] = useState("Lucas Almeida");
+  const [fornecedorId, setFornecedorId] = useState("");
+  const [fornecedoresOptions, setFornecedoresOptions] = useState<any[]>([]);
+
   const [itens, setItens] = useState([
-    { id: 1, descricao: "", qtd: 1, valorUnit: "", valorTotal: "" }
+    { id: 1, descricao: "", qtd: 1, valorUnit: "0,00", valorTotal: "0,00" }
   ]);
+
+  useEffect(() => {
+    FornecedoresService.listar({}).then((res: any) => {
+      const options = (res.data || []).map((f: any) => ({
+        label: f.nome,
+        value: f.id.toString()
+      }));
+      setFornecedoresOptions(options);
+    });
+  }, []);
 
   const handleImportIA = () => {
     setItens([
@@ -47,11 +65,59 @@ export default function NovaCompraPage() {
   };
 
   const handleAddItem = () => {
-    setItens([...itens, { id: Date.now(), descricao: "", qtd: 1, valorUnit: "", valorTotal: "" }]);
+    setItens([...itens, { id: Date.now(), descricao: "", qtd: 1, valorUnit: "0,00", valorTotal: "0,00" }]);
   };
 
   const handleRemoveItem = (id: number) => {
     setItens(itens.filter(item => item.id !== id));
+  };
+
+  const parseCurrency = (val: string) => {
+    if (!val) return 0;
+    return Number(val.replace(/\./g, '').replace(',', '.'));
+  };
+
+  const formatCurrencyValue = (val: number) => {
+    return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const updateItemValue = (index: number, field: 'qtd' | 'valorUnit', value: string | number) => {
+    const newItens = [...itens];
+    if (field === 'qtd') {
+      newItens[index].qtd = Number(value);
+    } else {
+      newItens[index].valorUnit = value.toString();
+    }
+    
+    const vUnit = parseCurrency(newItens[index].valorUnit);
+    const total = newItens[index].qtd * vUnit;
+    newItens[index].valorTotal = formatCurrencyValue(total);
+    
+    setItens(newItens);
+  };
+
+  const calculateTotal = () => {
+    return itens.reduce((acc, item) => acc + parseCurrency(item.valorTotal), 0);
+  };
+
+  const totalCompra = calculateTotal();
+
+  const handleSave = async () => {
+    try {
+      const payload = {
+        solicitante: solicitante || "Usuário Sistema",
+        fornecedor_id: fornecedorId || null,
+        valor: totalCompra,
+        status: status || "Aguardando aprovação",
+        data_solicitacao: dataSolicitacao ? dataSolicitacao : new Date().toISOString().split('T')[0]
+      };
+      
+      await ComprasService.criar(payload);
+      router.push('/compras');
+    } catch (error) {
+      console.error("Erro ao salvar compra", error);
+      alert("Erro ao salvar compra.");
+    }
   };
 
   const statusOptions = [
@@ -172,13 +238,12 @@ export default function NovaCompraPage() {
                         <label className="text-[12px] font-[600] text-[#374151]">
                           Solicitante (Membro/Funcionário) <span className="text-[#EF4444] ml-0.5">*</span>
                         </label>
-                        <CustomSelect 
-                          options={[{label: "Lucas Almeida", value: "1"}, {label: "Ana Silva", value: "2"}]}
-                          value=""
-                          onChange={() => {}}
-                          searchable={true}
-                          placeholder="Buscar pessoa..."
-                          className="h-[38px]"
+                        <input 
+                          type="text" 
+                          value={solicitante}
+                          onChange={(e) => setSolicitante(e.target.value)}
+                          placeholder="Nome do solicitante"
+                          className="h-[38px] w-full border border-[#E5E7EB] rounded-[8px] px-[12px] text-[13px] outline-none focus:border-[#6D28D9]" 
                         />
                       </div>
 
@@ -233,9 +298,9 @@ export default function NovaCompraPage() {
                           Fornecedor Sugerido <span className="text-[#EF4444] ml-0.5">*</span>
                         </label>
                         <CustomSelect 
-                          options={[{label: "Kalunga", value: "1"}, {label: "Supermercado Extra", value: "2"}]}
-                          value=""
-                          onChange={() => {}}
+                          options={fornecedoresOptions}
+                          value={fornecedorId}
+                          onChange={setFornecedorId}
                           searchable={true}
                           placeholder="Buscar fornecedor..."
                           className="h-[38px]"
@@ -280,11 +345,11 @@ export default function NovaCompraPage() {
                             {itens.map((item, index) => (
                               <tr key={item.id} className="border-b border-[#E5E7EB] bg-white transition-all animate-in fade-in duration-300">
                                 <td className="p-2"><input type="text" value={item.descricao} onChange={(e) => { const newItens = [...itens]; newItens[index].descricao = e.target.value; setItens(newItens); }} placeholder="Ex: Cadeira de escritório" className="w-full h-[32px] px-2 text-[13px] border border-[#E5E7EB] rounded-[6px] outline-none hover:border-[#D1D5DB] focus:border-[#6D28D9] focus:ring-1 focus:ring-[#6D28D9] transition-all bg-white" /></td>
-                                <td className="p-2"><input type="number" value={item.qtd} onChange={(e) => { const newItens = [...itens]; newItens[index].qtd = Number(e.target.value); setItens(newItens); }} placeholder="1" className="w-full h-[32px] px-2 text-[13px] border border-[#E5E7EB] rounded-[6px] outline-none hover:border-[#D1D5DB] focus:border-[#6D28D9] focus:ring-1 focus:ring-[#6D28D9] transition-all bg-white" /></td>
+                                <td className="p-2"><input type="number" value={item.qtd} onChange={(e) => updateItemValue(index, 'qtd', e.target.value)} placeholder="1" className="w-full h-[32px] px-2 text-[13px] border border-[#E5E7EB] rounded-[6px] outline-none hover:border-[#D1D5DB] focus:border-[#6D28D9] focus:ring-1 focus:ring-[#6D28D9] transition-all bg-white" /></td>
                                 <td className="p-2">
                                   <div className="relative">
                                     <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[12px] text-[#9CA3AF]">R$</span>
-                                    <input type="text" value={item.valorUnit} onChange={(e) => { const newItens = [...itens]; newItens[index].valorUnit = e.target.value; setItens(newItens); }} placeholder="0,00" className="w-full h-[32px] pl-7 pr-2 text-[13px] border border-[#E5E7EB] rounded-[6px] outline-none hover:border-[#D1D5DB] focus:border-[#6D28D9] focus:ring-1 focus:ring-[#6D28D9] transition-all bg-white" />
+                                    <input type="text" value={item.valorUnit} onChange={(e) => updateItemValue(index, 'valorUnit', e.target.value)} placeholder="0,00" className="w-full h-[32px] pl-7 pr-2 text-[13px] border border-[#E5E7EB] rounded-[6px] outline-none hover:border-[#D1D5DB] focus:border-[#6D28D9] focus:ring-1 focus:ring-[#6D28D9] transition-all bg-white" />
                                   </div>
                                 </td>
                                 <td className="p-2">
@@ -304,7 +369,7 @@ export default function NovaCompraPage() {
                           <button type="button" onClick={handleAddItem} className="flex items-center gap-1.5 text-[12px] font-[600] text-[#6D28D9] hover:text-[#5B21B6] transition-colors"><Plus className="w-[14px] h-[14px]" /> Adicionar Linha</button>
                           <div className="flex items-center gap-3">
                             <span className="text-[12px] font-[600] text-[#6B7280]">Total da Compra:</span>
-                            <span className="text-[16px] font-[800] text-[#111827]">R$ {itens.length > 1 ? "6.400,00" : "0,00"}</span>
+                            <span className="text-[16px] font-[800] text-[#111827]">R$ {formatCurrencyValue(totalCompra)}</span>
                           </div>
                         </div>
                       </div>
@@ -411,7 +476,7 @@ export default function NovaCompraPage() {
                 <Link href="/compras" className="px-[20px] py-[10px] bg-white border border-[#E5E7EB] hover:bg-[#F9FAFB] transition-colors text-[#4B5563] text-[12px] font-[700] rounded-[8px]">
                   CANCELAR
                 </Link>
-                <button type="button" className="px-[20px] py-[10px] bg-[#6D28D9] hover:bg-[#5B21B6] transition-colors text-white text-[12px] font-[700] uppercase tracking-wider rounded-[8px] shadow-sm shadow-[#6D28D9]/20">
+                <button type="button" onClick={handleSave} className="px-[20px] py-[10px] bg-[#6D28D9] hover:bg-[#5B21B6] transition-colors text-white text-[12px] font-[700] uppercase tracking-wider rounded-[8px] shadow-sm shadow-[#6D28D9]/20">
                   ENVIAR PARA APROVAÇÃO
                 </button>
               </div>

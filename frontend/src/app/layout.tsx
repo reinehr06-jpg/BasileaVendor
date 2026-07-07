@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { LocaleProvider } from "@/context/LocaleContext";
-import { MockProvider } from "@/mocks/MockProvider";
 import { AuthProvider } from "@/context/AuthContext";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -22,14 +21,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${inter.variable} font-sans bg-[#F9FAFB] text-[#111827] antialiased`}>
-        <MockProvider>
-          <LocaleProvider>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
-          </LocaleProvider>
+        <LocaleProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </LocaleProvider>
 
-        </MockProvider>
         <Toaster 
           position="top-center" 
           toastOptions={{

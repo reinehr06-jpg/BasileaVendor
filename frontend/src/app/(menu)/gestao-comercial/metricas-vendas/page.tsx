@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import CustomSelect from "@/components/CustomSelect";
 import { useTranslation } from "react-i18next";
+import { VendasService } from "@/services/vendas.service";
 import {
   PieChart,
   DollarSign,
@@ -15,22 +16,6 @@ import {
   Filter
 } from "lucide-react";
 
-// Mock data base for calculation
-const BASE_METRICS = {
-  total: 145200,
-  confirmed: 342,
-  ticket: 424.56,
-  churn: 2.4,
-  chartData: [40, 60, 45, 80, 50, 90, 75, 100, 85, 110, 95, 120],
-  topSellers: [
-    { nome: "Bruno Santana da Hora", valor: 45000, percent: 85 },
-    { nome: "Carolina de Souza", valor: 38000, percent: 70 },
-    { nome: "Guilherme Guth Betim", valor: 32000, percent: 60 },
-    { nome: "Roger Guilherme", valor: 28000, percent: 50 },
-    { nome: "Ainara Perez Diaz", valor: 22000, percent: 40 },
-  ]
-};
-
 export default function MetricasVendasPage() {
   const { t } = useTranslation();
   
@@ -39,33 +24,41 @@ export default function MetricasVendasPage() {
   const [vendedorFiltro, setVendedorFiltro] = useState("");
   const [equipeFiltro, setEquipeFiltro] = useState("");
 
-  // Memoized reactive data
-  const metrics = useMemo(() => {
-    let multiplier = 1;
-    
-    if (periodo === "Este Mês") multiplier *= 0.15;
-    if (periodo === "Últimos 30 dias") multiplier *= 0.12;
-    if (periodo === "Ano Passado") multiplier *= 0.85;
+  const [metrics, setMetrics] = useState<{
+    total: string;
+    confirmed: number;
+    ticket: string;
+    churn: string;
+    chartData: number[];
+    topSellers: any[];
+  }>({
+    total: "R$ 0,00",
+    confirmed: 0,
+    ticket: "R$ 0,00",
+    churn: "0.0%",
+    chartData: [],
+    topSellers: []
+  });
 
-    if (vendedorFiltro) multiplier *= 0.3; // Simulando que um vendedor é 30% das vendas
-    if (equipeFiltro) multiplier *= 0.6; // Simulando que uma equipe é 60% das vendas
+  React.useEffect(() => {
+    VendasService.metricas().then((data) => {
+      const formatCurrency = (val: number) => 
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
-    const formatCurrency = (val: number) => 
-      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-
-    return {
-      total: formatCurrency(BASE_METRICS.total * multiplier),
-      confirmed: Math.round(BASE_METRICS.confirmed * multiplier),
-      ticket: formatCurrency(BASE_METRICS.ticket * (multiplier > 0.5 ? 1.05 : 0.95)),
-      churn: (BASE_METRICS.churn * (multiplier > 0.5 ? 1 : 1.5)).toFixed(1) + "%",
-      chartData: BASE_METRICS.chartData.map(v => v * multiplier),
-      topSellers: BASE_METRICS.topSellers.map(s => ({
-        ...s,
-        valor: formatCurrency(s.valor * multiplier).replace(",00", "k").replace("R$ ", "R$ ").replace(".", "")
-      }))
-    };
+      setMetrics({
+        total: formatCurrency(data.resumo?.receitaTotal || 0),
+        confirmed: data.resumo?.totalVendas || 0,
+        ticket: formatCurrency(data.resumo?.ticketMedio || 0),
+        churn: "0.0%", // TODO: Integrar churn futuramente
+        chartData: data.receitaMensal?.map((m: any) => m.total) || [],
+        topSellers: data.topVendedores?.map((s: any) => ({
+          nome: s.name,
+          valor: formatCurrency(s.total).replace(",00", "k").replace("R$ ", "R$ ").replace(".", ""),
+          percent: s.total > 0 ? (s.total / (data.resumo.receitaTotal || 1)) * 100 : 0
+        })) || []
+      });
+    });
   }, [periodo, vendedorFiltro, equipeFiltro]);
-
   return (
     <div className="flex min-h-screen font-inter bg-[#F5F5F7]">
       <Sidebar />

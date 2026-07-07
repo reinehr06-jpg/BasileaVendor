@@ -30,14 +30,30 @@
 "use client";
 
 // ─── IMPORTAÇÕES ─────────────────────────────────────────────────────────────
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import { 
-  ArrowUpCircle, Plus, Search, Filter, Columns, Download, MoreVertical, ChevronLeft, ChevronRight, FileText, LayoutDashboard, List, TrendingUp, CreditCard, Building2, CalendarDays
+  Plus, 
+  Search, 
+  Filter, 
+  ArrowUpCircle, 
+  Download,
+  LayoutDashboard,
+  List,
+  Calendar,
+  MoreVertical,
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  CreditCard,
+  Building2,
+  CalendarDays,
+  FileText
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie, Legend, ComposedChart, Line } from "recharts";
+import { ReceitasService } from "@/services/receitas.service";
 
 /*
  * 📊 MOCK: Dados do gráfico de evolução de receitas (Dízimos vs Ofertas)
@@ -65,12 +81,30 @@ const COLORS = ["#6D28D9", "#8B5CF6", "#A78BFA", "#C4B5FD"];
 export default function ReceitasPage() {
   const [viewMode, setViewMode] = useState<"dashboard" | "lista">("dashboard");
   const [activeTab, setActiveTab] = useState("Todas");
+  const [receitas, setReceitas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockReceitas = [
-    { id: 1, data: "24/05/2024", desc: "Dízimo Congregação Central", conta: "Itaú - CC 1234", cat: "Dízimos", origem: "João Silva", valor: "R$ 1.500,00", status: "Recebido", nf: "-" },
-    { id: 2, data: "24/05/2024", desc: "Oferta Culto de Domingo", conta: "Itaú - CC 1234", cat: "Ofertas", origem: "Culto", valor: "R$ 845,50", status: "Aguardando recebimento", nf: "-" },
-    { id: 3, data: "25/05/2024", desc: "Venda de Livros - Conferência", conta: "Caixa Físico", cat: "Vendas", origem: "Livraria", valor: "R$ 320,00", status: "Parcialmente recebido", nf: "NF-0012" },
-  ];
+  useEffect(() => {
+    carregarReceitas();
+  }, []);
+
+  const carregarReceitas = async () => {
+    try {
+      setLoading(true);
+      const res = await ReceitasService.listar();
+      setReceitas(res.data.data);
+    } catch (error) {
+      console.error("Erro ao carregar receitas", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('pt-BR').format(date);
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -233,31 +267,36 @@ export default function ReceitasPage() {
                   <span className="text-[14px] font-[700] text-[#1A1A2E]">Maiores entradas recentes</span>
                   <button onClick={() => setViewMode("lista")} className="text-[12px] font-[600] text-[#6D28D9] hover:underline">Ver todas</button>
                 </div>
-                <div className="flex-1 overflow-auto custom-scrollbar">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b border-[#F1F1F4]">
-                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white">Descrição</th>
-                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white">Origem</th>
-                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase sticky top-0 bg-white text-right">Valor</th>
-                        <th className="pb-2 text-[10px] font-[700] text-[#9CA3AF] uppercase text-center sticky top-0 bg-white">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mockReceitas.slice(0, 3).map((receita) => (
-                        <tr key={receita.id} className="border-b border-[#F1F1F4] last:border-0 hover:bg-[#F9FAFB]">
-                          <td className="py-2.5 text-[12px] font-[600] text-[#1A1A2E]">{receita.desc}</td>
-                          <td className="py-2.5 text-[11px] font-[500] text-[#4B5563]">{receita.origem}</td>
-                          <td className="py-2.5 text-[12px] font-[800] text-[#6D28D9] text-right">{receita.valor}</td>
-                          <td className="py-2.5 text-center">
-                            <span className={`inline-block px-2 py-0.5 rounded-[4px] text-[10px] font-[700] ${receita.status === 'Recebido' ? 'bg-[#ECFDF5] text-[#6D28D9]' : 'bg-[#FFFBEB] text-[#F59E0B]'}`}>
-                              {receita.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="flex-1 flex flex-col gap-3 min-h-0 pr-2 overflow-y-auto">
+                  {receitas.slice(0, 3).map((receita) => (
+                    <div key={receita.id} className="bg-white border border-[#E5E7EB] rounded-[10px] p-3 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-[#D1D5DB] transition-colors cursor-pointer group">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <span className="text-[13px] font-[700] text-[#1A1A2E] block">{receita.descricao}</span>
+                          <span className="text-[11px] text-[#6B7280]">{receita.origem || '-'}</span>
+                        </div>
+                        <span className="text-[13px] font-[800] text-[#1A1A2E]">R$ {parseFloat(receita.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="flex justify-between items-end mt-2 pt-2 border-t border-[#F1F1F4]">
+                        <div className="flex items-center gap-2">
+                          <div className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-[700] uppercase tracking-wide
+                            ${receita.status === 'Recebido' ? 'bg-[#10B981]/10 text-[#10B981]' : 
+                              receita.status === 'Aguardando recebimento' ? 'bg-[#F59E0B]/10 text-[#F59E0B]' : 
+                              'bg-[#3B82F6]/10 text-[#3B82F6]'}
+                          `}>
+                            <div className={`w-1 h-1 rounded-full 
+                              ${receita.status === 'Recebido' ? 'bg-[#10B981]' : 
+                                receita.status === 'Aguardando recebimento' ? 'bg-[#F59E0B]' : 
+                                'bg-[#3B82F6]'}
+                            `}></div>
+                            {receita.status}
+                          </div>
+                          <span className="text-[11px] text-[#9CA3AF] flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(receita.data)}</span>
+                        </div>
+                        <button className="text-[11px] font-[600] text-[#6D28D9] hover:underline opacity-0 group-hover:opacity-100 transition-opacity">Detalhes</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -293,10 +332,6 @@ export default function ReceitasPage() {
                     <Filter className="w-[14px] h-[14px] text-[#9CA3AF]" />
                     Filtros
                   </button>
-                  <button className="flex items-center gap-2 px-3 py-1.5 border border-[#E5E7EB] rounded-[8px] text-[13px] font-[600] text-[#374151] hover:bg-[#F9FAFB] h-[36px]">
-                    <Columns className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                    Colunas
-                  </button>
                 </div>
               </div>
 
@@ -316,28 +351,28 @@ export default function ReceitasPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {mockReceitas.map((receita) => (
+                    {receitas.map((receita) => (
                       <tr key={receita.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
                         <td className="py-3 px-5">
-                          <span className="text-[13px] font-[600] text-[#4B5563]">{receita.data}</span>
+                          <span className="text-[13px] font-[600] text-[#4B5563]">{formatDate(receita.data)}</span>
                         </td>
                         <td className="py-3 px-5">
                           <div className="flex flex-col">
-                            <span className="text-[13px] font-[700] text-[#111827]">{receita.desc}</span>
-                            {receita.nf !== "-" && <span className="text-[11px] text-[#6B7280] flex items-center gap-1 mt-0.5"><FileText className="w-[10px] h-[10px]" /> NF: {receita.nf}</span>}
+                            <span className="text-[13px] font-[700] text-[#111827]">{receita.descricao}</span>
+                            {receita.nf && <span className="text-[11px] text-[#6B7280] flex items-center gap-1 mt-0.5"><FileText className="w-[10px] h-[10px]" /> NF: {receita.nf}</span>}
                           </div>
                         </td>
                         <td className="py-3 px-5">
                           <span className="text-[13px] text-[#4B5563]">{receita.origem}</span>
                         </td>
                         <td className="py-3 px-5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">{receita.cat}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#F3F4F6] text-[#4B5563]">{receita.categoria}</span>
                         </td>
                         <td className="py-3 px-5">
                           <span className="text-[13px] text-[#6B7280]">{receita.conta}</span>
                         </td>
                         <td className="py-3 px-5 text-right">
-                          <span className="text-[14px] font-[800] text-[#6D28D9]">{receita.valor}</span>
+                          <span className="text-[14px] font-[800] text-[#6D28D9]">R$ {parseFloat(receita.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                         </td>
                         <td className="py-3 px-5 text-center">
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-[700] ${

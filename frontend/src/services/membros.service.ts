@@ -7,13 +7,11 @@
 // #arq06
 // ============================================================
 
-import { api, USE_MOCK } from "@/lib/api";
+import { api } from "@/lib/api";
 import { Membro, MembroPayload, PaginatedResponse, qs } from "@/types/membro";
 
 export const MembrosService = {
   list:    (params?: { page?: number; search?: string }) => {
-    // Exemplo de condicional usando Mock vs API Real:
-    if (USE_MOCK) return api.get<PaginatedResponse<Membro>>(`/membros?${qs(params)}`); // MSW intercepta chamadas nativas de api.get se estiver rodando
     return api.get<PaginatedResponse<Membro>>(`/membros?${qs(params)}`); 
   },
   getById: (id: string)          => api.get<Membro>(`/membros/${id}`),

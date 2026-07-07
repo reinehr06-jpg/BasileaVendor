@@ -21,10 +21,15 @@ import {
   FileText
 } from "lucide-react";
 
+import { VendasService } from "@/services/vendas.service";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
 type SectionType = "identificacao" | "dados-comerciais" | null;
 
 export default function VendedorNovaVendaPage() {
   const { t } = useTranslation();
+  const router = useRouter();
   const [openSection, setOpenSection] = useState<SectionType>("identificacao");
 
   // Dados Identificação
@@ -46,6 +51,22 @@ export default function VendedorNovaVendaPage() {
 
   const toggleSection = (section: SectionType) => {
     setOpenSection((prev) => (prev === section ? null : section));
+  };
+
+  const handleSalvar = async () => {
+    try {
+      await VendasService.criar({
+        cliente_id: 1, // hardcoded for test
+        valor: 1500,
+        plano: planoSelecionado || 'Básico',
+        forma_pagamento: formaPagamento || 'Boleto',
+        observacao: "Venda gerada manualmente pelo vendedor"
+      });
+      toast.success(t("Venda cadastrada com sucesso!"));
+      router.push("/vendedor/minhas-vendas");
+    } catch (e) {
+      toast.error(t("Erro ao salvar venda"));
+    }
   };
 
   // Regra de Bloqueio de Planos por Membros
@@ -561,6 +582,7 @@ export default function VendedorNovaVendaPage() {
               Cancelar
             </Link>
             <button 
+              onClick={handleSalvar}
               className="h-[40px] px-[20px] bg-[#4C1D95] text-white font-[600] text-[13px] rounded-[8px] hover:bg-[#5B21B6] transition-colors flex items-center justify-center gap-[8px]"
             >
               <Save className="w-[16px] h-[16px]" strokeWidth={2.5} />

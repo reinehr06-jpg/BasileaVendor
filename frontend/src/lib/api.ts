@@ -1,3 +1,4 @@
+
 // ============================================================
 // MAPA DO TESOURO — Cliente HTTP Base
 // ============================================================
@@ -8,7 +9,6 @@
 // #arq01
 // ============================================================
 
-export const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
 // Usa sempre caminho relativo para que o Next.js proxy (next.config.ts) assuma o roteamento
 const BASE_URL = "/api";
 

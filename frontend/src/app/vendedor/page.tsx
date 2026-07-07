@@ -22,27 +22,41 @@ import {
 } from "recharts";
 import { useTranslation } from "react-i18next";
 
-// MOCK DATA
-const desempenhoComercialData = [
-  { name: "01/06", valor: 0 },
-  { name: "05/06", valor: 150 },
-  { name: "10/06", valor: 300 },
-  { name: "15/06", valor: 200 },
-  { name: "20/06", valor: 500 },
-  { name: "25/06", valor: 400 },
-  { name: "30/06", valor: 700 },
-];
+import { VendasService } from "@/services/vendas.service";
 
 export default function DashboardPage() {
   const { t } = useTranslation();
 
   const [greeting, setGreeting] = useState("Bom dia");
+  const [metrics, setMetrics] = useState<{
+    faturamento: string;
+    vendas: number;
+    clientes: number;
+    chartData: any[];
+  }>({
+    faturamento: "R$ 0,00",
+    vendas: 0,
+    clientes: 0,
+    chartData: [],
+  });
   
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) setGreeting("Bom dia");
     else if (hour >= 12 && hour < 18) setGreeting("Boa tarde");
     else setGreeting("Boa noite");
+
+    VendasService.metricas().then(data => {
+      const formatCurrency = (val: number) => 
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+
+      setMetrics({
+        faturamento: formatCurrency(data.resumo?.receitaTotal || 0),
+        vendas: data.resumo?.totalVendas || 0,
+        clientes: 158, // TODO: Endpoint de clientes do vendedor
+        chartData: data.receitaMensal?.map((m: any) => ({ name: m.name, valor: m.total })) || [],
+      });
+    });
   }, []);
 
   const getGreetingConfig = () => {
@@ -93,7 +107,7 @@ export default function DashboardPage() {
               <div className="w-[36px] h-[36px] rounded-[8px] bg-green-50 flex items-center justify-center mb-3">
                 <DollarSign className="w-[18px] h-[18px] text-green-500" strokeWidth={2.5} />
               </div>
-              <span className="text-[20px] font-[800] text-[#1A1A2E] leading-none mb-1">R$ 30.512</span>
+              <span className="text-[20px] font-[800] text-[#1A1A2E] leading-none mb-1">{metrics.faturamento}</span>
               <span className="text-[10px] font-[700] text-[#9CA3AF] uppercase tracking-wider">{t("Faturamento")}</span>
             </div>
 
@@ -102,7 +116,7 @@ export default function DashboardPage() {
               <div className="w-[36px] h-[36px] rounded-[8px] bg-purple-50 flex items-center justify-center mb-3">
                 <ShoppingCart className="w-[18px] h-[18px] text-[#6D28D9]" strokeWidth={2.5} />
               </div>
-              <span className="text-[20px] font-[800] text-[#1A1A2E] leading-none mb-1">4</span>
+              <span className="text-[20px] font-[800] text-[#1A1A2E] leading-none mb-1">{metrics.vendas}</span>
               <span className="text-[10px] font-[700] text-[#9CA3AF] uppercase tracking-wider">{t("Vendas")}</span>
             </div>
 
@@ -111,7 +125,7 @@ export default function DashboardPage() {
               <div className="w-[36px] h-[36px] rounded-[8px] bg-blue-50 flex items-center justify-center mb-3">
                 <Users className="w-[18px] h-[18px] text-blue-500" strokeWidth={2.5} />
               </div>
-              <span className="text-[20px] font-[800] text-[#1A1A2E] leading-none mb-1">158</span>
+              <span className="text-[20px] font-[800] text-[#1A1A2E] leading-none mb-1">{metrics.clientes}</span>
               <span className="text-[10px] font-[700] text-[#9CA3AF] uppercase tracking-wider">{t("Clientes")}</span>
             </div>
 
@@ -137,7 +151,7 @@ export default function DashboardPage() {
               
               <div className="flex-1 w-full min-h-0 ml-[-20px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={desempenhoComercialData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
+                  <AreaChart data={metrics.chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorValor" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#A78BFA" stopOpacity={0.4}/>

@@ -25,20 +25,34 @@
 "use client";
 
 // ─── IMPORTAÇÕES ─────────────────────────────────────────────────────────────
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import { 
   UsersRound, Plus, Search, MoreVertical, Users
 } from "lucide-react";
+import { DepartamentosService } from "@/services/departamentos.service";
 
 export default function DepartamentosPage() {
-  const mockDepartamentos = [
-    { id: 1, nome: "Ministério de Louvor", lider: "Ana Silva", status: "Ativo", membros: 12 },
-    { id: 2, nome: "Ministério Infantil", lider: "Carla Mendes", status: "Ativo", membros: 8 },
-    { id: 3, nome: "Ação Social", lider: "Pr. João", status: "Ativo", membros: 5 },
-  ];
+  const [departamentos, setDepartamentos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    carregarDepartamentos();
+  }, []);
+
+  const carregarDepartamentos = async () => {
+    try {
+      setLoading(true);
+      const res = await DepartamentosService.listar();
+      setDepartamentos(res.data.data);
+    } catch (error) {
+      console.error("Erro ao carregar departamentos", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -92,30 +106,28 @@ export default function DepartamentosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockDepartamentos.map((item) => (
+                  {departamentos.map((item) => (
                     <tr key={item.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
-                      <td className="py-4 px-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-[36px] h-[36px] rounded-[8px] bg-[#F3F4F6] flex items-center justify-center shrink-0">
-                            <Users className="w-[16px] h-[16px] text-[#6B7280]" />
-                          </div>
-                          <span className="text-[13px] font-[700] text-[#111827]">{item.nome}</span>
-                        </div>
+                      <td className="py-4 px-4">
+                        <span className="text-[14px] font-[600] text-[#111827]">{item.nome}</span>
                       </td>
-                      <td className="py-4 px-5">
-                        <span className="text-[13px] font-[600] text-[#374151]">{item.lider}</span>
+                      <td className="py-4 px-4">
+                        <span className="text-[13px] font-[500] text-[#4B5563]">{item.lider || '-'}</span>
                       </td>
-                      <td className="py-4 px-5 text-center">
-                        <span className="text-[13px] font-[600] text-[#6B7280]">{item.membros} pessoas</span>
-                      </td>
-                      <td className="py-4 px-5 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-[700] ${item.status === 'Ativo' ? 'bg-[#ECFDF5] text-[#10B981]' : 'bg-[#F3F4F6] text-[#6B7280]'}`}>
+                      <td className="py-4 px-4">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-[600] bg-[#ECFDF5] text-[#10B981] capitalize">
                           {item.status}
                         </span>
                       </td>
-                      <td className="py-4 px-5 text-right">
-                        <button className="w-[32px] h-[32px] rounded-[6px] flex items-center justify-center text-[#9CA3AF] hover:text-[#111827] hover:bg-[#E5E7EB] transition-colors ml-auto">
-                          <MoreVertical className="w-[16px] h-[16px]" />
+                      <td className="py-4 px-4 text-center">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#F3F4F6] text-[#4B5563] text-[12px] font-[600]">
+                          <Users className="w-[12px] h-[12px]" />
+                          0
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <button className="text-[#9CA3AF] hover:text-[#6D28D9] transition-colors p-1.5 rounded-[6px] hover:bg-[#F3F4F6]">
+                          <MoreVertical className="w-[16px] h-[16px]" strokeWidth={2.5} />
                         </button>
                       </td>
                     </tr>

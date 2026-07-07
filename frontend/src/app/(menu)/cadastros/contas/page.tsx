@@ -19,18 +19,37 @@
 "use client";
 
 // ─── IMPORTAÇÕES ─────────────────────────────────────────────────────────────
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
-import CustomSelect from "@/components/CustomSelect";
 import { 
-  Wallet, Plus, Filter, Search, ChevronLeft, ChevronRight, Pencil, Trash2
+  Wallet, Plus, Search, Filter, Pencil, Trash2, ChevronLeft, ChevronRight 
 } from "lucide-react";
+import CustomSelect from "@/components/CustomSelect";
+import { ContasBancariasService } from "@/services/contas.service";
 
 export default function ContasPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [tipoFilter, setTipoFilter] = useState("");
+  const [contas, setContas] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    carregarContas();
+  }, []);
+
+  const carregarContas = async () => {
+    try {
+      setLoading(true);
+      const res = await ContasBancariasService.listar();
+      setContas(res.data.data);
+    } catch (error) {
+      console.error("Erro ao carregar contas", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex h-screen w-screen overflow-hidden font-inter bg-[#F5F5F7]">
@@ -120,62 +139,36 @@ export default function ContasPage() {
                 </thead>
                 <tbody>
                   
-                  {/* Row 1 - Itaú */}
-                  <tr className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
-                    <td className="py-4 px-4">
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-[600] text-[#6D28D9]">Conta Itaú</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-[13px] font-[500] text-[#4B5563]">Conta Corrente</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-[700] bg-[#10B981] text-white">ativo</span>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <span className="text-[13px] font-[700] text-[#10B981]">R$ 28.650,00</span>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <Link href="/cadastros/contas/1" className="text-[#9CA3AF] hover:text-[#6D28D9] transition-colors">
-                          <Pencil className="w-[16px] h-[16px]" strokeWidth={2} />
-                        </Link>
-                        <button className="text-[#9CA3AF] hover:text-[#EF4444] transition-colors">
-                          <Trash2 className="w-[16px] h-[16px]" strokeWidth={2} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-
-                  {/* Row 2 - Caixa Fisico */}
-                  <tr className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
-                    <td className="py-4 px-4">
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-[600] text-[#6D28D9]">Caixa Físico Sede</span>
-                        <span className="text-[11px] text-[#6B7280]">Responsável: João Silva</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-[13px] font-[500] text-[#4B5563]">Caixa Físico</span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-[700] bg-[#FEF08A] text-[#854D0E]">Aberto</span>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <span className="text-[13px] font-[700] text-[#10B981]">R$ 3.411,00</span>
-                    </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <Link href="/cadastros/contas/1" className="text-[#9CA3AF] hover:text-[#6D28D9] transition-colors">
-                          <Pencil className="w-[16px] h-[16px]" strokeWidth={2} />
-                        </Link>
-                        <button className="text-[#9CA3AF] hover:text-[#EF4444] transition-colors">
-                          <Trash2 className="w-[16px] h-[16px]" strokeWidth={2} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                  {contas.map((conta) => (
+                    <tr key={conta.id} className="hover:bg-[#F9FAFB] transition-colors group border-b border-[#F1F1F4]">
+                      <td className="py-4 px-4">
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-[600] text-[#6D28D9]">{conta.nome}</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-[13px] font-[500] text-[#4B5563]">{conta.tipo}</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-[700] ${conta.status?.toLowerCase() === 'ativo' ? 'bg-[#10B981] text-white' : 'bg-[#FEF08A] text-[#854D0E]'}`}>
+                          {conta.status || 'Ativo'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <span className="text-[13px] font-[700] text-[#10B981]">R$ {Number(conta.saldo).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                      </td>
+                      <td className="py-4 px-4 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <Link href={`/cadastros/contas/${conta.id}`} className="text-[#9CA3AF] hover:text-[#6D28D9] transition-colors">
+                            <Pencil className="w-[16px] h-[16px]" strokeWidth={2} />
+                          </Link>
+                          <button className="text-[#9CA3AF] hover:text-[#EF4444] transition-colors">
+                            <Trash2 className="w-[16px] h-[16px]" strokeWidth={2} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
 
                 </tbody>
               </table>
