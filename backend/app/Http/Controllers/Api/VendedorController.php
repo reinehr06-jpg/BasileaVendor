@@ -129,7 +129,7 @@ class VendedorController extends Controller
             }
 
             $vendedor->update([
-                'telefone' => $validated['telefone'] ?? $vendedor->telefone,
+                'telefone' => array_key_exists('telefone', $validated) ? $validated['telefone'] : $vendedor->telefone,
                 'equipe_id' => $validated['equipe_id'] ?? $vendedor->equipe_id,
                 'gestor_id' => $validated['gestor_id'] ?? $vendedor->gestor_id,
                 'is_gestor' => $validated['is_gestor'] ?? $vendedor->is_gestor,
