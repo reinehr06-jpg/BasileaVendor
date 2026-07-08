@@ -40,7 +40,7 @@ export const VendasService = {
       if (qs) url += `?${qs}`;
     }
     const response = await api.get<any>(url);
-    return response.data;
+    return response;
   },
   
   obter: async (id: number): Promise<Venda> => {
