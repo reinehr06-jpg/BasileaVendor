@@ -104,6 +104,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Métricas de Vendas API
     Route::get('/metricas-vendas', [\App\Http\Controllers\Api\MetricasVendasController::class, 'index']);
 
+    // Aprovações API
+    Route::get('/aprovacoes', [\App\Http\Controllers\Api\AprovacaoController::class, 'index']);
+
     // Vendedores API
     Route::get('/vendedores', [\App\Http\Controllers\Api\VendedorController::class, 'index']);
     Route::post('/vendedores', [\App\Http\Controllers\Api\VendedorController::class, 'store']);
