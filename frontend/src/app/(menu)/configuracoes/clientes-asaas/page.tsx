@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import {
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import CustomSelect from "@/components/CustomSelect";
+import Pagination from "@/components/Pagination";
 
 type Tab = "todos" | "ativos" | "churn" | "cancelados" | "sem_vendedor";
 
@@ -25,17 +26,72 @@ export default function ClientesAsaasPage() {
   const [busca, setBusca] = useState("");
   const [vendedorFilter, setVendedorFilter] = useState("todos");
   const [tipoFilter, setTipoFilter] = useState("todas");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Dados reais
+  const [clients, setClients] = useState<any[]>([]);
+  const [vendedores, setVendedores] = useState<any[]>([]);
+  const [kpis, setKpis] = useState<any>({
+    total: 0, ativos: 0, churn: 0, cancelados: 0, sem_vendedor: 0
+  });
+  const [totalItems, setTotalItems] = useState(0);
+  const [lastPage, setLastPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const fetchClientes = async () => {
+    setLoading(true);
+    try {
+      const searchParams = new URLSearchParams();
+      searchParams.append("page", String(currentPage));
+      searchParams.append("aba", activeTab);
+      if (busca) searchParams.append("search", busca);
+      if (vendedorFilter !== "todos") searchParams.append("vendedor_id", vendedorFilter);
+      if (tipoFilter !== "todas") searchParams.append("tipo_cobranca", tipoFilter);
+
+      const res = await api.get<any>(`/clientes-asaas?${searchParams.toString()}`);
+      
+      if (res.success) {
+        setClients(res.data || []);
+        setKpis(res.kpis || {});
+        setVendedores(res.vendedores || []);
+        if (res.meta) {
+          setTotalItems(res.meta.total);
+          setLastPage(res.meta.last_page);
+        }
+      }
+    } catch (e) {
+      toast.error("Erro ao carregar clientes do Asaas");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClientes();
+  }, [currentPage, activeTab, busca, vendedorFilter, tipoFilter]);
 
   const handleSyncAsaas = async () => {
     setIsSyncing(true);
     const toastId = toast.loading("Iniciando sincronização com Asaas...");
     try {
-      const res = await api.post<{ success: boolean; message?: string }>('/clientes-asaas/sincronizar', { offset: 0 });
-      if (res.success) {
-        toast.success(res.message || "Sincronização concluída com sucesso!", { id: toastId });
-      } else {
-        toast.error("Erro na sincronização.", { id: toastId });
+      let currentOffset = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        toast.loading(`Sincronizando... (Offset: ${currentOffset})`, { id: toastId });
+        const res = await api.post<any>('/clientes-asaas/sincronizar', { offset: currentOffset });
+        
+        if (res.success) {
+          hasMore = !!res.hasMore;
+          currentOffset = res.nextOffset || (currentOffset + 20);
+        } else {
+          toast.error(res.message || "Erro na sincronização.", { id: toastId });
+          hasMore = false;
+        }
       }
+      
+      toast.success("Sincronização concluída com sucesso!", { id: toastId });
+      fetchClientes(); // Atualiza a tabela com os clientes syncados
     } catch (err) {
       console.error(err);
       toast.error("Falha ao comunicar com o servidor.", { id: toastId });
@@ -46,55 +102,14 @@ export default function ClientesAsaasPage() {
 
   const vendedorOptions = [
     { value: "todos", label: "Vendedor: Todos" },
-    { value: "1", label: "João Silva" },
-    { value: "2", label: "Maria Souza" },
-    { value: "sem", label: "Sem Vendedor" }
+    ...vendedores.map(v => ({ value: String(v.id), label: v.nome })),
+    { value: "sem_vendedor", label: "Sem Vendedor" }
   ];
 
   const tipoOptions = [
     { value: "todas", label: "Tipo: Todos" },
-    { value: "assinatura", label: "Assinatura" },
-    { value: "avulso", label: "Avulso" }
-  ];
-
-  // Dummy data for visual representation
-  const clients = [
-    {
-      id: 1,
-      name: "Tabernáculo Church",
-      doc: "134.858.310-00142",
-      email: "associacaotabernaculo2023@gmail.com",
-      status: "churn",
-      statusLabel: "Churn",
-      statusSub: "158d sem pagar",
-      tipo: "Assinatura",
-      firstPayment: "16/12/2025",
-      lastPayment: "24/01/2026"
-    },
-    {
-      id: 2,
-      name: "IGREJA EVANGELICA ASSEMBLEIA DE DEUS",
-      doc: "782.755.000-00123",
-      email: "admigreja2025@gmail.com",
-      status: "churn",
-      statusLabel: "Churn",
-      statusSub: "171d sem pagar",
-      tipo: "Assinatura",
-      firstPayment: "11/01/2026",
-      lastPayment: "11/01/2026"
-    },
-    {
-      id: 3,
-      name: "Teste Clientes",
-      doc: "696.921.340-00117",
-      email: "nawfal4806@uorak.com",
-      status: "ativo",
-      statusLabel: "Ativo",
-      statusSub: "",
-      tipo: "Avulso",
-      firstPayment: "—",
-      lastPayment: "Nunca pagou"
-    }
+    { value: "subscription", label: "Assinatura" },
+    { value: "installment", label: "Parcelamento" }
   ];
 
   const toggleSelectAll = () => {
@@ -106,6 +121,13 @@ export default function ClientesAsaasPage() {
     setSelectedClients(prev => 
       prev.includes(id) ? prev.filter(cId => cId !== id) : [...prev, id]
     );
+  };
+  
+  // Formatters
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "Nunca pagou";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("pt-BR");
   };
 
   return (
@@ -163,30 +185,26 @@ export default function ClientesAsaasPage() {
             </div>
 
             {/* KPI CARDS REDESIGN */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-[16px]">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-[16px]">
               <div className="bg-white rounded-[12px] p-[20px] border border-[#E2E8F0] shadow-sm flex flex-col justify-center items-center text-center hover:border-[#6366F1] transition-colors cursor-default">
-                <h3 className="text-[32px] font-[800] text-[#1E293B] leading-none mb-[6px]">439</h3>
+                <h3 className="text-[32px] font-[800] text-[#1E293B] leading-none mb-[6px]">{kpis.total || 0}</h3>
                 <span className="text-[11px] font-[700] text-[#64748B] tracking-widest uppercase">TOTAL</span>
               </div>
               <div className="bg-white rounded-[12px] p-[20px] border border-[#E2E8F0] shadow-sm flex flex-col justify-center items-center text-center hover:border-[#10B981] transition-colors cursor-default">
-                <h3 className="text-[32px] font-[800] text-[#10B981] leading-none mb-[6px]">316</h3>
+                <h3 className="text-[32px] font-[800] text-[#10B981] leading-none mb-[6px]">{kpis.ativos || 0}</h3>
                 <span className="text-[11px] font-[700] text-[#10B981] tracking-widest uppercase">ATIVOS</span>
               </div>
               <div className="bg-white rounded-[12px] p-[20px] border border-[#E2E8F0] shadow-sm flex flex-col justify-center items-center text-center hover:border-[#F59E0B] transition-colors cursor-default">
-                <h3 className="text-[32px] font-[800] text-[#F59E0B] leading-none mb-[6px]">51</h3>
+                <h3 className="text-[32px] font-[800] text-[#F59E0B] leading-none mb-[6px]">{kpis.churn || 0}</h3>
                 <span className="text-[11px] font-[700] text-[#F59E0B] tracking-widest uppercase">CHURN</span>
               </div>
               <div className="bg-white rounded-[12px] p-[20px] border border-[#E2E8F0] shadow-sm flex flex-col justify-center items-center text-center hover:border-[#EF4444] transition-colors cursor-default">
-                <h3 className="text-[32px] font-[800] text-[#EF4444] leading-none mb-[6px]">14</h3>
+                <h3 className="text-[32px] font-[800] text-[#EF4444] leading-none mb-[6px]">{kpis.cancelados || 0}</h3>
                 <span className="text-[11px] font-[700] text-[#EF4444] tracking-widest uppercase">CANCELADOS</span>
               </div>
               <div className="bg-white rounded-[12px] p-[20px] border border-[#E2E8F0] shadow-sm flex flex-col justify-center items-center text-center hover:border-[#8B5CF6] transition-colors cursor-default">
-                <h3 className="text-[32px] font-[800] text-[#8B5CF6] leading-none mb-[6px]">428</h3>
+                <h3 className="text-[32px] font-[800] text-[#8B5CF6] leading-none mb-[6px]">{kpis.sem_vendedor || 0}</h3>
                 <span className="text-[11px] font-[700] text-[#8B5CF6] tracking-widest uppercase">SEM VENDEDOR</span>
-              </div>
-              <div className="bg-gradient-to-br from-[#ECFDF5] to-[#D1FAE5] rounded-[12px] p-[20px] border border-[#A7F3D0] shadow-sm flex flex-col justify-center items-center text-center">
-                <h3 className="text-[26px] font-[800] text-[#059669] leading-none mb-[8px]">R$ 49,37</h3>
-                <span className="text-[11px] font-[700] text-[#047857] tracking-widest uppercase">COMISSÃO TOTAL</span>
               </div>
             </div>
 
@@ -199,15 +217,15 @@ export default function ClientesAsaasPage() {
                 {/* Tabs Modernas */}
                 <div className="flex items-center gap-[8px] overflow-x-auto pb-[4px] hide-scrollbar w-full border-b border-[#E2E8F0] pb-[16px]">
                   {[
-                    { id: "todos", label: "Todos", count: 439, icon: Users },
-                    { id: "ativos", label: "Ativos", count: 316, icon: CheckCircle2 },
-                    { id: "churn", label: "Churn", count: 51, icon: AlertTriangle },
-                    { id: "cancelados", label: "Cancelados", count: 14, icon: XCircle },
-                    { id: "sem-vendedor", label: "Sem Vendedor", count: 428, icon: UserX }
+                    { id: "todos", label: "Todos", count: kpis.total || 0, icon: Users },
+                    { id: "ativos", label: "Ativos", count: kpis.ativos || 0, icon: CheckCircle2 },
+                    { id: "churn", label: "Churn", count: kpis.churn || 0, icon: AlertTriangle },
+                    { id: "cancelados", label: "Cancelados", count: kpis.cancelados || 0, icon: XCircle },
+                    { id: "sem_vendedor", label: "Sem Vendedor", count: kpis.sem_vendedor || 0, icon: UserX }
                   ].map((tab) => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id as Tab)}
+                      onClick={() => { setActiveTab(tab.id as Tab); setCurrentPage(1); }}
                       className={`flex items-center gap-[6px] px-[14px] py-[8px] rounded-full transition-all whitespace-nowrap text-[13px] font-[600] ${
                         activeTab === tab.id 
                           ? "bg-[#EEF2FF] text-[#4F46E5] shadow-sm" 
@@ -253,7 +271,7 @@ export default function ClientesAsaasPage() {
                     <CustomSelect 
                       options={vendedorOptions}
                       value={vendedorFilter}
-                      onChange={(val) => setVendedorFilter(val)}
+                      onChange={(val) => { setVendedorFilter(val); setCurrentPage(1); }}
                       triggerClassName="w-full h-[40px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] text-[14px] text-[#1A1A2E] outline-none hover:border-[#D1D5DB]"
                     />
                   </div>
@@ -266,19 +284,19 @@ export default function ClientesAsaasPage() {
                     <CustomSelect 
                       options={tipoOptions}
                       value={tipoFilter}
-                      onChange={(val) => setTipoFilter(val)}
+                      onChange={(val) => { setTipoFilter(val); setCurrentPage(1); }}
                       triggerClassName="w-full h-[40px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] text-[14px] text-[#1A1A2E] outline-none hover:border-[#D1D5DB]"
                     />
                   </div>
 
                   {/* Botões Ação */}
                   <div className="flex items-center gap-[8px] h-[40px]">
-                    <button className="flex items-center justify-center px-[16px] h-full bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-[8px] text-[14px] font-[600] transition-colors shadow-sm">
+                    <button onClick={fetchClientes} className="flex items-center justify-center px-[16px] h-full bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-[8px] text-[14px] font-[600] transition-colors shadow-sm">
                       <Filter className="w-[14px] h-[14px] mr-[6px]" />
                       Filtrar
                     </button>
                     <button 
-                      onClick={() => { setBusca(""); setVendedorFilter("todos"); setTipoFilter("todas"); }}
+                      onClick={() => { setBusca(""); setVendedorFilter("todos"); setTipoFilter("todas"); setCurrentPage(1); }}
                       className="flex items-center justify-center px-[16px] h-full bg-white border border-[#E5E7EB] hover:bg-[#F9FAFB] text-[#4B5563] hover:text-[#111827] rounded-[8px] text-[14px] font-[600] transition-colors shadow-sm"
                     >
                       Limpar
@@ -301,8 +319,9 @@ export default function ClientesAsaasPage() {
                   <div className="flex items-center gap-[12px]">
                     <select className="px-[12px] py-[8px] bg-white border border-[#C7D2FE] rounded-[8px] text-[13px] text-[#3730A3] font-[500] outline-none focus:border-[#6366F1] w-[200px]">
                       <option value="">— Selecionar Vendedor —</option>
-                      <option value="1">João Silva</option>
-                      <option value="2">Maria Souza</option>
+                      {vendedores.map(v => (
+                        <option key={v.id} value={v.id}>{v.nome}</option>
+                      ))}
                     </select>
                     <button className="flex items-center gap-[6px] px-[16px] py-[8px] bg-[#6366F1] hover:bg-[#4F46E5] text-white rounded-[8px] text-[13px] font-[600] transition-colors shadow-sm">
                       <UserCheck className="w-[14px] h-[14px]" />
@@ -313,27 +332,35 @@ export default function ClientesAsaasPage() {
               )}
 
               {/* TABELA */}
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto relative">
+                {loading && (
+                   <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center z-10">
+                     <div className="w-[30px] h-[30px] border-[3px] border-[#6D28D9] border-t-transparent rounded-full animate-spin"></div>
+                   </div>
+                )}
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-[#F8FAFC] border-b border-[#E2E8F0]">
                       <th className="p-[16px_24px] w-[50px]">
                         <input 
                           type="checkbox" 
-                          checked={selectedClients.length === clients.length}
+                          checked={clients.length > 0 && selectedClients.length === clients.length}
                           onChange={toggleSelectAll}
                           className="w-[16px] h-[16px] rounded-[4px] border-[#CBD5E1] text-[#6366F1] focus:ring-[#6366F1] cursor-pointer"
                         />
                       </th>
                       <th className="p-[16px_24px] text-[12px] font-[700] text-[#64748B] uppercase tracking-wider">Cliente</th>
                       <th className="p-[16px_24px] text-[12px] font-[700] text-[#64748B] uppercase tracking-wider">Status</th>
-                      <th className="p-[16px_24px] text-[12px] font-[700] text-[#64748B] uppercase tracking-wider">Tipo</th>
+                      <th className="p-[16px_24px] text-[12px] font-[700] text-[#64748B] uppercase tracking-wider">Vendedor</th>
                       <th className="p-[16px_24px] text-[12px] font-[700] text-[#64748B] uppercase tracking-wider">Datas</th>
                       <th className="p-[16px_24px] text-[12px] font-[700] text-[#64748B] uppercase tracking-wider text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E2E8F0]">
-                    {clients.map((client) => (
+                    {clients.map((client) => {
+                      const st = client.diagnostico_status?.toLowerCase() || 'pendente';
+                      const statusLabel = client.diagnostico_status || 'PENDENTE';
+                      return (
                       <tr key={client.id} className="hover:bg-[#F8FAFC] transition-colors group">
                         <td className="p-[16px_24px]">
                           <input 
@@ -345,40 +372,39 @@ export default function ClientesAsaasPage() {
                         </td>
                         <td className="p-[16px_24px]">
                           <div className="flex flex-col">
-                            <span className="text-[14px] font-[700] text-[#1E293B] mb-[2px]">{client.name}</span>
-                            <span className="text-[12px] font-[500] text-[#64748B]">{client.doc}</span>
+                            <span className="text-[14px] font-[700] text-[#1E293B] mb-[2px]">{client.nome || client.nome_igreja}</span>
+                            <span className="text-[12px] font-[500] text-[#64748B]">{client.documento}</span>
                             <span className="text-[12px] text-[#94A3B8]">{client.email}</span>
                           </div>
                         </td>
                         <td className="p-[16px_24px]">
                           <div className="flex flex-col items-start gap-[4px]">
                             <div className={`px-[8px] py-[4px] rounded-[6px] text-[11px] font-[700] uppercase tracking-wide inline-flex items-center gap-[4px] ${
-                              client.status === 'ativo' ? 'bg-[#D1FAE5] text-[#059669]' :
-                              client.status === 'churn' ? 'bg-[#FFEDD5] text-[#D97706]' :
-                              'bg-[#FEE2E2] text-[#DC2626]'
+                              st === 'ativo' ? 'bg-[#D1FAE5] text-[#059669]' :
+                              st === 'churn' ? 'bg-[#FFEDD5] text-[#D97706]' :
+                              st === 'cancelado' ? 'bg-[#FEE2E2] text-[#DC2626]' :
+                              'bg-[#F1F5F9] text-[#64748B]'
                             }`}>
-                              {client.status === 'ativo' && <CheckCircle2 className="w-[12px] h-[12px]" />}
-                              {client.status === 'churn' && <AlertTriangle className="w-[12px] h-[12px]" />}
-                              {client.statusLabel}
+                              {st === 'ativo' && <CheckCircle2 className="w-[12px] h-[12px]" />}
+                              {st === 'churn' && <AlertTriangle className="w-[12px] h-[12px]" />}
+                              {st === 'cancelado' && <XCircle className="w-[12px] h-[12px]" />}
+                              {statusLabel}
                             </div>
-                            {client.statusSub && (
-                              <span className="text-[11px] font-[600] text-[#EF4444]">{client.statusSub}</span>
-                            )}
                           </div>
                         </td>
                         <td className="p-[16px_24px]">
-                          <span className="text-[13px] font-[500] text-[#475569]">{client.tipo}</span>
+                          <span className="text-[13px] font-[500] text-[#475569]">{client.vendedor_nome || '—'}</span>
                         </td>
                         <td className="p-[16px_24px]">
                           <div className="flex flex-col gap-[2px]">
                             <div className="flex items-center gap-[6px]">
                               <span className="text-[11px] font-[600] text-[#94A3B8] w-[45px]">1º PAG:</span>
-                              <span className="text-[13px] font-[600] text-[#334155]">{client.firstPayment}</span>
+                              <span className="text-[13px] font-[600] text-[#334155]">{formatDate(client.primeiro_pagamento_at)}</span>
                             </div>
                             <div className="flex items-center gap-[6px]">
                               <span className="text-[11px] font-[600] text-[#94A3B8] w-[45px]">ÚLTIMO:</span>
-                              <span className="text-[13px] font-[500] text={client.lastPayment === 'Nunca pagou' ? '#EF4444' : '#64748B'}">
-                                {client.lastPayment}
+                              <span className="text-[13px] font-[500] text={!client.ultimo_pagamento_at ? '#EF4444' : '#64748B'}">
+                                {formatDate(client.ultimo_pagamento_at)}
                               </span>
                             </div>
                           </div>
@@ -402,23 +428,27 @@ export default function ClientesAsaasPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
+                    {clients.length === 0 && !loading && (
+                      <tr>
+                        <td colSpan={6} className="p-[32px] text-center text-[#64748B] text-[14px]">
+                          Nenhum cliente encontrado.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
               
               {/* Paginação */}
-              <div className="border-t border-[#E2E8F0] p-[16px_24px] flex items-center justify-between bg-[#F8FAFC]">
-                <span className="text-[13px] font-[500] text-[#64748B]">Mostrando 1 a 3 de 439 clientes</span>
-                <div className="flex items-center gap-[8px]">
-                  <button className="px-[12px] py-[6px] border border-[#E2E8F0] rounded-[6px] text-[13px] font-[600] text-[#475569] hover:bg-[#F1F5F9] transition-colors disabled:opacity-50">
-                    Anterior
-                  </button>
-                  <button className="px-[12px] py-[6px] border border-[#E2E8F0] rounded-[6px] text-[13px] font-[600] text-[#475569] hover:bg-[#F1F5F9] transition-colors">
-                    Próxima
-                  </button>
-                </div>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                total={totalItems}
+                pageSize={15}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={() => {}}
+              />
 
             </div>
           </div>
