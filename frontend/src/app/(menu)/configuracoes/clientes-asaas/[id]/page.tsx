@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, use } from "react";
+import React, { useState, useEffect, use } from "react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import Link from "next/link";
@@ -22,17 +22,106 @@ import {
   Clock
 } from "lucide-react";
 import CustomSelect from "@/components/CustomSelect";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
+import { format, parseISO } from "date-fns";
 
 export default function ClienteAsaasDetalhesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const [vendedor, setVendedor] = useState("");
+  const [loading, setLoading] = useState(true);
+  
+  // States
+  const [cliente, setCliente] = useState<any>(null);
+  const [vendedorId, setVendedorId] = useState("sem");
   const [comissaoVendedor, setComissaoVendedor] = useState("0");
   const [comissaoGestor, setComissaoGestor] = useState("0");
+  const [vendedores, setVendedores] = useState<{id: number, nome: string}[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    // Buscar vendedores
+    api.get<any>('/vendedores').then((res) => {
+      if (Array.isArray(res)) {
+        setVendedores(res.map((v: any) => ({ id: v.id, nome: v.nome })));
+      }
+    }).catch(() => {});
+
+    // Buscar dados do cliente
+    api.get<any>(`/clientes-asaas/${id}`).then((res) => {
+      if (res.success && res.data) {
+        setCliente(res.data);
+        setVendedorId(res.data.vendedor_id?.toString() || "sem");
+      }
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [id]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const toastId = toast.loading("Salvando atribuição...");
+    try {
+      const res = await api.put<any>(`/clientes-asaas/${id}`, {
+        vendedor_id: vendedorId === "sem" ? null : Number(vendedorId),
+      });
+      if (res.success) {
+        toast.success("Atribuição atualizada com sucesso!", { id: toastId });
+      } else {
+        toast.error(res.message || "Erro ao salvar", { id: toastId });
+      }
+    } catch (e) {
+      toast.error("Erro de comunicação", { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen font-inter bg-[#F8FAFC]">
+        <Sidebar />
+        <div className="flex-1 ml-[240px] flex flex-col min-h-screen">
+          <Topbar />
+          <main className="flex-1 flex items-center justify-center">
+            <div className="w-[30px] h-[30px] border-[3px] border-[#6D28D9] border-t-transparent rounded-full animate-spin"></div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (!cliente) return null;
 
   const vendedorOptions = [
-    { value: "1", label: "João Silva" },
-    { value: "2", label: "Maria Souza" }
+    { label: "— Sem Vendedor —", value: "sem" },
+    ...vendedores.map(v => ({ label: v.nome, value: v.id.toString() }))
   ];
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "—";
+    try {
+      // asaas dates could be 'YYYY-MM-DD' or full ISO
+      if (dateStr.length === 10) {
+          const [y,m,d] = dateStr.split('-');
+          return `${d}/${m}/${y}`;
+      }
+      return format(parseISO(dateStr), 'dd/MM/yyyy');
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  const formatCurrency = (val: number | string) => {
+    if (val === null || val === undefined) return "R$ 0,00";
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(num);
+  };
+
+  const getStatusBadge = (status: string) => {
+    const s = status?.toUpperCase() || "";
+    if (s === "ATIVO") return <span className="px-[8px] py-[4px] rounded-[6px] text-[11px] font-[700] uppercase tracking-wide bg-[#065F46] text-[#6EE7B7] flex items-center gap-[4px]"><CheckCircle2 className="w-[12px] h-[12px]" />Ativo</span>;
+    if (s === "CHURN") return <span className="px-[8px] py-[4px] rounded-[6px] text-[11px] font-[700] uppercase tracking-wide bg-[#7F1D1D] text-[#FCA5A5] flex items-center gap-[4px]"><AlertTriangle className="w-[12px] h-[12px]" />Churn</span>;
+    return <span className="px-[8px] py-[4px] rounded-[6px] text-[11px] font-[700] uppercase tracking-wide bg-[#475569] text-[#CBD5E1]">{s || "N/A"}</span>;
+  };
 
   return (
     <div className="flex min-h-screen font-inter bg-[#F8FAFC]">
@@ -65,18 +154,15 @@ export default function ClienteAsaasDetalhesPage({ params }: { params: Promise<{
                 <div className="flex flex-col">
                   <div className="flex items-center gap-[12px] mb-[4px]">
                     <h1 className="text-[24px] font-[800] text-white tracking-tight leading-none">
-                      Tabernáculo Church
+                      {cliente.nome || cliente.nome_igreja || "Sem nome"}
                     </h1>
                     <span className="px-[8px] py-[4px] rounded-[6px] text-[11px] font-[700] uppercase tracking-wide bg-[#1E3A8A] text-[#93C5FD]">
-                      Assinatura
+                      {cliente.tipo_cobranca || "N/A"}
                     </span>
-                    <span className="px-[8px] py-[4px] rounded-[6px] text-[11px] font-[700] uppercase tracking-wide bg-[#7F1D1D] text-[#FCA5A5] flex items-center gap-[4px]">
-                      <AlertTriangle className="w-[12px] h-[12px]" />
-                      Churn
-                    </span>
+                    {getStatusBadge(cliente.diagnostico_status)}
                   </div>
                   <p className="text-[14px] text-[#A5B4FC] font-[500] leading-snug">
-                    associacaotabernaculo2023@gmail.com
+                    {cliente.email || "Sem e-mail"}
                   </p>
                 </div>
               </div>
@@ -109,26 +195,26 @@ export default function ClienteAsaasDetalhesPage({ params }: { params: Promise<{
                       <span className="text-[12px] font-[600] text-[#94A3B8] uppercase tracking-wider flex items-center gap-[6px]">
                         <Mail className="w-[14px] h-[14px]" /> E-mail
                       </span>
-                      <span className="text-[14px] font-[500] text-[#1E293B]">associacaotabernaculo2023@gmail.com</span>
+                      <span className="text-[14px] font-[500] text-[#1E293B]">{cliente.email || "—"}</span>
                     </div>
                     <div className="flex flex-col gap-[4px]">
                       <span className="text-[12px] font-[600] text-[#94A3B8] uppercase tracking-wider flex items-center gap-[6px]">
                         <CreditCard className="w-[14px] h-[14px]" /> CPF/CNPJ
                       </span>
-                      <span className="text-[14px] font-[500] text-[#1E293B]">13.485.831/0001-42</span>
+                      <span className="text-[14px] font-[500] text-[#1E293B]">{cliente.documento || "—"}</span>
                     </div>
                     <div className="flex flex-col gap-[4px]">
                       <span className="text-[12px] font-[600] text-[#94A3B8] uppercase tracking-wider flex items-center gap-[6px]">
                         <Phone className="w-[14px] h-[14px]" /> Telefone
                       </span>
-                      <span className="text-[14px] font-[500] text-[#1E293B]">(11) 94776-7855</span>
+                      <span className="text-[14px] font-[500] text-[#1E293B]">{cliente.telefone || "—"}</span>
                     </div>
                     <div className="flex flex-col gap-[4px]">
                       <span className="text-[12px] font-[600] text-[#94A3B8] uppercase tracking-wider flex items-center gap-[6px]">
                         <Fingerprint className="w-[14px] h-[14px]" /> ID Asaas (Cliente)
                       </span>
                       <span className="text-[13px] font-[500] text-[#64748B] bg-[#F1F5F9] px-[8px] py-[4px] rounded-[6px] w-fit">
-                        cus_000152888781
+                        {cliente.asaas_customer_id || "—"}
                       </span>
                     </div>
                   </div>
@@ -138,7 +224,7 @@ export default function ClienteAsaasDetalhesPage({ params }: { params: Promise<{
                 <div className="bg-white rounded-[12px] border border-[#E2E8F0] shadow-sm p-[20px]">
                   <h2 className="text-[15px] font-[700] text-[#1E293B] mb-[16px] flex items-center gap-[8px]">
                     <DollarSign className="w-[18px] h-[18px] text-[#10B981]" />
-                    Dados de Pagamento <span className="text-[#64748B] font-[500] text-[13px]">(Julho/2026)</span>
+                    Dados de Pagamento
                   </h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-[16px]">
@@ -146,21 +232,21 @@ export default function ClienteAsaasDetalhesPage({ params }: { params: Promise<{
                       <span className="text-[11px] font-[700] text-[#64748B] uppercase tracking-wider flex items-center gap-[6px] mb-[6px]">
                         <Calendar className="w-[12px] h-[12px]" /> 1º Pagamento
                       </span>
-                      <span className="text-[15px] font-[600] text-[#1E293B]">16/12/2025</span>
+                      <span className="text-[15px] font-[600] text-[#1E293B]">{formatDate(cliente.primeiro_pagamento_at)}</span>
                     </div>
                     
                     <div className="flex flex-col p-[12px_16px] bg-[#F8FAFC] rounded-[10px] border border-[#E2E8F0]">
                       <span className="text-[11px] font-[700] text-[#64748B] uppercase tracking-wider flex items-center gap-[6px] mb-[6px]">
                         <Clock className="w-[12px] h-[12px]" /> Último Pagamento
                       </span>
-                      <span className="text-[15px] font-[600] text-[#1E293B]">24/01/2026</span>
+                      <span className="text-[15px] font-[600] text-[#1E293B]">{formatDate(cliente.ultimo_pagamento_at)}</span>
                     </div>
 
                     <div className="flex flex-col p-[12px_16px] bg-[#F0FDF4] rounded-[10px] border border-[#BBF7D0]">
                       <span className="text-[11px] font-[700] text-[#059669] uppercase tracking-wider flex items-center gap-[6px] mb-[6px]">
-                        <DollarSign className="w-[12px] h-[12px]" /> Pago em Julho
+                        <DollarSign className="w-[12px] h-[12px]" /> Valor Plano
                       </span>
-                      <span className="text-[18px] font-[700] text-[#047857]">R$ 0,00</span>
+                      <span className="text-[18px] font-[700] text-[#047857]">{formatCurrency(cliente.valor_plano_mensal)}</span>
                     </div>
                   </div>
                 </div>
@@ -190,75 +276,21 @@ export default function ClienteAsaasDetalhesPage({ params }: { params: Promise<{
                       </label>
                       <CustomSelect 
                         options={vendedorOptions}
-                        value={vendedor}
-                        onChange={(val) => setVendedor(val)}
+                        value={vendedorId}
+                        onChange={(val) => setVendedorId(val)}
                         placeholder="— Selecionar Vendedor —"
                         triggerClassName="w-full h-[38px] bg-white border border-[#E2E8F0] rounded-[8px] px-[12px] text-[13px] text-[#1E293B] outline-none hover:border-[#6366F1]"
                       />
                     </div>
 
-                    {/* Percentuais */}
-                    <div className="flex flex-col gap-[6px]">
-                      <label className="text-[11px] font-[700] text-[#64748B] uppercase tracking-wider">
-                        Percentuais de Comissão (%)
-                      </label>
-                      <div className="flex items-center gap-[12px]">
-                        <div className="flex-1 flex flex-col gap-[4px]">
-                          <span className="text-[11px] font-[500] text-[#64748B]">Vendedor %</span>
-                          <div className="relative">
-                            <input 
-                              type="number" 
-                              value={comissaoVendedor}
-                              onChange={(e) => setComissaoVendedor(e.target.value)}
-                              className="w-full h-[38px] bg-white border border-[#E2E8F0] rounded-[8px] pl-[12px] pr-[32px] text-[13px] font-[600] text-[#1E293B] outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1] transition-all text-center"
-                            />
-                            <Percent className="w-[12px] h-[12px] text-[#94A3B8] absolute right-[10px] top-1/2 -translate-y-1/2" />
-                          </div>
-                        </div>
-                        <div className="flex-1 flex flex-col gap-[4px]">
-                          <span className="text-[11px] font-[500] text-[#64748B]">Gestor %</span>
-                          <div className="relative">
-                            <input 
-                              type="number" 
-                              value={comissaoGestor}
-                              onChange={(e) => setComissaoGestor(e.target.value)}
-                              className="w-full h-[38px] bg-white border border-[#E2E8F0] rounded-[8px] pl-[12px] pr-[32px] text-[13px] font-[600] text-[#1E293B] outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1] transition-all text-center"
-                            />
-                            <Percent className="w-[12px] h-[12px] text-[#94A3B8] absolute right-[10px] top-1/2 -translate-y-1/2" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Valores Projetados */}
-                    <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-[10px] p-[12px_16px] flex flex-col gap-[8px]">
-                      <span className="text-[10px] font-[800] text-[#64748B] uppercase tracking-wider border-b border-[#E2E8F0] pb-[6px]">
-                        Comissões Projetadas (Julho)
-                      </span>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-[12px] font-[500] text-[#475569]">Vendedor:</span>
-                        <span className="text-[13px] font-[700] text-[#10B981]">R$ 0,00</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-[12px] font-[500] text-[#475569]">Gestor:</span>
-                        <span className="text-[13px] font-[700] text-[#3B82F6]">R$ 0,00</span>
-                      </div>
-                      
-                      <div className="w-full h-[1px] bg-[#E2E8F0] my-[2px]"></div>
-                      
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-[500] text-[#64748B]">Tipo Comissão:</span>
-                        <span className="text-[10px] font-[700] text-[#475569] uppercase tracking-wide bg-[#E2E8F0] px-[6px] py-[2px] rounded-[4px]">
-                          Recorrência
-                        </span>
-                      </div>
-                    </div>
-
                     {/* Botão Salvar */}
-                    <button className="w-full flex items-center justify-center gap-[6px] h-[38px] bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-[8px] text-[13px] font-[600] transition-colors shadow-sm mt-[4px]">
+                    <button 
+                      onClick={handleSave}
+                      disabled={saving}
+                      className="w-full flex items-center justify-center gap-[6px] h-[38px] bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-[8px] text-[13px] font-[600] transition-colors shadow-sm mt-[4px] disabled:opacity-70"
+                    >
                       <Save className="w-[14px] h-[14px]" />
-                      Salvar Atribuição
+                      {saving ? "Salvando..." : "Salvar Atribuição"}
                     </button>
 
                   </div>
