@@ -48,6 +48,10 @@ class VendedorController extends Controller
             'is_gestor' => $vendedor->is_gestor,
             'comissao' => $vendedor->comissao,
             'percentual_comissao' => $vendedor->percentual_comissao,
+            'comissao_inicial' => $vendedor->comissao_inicial,
+            'comissao_recorrencia' => $vendedor->comissao_recorrencia,
+            'comissao_gestor_primeira' => $vendedor->comissao_gestor_primeira,
+            'comissao_gestor_recorrencia' => $vendedor->comissao_gestor_recorrencia,
             'status' => $vendedor->status ?? 'ativo',
         ]);
     }
@@ -63,6 +67,10 @@ class VendedorController extends Controller
             'gestor_id' => 'nullable|exists:users,id',
             'is_gestor' => 'boolean',
             'percentual_comissao' => 'nullable|numeric',
+            'comissao_inicial' => 'nullable|numeric',
+            'comissao_recorrencia' => 'nullable|numeric',
+            'comissao_gestor_primeira' => 'nullable|numeric',
+            'comissao_gestor_recorrencia' => 'nullable|numeric',
         ]);
 
         \DB::beginTransaction();
@@ -84,6 +92,10 @@ class VendedorController extends Controller
                 'gestor_id' => $validated['gestor_id'] ?? null,
                 'is_gestor' => $validated['is_gestor'] ?? false,
                 'percentual_comissao' => $validated['percentual_comissao'] ?? 0,
+                'comissao_inicial' => $validated['comissao_inicial'] ?? 0,
+                'comissao_recorrencia' => $validated['comissao_recorrencia'] ?? 0,
+                'comissao_gestor_primeira' => $validated['comissao_gestor_primeira'] ?? 0,
+                'comissao_gestor_recorrencia' => $validated['comissao_gestor_recorrencia'] ?? 0,
                 'status' => 'ativo',
             ]);
 
@@ -109,6 +121,10 @@ class VendedorController extends Controller
             'gestor_id' => 'nullable|exists:users,id',
             'is_gestor' => 'boolean',
             'percentual_comissao' => 'nullable|numeric',
+            'comissao_inicial' => 'nullable|numeric',
+            'comissao_recorrencia' => 'nullable|numeric',
+            'comissao_gestor_primeira' => 'nullable|numeric',
+            'comissao_gestor_recorrencia' => 'nullable|numeric',
             'status' => 'string'
         ]);
 
@@ -134,6 +150,10 @@ class VendedorController extends Controller
                 'gestor_id' => $validated['gestor_id'] ?? $vendedor->gestor_id,
                 'is_gestor' => $validated['is_gestor'] ?? $vendedor->is_gestor,
                 'percentual_comissao' => $validated['percentual_comissao'] ?? $vendedor->percentual_comissao,
+                'comissao_inicial' => $validated['comissao_inicial'] ?? $vendedor->comissao_inicial,
+                'comissao_recorrencia' => $validated['comissao_recorrencia'] ?? $vendedor->comissao_recorrencia,
+                'comissao_gestor_primeira' => $validated['comissao_gestor_primeira'] ?? $vendedor->comissao_gestor_primeira,
+                'comissao_gestor_recorrencia' => $validated['comissao_gestor_recorrencia'] ?? $vendedor->comissao_gestor_recorrencia,
                 'status' => $validated['status'] ?? $vendedor->status,
             ]);
 

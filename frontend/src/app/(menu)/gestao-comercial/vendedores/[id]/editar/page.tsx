@@ -44,7 +44,11 @@ export default function EditarVendedorPage({ params }: { params: Promise<{ id: s
     is_gestor: false,
     status: "Ativo",
     equipe_id: "",
-    percentual_comissao: "0"
+    percentual_comissao: "0",
+    comissao_inicial: "0",
+    comissao_recorrencia: "0",
+    comissao_gestor_primeira: "0",
+    comissao_gestor_recorrencia: "0"
   });
 
   React.useEffect(() => {
@@ -61,7 +65,11 @@ export default function EditarVendedorPage({ params }: { params: Promise<{ id: s
           is_gestor: vendedor.is_gestor || false,
           status: vendedor.status === "inativo" ? "Inativo" : "Ativo",
           equipe_id: vendedor.equipe_id?.toString() || "",
-          percentual_comissao: vendedor.percentual_comissao?.toString() || "0"
+          percentual_comissao: vendedor.percentual_comissao?.toString() || "0",
+          comissao_inicial: vendedor.comissao_inicial?.toString() || "0",
+          comissao_recorrencia: vendedor.comissao_recorrencia?.toString() || "0",
+          comissao_gestor_primeira: vendedor.comissao_gestor_primeira?.toString() || "0",
+          comissao_gestor_recorrencia: vendedor.comissao_gestor_recorrencia?.toString() || "0"
         });
       }
       setEquipes(eqps);
@@ -78,6 +86,10 @@ export default function EditarVendedorPage({ params }: { params: Promise<{ id: s
       is_gestor: formData.is_gestor,
       equipe_id: formData.equipe_id ? Number(formData.equipe_id) : undefined,
       percentual_comissao: formData.percentual_comissao ? Number(formData.percentual_comissao) : undefined,
+      comissao_inicial: formData.comissao_inicial ? Number(formData.comissao_inicial) : undefined,
+      comissao_recorrencia: formData.comissao_recorrencia ? Number(formData.comissao_recorrencia) : undefined,
+      comissao_gestor_primeira: formData.comissao_gestor_primeira ? Number(formData.comissao_gestor_primeira) : undefined,
+      comissao_gestor_recorrencia: formData.comissao_gestor_recorrencia ? Number(formData.comissao_gestor_recorrencia) : undefined,
     };
 
     if (!payload.senha) delete (payload as any).senha;
@@ -338,18 +350,49 @@ export default function EditarVendedorPage({ params }: { params: Promise<{ id: s
                   <div className="p-[0_24px_24px_24px] flex flex-col gap-[20px] animate-in slide-in-from-top-4 fade-in duration-300">
                     <div className="w-full h-[1px] bg-[#F3F4F6] mb-[4px]"></div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-[24px]">
-                      <div className="max-w-md">
-                        <InputField 
-                          label={t("Percentual Base (%)")}
-                          type="number"
-                          placeholder="Ex: 5"
-                          value={formData.percentual_comissao}
-                          onChange={(v: string) => setFormData(f => ({ ...f, percentual_comissao: v }))}
-                          icon="%"
-                        />
-                      </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
+                      <InputField 
+                        label={t("Comissão Inicial (Venda)")}
+                        type="number"
+                        placeholder="Ex: 10"
+                        value={formData.comissao_inicial}
+                        onChange={(v: string) => setFormData(f => ({ ...f, comissao_inicial: v }))}
+                        icon="%"
+                      />
+                      <InputField 
+                        label={t("Comissão Recorrência")}
+                        type="number"
+                        placeholder="Ex: 5"
+                        value={formData.comissao_recorrencia}
+                        onChange={(v: string) => setFormData(f => ({ ...f, comissao_recorrencia: v }))}
+                        icon="%"
+                      />
                     </div>
+
+                    {formData.is_gestor && (
+                      <>
+                        <div className="w-full h-[1px] bg-[#F3F4F6] my-[4px]"></div>
+                        <h3 className="text-[14px] font-[600] text-[#111827] mb-[4px]">{t("Comissões de Gestor (Equipe)")}</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-[20px]">
+                          <InputField 
+                            label={t("Comissão Gestor (1ª Venda)")}
+                            type="number"
+                            placeholder="Ex: 2"
+                            value={formData.comissao_gestor_primeira}
+                            onChange={(v: string) => setFormData(f => ({ ...f, comissao_gestor_primeira: v }))}
+                            icon="%"
+                          />
+                          <InputField 
+                            label={t("Comissão Gestor (Recorrência)")}
+                            type="number"
+                            placeholder="Ex: 1"
+                            value={formData.comissao_gestor_recorrencia}
+                            onChange={(v: string) => setFormData(f => ({ ...f, comissao_gestor_recorrencia: v }))}
+                            icon="%"
+                          />
+                        </div>
+                      </>
+                    )}
 
                   </div>
                 )}

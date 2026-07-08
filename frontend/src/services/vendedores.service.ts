@@ -9,6 +9,10 @@ export interface Vendedor {
   status: string;
   equipe_id?: number | null;
   percentual_comissao?: number | null;
+  comissao_inicial?: number | null;
+  comissao_recorrencia?: number | null;
+  comissao_gestor_primeira?: number | null;
+  comissao_gestor_recorrencia?: number | null;
   created_at?: string;
   updated_at?: string;
   perfil?: string;
