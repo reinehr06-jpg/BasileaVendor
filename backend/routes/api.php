@@ -31,6 +31,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Clientes Asaas API
     Route::get('/clientes-asaas', [\App\Http\Controllers\Api\ClientesAsaasController::class, 'index']);
+    Route::get('/clientes-asaas/{id}', [\App\Http\Controllers\Api\ClientesAsaasController::class, 'show']);
+    Route::put('/clientes-asaas/{id}', [\App\Http\Controllers\Api\ClientesAsaasController::class, 'update']);
     Route::post('/clientes-asaas/sincronizar', [\App\Http\Controllers\Master\AsaasClienteSyncController::class, 'sincronizar']);
 
     // Vendas API

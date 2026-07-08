@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
@@ -17,6 +17,8 @@ import {
   Save
 } from "lucide-react";
 import { use } from "react";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 type SectionType = "dados-pessoais" | "pagamento" | "classificacao" | "faturas" | null;
 
@@ -24,30 +26,101 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
   const { id } = use(params);
   const { t } = useTranslation();
   const [openSection, setOpenSection] = useState<SectionType>("dados-pessoais");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const toggleSection = (section: SectionType) => {
     setOpenSection((prev) => (prev === section ? null : section));
   };
 
   // Form states
-  const [nome, setNome] = useState("Tabernáculo Church");
-  const [email, setEmail] = useState("associacaotabernaculo2023@gmail.com");
-  const [cpfCnpj, setCpfCnpj] = useState("13485831000142");
-  const [telefone, setTelefone] = useState("11947767855");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [cpfCnpj, setCpfCnpj] = useState("");
+  const [telefone, setTelefone] = useState("");
 
-  const [tipoCobranca, setTipoCobranca] = useState("assinatura");
-  const [valorMensal, setValorMensal] = useState("197,00");
-  const [parcelasTotal, setParcelasTotal] = useState("1");
-  const [parcelasPagas, setParcelasPagas] = useState("2");
-  const [primeiroPagamento, setPrimeiroPagamento] = useState("2025-12-16");
-  const [ultimoPagamento, setUltimoPagamento] = useState("2026-01-24");
-  const [proximoVencimento, setProximoVencimento] = useState("2026-02-16");
+  const [tipoCobranca, setTipoCobranca] = useState("");
+  const [valorMensal, setValorMensal] = useState("");
+  const [parcelasTotal, setParcelasTotal] = useState("");
+  const [parcelasPagas, setParcelasPagas] = useState("");
+  const [primeiroPagamento, setPrimeiroPagamento] = useState("");
+  const [ultimoPagamento, setUltimoPagamento] = useState("");
+  const [proximoVencimento, setProximoVencimento] = useState("");
 
-  const [status, setStatus] = useState("churn");
+  const [status, setStatus] = useState("");
   const [tipoComissao, setTipoComissao] = useState("recorrencia");
-  const [vendedor, setVendedor] = useState("sem");
+  const [vendedorId, setVendedorId] = useState("sem");
   
   const [faturas, setFaturas] = useState("");
+
+  // Vendedores do backend
+  const [vendedores, setVendedores] = useState<{id: number, nome: string}[]>([]);
+
+  useEffect(() => {
+    // Buscar vendedores
+    api.get<any>('/vendedores').then((res) => {
+      if (Array.isArray(res)) {
+        setVendedores(res.map((v: any) => ({ id: v.id, nome: v.nome })));
+      }
+    }).catch(() => {});
+
+    // Buscar dados do cliente
+    api.get<any>(`/clientes-asaas/${id}`).then((res) => {
+      if (res.success && res.data) {
+        const c = res.data;
+        setNome(c.nome || c.nome_igreja || "");
+        setEmail(c.email || "");
+        setCpfCnpj(c.documento || "");
+        setTelefone(c.telefone || "");
+        setTipoCobranca(c.tipo_cobranca || "");
+        setValorMensal(c.valor_plano_mensal || "");
+        setParcelasTotal(c.parcelas_total?.toString() || "");
+        setParcelasPagas(c.parcelas_pagas?.toString() || "");
+        setPrimeiroPagamento(c.primeiro_pagamento_at || "");
+        setUltimoPagamento(c.ultimo_pagamento_at || "");
+        setProximoVencimento(c.proximo_vencimento_at || "");
+        setStatus(c.diagnostico_status?.toLowerCase() || "");
+        setVendedorId(c.vendedor_id?.toString() || "sem");
+      }
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [id]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    const toastId = toast.loading("Salvando...");
+    try {
+      const res = await api.put<any>(`/clientes-asaas/${id}`, {
+        nome,
+        email,
+        documento: cpfCnpj,
+        telefone,
+        tipo_cobranca: tipoCobranca,
+        valor_plano_mensal: valorMensal,
+        parcelas_total: parcelasTotal ? Number(parcelasTotal) : null,
+        parcelas_pagas: parcelasPagas ? Number(parcelasPagas) : null,
+        primeiro_pagamento_at: primeiroPagamento || null,
+        ultimo_pagamento_at: ultimoPagamento || null,
+        proximo_vencimento_at: proximoVencimento || null,
+        diagnostico_status: status?.toUpperCase(),
+        vendedor_id: vendedorId === "sem" ? null : Number(vendedorId),
+      });
+      if (res.success) {
+        toast.success("Cliente atualizado com sucesso!", { id: toastId });
+      } else {
+        toast.error(res.message || "Erro ao salvar", { id: toastId });
+      }
+    } catch (e) {
+      toast.error("Erro de comunicação", { id: toastId });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const vendedorOptions = [
+    { label: "— Sem Vendedor —", value: "sem" },
+    ...vendedores.map(v => ({ label: v.nome, value: v.id.toString() }))
+  ];
 
   const InputField = ({ label, type = "text", placeholder = "", required = false, value, onChange, icon }: any) => (
     <div className="flex flex-col gap-[6px]">
@@ -58,7 +131,7 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
         <input 
           type={type} 
           placeholder={placeholder}
-          defaultValue={value}
+          value={value}
           onChange={onChange ? (e) => onChange(e.target.value) : undefined}
           className={`w-full h-[40px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] text-[14px] text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB] ${icon ? 'pr-[36px]' : ''}`}
         />
@@ -70,6 +143,20 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
       </div>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen font-inter bg-[#F5F5F7]">
+        <Sidebar />
+        <div className="flex-1 ml-[240px] flex flex-col min-h-screen">
+          <Topbar />
+          <main className="flex-1 flex items-center justify-center">
+            <div className="w-[30px] h-[30px] border-[3px] border-[#6D28D9] border-t-transparent rounded-full animate-spin"></div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen font-inter bg-[#F5F5F7]">
@@ -166,7 +253,8 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
                       </label>
                       <CustomSelect
                         options={[
-                          { label: "Assinatura Recorrente", value: "assinatura" },
+                          { label: "Assinatura Recorrente", value: "subscription" },
+                          { label: "Parcelamento", value: "installment" },
                           { label: "Cobrança Avulsa", value: "avulso" }
                         ]}
                         value={tipoCobranca}
@@ -258,13 +346,9 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
                         {t("Vendedor Responsável")} <span className="text-[#EF4444] ml-0.5">*</span>
                       </label>
                       <CustomSelect
-                        options={[
-                          { label: "— Sem Vendedor —", value: "sem" },
-                          { label: "João Silva", value: "1" },
-                          { label: "Maria Souza", value: "2" }
-                        ]}
-                        value={vendedor}
-                        onChange={setVendedor}
+                        options={vendedorOptions}
+                        value={vendedorId}
+                        onChange={setVendedorId}
                         placeholder="Selecione..."
                         triggerClassName="h-[40px] bg-white border-[#E5E7EB] text-[14px]"
                       />
@@ -322,7 +406,7 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
                       </label>
                       <textarea 
                         rows={4}
-                        placeholder="sub_...&#10;pay_..."
+                        placeholder={"sub_...\npay_..."}
                         value={faturas}
                         onChange={(e) => setFaturas(e.target.value)}
                         className="w-full p-[12px] bg-white border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB] resize-y font-mono"
@@ -352,10 +436,12 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
               {t("Cancelar")}
             </Link>
             <button 
-              className="h-[44px] px-[24px] bg-[#6D28D9] text-white font-[600] text-[14px] rounded-[8px] hover:bg-[#5B21B6] transition-colors flex items-center justify-center gap-[8px]"
+              disabled={saving}
+              onClick={handleSave}
+              className="h-[44px] px-[24px] bg-[#6D28D9] text-white font-[600] text-[14px] rounded-[8px] hover:bg-[#5B21B6] transition-colors flex items-center justify-center gap-[8px] disabled:opacity-70"
             >
               <Save className="w-[16px] h-[16px]" strokeWidth={2.5} />
-              {t("Salvar Alterações")}
+              {saving ? t("Salvando...") : t("Salvar Alterações")}
             </button>
           </div>
         </div>

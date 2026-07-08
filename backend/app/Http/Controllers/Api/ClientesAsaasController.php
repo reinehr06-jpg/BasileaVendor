@@ -78,4 +78,42 @@ class ClientesAsaasController extends Controller
             'aba' => $aba
         ]);
     }
+
+    public function show($id)
+    {
+        $cliente = DB::table('legacy_customer_imports')->where('id', $id)->first();
+
+        if (!$cliente) {
+            return response()->json(['success' => false, 'message' => 'Cliente não encontrado'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $cliente
+        ]);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $cliente = DB::table('legacy_customer_imports')->where('id', $id)->first();
+
+        if (!$cliente) {
+            return response()->json(['success' => false, 'message' => 'Cliente não encontrado'], 404);
+        }
+
+        $data = $request->only([
+            'nome', 'email', 'documento', 'telefone',
+            'tipo_cobranca', 'valor_plano_mensal',
+            'parcelas_total', 'parcelas_pagas',
+            'primeiro_pagamento_at', 'ultimo_pagamento_at', 'proximo_vencimento_at',
+            'diagnostico_status', 'vendedor_id'
+        ]);
+
+        // Limpa campos vazios para não sobrescrever com string vazia
+        $data = array_filter($data, fn($v) => $v !== null && $v !== '');
+
+        DB::table('legacy_customer_imports')->where('id', $id)->update($data);
+
+        return response()->json(['success' => true, 'message' => 'Cliente atualizado com sucesso']);
+    }
 }
