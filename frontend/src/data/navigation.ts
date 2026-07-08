@@ -15,12 +15,7 @@ import {
 } from "lucide-react";
 
 export const navSections = [
-  {
-    title: "VISÃO GERAL",
-    items: [
-      { label: "Dashboard", icon: PieChart, href: "/dashboard" },
-    ],
-  },
+
   {
     title: "GESTÃO COMERCIAL",
     items: [
