@@ -1350,12 +1350,21 @@ class AsaasClienteSyncController extends Controller
         $start = Carbon::parse($dataRef)->startOfMonth();
         $end = Carbon::now()->startOfMonth();
         
-        // Se a assinatura não estiver ativa, não geramos comissões além do último mês em que pagou
-        $statusAtivo = strtoupper($import->status ?? 'ACTIVE') === 'ACTIVE';
-        if (!$statusAtivo) {
+        $tipoCobranca = $import->tipo_cobranca ?? 'subscription';
+        
+        if ($tipoCobranca === 'installment') {
+            // Para parcelamento, gera a quantidade exata de parcelas que já foram pagas
+            $parcelasPagas = (int) ($import->parcelas_pagas ?? 1);
+            if ($parcelasPagas < 1) $parcelasPagas = 1;
+            $end = $start->copy()->addMonths($parcelasPagas - 1);
+        } else {
+            // Para assinatura ou avulso, sempre trava no último pagamento confirmado,
+            // independentemente do status ser ACTIVE, para não gerar comissões de meses não pagos.
             $ultimoPg = $import->ultimo_pagamento_confirmado_at ?? $dataRef;
             if ($ultimoPg != '0000-00-00 00:00:00') {
                 $end = Carbon::parse($ultimoPg)->startOfMonth();
+            } else {
+                $end = $start->copy();
             }
         }
 
