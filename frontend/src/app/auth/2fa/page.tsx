@@ -82,7 +82,7 @@ export default function TwoFactorPage() {
           </p>
         </div>
 
-        <div className="flex justify-center gap-[12px] mb-[32px]">
+        <div className="flex justify-center gap-[12px]" style={{ marginBottom: '32px' }}>
           {code.map((digit, idx) => (
             <input
               key={idx}
