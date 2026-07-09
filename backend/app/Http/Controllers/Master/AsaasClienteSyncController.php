@@ -589,8 +589,9 @@ class AsaasClienteSyncController extends Controller
         $temConfirmado = !empty($confirmados);
         $temPendente   = !empty($pendentes);
 
-        // Verifica se há pendentes com mais de 2 dias de atraso (margem de regularização)
+        // Verifica se há pendentes com mais de 2 dias de atraso ou já marcados como OVERDUE
         $temPendenteAtrasado = !empty(array_filter($pendentes, function($p) use ($now) {
+            if (isset($p['status']) && $p['status'] === 'OVERDUE') return true;
             if (empty($p['dueDate'])) return false;
             $dueDate = \Carbon\Carbon::parse($p['dueDate'])->startOfDay();
             // diffInDays retorna negativo se dueDate for no passado. < -2 significa mais de 2 dias.
@@ -602,23 +603,29 @@ class AsaasClienteSyncController extends Controller
             in_array(strtoupper($s['status'] ?? ''), ['CANCELLED', 'CANCELED', 'EXPIRED'])
         );
 
-        if ($subscriptionCancelada && !$temConfirmado) {
+        if ($subscriptionCancelada && !$temConfirmado && !$temPendente) {
             $diagnostico = 'CANCELADO';
-        } elseif (!$temConfirmado && $temPendente) {
-            // Nunca pagou, só tem pendentes
-            $diagnostico = 'CANCELADO';
-        } elseif ($temConfirmado && $temPendenteAtrasado) {
-            // Já pagou antes, mas tem pendente atual VENCIDO há mais de 2 dias
+        } elseif ($temPendenteAtrasado) {
+            // Se tem cobrança vencida/inadimplente, é CHURN (mesmo que nunca tenha pago, ou já tenha pago)
             $diagnostico = 'CHURN';
         } elseif ($temConfirmado && !$temPendenteAtrasado) {
-            // Já pagou antes e, se tiver pendente, ainda está no prazo ou carência
+            // Já pagou antes e não tem nada vencido
             $diagnostico = 'ATIVO';
+        } elseif (!$temConfirmado && $temPendente) {
+            // Nunca pagou, só tem pendentes (no prazo)
+            $diagnostico = 'PENDENTE';
         } else {
             $diagnostico = 'PENDENTE';
         }
 
         // 5. Datas de pagamento
-        $datasConfirmadas = array_column(array_values($confirmados), 'paymentDate');
+        $datasConfirmadas = [];
+        foreach ($confirmados as $p) {
+            $date = $p['clientPaymentDate'] ?? $p['paymentDate'] ?? $p['confirmedDate'] ?? null;
+            if ($date) {
+                $datasConfirmadas[] = $date;
+            }
+        }
         sort($datasConfirmadas);
         $primeiroPgtAt         = !empty($datasConfirmadas) ? $datasConfirmadas[0] : null;
         $ultimoConfirmadoAt    = !empty($datasConfirmadas) ? end($datasConfirmadas) : null;
