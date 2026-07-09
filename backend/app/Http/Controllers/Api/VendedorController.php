@@ -28,7 +28,8 @@ class VendedorController extends Controller
                 'vendas' => $v->vendas->count(),
                 'avatarColor' => 'bg-[#7C3AED]',
                 'cpfCnpj' => '', // Add se tiver no DB
-                'comissao' => (float) ($v->percentual_comissao ?: ($v->comissao ?: 0)),
+                'comissao_inicial' => (float) ($v->comissao_inicial ?: ($v->comissao ?: ($v->percentual_comissao ?: 0))),
+                'comissao_recorrencia' => (float) ($v->comissao_recorrencia ?: ($v->comissao ?: ($v->percentual_comissao ?: 0))),
                 'comissao_gestor_primeira' => (float) ($v->comissao_gestor_primeira ?? 0),
                 'comissao_gestor_recorrencia' => (float) ($v->comissao_gestor_recorrencia ?? 0)
             ];

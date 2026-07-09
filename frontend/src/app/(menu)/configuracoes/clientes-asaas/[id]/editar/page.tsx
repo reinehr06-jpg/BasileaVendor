@@ -57,7 +57,8 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
   const [vendedores, setVendedores] = useState<{
     id: number;
     nome: string;
-    comissao?: number;
+    comissao_inicial?: number;
+    comissao_recorrencia?: number;
     comissao_gestor_primeira?: number;
     comissao_gestor_recorrencia?: number;
   }[]>([]);
@@ -134,15 +135,21 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
   if (vendedorId !== "sem" && valorMensal) {
     const v = vendedores.find((vd) => vd.id.toString() === vendedorId);
     if (v) {
-      // Parse pt-BR currency input to float (e.g. 1.500,00 -> 1500.00)
-      let baseVal = 0;
-      const cleanVal = valorMensal.replace(/[^\d,-]/g, '').replace(',', '.');
-      baseVal = parseFloat(cleanVal) || 0;
-      
-      const pVendedor = v.comissao || 0;
-      comissaoVendedorVal = (baseVal * pVendedor) / 100;
+      // Clean string (e.g., "1.548,00" -> "1548.00" or "129.00" -> "129.00")
+      let cleanVal = String(valorMensal).trim();
+      if (cleanVal.includes(',')) {
+        cleanVal = cleanVal.replace(/\./g, '').replace(',', '.');
+      }
+      let baseVal = parseFloat(cleanVal) || 0;
       
       const isAntecipada = tipoComissao === 'unica' || tipoComissao === '1_pagamento';
+      
+      const pVendedor = isAntecipada 
+        ? (v.comissao_inicial || 0) 
+        : (v.comissao_recorrencia || 0);
+        
+      comissaoVendedorVal = (baseVal * pVendedor) / 100;
+      
       const pGestor = isAntecipada 
         ? (v.comissao_gestor_primeira || 0)
         : (v.comissao_gestor_recorrencia || 0);
