@@ -70,7 +70,7 @@ class EquipeController extends Controller
     {
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
-            'gestor_id' => 'nullable|exists:users,id',
+            'gestor_id' => 'nullable|exists:users,id|unique:equipes,gestor_id',
             'meta_mensal' => 'nullable|numeric',
             'cor' => 'nullable|string',
         ]);
@@ -92,13 +92,20 @@ class EquipeController extends Controller
 
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
-            'gestor_id' => 'nullable|exists:users,id',
+            'gestor_id' => 'nullable|exists:users,id|unique:equipes,gestor_id,' . $equipe->id,
             'meta_mensal' => 'nullable|numeric',
             'cor' => 'nullable|string',
             'status' => 'string'
         ]);
 
-        $equipe->update($validated);
+        \Log::info('Tentando atualizar equipe', ['id' => $id, 'data' => $validated]);
+
+        try {
+            $equipe->update($validated);
+        } catch (\Exception $e) {
+            \Log::error('Erro ao atualizar equipe', ['erro' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Erro interno: ' . $e->getMessage()], 500);
+        }
 
         return response()->json(['success' => true, 'id' => $equipe->id]);
     }
