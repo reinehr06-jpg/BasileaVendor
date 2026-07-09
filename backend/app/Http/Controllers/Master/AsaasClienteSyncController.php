@@ -735,9 +735,14 @@ class AsaasClienteSyncController extends Controller
         if ($subscription) {
             $valorPlano = (float) ($subscription['value'] ?? 0);
             $valorTotal = $valorPlano;
-            $parcelasPagas = count(array_filter($payments, fn($p) =>
-                in_array($p['status'] ?? '', self::PAGAMENTOS_CONFIRMADOS)
-            ));
+            // Para não considerar parcelas futuras de cartão de crédito como "pagas" no painel,
+            // exigimos que seja RECEIVED ou que o vencimento já tenha chegado
+            $parcelasPagas = count(array_filter($payments, function($p) {
+                if (!in_array($p['status'] ?? '', self::PAGAMENTOS_CONFIRMADOS)) return false;
+                if (in_array($p['status'] ?? '', ['RECEIVED', 'RECEIVED_IN_CASH'])) return true;
+                if (empty($p['dueDate'])) return true;
+                return \Carbon\Carbon::parse($p['dueDate'])->startOfDay()->lte(now()->startOfDay());
+            }));
             $mesRef = $this->getMesReferencia();
             // Valor pago no mês de referência
             $pagoMarco = array_filter($confirmadosDeste, fn($p) =>
@@ -747,7 +752,13 @@ class AsaasClienteSyncController extends Controller
 
         } elseif (!empty($payments)) {
             $parcelasTotal  = max(1, count($payments));
-            $parcelasPagas  = count($confirmadosDeste);
+            
+            // Mesma lógica de validação de datas para parcelamentos (installment)
+            $parcelasPagas = count(array_filter($confirmadosDeste, function($p) {
+                if (in_array($p['status'] ?? '', ['RECEIVED', 'RECEIVED_IN_CASH'])) return true;
+                if (empty($p['dueDate'])) return true;
+                return \Carbon\Carbon::parse($p['dueDate'])->startOfDay()->lte(now()->startOfDay());
+            }));
             $valorPlano     = (float) ($payments[0]['value'] ?? 0);
             $valorTotal     = array_sum(array_column($payments, 'value'));
 
