@@ -114,14 +114,11 @@ class EquipeController extends Controller
     {
         $equipe = Equipe::findOrFail($id);
         
-        // Mover todos os vendedores dessa equipe para 'Sem Equipe'
+        // Mover todos os vendedores dessa equipe para 'Sem Equipe' antes de deletar
         $equipe->vendedores()->update(['equipe_id' => null]);
         
-        // Desativar equipe e remover vinculo do gestor
-        $equipe->update([
-            'status' => 'inativa',
-            'gestor_id' => null
-        ]);
+        // Excluir a equipe do banco de dados definitivamente
+        $equipe->delete();
 
         return response()->json(['success' => true]);
     }
