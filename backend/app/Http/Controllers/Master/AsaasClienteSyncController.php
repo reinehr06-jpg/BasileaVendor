@@ -613,7 +613,10 @@ class AsaasClienteSyncController extends Controller
         }
         
         $diasPassados = $dataBaseChurn->diffInDays($now->startOfDay(), false);
-        $virouChurn = $diasPassados > 32;
+        
+        // Um cliente só pode entrar em CHURN se tiver pagamentos pendentes/vencidos.
+        // Se ele pagou tudo que devia (ex: comprou avulso há 6 meses, ou pagou todas as parcelas do cartão), ele não está em CHURN, está ATIVO/CONCLUÍDO.
+        $virouChurn = $temPendente && ($diasPassados > 32);
 
         $subscriptionCancelada = !empty($subscriptions) && collect($subscriptions)->every(fn($s) =>
             in_array(strtoupper($s['status'] ?? ''), ['CANCELLED', 'CANCELED', 'EXPIRED'])
