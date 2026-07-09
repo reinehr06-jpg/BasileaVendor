@@ -101,8 +101,9 @@ export default function EditarEquipePage({ params }: { params: Promise<{ id: str
       } else {
         toast.error("Erro ao salvar", { id: toastId });
       }
-    } catch (e) {
-      toast.error("Erro de comunicação", { id: toastId });
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e.message || "Erro de comunicação", { id: toastId });
     } finally {
       setSaving(false);
     }
