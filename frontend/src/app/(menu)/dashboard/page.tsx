@@ -109,9 +109,11 @@ export default function DashboardPage() {
                 {greetingConfig.icon}
               </div>
               <div className="flex flex-col">
-                <h1 className="text-[28px] font-[800] text-white leading-tight drop-shadow-sm tracking-tight">
-                  {greeting}, {user?.nome ? user.nome.split(' ')[0] : 'Admin'}
-                </h1>
+                <h2 className="text-[24px] font-[700] text-white tracking-tight">
+                <span className="fade-in inline-block">
+                  {greeting}, {user?.name ? user.name.split(' ')[0] : 'Admin'}
+                </span>
+                <span className="wave-animation inline-block ml-2 origin-bottom-right">👋</span></h2>
                 <p className="text-[14px] text-purple-200 mt-1">{t("Aqui está o resumo da sua operação comercial hoje.")}</p>
               </div>
             </div>

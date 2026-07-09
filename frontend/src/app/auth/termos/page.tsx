@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { FileText, Loader2, Check } from "lucide-react";
 import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
-import api from "@/lib/api";
+import { api } from "@/lib/api";
 
 export default function TermosPage() {
   const { t } = useTranslation();
@@ -21,7 +21,7 @@ export default function TermosPage() {
   const handleContinue = async () => {
     setIsLoading(true);
     try {
-      await api.put('/auth/termos');
+      await api.put('/auth/termos', {});
       // Update local state if needed
       if (user) {
         user.termos_aceitos = true;

@@ -9,11 +9,12 @@
 
 export interface User {
   id: string;
-  nome: string;
+  name: string;
   email: string;
   role: string;
   avatar?: string;
   createdAt: string;
+  termos_aceitos?: boolean;
 }
 
 export interface LoginPayload {
