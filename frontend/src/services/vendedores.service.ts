@@ -2,6 +2,7 @@ import { api } from "@/lib/api";
 
 export interface Vendedor {
   id: number;
+  usuario_id?: number;
   nome: string;
   email: string;
   telefone: string;

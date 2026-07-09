@@ -19,6 +19,7 @@ class VendedorController extends Controller
 
             return [
                 'id' => $v->id,
+                'usuario_id' => $v->user->id ?? null,
                 'nome' => $v->user->name ?? 'Sem Nome',
                 'email' => $v->user->email ?? '',
                 'telefone' => $v->telefone ?? '',
@@ -44,6 +45,7 @@ class VendedorController extends Controller
         
         return response()->json([
             'id' => $vendedor->id,
+            'usuario_id' => $vendedor->user->id ?? null,
             'nome' => $vendedor->user->name ?? '',
             'email' => $vendedor->user->email ?? '',
             'telefone' => $vendedor->telefone ?? '',

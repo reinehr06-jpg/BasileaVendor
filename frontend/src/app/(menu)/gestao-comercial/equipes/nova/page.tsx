@@ -190,7 +190,7 @@ export default function NovaEquipePage() {
                       <CustomSelect
                         options={[
                           { label: "Sem gestor", value: "" },
-                          ...gestores.map(g => ({ label: g.nome, value: g.id.toString() }))
+                          ...gestores.map(g => ({ label: g.nome, value: (g.usuario_id || g.id).toString() }))
                         ]}
                         value={formData.gestor_id}
                         onChange={(v) => setFormData(f => ({ ...f, gestor_id: v }))}

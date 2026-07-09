@@ -25,6 +25,28 @@ import { useRouter } from "next/navigation";
 
 type SectionType = "dados-pessoais" | "funcao" | "comissoes" | null;
 
+const InputField = ({ label, type = "text", placeholder = "", required = false, value, onChange, icon }: any) => (
+  <div className="flex flex-col gap-[6px]">
+    <label className="text-[13px] font-[600] text-[#4B5563]">
+      {label} {required && <span className="text-[#EF4444] ml-0.5">*</span>}
+    </label>
+    <div className="relative">
+      <input 
+        type={type} 
+        placeholder={placeholder}
+        defaultValue={value}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        className={`w-full h-[40px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] text-[14px] text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB] ${icon ? 'pr-[36px]' : ''}`}
+      />
+      {icon && (
+        <div className="absolute inset-y-0 right-[12px] flex items-center pointer-events-none text-[#6B7280] font-[600]">
+          {icon}
+        </div>
+      )}
+    </div>
+  </div>
+);
+
 export default function NovoVendedorPage() {
   const { t } = useTranslation();
   const router = useRouter();
@@ -65,6 +87,7 @@ export default function NovoVendedorPage() {
       comissao_recorrencia: formData.comissao_recorrencia ? Number(formData.comissao_recorrencia) : undefined,
       comissao_gestor_primeira: formData.comissao_gestor_primeira ? Number(formData.comissao_gestor_primeira) : undefined,
       comissao_gestor_recorrencia: formData.comissao_gestor_recorrencia ? Number(formData.comissao_gestor_recorrencia) : undefined,
+      senha: "Basileia123"
     };
 
     try {
@@ -86,27 +109,9 @@ export default function NovoVendedorPage() {
     setOpenSection((prev) => (prev === section ? null : section));
   };
 
-  const InputField = ({ label, type = "text", placeholder = "", required = false, value, onChange, icon }: any) => (
-    <div className="flex flex-col gap-[6px]">
-      <label className="text-[13px] font-[600] text-[#4B5563]">
-        {label} {required && <span className="text-[#EF4444] ml-0.5">*</span>}
-      </label>
-      <div className="relative">
-        <input 
-          type={type} 
-          placeholder={placeholder}
-          defaultValue={value}
-          onChange={onChange ? (e) => onChange(e.target.value) : undefined}
-          className={`w-full h-[40px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] text-[14px] text-[#1A1A2E] placeholder-[#9CA3AF] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB] ${icon ? 'pr-[36px]' : ''}`}
-        />
-        {icon && (
-          <div className="absolute inset-y-0 right-[12px] flex items-center pointer-events-none text-[#6B7280] font-[600]">
-            {icon}
-          </div>
-        )}
-      </div>
-    </div>
-  );
+  const toggleSection = (section: SectionType) => {
+    setOpenSection((prev) => (prev === section ? null : section));
+  };
 
   return (
     <div className="flex min-h-screen font-inter bg-[#F5F5F7]">
