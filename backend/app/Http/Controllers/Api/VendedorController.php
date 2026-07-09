@@ -120,7 +120,7 @@ class VendedorController extends Controller
 
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'required|email|unique:users,email' . ($user ? ',' . $user->id : ''),
             'senha' => 'nullable|string|min:6',
             'telefone' => 'nullable|string',
             'equipe_id' => 'nullable|exists:equipes,id',
@@ -136,18 +136,29 @@ class VendedorController extends Controller
 
         \DB::beginTransaction();
         try {
-            $user->update([
-                'name' => $validated['nome'],
-                'email' => $validated['email'],
-                'perfil' => empty($validated['is_gestor']) ? 'Vendedor' : 'Gestor',
-            ]);
+            if ($user) {
+                $user->update([
+                    'name' => $validated['nome'],
+                    'email' => $validated['email'],
+                    'perfil' => empty($validated['is_gestor']) ? 'Vendedor' : 'Gestor',
+                ]);
 
-            if (!empty($validated['senha'])) {
-                $user->update(['password' => \Hash::make($validated['senha'])]);
-            }
+                if (!empty($validated['senha'])) {
+                    $user->update(['password' => \Hash::make($validated['senha'])]);
+                }
 
-            if (isset($validated['status'])) {
-                $user->update(['status' => $validated['status']]);
+                if (isset($validated['status'])) {
+                    $user->update(['status' => $validated['status']]);
+                }
+            } else {
+                $user = User::create([
+                    'name' => $validated['nome'],
+                    'email' => $validated['email'],
+                    'password' => \Hash::make($validated['senha'] ?? 'Basileia123'),
+                    'perfil' => empty($validated['is_gestor']) ? 'Vendedor' : 'Gestor',
+                    'status' => $validated['status'] ?? 'Ativo',
+                ]);
+                $vendedor->usuario_id = $user->id;
             }
 
             $vendedor->update([

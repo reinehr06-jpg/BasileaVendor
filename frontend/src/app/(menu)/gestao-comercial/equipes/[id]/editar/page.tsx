@@ -79,7 +79,7 @@ export default function EditarEquipePage({ params }: { params: Promise<{ id: str
           meta_mensal: equipe.meta_mensal?.toString() || ""
         });
       }
-      setGestores(vendedores.filter(v => v.is_gestor || v.gestor === 'Gestor' || v.perfil === 'Gestor' || v.gestor === 'Sim' || true));
+      setGestores(vendedores.filter(v => (v.is_gestor || v.gestor === 'Gestor' || v.perfil === 'Gestor' || v.gestor === 'Sim' || true) && v.usuario_id));
       setLoading(false);
     });
   }, [id]);
@@ -196,7 +196,7 @@ export default function EditarEquipePage({ params }: { params: Promise<{ id: str
                       <CustomSelect
                         options={[
                           { label: "Sem gestor", value: "" },
-                          ...gestores.map(g => ({ label: g.nome, value: (g.usuario_id || g.id).toString() }))
+                          ...gestores.map(g => ({ label: g.nome, value: g.usuario_id!.toString() }))
                         ]}
                         value={formData.gestor_id}
                         onChange={(v) => setFormData(f => ({ ...f, gestor_id: v }))}

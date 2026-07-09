@@ -67,7 +67,7 @@ export default function NovaEquipePage() {
   React.useEffect(() => {
     // Busca apenas vendedores que são gestores para preencher o select
     VendedoresService.listar().then(vendedores => {
-      setGestores(vendedores.filter(v => v.is_gestor || v.gestor === 'Gestor' || v.perfil === 'Gestor' || v.gestor === 'Sim' || true)); 
+      setGestores(vendedores.filter(v => (v.is_gestor || v.gestor === 'Gestor' || v.perfil === 'Gestor' || v.gestor === 'Sim' || true) && v.usuario_id)); 
       // Observação: v.is_gestor precisa ser adicionado ao response do VendedorController index, 
       // mas vamos listar todos temporariamente para não travar a UI.
     });
@@ -186,7 +186,7 @@ export default function NovaEquipePage() {
                       <CustomSelect
                         options={[
                           { label: "Sem gestor", value: "" },
-                          ...gestores.map(g => ({ label: g.nome, value: (g.usuario_id || g.id).toString() }))
+                          ...gestores.map(g => ({ label: g.nome, value: g.usuario_id!.toString() }))
                         ]}
                         value={formData.gestor_id}
                         onChange={(v) => setFormData(f => ({ ...f, gestor_id: v }))}
