@@ -156,9 +156,13 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
         
       comissaoVendedorVal = (baseVal * pVendedor) / 100;
       
-      const pGestor = isAntecipada 
-        ? (v.comissao_gestor_primeira || 0)
-        : (v.comissao_gestor_recorrencia || 0);
+      let pGestor = 0;
+      // Só aplica comissão de gestor se o vendedor possuir um gestor acima dele
+      if (v.gestor && v.gestor !== 'Sem Gestor') {
+        pGestor = isAntecipada 
+          ? (v.comissao_gestor_primeira || 0)
+          : (v.comissao_gestor_recorrencia || 0);
+      }
       
       comissaoGestorVal = (baseVal * pGestor) / 100;
     }
