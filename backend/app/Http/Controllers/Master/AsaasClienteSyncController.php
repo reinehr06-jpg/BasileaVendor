@@ -589,36 +589,7 @@ class AsaasClienteSyncController extends Controller
         $temConfirmado = !empty($confirmados);
         $temPendente   = !empty($pendentes);
 
-        // Verifica se há pendentes com mais de 2 dias de atraso ou já marcados como OVERDUE
-        $temPendenteAtrasado = !empty(array_filter($pendentes, function($p) use ($now) {
-            if (isset($p['status']) && $p['status'] === 'OVERDUE') return true;
-            if (empty($p['dueDate'])) return false;
-            $dueDate = \Carbon\Carbon::parse($p['dueDate'])->startOfDay();
-            // diffInDays retorna negativo se dueDate for no passado. < -2 significa mais de 2 dias.
-            return $now->startOfDay()->diffInDays($dueDate, false) < -2;
-        }));
-
-        // 4. Determinar diagnóstico de status
-        $subscriptionCancelada = !empty($subscriptions) && collect($subscriptions)->every(fn($s) =>
-            in_array(strtoupper($s['status'] ?? ''), ['CANCELLED', 'CANCELED', 'EXPIRED'])
-        );
-
-        if ($subscriptionCancelada && !$temConfirmado && !$temPendente) {
-            $diagnostico = 'CANCELADO';
-        } elseif ($temPendenteAtrasado) {
-            // Se tem cobrança vencida/inadimplente, é CHURN (mesmo que nunca tenha pago, ou já tenha pago)
-            $diagnostico = 'CHURN';
-        } elseif ($temConfirmado && !$temPendenteAtrasado) {
-            // Já pagou antes e não tem nada vencido
-            $diagnostico = 'ATIVO';
-        } elseif (!$temConfirmado && $temPendente) {
-            // Nunca pagou, só tem pendentes (no prazo)
-            $diagnostico = 'PENDENTE';
-        } else {
-            $diagnostico = 'PENDENTE';
-        }
-
-        // 5. Datas de pagamento
+        // 4. Datas de pagamento (extrair primeiro para a regra de CHURN)
         $datasConfirmadas = [];
         foreach ($confirmados as $p) {
             $date = $p['clientPaymentDate'] ?? $p['paymentDate'] ?? $p['confirmedDate'] ?? null;
@@ -629,6 +600,38 @@ class AsaasClienteSyncController extends Controller
         sort($datasConfirmadas);
         $primeiroPgtAt         = !empty($datasConfirmadas) ? $datasConfirmadas[0] : null;
         $ultimoConfirmadoAt    = !empty($datasConfirmadas) ? end($datasConfirmadas) : null;
+
+        // 5. Determinar diagnóstico de status (Regra de 32 dias)
+        if ($ultimoConfirmadoAt) {
+            $dataBaseChurn = \Carbon\Carbon::parse($ultimoConfirmadoAt)->startOfDay();
+        } else {
+            // Se nunca pagou, a data base é a data da primeira cobrança gerada
+            $datasTodas = array_filter(array_column($allPayments, 'dueDate'));
+            sort($datasTodas);
+            $primeiraCobranca = !empty($datasTodas) ? $datasTodas[0] : null;
+            $dataBaseChurn = $primeiraCobranca ? \Carbon\Carbon::parse($primeiraCobranca)->startOfDay() : clone $now->startOfDay();
+        }
+        
+        $diasPassados = $dataBaseChurn->diffInDays($now->startOfDay(), false);
+        $virouChurn = $diasPassados > 32;
+
+        $subscriptionCancelada = !empty($subscriptions) && collect($subscriptions)->every(fn($s) =>
+            in_array(strtoupper($s['status'] ?? ''), ['CANCELLED', 'CANCELED', 'EXPIRED'])
+        );
+
+        if ($subscriptionCancelada) {
+            $diagnostico = 'CANCELADO';
+        } elseif ($virouChurn) {
+            // Mais de 32 dias após o último pagamento ou da data da 1ª cobrança
+            $diagnostico = 'CHURN';
+        } elseif ($temConfirmado) {
+            $diagnostico = 'ATIVO';
+        } else {
+            // Nunca pagou, mas ainda está no prazo de 32 dias
+            $diagnostico = 'PENDENTE';
+        }
+
+
 
         // Próximo vencimento (menor data dos pendentes)
         $datasPendentes = array_filter(
