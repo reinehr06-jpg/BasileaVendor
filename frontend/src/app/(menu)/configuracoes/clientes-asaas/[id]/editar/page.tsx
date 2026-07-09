@@ -61,6 +61,7 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
     comissao_recorrencia?: number;
     comissao_gestor_primeira?: number;
     comissao_gestor_recorrencia?: number;
+    gestor?: string;
   }[]>([]);
 
   useEffect(() => {
