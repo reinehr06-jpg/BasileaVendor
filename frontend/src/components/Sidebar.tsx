@@ -323,8 +323,8 @@ export default function Sidebar() {
           }`}
         >
           <div className="flex items-center gap-2 w-full">
-            <div className="relative flex-shrink-0 w-8 h-8 rounded-full bg-gray-500 overflow-hidden">
-              <img src="https://i.pravatar.cc/100?img=11" alt="Avatar" className="w-full h-full object-cover" />
+            <div className="relative w-[36px] h-[36px] rounded-[10px] overflow-hidden shrink-0 border border-white/10 ring-2 ring-white/5 shadow-inner">
+              <img src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}&background=1E0A5C&color=FFFFFF&size=100`} alt="Avatar" className="w-full h-full object-cover" />
               <div className="absolute bottom-0 right-0 w-[8px] h-[8px] bg-online-green rounded-full border-[1px] border-[#0F0538]"></div>
             </div>
             
