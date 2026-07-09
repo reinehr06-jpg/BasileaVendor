@@ -21,6 +21,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { navSections, sellerNavSections, gestorNavSections } from "@/data/navigation";
+import { useAuth } from "@/context/AuthContext";
 
 // ============================================================
 // MAPA DO TESOURO — Gestão / Sidebar (Principal)
@@ -52,6 +53,7 @@ export default function Sidebar() {
   const { t } = useTranslation();
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useAuth();
 
   /**
    * INTEGRAÇÃO BACKEND:
@@ -332,10 +334,10 @@ export default function Sidebar() {
               }`}
             >
               <span className="font-[600] text-[13px] text-text-primary leading-tight mb-[2px]">
-                {t("Pr. João Silva")}
+                {user?.name || "Usuário"}
               </span>
-              <span className="font-[500] text-[11px] text-text-muted leading-tight">
-                {t("Administrador")}
+              <span className="font-[500] text-[11px] text-text-muted leading-tight capitalize">
+                {user?.role || "Administrador"}
               </span>
             </div>
             
