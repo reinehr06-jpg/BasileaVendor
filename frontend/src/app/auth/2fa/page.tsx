@@ -74,7 +74,7 @@ export default function TwoFactorPage() {
       <div className="fade-in" style={{width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
         <button 
           onClick={() => router.back()}
-          className="absolute top-[32px] left-[32px] flex items-center gap-[6px] text-[13px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors"
+          className="absolute top-[40px] left-[40px] flex items-center gap-[6px] text-[13px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors"
         >
           <ArrowLeft className="w-[16px] h-[16px]" />
           {t("Voltar")}
