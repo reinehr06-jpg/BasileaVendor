@@ -54,13 +54,19 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
   const [faturas, setFaturas] = useState("");
 
   // Vendedores do backend
-  const [vendedores, setVendedores] = useState<{id: number, nome: string}[]>([]);
+  const [vendedores, setVendedores] = useState<{
+    id: number;
+    nome: string;
+    comissao?: number;
+    comissao_gestor_primeira?: number;
+    comissao_gestor_recorrencia?: number;
+  }[]>([]);
 
   useEffect(() => {
     // Buscar vendedores
     api.get<any>('/vendedores').then((res) => {
       if (Array.isArray(res)) {
-        setVendedores(res.map((v: any) => ({ id: v.id, nome: v.nome })));
+        setVendedores(res);
       }
     }).catch(() => {});
 
@@ -121,6 +127,33 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
     { label: "— Sem Vendedor —", value: "sem" },
     ...vendedores.map(v => ({ label: v.nome, value: v.id.toString() }))
   ];
+
+  let comissaoVendedorVal = 0;
+  let comissaoGestorVal = 0;
+
+  if (vendedorId !== "sem" && valorMensal) {
+    const v = vendedores.find((vd) => vd.id.toString() === vendedorId);
+    if (v) {
+      // Parse pt-BR currency input to float (e.g. 1.500,00 -> 1500.00)
+      let baseVal = 0;
+      const cleanVal = valorMensal.replace(/[^\d,-]/g, '').replace(',', '.');
+      baseVal = parseFloat(cleanVal) || 0;
+      
+      const pVendedor = v.comissao || 0;
+      comissaoVendedorVal = (baseVal * pVendedor) / 100;
+      
+      const isAntecipada = tipoComissao === 'unica' || tipoComissao === '1_pagamento';
+      const pGestor = isAntecipada 
+        ? (v.comissao_gestor_primeira || 0)
+        : (v.comissao_gestor_recorrencia || 0);
+      
+      comissaoGestorVal = (baseVal * pGestor) / 100;
+    }
+  }
+
+  const formatCurrency = (val: number) => {
+    return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  };
 
   const InputField = ({ label, type = "text", placeholder = "", required = false, value, onChange, icon }: any) => (
     <div className="flex flex-col gap-[6px]">
@@ -362,11 +395,11 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
                       </span>
                       <div className="flex items-center justify-between">
                         <span className="text-[14px] font-[500] text-[#047857]">Vendedor:</span>
-                        <span className="text-[16px] font-[700] text-[#047857]">R$ 0,00</span>
+                        <span className="text-[16px] font-[700] text-[#047857]">{formatCurrency(comissaoVendedorVal)}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-[14px] font-[500] text-[#047857]">Gestor:</span>
-                        <span className="text-[16px] font-[700] text-[#047857]">R$ 0,00</span>
+                        <span className="text-[16px] font-[700] text-[#047857]">{formatCurrency(comissaoGestorVal)}</span>
                       </div>
                     </div>
 

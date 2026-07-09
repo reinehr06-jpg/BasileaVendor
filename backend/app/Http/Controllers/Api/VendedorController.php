@@ -27,7 +27,10 @@ class VendedorController extends Controller
                 'status' => ucfirst($v->status ?? 'ativo'),
                 'vendas' => $v->vendas->count(),
                 'avatarColor' => 'bg-[#7C3AED]',
-                'cpfCnpj' => '' // Add se tiver no DB
+                'cpfCnpj' => '', // Add se tiver no DB
+                'comissao' => (float) ($v->percentual_comissao ?: ($v->comissao ?: 0)),
+                'comissao_gestor_primeira' => (float) ($v->comissao_gestor_primeira ?? 0),
+                'comissao_gestor_recorrencia' => (float) ($v->comissao_gestor_recorrencia ?? 0)
             ];
         });
 
