@@ -150,7 +150,7 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="card">
+          <div className="card" style={{ position: 'relative' }}>
             {/* Logo dentro do card */}
             <div className="card-logo">
               <img 
