@@ -40,6 +40,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->perfil ?? 'vendedor',
                 'vendedor_id' => $user->vendedor?->id ?? null,
+                'termos_aceitos' => $user->termos_aceitos,
             ]
         ]);
     }
@@ -55,7 +56,21 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'role' => $user->perfil ?? 'vendedor',
                 'vendedor_id' => $user->vendedor?->id ?? null,
+                'termos_aceitos' => $user->termos_aceitos,
             ]
+        ]);
+    }
+
+    public function aceitarTermos(Request $request)
+    {
+        $user = $request->user();
+        $user->termos_aceitos = true;
+        $user->termos_aceitos_em = now();
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Termos aceitos com sucesso.'
         ]);
     }
 

@@ -25,6 +25,7 @@ Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login']
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me']);
     Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout']);
+    Route::put('/auth/termos', [\App\Http\Controllers\Api\AuthController::class, 'aceitarTermos']);
     
     // Dashboard API
     Route::get('/dashboard', [\App\Http\Controllers\Api\DashboardController::class, 'index']);

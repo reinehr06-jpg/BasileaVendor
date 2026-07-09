@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ShieldCheck, Loader2, ArrowLeft } from "lucide-react";
+import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
+import { useAuth } from "@/context/AuthContext";
 
 export default function TwoFactorPage() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { user } = useAuth();
   
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,62 +54,72 @@ export default function TwoFactorPage() {
     setTimeout(() => {
       setIsLoading(false);
       toast.success(t("Código verificado com sucesso!"));
-      router.push("/auth/termos");
+      
+      if (user?.role === 'master' || user?.role === 'admin' || user?.termos_aceitos) {
+        if (user?.role === 'vendedor') {
+          router.push("/vendedor/minhas-vendas");
+        } else if (user?.role === 'gestor') {
+          router.push("/gestor/metricas-vendas");
+        } else {
+          router.push("/dashboard");
+        }
+      } else {
+        router.push("/auth/termos");
+      }
     }, 1000);
   };
 
   return (
-    <div className="w-full flex flex-col animation-fade-in">
-      <button 
-        onClick={() => router.back()}
-        className="self-start mb-[24px] flex items-center gap-[6px] text-[13px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors"
-      >
-        <ArrowLeft className="w-[16px] h-[16px]" />
-        {t("Voltar")}
-      </button>
+    <AuthSplitLayout>
+      <div className="fade-in" style={{width: '100%'}}>
+        <button 
+          onClick={() => router.back()}
+          className="self-start mb-[24px] flex items-center gap-[6px] text-[13px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors"
+        >
+          <ArrowLeft className="w-[16px] h-[16px]" />
+          {t("Voltar")}
+        </button>
 
-      <div className="mb-[32px] flex flex-col items-center text-center">
-        <div className="w-[56px] h-[56px] bg-[#ECFDF5] rounded-full flex items-center justify-center mb-[16px]">
-          <ShieldCheck className="w-[28px] h-[28px] text-[#10B981]" strokeWidth={2.2} />
+        <div className="card-header" style={{ alignItems: 'center', textAlign: 'center', marginBottom: '32px' }}>
+          <div className="w-[56px] h-[56px] bg-[#ECFDF5] rounded-full flex items-center justify-center mb-[16px]">
+            <ShieldCheck className="w-[28px] h-[28px] text-[#10B981]" strokeWidth={2.2} />
+          </div>
+          <h1>{t("Verificação em 2 Passos")}</h1>
+          <p>
+            {t("Enviamos um código de 6 dígitos para o seu e-mail e aplicativo autenticador.")}
+          </p>
         </div>
-        <h2 className="text-[24px] font-[700] text-[#111827] mb-[8px]">{t("Verificação em 2 Passos")}</h2>
-        <p className="text-[14px] text-[#6B7280]">
-          {t("Enviamos um código de 6 dígitos para o seu e-mail e aplicativo autenticador.")}
-        </p>
-      </div>
 
-      <div className="flex justify-center gap-[12px] mb-[32px]">
-        {code.map((digit, idx) => (
-          <input
-            key={idx}
-            ref={(el) => { inputsRef.current[idx] = el; }}
-            type="text"
-            inputMode="numeric"
-            maxLength={1}
-            value={digit}
-            onChange={(e) => handleChange(idx, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(idx, e)}
-            className="w-[48px] h-[56px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-center text-[24px] font-[700] text-[#111827] outline-none focus:bg-white focus:border-[#7C3AED] focus:ring-4 focus:ring-[#7C3AED]/10 transition-all"
-          />
-        ))}
-      </div>
+        <div className="flex justify-center gap-[12px] mb-[32px]">
+          {code.map((digit, idx) => (
+            <input
+              key={idx}
+              ref={(el) => { inputsRef.current[idx] = el; }}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(idx, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(idx, e)}
+              className="w-[48px] h-[56px] bg-[#F9FAFB] border border-[#E5E7EB] rounded-[12px] text-center text-[24px] font-[700] text-[#111827] outline-none focus:bg-white focus:border-[#7C3AED] focus:ring-4 focus:ring-[#7C3AED]/10 transition-all"
+            />
+          ))}
+        </div>
 
-      <button
-        onClick={handleVerify}
-        disabled={isLoading || code.join("").length < 6}
-        className="w-full h-[48px] bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-[12px] text-[15px] font-[600] flex items-center justify-center gap-[8px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isLoading ? <Loader2 className="w-[18px] h-[18px] animate-spin" /> : t("Verificar Código")}
-      </button>
+        <button
+          onClick={handleVerify}
+          disabled={isLoading || code.join("").length < 6}
+          className="btn"
+          style={{ width: '100%' }}
+        >
+          {isLoading ? <Loader2 className="w-[18px] h-[18px] animate-spin mx-auto" /> : t("Verificar Código")}
+        </button>
 
-      <div className="mt-[24px] text-center">
-        <p className="text-[13px] text-[#6B7280]">
-          {t("Não recebeu o código?")}{" "}
-          <button className="font-[600] text-[#7C3AED] hover:text-[#6D28D9] transition-colors">
-            {t("Reenviar")}
-          </button>
-        </p>
+        <div className="new-account" style={{ marginTop: '24px' }}>
+          <span>{t("Não recebeu o código?")}</span>
+          <a style={{cursor: 'pointer'}}>{t("Reenviar")}</a>
+        </div>
       </div>
-    </div>
+    </AuthSplitLayout>
   );
 }
