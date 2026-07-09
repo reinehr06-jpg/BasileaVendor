@@ -134,10 +134,6 @@ export default function EditarVendedorPage({ params }: { params: Promise<{ id: s
     setOpenSection((prev) => (prev === section ? null : section));
   };
 
-  const toggleSection = (section: SectionType) => {
-    setOpenSection((prev) => (prev === section ? null : section));
-  };
-
   return (
     <div className="flex min-h-screen font-inter bg-[#F5F5F7]">
       <Sidebar />

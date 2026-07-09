@@ -112,10 +112,6 @@ export default function EditarEquipePage({ params }: { params: Promise<{ id: str
     setOpenSection((prev) => (prev === section ? null : section));
   };
 
-  const toggleSection = (section: SectionType) => {
-    setOpenSection((prev) => (prev === section ? null : section));
-  };
-
   return (
     <div className="flex min-h-screen font-inter bg-[#F5F5F7]">
       <Sidebar />
