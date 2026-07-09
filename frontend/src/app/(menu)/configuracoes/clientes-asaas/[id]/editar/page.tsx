@@ -331,7 +331,9 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
                         <CustomSelect
                           options={[
                             { label: "Recorrência", value: "recorrencia" },
-                            { label: "Única", value: "unica" }
+                            { label: "1 pagamento", value: "1_pagamento" },
+                            { label: "Única", value: "unica" },
+                            { label: "Sem comissão já paga!", value: "sem_comissao_ja_paga" }
                           ]}
                           value={tipoComissao}
                           onChange={setTipoComissao}
