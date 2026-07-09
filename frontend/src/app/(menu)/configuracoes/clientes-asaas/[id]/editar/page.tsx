@@ -144,6 +144,12 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
       
       const isAntecipada = tipoComissao === 'unica' || tipoComissao === '1_pagamento';
       
+      // Se for parcelamento E a comissão for única (antecipada), a comissão incide sobre o valor total.
+      if (tipoCobranca === 'installment' && isAntecipada) {
+        const parcelasInt = parseInt(parcelasTotal) || 1;
+        baseVal = baseVal * parcelasInt;
+      }
+      
       const pVendedor = isAntecipada 
         ? (v.comissao_inicial || 0) 
         : (v.comissao_recorrencia || 0);
