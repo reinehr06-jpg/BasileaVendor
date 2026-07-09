@@ -1,7 +1,12 @@
 import React from "react";
 import { LoginStyles } from "@/components/auth/LoginStyles";
 
-export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
+interface AuthSplitLayoutProps {
+  children: React.ReactNode;
+  onBack?: () => void;
+}
+
+export function AuthSplitLayout({ children, onBack }: AuthSplitLayoutProps) {
   return (
     <>
       <LoginStyles />
@@ -142,7 +147,16 @@ export function AuthSplitLayout({ children }: { children: React.ReactNode }) {
         {/* ========================================
             RIGHT PANEL
         ======================================== */}
-        <div className="right">
+        <div className="right" style={{ position: 'relative' }}>
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="absolute top-[40px] left-[40px] flex items-center gap-[6px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors z-50"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              Voltar
+            </button>
+          )}
           <div className="mobile-logo">
             <div className="mobile-logo-row">
               <div className="mobile-logo-icon"><span>B</span></div>

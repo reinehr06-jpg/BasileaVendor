@@ -70,16 +70,8 @@ export default function TwoFactorPage() {
   };
 
   return (
-    <AuthSplitLayout>
+    <AuthSplitLayout onBack={() => router.back()}>
       <div className="fade-in" style={{width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-        <button 
-          onClick={() => router.back()}
-          className="absolute top-[40px] left-[40px] flex items-center gap-[6px] text-[13px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors"
-        >
-          <ArrowLeft className="w-[16px] h-[16px]" />
-          {t("Voltar")}
-        </button>
-
         <div className="card-header" style={{ alignItems: 'center', textAlign: 'center', marginBottom: '32px', marginTop: '16px' }}>
           <div className="w-[56px] h-[56px] bg-[#ECFDF5] rounded-full flex items-center justify-center mb-[16px] mx-auto">
             <ShieldCheck className="w-[28px] h-[28px] text-[#10B981]" strokeWidth={2.2} />
