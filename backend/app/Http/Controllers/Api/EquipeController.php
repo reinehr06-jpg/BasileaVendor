@@ -117,8 +117,11 @@ class EquipeController extends Controller
         // Mover todos os vendedores dessa equipe para 'Sem Equipe'
         $equipe->vendedores()->update(['equipe_id' => null]);
         
-        // Desativar equipe
-        $equipe->update(['status' => 'inativa']);
+        // Desativar equipe e remover vinculo do gestor
+        $equipe->update([
+            'status' => 'inativa',
+            'gestor_id' => null
+        ]);
 
         return response()->json(['success' => true]);
     }

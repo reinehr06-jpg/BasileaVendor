@@ -103,7 +103,15 @@ export default function EditarEquipePage({ params }: { params: Promise<{ id: str
       }
     } catch (e: any) {
       console.error(e);
-      toast.error(e.message || "Erro de comunicação", { id: toastId });
+      let errorMessage = e.message || "Erro de comunicação";
+      try {
+        const parsed = JSON.parse(e.message);
+        if (typeof parsed === 'object') {
+          errorMessage = Object.values(parsed).flat().join('\n');
+        }
+      } catch (parseError) {}
+      
+      toast.error(errorMessage, { id: toastId });
     } finally {
       setSaving(false);
     }
