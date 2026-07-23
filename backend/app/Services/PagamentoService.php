@@ -276,6 +276,18 @@ class PagamentoService
      */
     private function gerarComissoes(Venda $venda, Pagamento $pagamento): void
     {
+        // Consolidado: toda a regra de comissão (inicial, recorrência, gestor,
+        // antecipação de parcelado e trava do fim do mês) vive agora no motor
+        // único, com idempotência por pagamento_id. Aqui apenas delegamos.
+        \App\Services\Commission\CommissionService::gerarParaPagamento($pagamento);
+    }
+
+    /**
+     * @deprecated Substituído pelo motor único (CommissionService). Mantido
+     * apenas para referência histórica; não é mais chamado.
+     */
+    private function gerarComissoesLegado(Venda $venda, Pagamento $pagamento): void
+    {
         $vendedor = $venda->vendedor;
         if (! $vendedor) {
             return;

@@ -28,27 +28,31 @@ export default function ComissoesPage() {
   const [totalItems, setTotalItems] = useState(0);
   const [pageSize, setPageSize] = useState(15);
   const [comissoes, setComissoes] = useState<any[]>([]);
+  const [kpis, setKpis] = useState({ vendas: 0, totalComissao: "R$ 0,00", totalVendas: "R$ 0,00", comissaoMedia: "0%" });
+
+  const money = (v: number) =>
+    "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   useEffect(() => {
-    FinanceiroService.listarComissoes({ page: currentPage, search: busca }).then((res) => {
+    FinanceiroService.listarComissoes({ page: currentPage, search: busca }).then((res: any) => {
       setComissoes(res.data);
       if (res.meta) {
         setTotalPages(res.meta.last_page || 1);
         setTotalItems(res.meta.total || res.data.length);
+      }
+      if (res.resumo) {
+        setKpis({
+          vendas: res.resumo.num_comissoes ?? 0,
+          totalComissao: money(res.resumo.total_comissao),
+          totalVendas: money(res.resumo.total_vendas),
+          comissaoMedia: `${res.resumo.comissao_media ?? 0}%`,
+        });
       }
     });
   }, [currentPage, busca]);
 
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
-
-  // KPIs mockados da imagem
-  const kpis = {
-    vendas: 3,
-    totalComissao: "R$ 84,40",
-    totalVendas: "R$ 844,00",
-    comissaoMedia: "10%"
-  };
 
   return (
     <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col">

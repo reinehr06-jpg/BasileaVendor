@@ -37,4 +37,9 @@ class Pagamento extends Model
     {
         return $this->belongsTo(Vendedor::class);
     }
+
+    public function comissoes()
+    {
+        return $this->hasMany(Comissao::class);
+    }
 }

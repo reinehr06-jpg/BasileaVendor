@@ -1,244 +1,239 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
-import { useTranslation } from "react-i18next";
+import { ClientesService } from "@/services/clientes.service";
 import {
   Contact,
-  MapPin,
-  Briefcase,
   Phone,
-  Users,
-  Calendar,
+  Mail,
   User,
-  ExternalLink,
-  ShieldOff,
   ShoppingBag,
   CreditCard,
-  Search,
-  ChevronDown
+  Wallet,
+  TrendingUp,
+  FileText,
 } from "lucide-react";
-import ModalDesativar from "@/components/ModalDesativar";
+
+type Historico = {
+  cliente: any;
+  resumo: any;
+  vendas: any[];
+  pagamentos: any[];
+  comissoes: any[];
+};
+
+const money = (v: number) =>
+  "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const data = (d?: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") : "—");
+
+const statusPagamento = (s: string) => {
+  const u = (s || "").toUpperCase();
+  if (["RECEIVED", "CONFIRMED", "PAGO"].includes(u)) return { label: "Pago", cls: "bg-[#ECFDF3] text-[#027A48]" };
+  if (["OVERDUE", "VENCIDO"].includes(u)) return { label: "Vencido", cls: "bg-[#FEF3F2] text-[#B42318]" };
+  return { label: s || "Pendente", cls: "bg-[#FFFAEB] text-[#B54708]" };
+};
 
 export default function ClienteProfilePage() {
-  const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState("Vendas");
-  const [modalDesativarOpen, setModalDesativarOpen] = useState(false);
+  const params = useParams();
+  const id = params?.id as string;
 
-  const tabs = ["Histórico de Vendas", "Faturas e Pagamentos"];
+  const [hist, setHist] = useState<Historico | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [tab, setTab] = useState<"vendas" | "pagamentos" | "comissoes">("vendas");
 
-  const handleDesativar = (motivo: string) => {
-    alert(`Cliente desativado com sucesso!\nMotivo registrado no histórico: ${motivo}`);
-    setModalDesativarOpen(false);
-  };
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    ClientesService.historico(id)
+      .then((res: any) => setHist(res))
+      .catch(() => setErro("Não foi possível carregar o histórico deste cliente."))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  const c = hist?.cliente;
+  const r = hist?.resumo;
 
   return (
     <div className="flex min-h-screen font-inter bg-[#F5F5F7]">
       <Sidebar />
-
       <div className="flex-1 ml-[240px] flex flex-col min-h-screen transition-all duration-300">
         <Topbar />
-
         <main className="p-[24px_32px_32px_32px] flex-1 flex flex-col">
-          
           <div className="w-full flex flex-col max-w-[1200px] mx-auto">
-            
             {/* Breadcrumb */}
             <div className="flex items-center text-[13px] text-[#6B7280] mb-[20px]">
-              <Link href="/gestao-comercial/clientes" className="hover:text-[#6D28D9] transition-colors">{t("Clientes")}</Link>
+              <Link href="/gestao-comercial/clientes" className="hover:text-[#6D28D9] transition-colors">
+                Clientes
+              </Link>
               <span className="mx-[8px]">/</span>
-              <span className="text-[#1A1A2E] font-[600]">Comunidade Evangelica Atos 1</span>
+              <span className="text-[#1A1A2E] font-[600]">{c?.nome ?? "Carregando..."}</span>
             </div>
 
-            {/* HEADER DA PÁGINA */}
-            <div className="flex items-center justify-between mb-[24px]">
-              <div className="flex items-center gap-[16px]">
-                <div className="w-[48px] h-[48px] rounded-[12px] bg-[#F4EEFF] flex items-center justify-center shrink-0 border border-[#E9D5FF] shadow-sm">
-                  <Contact className="w-[24px] h-[24px] text-[#7C3AED]" strokeWidth={2.2} />
-                </div>
-                <div className="flex flex-col justify-center">
-                  <h1 className="text-[24px] font-[800] text-[#1A1A2E] leading-tight tracking-tight">{t("Histórico do cliente")}</h1>
-                  <p className="text-[14px] text-[#6B7280] mt-1">{t("Acompanhe a evolução, histórico de vendas e dados deste cliente.")}</p>
-                </div>
-              </div>
-            </div>
+            {loading && <div className="text-[#6B7280] text-[14px]">Carregando histórico...</div>}
+            {erro && <div className="text-[#B42318] text-[14px] bg-[#FEF3F2] p-[16px] rounded-[12px]">{erro}</div>}
 
-            {/* PROFILE CARD HORIZONTAL (Padrão Novo) */}
-            <div className="bg-white rounded-[16px] border border-[#E5E7EB] p-[24px] mb-[32px] shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex flex-col lg:flex-row items-center justify-between gap-[24px]">
-              
-              {/* Info Left */}
-              <div className="flex items-center gap-[20px]">
-                <div className="w-[80px] h-[80px] rounded-[16px] bg-[#F4EEFF] flex items-center justify-center border-4 border-[#F9FAFB] shadow-sm text-[28px] font-[800] text-[#6D28D9]">
-                  C
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-[12px] mb-[8px]">
-                    <h2 className="text-[20px] font-[800] text-[#1A1A2E]">Comunidade Evangelica Atos 1</h2>
-                    <span className="flex items-center gap-[4px] px-[8px] py-[2px] bg-[#ECFDF5] text-[#059669] text-[10px] font-[800] uppercase tracking-wide rounded-[4px]">
-                      <div className="w-[6px] h-[6px] rounded-full bg-[#059669]"></div>
-                      {t("Ativo")}
-                    </span>
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-x-[32px] gap-y-[8px]">
-                    <div className="flex items-center gap-[6px] text-[#4B5563] text-[13px] font-[500]">
-                      <MapPin className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                      Localidade não informada
+            {!loading && !erro && hist && (
+              <>
+                {/* HEADER */}
+                <div className="flex items-center justify-between mb-[24px]">
+                  <div className="flex items-center gap-[16px]">
+                    <div className="w-[48px] h-[48px] rounded-[12px] bg-[#F4EEFF] flex items-center justify-center shrink-0 border border-[#E9D5FF] shadow-sm">
+                      <Contact className="w-[24px] h-[24px] text-[#7C3AED]" strokeWidth={2.2} />
                     </div>
-                    <div className="flex items-center gap-[6px] text-[#4B5563] text-[13px] font-[500]">
-                      <Briefcase className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                      CNPJ: 33.878.959/0001-83
-                    </div>
-                    <div className="flex items-center gap-[6px] text-[#4B5563] text-[13px] font-[500]">
-                      <Phone className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                      (35) 99773-4256
+                    <div>
+                      <h1 className="text-[20px] font-[700] text-[#1A1A2E]">{c.nome}</h1>
+                      <div className="flex items-center gap-[16px] text-[13px] text-[#6B7280] mt-[2px]">
+                        <span className="flex items-center gap-[4px]"><User className="w-[14px] h-[14px]" /> Vendedor: {c.vendedor}</span>
+                        {c.telefone && <span className="flex items-center gap-[4px]"><Phone className="w-[14px] h-[14px]" /> {c.telefone}</span>}
+                        {c.email && <span className="flex items-center gap-[4px]"><Mail className="w-[14px] h-[14px]" /> {c.email}</span>}
+                      </div>
                     </div>
                   </div>
+                  <span className="px-[12px] py-[6px] rounded-[8px] text-[12px] font-[600] bg-[#F4EEFF] text-[#6D28D9] capitalize">
+                    {c.status ?? "—"}
+                  </span>
                 </div>
-              </div>
 
-              {/* Metrics Right (Do Print) */}
-              <div className="flex items-center gap-[16px] shrink-0">
-                <div className="bg-[#F4EEFF] border border-[#E9D5FF] rounded-[12px] p-[12px_16px] min-w-[140px]">
-                  <p className="text-[10px] font-[700] text-[#6D28D9] uppercase tracking-wider mb-[4px]">{t("Total de Vendas")}</p>
-                  <p className="text-[18px] font-[800] text-[#5B21B6]">1</p>
+                {/* CARDS DE RESUMO */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] mb-[24px]">
+                  <ResumoCard icon={<Wallet className="w-[18px] h-[18px]" />} label="Total pago" valor={money(r.total_pago)} />
+                  <ResumoCard icon={<CreditCard className="w-[18px] h-[18px]" />} label="Nº de pagamentos" valor={String(r.num_pagamentos)} />
+                  <ResumoCard icon={<TrendingUp className="w-[18px] h-[18px]" />} label="Ticket médio" valor={money(r.ticket_medio)} />
+                  <ResumoCard icon={<ShoppingBag className="w-[18px] h-[18px]" />} label="Comissão gerada" valor={money(r.total_comissao_vendedor)} />
                 </div>
-                <div className="bg-[#F0FDF4] border border-[#DCFCE7] rounded-[12px] p-[12px_16px] min-w-[140px]">
-                  <p className="text-[10px] font-[700] text-[#059669] uppercase tracking-wider mb-[4px]">{t("Valor Total Pago")}</p>
-                  <p className="text-[18px] font-[800] text-[#059669]">R$ 197,00</p>
+                <div className="text-[12px] text-[#6B7280] mb-[24px]">
+                  Primeiro pagamento: <b>{data(r.primeiro_pagamento)}</b> · Último pagamento: <b>{data(r.ultimo_pagamento)}</b> · Vendas: <b>{r.num_vendas}</b>
                 </div>
-                <div className="bg-[#FFFBEB] border border-[#FEF3C7] rounded-[12px] p-[12px_16px] min-w-[140px]">
-                  <p className="text-[10px] font-[700] text-[#D97706] uppercase tracking-wider mb-[4px]">{t("Ticket Médio")}</p>
-                  <p className="text-[18px] font-[800] text-[#D97706]">R$ 197,00</p>
-                </div>
-              </div>
 
-            </div>
-
-            {/* FILTERS & CONTENT AREA */}
-            <div className="flex flex-col lg:flex-row gap-[32px] items-start">
-              
-              {/* Left Column: Timeline / Tables */}
-              <div className="flex-1 w-full flex flex-col">
-                
-                {/* Tabs */}
-                <div className="flex items-center gap-[12px] mb-[24px] overflow-x-auto pb-2 scrollbar-hide">
-                  {tabs.map((tab, idx) => (
+                {/* TABS */}
+                <div className="flex gap-[4px] border-b border-[#E5E7EB] mb-[16px]">
+                  {([
+                    ["vendas", `Vendas (${hist.vendas.length})`],
+                    ["pagamentos", `Pagamentos (${hist.pagamentos.length})`],
+                    ["comissoes", `Comissões (${hist.comissoes.length})`],
+                  ] as const).map(([key, label]) => (
                     <button
-                      key={tab}
-                      onClick={() => setActiveTab(idx === 0 ? "Vendas" : "Faturas")}
-                      className={`h-[36px] px-[16px] rounded-full text-[13px] font-[600] whitespace-nowrap transition-colors border ${
-                        (activeTab === "Vendas" && idx === 0) || (activeTab === "Faturas" && idx === 1)
-                          ? 'bg-[#6D28D9] text-white border-[#6D28D9]' 
-                          : 'bg-white text-[#4B5563] border-[#E5E7EB] hover:bg-[#F9FAFB]'
+                      key={key}
+                      onClick={() => setTab(key)}
+                      className={`px-[16px] py-[10px] text-[14px] font-[600] border-b-2 -mb-[1px] transition-colors ${
+                        tab === key ? "border-[#7C3AED] text-[#6D28D9]" : "border-transparent text-[#6B7280] hover:text-[#1A1A2E]"
                       }`}
                     >
-                      {tab}
+                      {label}
                     </button>
                   ))}
                 </div>
 
-                {/* Content Area (Table instead of Timeline for Vendas) */}
-                {activeTab === "Vendas" && (
-                  <div className="bg-white rounded-[12px] border border-[#E5E7EB] overflow-hidden shadow-sm">
-                    <div className="grid grid-cols-[100px_1fr_1.5fr_1.5fr_120px_120px_100px] items-center px-[20px] h-[48px] bg-[#FCFCFD] border-b border-[#F1F1F4]">
-                      <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider">{t("ID Venda")}</span>
-                      <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider">{t("Data")}</span>
-                      <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider">{t("Plano")}</span>
-                      <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider">{t("Vendedor")}</span>
-                      <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider">{t("Recorrência")}</span>
-                      <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider">{t("Valor")}</span>
-                      <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider text-right">{t("Status")}</span>
-                    </div>
-                    <div className="grid grid-cols-[100px_1fr_1.5fr_1.5fr_120px_120px_100px] items-center px-[20px] h-[64px] bg-white border-b border-[#F1F1F4] hover:bg-[#F9FAFB] transition-colors">
-                      <span className="text-[13px] font-[700] text-[#1A1A2E]">#00016</span>
-                      <span className="text-[12px] text-[#6B7280]">Data não<br/>informada</span>
-                      <span className="text-[13px] font-[600] text-[#1A1A2E]">Personalizado</span>
-                      <span className="text-[13px] text-[#4B5563]">Vendedor<br/>de Testes</span>
-                      <span className="text-[13px] text-[#4B5563]">Mensal</span>
-                      <span className="text-[13px] font-[700] text-[#1A1A2E]">R$ 197,00</span>
-                      <div className="text-right">
-                        <span className="inline-flex items-center px-[8px] py-[2px] bg-[#ECFDF5] text-[#059669] text-[11px] font-[700] rounded-[6px]">
-                          Pago
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === "Faturas" && (
-                  <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-[40px] text-center shadow-sm">
-                    <p className="text-[14px] text-[#6B7280]">{t("Nenhuma fatura encontrada.")}</p>
-                  </div>
-                )}
-
-              </div>
-
-              {/* Right Column: Resumo do Histórico */}
-              <div className="w-full lg:w-[320px] shrink-0 flex flex-col gap-[16px]">
-                
-                {/* Outras Infos Card */}
-                <div className="bg-white border border-[#E5E7EB] rounded-[16px] p-[24px] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-                  <h3 className="text-[16px] font-[800] text-[#1A1A2E] mb-[20px]">{t("Detalhes Cadastrais")}</h3>
-                  
-                  <div className="flex flex-col gap-[16px]">
-                    <div className="flex items-center justify-between pb-[12px] border-b border-[#F1F1F4]">
-                      <div className="flex items-center gap-[8px] text-[13px] text-[#4B5563] font-[500]">
-                        <User className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                        {t("Responsável")}
-                      </div>
-                      <span className="text-[13px] font-[600] text-[#1A1A2E]">Não informado</span>
-                    </div>
-
-                    <div className="flex items-center justify-between pb-[12px] border-b border-[#F1F1F4]">
-                      <div className="flex items-center gap-[8px] text-[13px] text-[#4B5563] font-[500]">
-                        <Users className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                        {t("Membros")}
-                      </div>
-                      <span className="text-[13px] font-[600] text-[#1A1A2E]">0</span>
-                    </div>
-
-                    <div className="flex items-center justify-between pb-[12px] border-b border-[#F1F1F4]">
-                      <div className="flex items-center gap-[8px] text-[13px] text-[#4B5563] font-[500]">
-                        <Calendar className="w-[14px] h-[14px] text-[#9CA3AF]" />
-                        {t("Cadastrado em")}
-                      </div>
-                      <span className="text-[13px] font-[600] text-[#1A1A2E]">02/07/2026</span>
-                    </div>
-
-                    <div className="flex flex-col gap-[4px] pt-[4px]">
-                      <span className="text-[10px] font-[700] text-[#9CA3AF] uppercase tracking-wider">{t("Integração Asaas")}</span>
-                      <span className="text-[13px] font-[600] text-[#1A1A2E] bg-[#F9FAFB] p-[8px] rounded-[6px] border border-[#F1F1F4]">cus_000169148649</span>
-                    </div>
-                  </div>
+                {/* CONTEUDO DAS TABS */}
+                <div className="bg-white rounded-[12px] border border-[#EEE] overflow-hidden">
+                  {tab === "vendas" && (
+                    <Tabela
+                      cabecalho={["Data", "Plano", "Tipo", "Valor", "Parcelas", "Vendedor", "Status"]}
+                      vazio="Nenhuma venda registrada."
+                      linhas={hist.vendas.map((v) => [
+                        data(v.data_venda),
+                        v.plano || "—",
+                        v.tipo_negociacao || "—",
+                        money(v.valor),
+                        String(v.parcelas ?? 1),
+                        v.vendedor,
+                        v.status || "—",
+                      ])}
+                    />
+                  )}
+                  {tab === "pagamentos" && (
+                    <Tabela
+                      cabecalho={["Vencimento", "Pagamento", "Forma", "Valor", "Status"]}
+                      vazio="Nenhum pagamento registrado."
+                      linhas={hist.pagamentos.map((p) => {
+                        const st = statusPagamento(p.status);
+                        return [
+                          data(p.data_vencimento),
+                          data(p.data_pagamento),
+                          p.forma || "—",
+                          money(p.valor),
+                          <span key={p.id} className={`px-[8px] py-[3px] rounded-[6px] text-[12px] font-[600] ${st.cls}`}>{st.label}</span>,
+                        ];
+                      })}
+                    />
+                  )}
+                  {tab === "comissoes" && (
+                    <Tabela
+                      cabecalho={["Competência", "Tipo", "Vendedor", "Comissão", "Gestor", "Status"]}
+                      vazio="Nenhuma comissão registrada."
+                      linhas={hist.comissoes.map((c2) => [
+                        c2.competencia || "—",
+                        c2.tipo || "—",
+                        c2.vendedor,
+                        money(c2.valor_comissao),
+                        money(c2.valor_gerente),
+                        c2.status || "—",
+                      ])}
+                    />
+                  )}
                 </div>
-                
-                <button 
-                  onClick={() => setModalDesativarOpen(true)}
-                  className="w-full h-[48px] bg-white border border-[#EF4444] text-[#EF4444] font-[700] text-[14px] rounded-[10px] hover:bg-[#FEF2F2] transition-colors flex items-center justify-center gap-[8px]"
-                >
-                  <ShieldOff className="w-[18px] h-[18px]" strokeWidth={2.5} />
-                  {t("Desativar cliente")}
-                </button>
-
-              </div>
-
-            </div>
-
+              </>
+            )}
           </div>
         </main>
       </div>
-
-      <ModalDesativar
-        isOpen={modalDesativarOpen}
-        itemName="Comunidade Evangelica Atos 1"
-        title="Desativar Cliente"
-        description="Ao desativar este cliente, o acesso dele à área logada será suspenso. O histórico financeiro e de atendimentos será mantido intacto no sistema."
-        onClose={() => setModalDesativarOpen(false)}
-        onConfirm={handleDesativar}
-      />
     </div>
+  );
+}
+
+function ResumoCard({ icon, label, valor }: { icon: React.ReactNode; label: string; valor: string }) {
+  return (
+    <div className="bg-white rounded-[12px] border border-[#EEE] p-[16px]">
+      <div className="flex items-center gap-[8px] text-[#7C3AED] mb-[8px]">
+        <div className="w-[32px] h-[32px] rounded-[8px] bg-[#F4EEFF] flex items-center justify-center">{icon}</div>
+        <span className="text-[12px] text-[#6B7280]">{label}</span>
+      </div>
+      <div className="text-[20px] font-[700] text-[#1A1A2E]">{valor}</div>
+    </div>
+  );
+}
+
+function Tabela({
+  cabecalho,
+  linhas,
+  vazio,
+}: {
+  cabecalho: string[];
+  linhas: React.ReactNode[][];
+  vazio: string;
+}) {
+  if (linhas.length === 0) {
+    return (
+      <div className="p-[32px] text-center text-[#6B7280] text-[14px] flex flex-col items-center gap-[8px]">
+        <FileText className="w-[24px] h-[24px] text-[#D1D5DB]" />
+        {vazio}
+      </div>
+    );
+  }
+  return (
+    <table className="w-full text-[13px]">
+      <thead>
+        <tr className="bg-[#FAFAFB] text-[#6B7280] text-left">
+          {cabecalho.map((h) => (
+            <th key={h} className="px-[16px] py-[12px] font-[600]">{h}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {linhas.map((linha, i) => (
+          <tr key={i} className="border-t border-[#F0F0F2] text-[#1A1A2E]">
+            {linha.map((cel, j) => (
+              <td key={j} className="px-[16px] py-[12px]">{cel}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

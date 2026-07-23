@@ -1,0 +1,18 @@
+# Dependencias
+/node_modules
+node_modules/
+
+# Ambiente / segredos
+.env
+.env.*
+!.env.example
+!.env.docker.example
+CREDENCIAIS.txt
+
+# Lockfile da raiz (o app real fica em backend/ e frontend/)
+/package-lock.json
+
+# Backups / temporarios
+*.bak
+*.log
+.DS_Store

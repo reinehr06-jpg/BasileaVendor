@@ -19,7 +19,15 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    /*
+    | Origens permitidas. Configure via env CORS_ALLOWED_ORIGINS (separadas por
+    | virgula). Se nao definida, usa os dominios de producao conhecidos.
+    | Evite '*' em producao.
+    */
+    'allowed_origins' => array_filter(array_map('trim', explode(',', env(
+        'CORS_ALLOWED_ORIGINS',
+        'https://vendor.basileia.global,https://basileiavendas.onrender.com,http://localhost:3000,http://127.0.0.1:3000'
+    )))),
 
     'allowed_origins_patterns' => [],
 

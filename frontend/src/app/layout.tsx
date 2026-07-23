@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { LocaleProvider } from "@/context/LocaleContext";
 import { AuthProvider } from "@/context/AuthContext";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Basiléia Vendor OS",
@@ -20,7 +17,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${inter.variable} font-sans bg-[#F9FAFB] text-[#111827] antialiased`}>
+      <body className={`font-sans bg-[#F9FAFB] text-[#111827] antialiased`}>
         <LocaleProvider>
           <AuthProvider>
             {children}

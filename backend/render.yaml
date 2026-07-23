@@ -66,3 +66,23 @@ services:
         value: production
       - key: QUEUE_CONNECTION
         value: database
+
+  # ==========================================
+  # Scheduler (Cron do Laravel)
+  # ==========================================
+  # SEM este serviço, nenhum comando agendado roda (comissoes:processar,
+  # asaas:process-events, renovações, inadimplência, sync). A recorrência de
+  # comissão depende dele. schedule:work mantém o loop rodando a cada minuto.
+  - type: worker
+    name: basileia-vendas-scheduler
+    env: php
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php artisan config:clear
+    startCommand: |
+      php artisan schedule:work
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: QUEUE_CONNECTION
+        value: database

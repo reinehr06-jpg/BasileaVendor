@@ -29,26 +29,31 @@ export default function PagamentosPage() {
   const [pageSize, setPageSize] = useState(15);
   const [pagamentos, setPagamentos] = useState<any[]>([]);
 
+  const [kpis, setKpis] = useState({ total: 0, pagos: 0, pendentes: 0, recebido: "R$ 0,00" });
+
+  const money = (v: number) =>
+    "R$ " + Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   useEffect(() => {
-    FinanceiroService.listarPagamentos({ page: currentPage, search: busca }).then((res) => {
+    FinanceiroService.listarPagamentos({ page: currentPage, search: busca }).then((res: any) => {
       setPagamentos(res.data);
       if (res.meta) {
         setTotalPages(res.meta.last_page || 1);
         setTotalItems(res.meta.total || res.data.length);
       }
+      if (res.resumo) {
+        setKpis({
+          total: res.meta?.total ?? res.data.length,
+          pagos: res.resumo.num_recebidos ?? 0,
+          pendentes: (res.meta?.total ?? 0) - (res.resumo.num_recebidos ?? 0),
+          recebido: money(res.resumo.total_recebido),
+        });
+      }
     });
   }, [currentPage, busca]);
-  
+
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
-
-  // KPIs mockados da imagem (idealmente devem vir de um endpoint meta ou de resumo do backend)
-  const kpis = {
-    total: totalItems,
-    pagos: 0,
-    pendentes: 0,
-    recebido: "R$ 0,00"
-  };
 
   return (
     <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col">

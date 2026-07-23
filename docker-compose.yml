@@ -3,9 +3,9 @@ services:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: basileia_vendas
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: ${DB_DATABASE:-basileia_vendas}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
     volumes:
       - basileia_pgdata:/var/lib/postgresql/data
 
@@ -16,17 +16,19 @@ services:
     restart: unless-stopped
     expose:
       - "8000"
+    ports:
+      - "8000:8000"
     environment:
-      - APP_ENV=production
-      - APP_DEBUG=false
-      - APP_KEY=base64:nlLQ85gujQx+RhDcoo/D22uAI8yy01HIlmul8mH8YUU=
-      - APP_URL=https://vendor.basileia.global
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_KEY=${APP_KEY:?defina APP_KEY no .env}
+      - APP_URL=${APP_URL:-https://vendor.basileia.global}
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_DATABASE=basileia_vendas
-      - DB_USERNAME=postgres
-      - DB_PASSWORD=secret
+      - DB_DATABASE=${DB_DATABASE:-basileia_vendas}
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:?defina DB_PASSWORD no .env}
       - QUEUE_CONNECTION=database
       - CACHE_STORE=file
     volumes:
@@ -43,9 +45,10 @@ services:
     expose:
       - "3000"
     ports:
-      - "3005:3000"
+      - "8007:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=https://vendor.basileia.global/api
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-/api}
+      - BACKEND_ORIGIN=http://backend:8000
     depends_on:
       - backend
 

@@ -32,3 +32,9 @@ Schedule::command('clientes:sync-asaas --limit=200')->dailyAt('03:00')->withoutO
 // Roda a cada minuto processando eventos PENDING
 Schedule::command('asaas:process-events')->everyMinute()->withoutOverlapping();
 
+// Motor NOTURNO de comissão (rede de segurança).
+// Roda logo após a sincronização das 03:00: varre pagamentos confirmados que
+// ainda não geraram comissão e gera pelo motor único (idempotente). A trava do
+// fim do mês é aplicada dentro do motor. O webhook continua gerando em tempo real.
+Schedule::command('comissoes:processar')->dailyAt('03:10')->withoutOverlapping();
+

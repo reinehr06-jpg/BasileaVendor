@@ -20,7 +20,8 @@ use App\Http\Middleware\ApiKeyAuth;
 // Rotas Públicas Integracoes & Auth
 // ==========================================
 
-Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login']);
+Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])
+    ->middleware('throttle:5,1');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me']);
@@ -45,6 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/clientes', [\App\Http\Controllers\Api\ClienteController::class, 'index']);
     Route::post('/clientes', [\App\Http\Controllers\Api\ClienteController::class, 'store']);
     Route::get('/clientes/{id}', [\App\Http\Controllers\Api\ClienteController::class, 'show']);
+    Route::get('/clientes/{id}/historico', [\App\Http\Controllers\Api\ClienteController::class, 'historico']);
     Route::put('/clientes/{id}', [\App\Http\Controllers\Api\ClienteController::class, 'update']);
     Route::delete('/clientes/{id}', [\App\Http\Controllers\Api\ClienteController::class, 'destroy']);
 

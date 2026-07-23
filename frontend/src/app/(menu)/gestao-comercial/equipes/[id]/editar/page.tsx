@@ -91,7 +91,7 @@ export default function EditarEquipePage({ params }: { params: Promise<{ id: str
     const payload = {
       ...formData,
       gestor_id: formData.gestor_id ? Number(formData.gestor_id) : undefined,
-      meta_mensal: formData.meta_mensal ? Number(formData.meta_mensal.replace(/\D/g, '')) / 100 : 0
+      meta_mensal: formData.meta_mensal ? Number(String(formData.meta_mensal).replace(/\D/g, '')) / 100 : 0
     };
 
     try {

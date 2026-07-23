@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
@@ -43,7 +44,7 @@ export default function VendedorProfilePage({ params }: { params: Promise<{ id: 
   const tabs = ["Todos", "Alterações cadastrais", "Vendas", "Comissões", "Ocorrências", "Contratos"];
 
   const handleDesativar = (motivo: string) => {
-    alert(`Vendedor desativado com sucesso!\nMotivo registrado no histórico: ${motivo}`);
+    toast.success(`Vendedor desativado com sucesso!\nMotivo registrado no histórico: ${motivo}`);
     setModalDesativarOpen(false);
   };
 

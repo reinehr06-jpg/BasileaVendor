@@ -26,7 +26,7 @@ import { useTranslation } from "react-i18next";
 import { DashboardService, DashboardData } from "@/services/dashboard.service";
 import { useAuth } from "@/context/AuthContext";
 
-// MOCK DATA
+
 const desempenhoComercialData = [
   { name: "01/06", valor: 0 },
   { name: "05/06", valor: 150 },

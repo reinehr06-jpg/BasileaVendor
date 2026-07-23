@@ -21,15 +21,30 @@ chmod -R 775 storage bootstrap/cache
 # Link de storage
 php artisan storage:link --force 2>/dev/null || true
 
-# Limpar caches
+# Limpar caches (inclusive de pacotes dev)
 echo "Limpando caches..."
-php artisan config:clear || true
-php artisan route:clear || true
+php artisan optimize:clear || true
+php artisan package:discover || true
 
-# Pular espera do banco se quiser testar apenas o boot
 echo "Verificando variáveis de ambiente..."
 echo "APP_ENV: $APP_ENV"
 echo "DB_HOST: $DB_HOST"
+
+# Garante APP_KEY (se estiver vazio, gera uma).
+php artisan key:generate --force 2>/dev/null || true
+
+# Aguarda o banco ficar pronto e roda as migrations (idempotente).
+echo "Aguardando banco e rodando migrations..."
+for i in $(seq 1 30); do
+  if php artisan migrate --force 2>&1; then
+    echo "Migrations aplicadas."
+    # Cria o usuário master (seeder idempotente).
+    php artisan db:seed --class=CreateAdminUserSeeder --force 2>&1 || true
+    break
+  fi
+  echo "Banco ainda não pronto (tentativa $i/30). Aguardando 2s..."
+  sleep 2
+done
 
 echo "Iniciando Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisor.conf

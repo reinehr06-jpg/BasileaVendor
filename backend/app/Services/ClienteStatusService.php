@@ -76,8 +76,11 @@ class ClienteStatusService
                 fn ($p) => strtoupper($p['status'] ?? '') === 'OVERDUE' && empty($p['deleted'])
             );
 
-            // Atraso maior que 30 dias para OVERDUE
-            $atrasoMaiorQue30Dias = false;
+            // Regra de status do cliente:
+            //   Ativo   -> pagamento em dia
+            //   Pendente-> pagamento atrasado (até 7 dias)
+            //   Churn   -> atrasado há MAIS de 7 dias
+            $atrasoMaiorQue7Dias = false;
             if ($temVencidoNaAssinaturaAtiva) {
                 $ultimoVencido = collect($pagamentos)
                     ->filter(fn ($p) => strtoupper($p['status'] ?? '') === 'OVERDUE' && empty($p['deleted']))
@@ -86,20 +89,20 @@ class ClienteStatusService
 
                 if ($ultimoVencido && !empty($ultimoVencido['dueDate'])) {
                     $diasAtraso = Carbon::parse($ultimoVencido['dueDate'])->diffInDays(now(), false);
-                    if ($diasAtraso > 30) {
-                        $atrasoMaiorQue30Dias = true;
+                    if ($diasAtraso > 7) {
+                        $atrasoMaiorQue7Dias = true;
                     }
                 }
             }
 
             // Aplicar precedência rígida
             $statusEncontrado = match (true) {
-                $temChargeback => 'cancelado', // O bd suporta cancelado/ativo/pendente/inadimplente/churn
-                $temVencidoNaAssinaturaAtiva && $atrasoMaiorQue30Dias => 'churn',
-                $temVencidoNaAssinaturaAtiva => 'inadimplente',
-                $assinaturaAtiva && $pagamentosValidos->isEmpty() => 'pendente', // pendente_primeiro_pagamento vira pendente
-                $assinaturaAtiva && $pagamentosValidos->isNotEmpty() => 'ativo',
-                default => 'cancelado', // inativo vira cancelado
+                $temChargeback => 'cancelado',
+                $temVencidoNaAssinaturaAtiva && $atrasoMaiorQue7Dias => 'churn',      // atrasado > 7 dias
+                $temVencidoNaAssinaturaAtiva => 'pendente',                           // atrasado até 7 dias
+                $assinaturaAtiva && $pagamentosValidos->isEmpty() => 'pendente',      // aguardando 1º pagamento
+                $assinaturaAtiva && $pagamentosValidos->isNotEmpty() => 'ativo',      // em dia
+                default => 'cancelado',
             };
 
             $resultado['status'] = $statusEncontrado;
@@ -331,22 +334,20 @@ class ClienteStatusService
             return 'cancelado';
         }
 
-        // 3. Vencido no Asaas ou vencimento passou → INADIMPLENTE ou CHURN
+        // 3. Vencido / vencimento passou → PENDENTE (até 7 dias) ou CHURN (> 7 dias)
         $isOverdue = $statusPagamento === 'OVERDUE'
             || ($vencimento && $vencimento->isPast() && !in_array($statusPagamento, ['RECEIVED', 'CONFIRMED', 'PAGO']));
 
         if ($isOverdue) {
-            // Se já foi pago no passado e o atraso é > 30 dias → CHURN
-            if ($jafoiPago && $vencimento && $vencimento->diffInDays(now()) > 30) {
-                return 'churn';
+            if ($vencimento && $vencimento->diffInDays(now()) > 7) {
+                return 'churn';       // atrasado há mais de 7 dias
             }
-            return 'inadimplente';
+            return 'pendente';        // atrasado até 7 dias
         }
 
         // 4. Pendente dentro do prazo
         if ($statusPagamento === 'PENDING' || $statusPagamento === 'AWAITING_RISK_ANALYSIS') {
-            // Se já foi pago no passado e está pendente há muito tempo → churn
-            if ($jafoiPago && $vencimento && $vencimento->diffInDays(now()) > 30) {
+            if ($vencimento && $vencimento->isPast() && $vencimento->diffInDays(now()) > 7) {
                 return 'churn';
             }
             return 'pendente';

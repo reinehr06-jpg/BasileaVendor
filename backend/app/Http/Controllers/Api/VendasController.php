@@ -12,7 +12,7 @@ class VendasController extends Controller
     {
         $user = $request->user();
         $vendedorId = $user->vendedor->id ?? null;
-        $isGestor = $user->role === 'gestor' || $user->role === 'admin' || $user->role === 'master';
+        $isGestor = in_array($user->perfil, ['gestor', 'admin', 'master']);
 
         $query = Venda::with(['cliente', 'vendedor.user']);
 
@@ -49,7 +49,7 @@ class VendasController extends Controller
     {
         $user = $request->user();
         $vendedorId = $user->vendedor->id ?? null;
-        $isGestor = $user->role === 'gestor' || $user->role === 'admin' || $user->role === 'master';
+        $isGestor = in_array($user->perfil, ['gestor', 'admin', 'master']);
 
         $venda = Venda::with(['cliente', 'vendedor.user'])->findOrFail($id);
 
@@ -79,7 +79,7 @@ class VendasController extends Controller
         $vendedorId = $request->input('vendedor_id');
         
         // Se não for gestor, força a venda a ser do próprio vendedor logado
-        $isGestor = $user->role === 'gestor' || $user->role === 'admin' || $user->role === 'master';
+        $isGestor = in_array($user->perfil, ['gestor', 'admin', 'master']);
         if (!$isGestor) {
             $vendedorId = $user->vendedor->id ?? null;
         }

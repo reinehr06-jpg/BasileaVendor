@@ -12,6 +12,9 @@ export const ClientesService = {
   obterPorId: async (id: number | string) => {
     return api.get(`/clientes/${id}`);
   },
+  historico: async (id: number | string) => {
+    return api.get(`/clientes/${id}/historico`);
+  },
   criar: async (data: any) => {
     return api.post(`/clientes`, data);
   },

@@ -19,7 +19,7 @@ import {
   Trash2
 } from "lucide-react";
 
-// MOCK DATA
+
 
 
 export default function GestorMinhasVendasPage() {

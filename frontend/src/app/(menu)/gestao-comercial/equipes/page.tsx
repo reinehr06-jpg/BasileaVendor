@@ -1,5 +1,6 @@
 "use client";
 import { EquipesService } from "@/services/equipes.service";
+import { toast } from "sonner";
 
 
 import React, { useState, useEffect } from "react";
@@ -48,7 +49,7 @@ export default function EquipesPage() {
   const handleConfirmarDesativacao = (motivo: string) => {
     if (modalDesativar.id) {
       setEquipes(prev => prev.map(e => e.id === modalDesativar.id ? { ...e, status: "Inativa" } : e));
-      alert(`Equipe desativada com sucesso!\nMotivo salvo no histórico: ${motivo}`);
+      toast.success(`Equipe desativada com sucesso!\nMotivo salvo no histórico: ${motivo}`);
     }
     setModalDesativar({ isOpen: false, id: null, nome: "" });
   };

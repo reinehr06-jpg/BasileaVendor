@@ -388,7 +388,9 @@ class AsaasClienteSyncController extends Controller
         $comissaoVendedor = 0;
         $comissaoGestor = 0;
 
-        if ($vendedorId && ($validated['diagnostico_status'] ?? $cliente->diagnostico_status) === 'ATIVO') {
+        // Calcula a comissão para QUALQUER status (inclusive CHURN/CANCELADO),
+        // pois o histórico retroativo precisa existir mesmo para clientes inativos.
+        if ($vendedorId) {
             $vendedor = Vendedor::find($vendedorId);
             if ($vendedor) {
                 // Priorizar valor que veio do form para o cálculo da comissão atual
@@ -1349,135 +1351,139 @@ class AsaasClienteSyncController extends Controller
     {
         $dataRef = $import->primeiro_pagamento_at ?? $import->ultimo_pagamento_confirmado_at ?? now();
         if ($dataRef == '0000-00-00 00:00:00') $dataRef = now();
-        
-        $start = Carbon::parse($dataRef)->startOfMonth();
-        $end = Carbon::now()->startOfMonth();
-        
-        $tipoCobranca = $import->tipo_cobranca ?? 'subscription';
-        
-        if ($tipoCobranca === 'installment') {
-            // Para parcelamento, gera a quantidade exata de parcelas que já foram pagas
-            $parcelasPagas = (int) ($import->parcelas_pagas ?? 1);
-            if ($parcelasPagas < 1) $parcelasPagas = 1;
-            $end = $start->copy()->addMonths($parcelasPagas - 1);
-        } else {
-            // Para assinatura ou avulso, sempre trava no último pagamento confirmado,
-            // independentemente do status ser ACTIVE, para não gerar comissões de meses não pagos.
-            $ultimoPg = $import->ultimo_pagamento_confirmado_at ?? $dataRef;
-            if ($ultimoPg != '0000-00-00 00:00:00') {
-                $end = Carbon::parse($ultimoPg)->startOfMonth();
-            } else {
-                $end = $start->copy();
-            }
-        }
 
-        $mesAtualCalc = $start->copy();
-        $countMeses = 0;
-        
-        $valorPlano = (float) ($import->valor_plano_mensal ?? 0);
+        $start = Carbon::parse($dataRef)->startOfDay();
+
+        $tipoCobranca  = $import->tipo_cobranca ?? 'subscription';
+        $valorPlano    = (float) ($import->valor_plano_mensal ?? 0);
         $parcelasTotal = (int) ($import->parcelas_total ?? 1);
-        
-        $percIni    = (float) ($vendedor->comissao_inicial ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0);
-        $percRec    = (float) ($vendedor->comissao_recorrencia ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0);
-        $percGstIni = (float) ($vendedor->comissao_gestor_primeira ?? 0);
-        $percGstRec = (float) ($vendedor->comissao_gestor_recorrencia ?? 0);
-        
-        if ($percGstIni == 0 && !empty($vendedor->gestor_id)) {
-            $perfilGestor = \App\Models\Vendedor::where('usuario_id', $vendedor->gestor_id)->first();
-            if ($perfilGestor && $perfilGestor->comissao_gestor_primeira > 0) {
-                $percGstIni = (float) $perfilGestor->comissao_gestor_primeira;
-                $percGstRec = (float) $perfilGestor->comissao_gestor_recorrencia;
-            }
+
+        // Percentuais do vendedor (mesma regra do motor único).
+        $percIni = (float) ($vendedor->comissao_inicial ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0);
+        $percRec = (float) ($vendedor->comissao_recorrencia ?: $vendedor->comissao ?: $vendedor->percentual_comissao ?: 0);
+
+        // Gestor: % vem do cadastro do gestor; NÃO fabrica 5%. Só entra se há
+        // um gestor acima do vendedor (regra 4).
+        $temGestor = ! empty($vendedor->gestor_id) && (int) $vendedor->gestor_id !== (int) $vendedor->usuario_id;
+        $percGIni = 0.0;
+        $percGRec = 0.0;
+        if ($temGestor) {
+            $perfil = \App\Models\Vendedor::where('usuario_id', $vendedor->gestor_id)->first();
+            $percGIni = (float) (($perfil->comissao_gestor_primeira ?? 0) ?: ($vendedor->comissao_gestor_primeira ?? 0));
+            $percGRec = (float) (($perfil->comissao_gestor_recorrencia ?? 0) ?: ($vendedor->comissao_gestor_recorrencia ?? 0));
         }
-        
-        if ($vendedor->is_gestor && $percGstIni == 0) {
-            $sub = \App\Models\Vendedor::where('gestor_id', $vendedor->usuario_id)->where('comissao_gestor_primeira', '>', 0)->first();
-            if ($sub) {
-                $percGstIni = (float) $sub->comissao_gestor_primeira;
-                $percGstRec = (float) $sub->comissao_gestor_recorrencia;
-            } else {
-                $percGstIni = 5; $percGstRec = 5;
-            }
-        }
+        $gestorId = $temGestor ? $vendedor->gestor_id : null;
 
-        $lcComissaoTipo = $import->comissao_tipo ?? 'recorrencia';
-        $gestorId = !empty($vendedor->gestor_id) ? $vendedor->gestor_id : null;
-        $rule = \App\Models\CommissionRule::forPlan($import->plano_nome ?? '');
+        // ── PARCELADO: antecipa 100% na 1ª parcela (regra 5) ──
+        if ($tipoCobranca === 'installment') {
+            $parcelas = max(2, $parcelasTotal); // garante o modelo antecipado
+            $res = \App\Services\Commission\CommissionCalculator::calcular([
+                'tipo_negociacao'            => 'parcelado',
+                'parcelas'                   => $parcelas,
+                'valor_total'                => $valorPlano * $parcelasTotal,
+                'pagamento_valor'            => $valorPlano,
+                'pagamento_data'             => $start->format('Y-m-d'),
+                'vencimento_data'            => $start->format('Y-m-d'),
+                'perc_inicial'               => $percIni,
+                'perc_recorrencia'           => $percRec,
+                'perc_gestor_inicial'        => $percGIni,
+                'perc_gestor_recorrencia'    => $percGRec,
+                'tem_gestor'                 => $temGestor,
+                'primeira_comissao_da_venda' => true,
+            ]);
 
-        while ($mesAtualCalc <= $end) {
-            $countMeses++;
-            $mesStr = $mesAtualCalc->format('Y-m');
-            
-            $cv = 0; $cg = 0;
-            $tipo = 'recorrencia';
-            
-            if ($lcComissaoTipo === 'inicial_antecipada') {
-                if ($countMeses === 1) {
-                    $restantes = max(0, $parcelasTotal - 1);
-                    if ($rule) {
-                        $cv = $rule->seller_fixed_value_first_payment + ($rule->seller_fixed_value_recurring * $restantes);
-                        $cg = $rule->manager_fixed_value_first_payment + ($rule->manager_fixed_value_recurring * $restantes);
-                    } else {
-                        $cv = ($valorPlano * ($percIni / 100)) + ($valorPlano * ($percRec / 100) * $restantes);
-                        $cg = ($valorPlano * ($percGstIni / 100)) + ($valorPlano * ($percGstRec / 100) * $restantes);
-                    }
-                    $tipo = 'inicial_antecipada';
-                }
-            } elseif ($lcComissaoTipo === 'inicial') {
-                if ($countMeses === 1) {
-                    $cv = $rule ? $rule->seller_fixed_value_first_payment : ($valorPlano * ($percIni / 100));
-                    $cg = $rule ? $rule->manager_fixed_value_first_payment : ($valorPlano * ($percGstIni / 100));
-                    $tipo = 'inicial';
-                } else {
-                    if (($import->tipo_cobranca ?? '') === 'installment' && $countMeses > $parcelasTotal) {
-                        // Sem comissão após parcelamento
-                    } else {
-                        $cv = $rule ? $rule->seller_fixed_value_recurring : ($valorPlano * ($percRec / 100));
-                        $cg = $rule ? $rule->manager_fixed_value_recurring : ($valorPlano * ($percGstRec / 100));
-                    }
-                }
-            } else {
-                if (($import->tipo_cobranca ?? '') === 'installment' && $countMeses > $parcelasTotal) {
-                    // Sem comissão
-                } else {
-                    $cv = $rule ? $rule->seller_fixed_value_recurring : ($valorPlano * ($percRec / 100));
-                    $cg = $rule ? $rule->manager_fixed_value_recurring : ($valorPlano * ($percGstRec / 100));
-                }
-            }
-            
-            if ($rule) {
-                if ($cv == 0 && $rule->seller_fixed_value_first_payment == 0 && $rule->seller_fixed_value_recurring == 0) {
-                    $cv = in_array($tipo, ['inicial', 'inicial_antecipada']) ? ($valorPlano * ($percIni / 100)) : ($valorPlano * ($percRec / 100));
-                }
-                if ($cg == 0 && $rule->manager_fixed_value_first_payment == 0 && $rule->manager_fixed_value_recurring == 0) {
-                    $cg = in_array($tipo, ['inicial', 'inicial_antecipada']) ? ($valorPlano * ($percGstIni / 100)) : ($valorPlano * ($percGstRec / 100));
-                }
-            }
-
-            if ($cv > 0 || $cg > 0) {
-                \App\Models\Comissao::updateOrCreate(
-                    [
-                        'vendedor_id' => $vendedor->id,
-                        'cliente_id'  => $clienteId,
-                        'venda_id'    => $vendaId,
-                        'competencia' => $mesStr,
-                    ],
-                    [
-                        'gerente_id'          => $gestorId,
-                        'tipo_comissao'       => $tipo,
-                        'percentual_aplicado' => in_array($tipo, ['inicial', 'inicial_antecipada']) ? $percIni : $percRec,
-                        'percentual_gerente'  => in_array($tipo, ['inicial', 'inicial_antecipada']) ? $percGstIni : $percGstRec,
-                        'valor_venda'         => $valorPlano,
-                        'valor_comissao'      => $cv,
-                        'valor_gerente'       => $cg,
-                        'status'              => 'confirmada', // Para o histórico passado, o pagamento já ocorreu
-                    ]
+            if ($res['gerar'] && ($res['valor_vendedor'] > 0 || $res['valor_gestor'] > 0)) {
+                $this->salvarComissaoHistorica(
+                    $vendedor->id, $clienteId, $vendaId, $start, $res,
+                    $valorPlano * $parcelasTotal, $gestorId, $start->format('Y-m')
                 );
             }
-            
-            $mesAtualCalc->addMonth();
-            if ($countMeses > 240) break; // Trava de segurança (20 anos)
+            return;
         }
+
+        // ── ASSINATURA / AVULSO: pinga mês a mês, do 1º ao último pagamento ──
+        $ultimoPg = $import->ultimo_pagamento_confirmado_at ?? $dataRef;
+        $end = ($ultimoPg != '0000-00-00 00:00:00') ? Carbon::parse($ultimoPg)->startOfDay() : $start->copy();
+
+        $mes    = $start->copy()->startOfMonth();
+        $endMes = $end->copy()->startOfMonth();
+        $count  = 0;
+
+        while ($mes <= $endMes) {
+            $count++;
+            $primeira = ($count === 1);
+
+            // Aproxima o dia do pagamento no mês (mesmo dia do 1º, limitado a 28).
+            $dataPgtoMes = $primeira
+                ? $start->copy()
+                : $mes->copy()->addDays(min($start->day, 28) - 1);
+
+            $res = \App\Services\Commission\CommissionCalculator::calcular([
+                'tipo_negociacao'            => ($tipoCobranca === 'subscription') ? 'mensal' : 'avulso',
+                'parcelas'                   => 1,
+                'valor_total'                => $valorPlano,
+                'pagamento_valor'            => $valorPlano,
+                'pagamento_data'             => $dataPgtoMes->format('Y-m-d'),
+                // Retroativo: assume-se que o mês foi efetivamente pago, então
+                // vencimento no mesmo mês (a trava de fim de mês não bloqueia).
+                'vencimento_data'            => $dataPgtoMes->format('Y-m-d'),
+                'perc_inicial'               => $percIni,
+                'perc_recorrencia'           => $percRec,
+                'perc_gestor_inicial'        => $percGIni,
+                'perc_gestor_recorrencia'    => $percGRec,
+                'tem_gestor'                 => $temGestor,
+                'primeira_comissao_da_venda' => $primeira,
+            ]);
+
+            if ($res['gerar'] && ($res['valor_vendedor'] > 0 || $res['valor_gestor'] > 0)) {
+                $this->salvarComissaoHistorica(
+                    $vendedor->id, $clienteId, $vendaId, $dataPgtoMes, $res,
+                    $valorPlano, $gestorId, $mes->format('Y-m')
+                );
+            }
+
+            $mes->addMonth();
+            if ($count > 240) break; // Trava de segurança (20 anos)
+        }
+    }
+
+    /**
+     * Persiste uma comissão histórica (retroativa) de forma idempotente,
+     * chaveada por (vendedor, cliente, venda, competência).
+     */
+    private function salvarComissaoHistorica(
+        int $vendedorId,
+        int $clienteId,
+        int $vendaId,
+        Carbon $dataPgto,
+        array $res,
+        float $valorVenda,
+        $gestorId,
+        string $competencia
+    ): void {
+        $eligibleAt = $dataPgto->copy()->addDays(7);
+        $status = $eligibleAt->isPast() ? 'confirmada' : 'aguardando_liberacao';
+
+        \App\Models\Comissao::updateOrCreate(
+            [
+                'vendedor_id' => $vendedorId,
+                'cliente_id'  => $clienteId,
+                'venda_id'    => $vendaId,
+                'competencia' => $competencia,
+            ],
+            [
+                'gerente_id'          => ($res['valor_gestor'] > 0) ? $gestorId : null,
+                'tipo_comissao'       => $res['tipo'],
+                'percentual_aplicado' => $res['perc_vendedor'],
+                'percentual_gerente'  => $res['perc_gestor'],
+                'valor_venda'         => $valorVenda,
+                'valor_comissao'      => $res['valor_vendedor'],
+                'valor_gerente'       => $res['valor_gestor'],
+                'status'              => $status,
+                'data_pagamento'      => $dataPgto,
+                'eligible_at'         => $eligibleAt,
+            ]
+        );
     }
 
     private function calcularComissao(object $import, Vendedor $vendedor): array

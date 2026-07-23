@@ -33,12 +33,27 @@ async function request<T = any>(path: string, options?: RequestInit): Promise<T>
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: {
       "Content-Type": "application/json",
+      "Accept": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options?.headers || {}),
     },
     ...options,
   });
   
+  // Lê o corpo com segurança: nunca deixa res.json() estourar em corpo vazio
+  // ou não-JSON (que no Safari/WebKit vira "The string did not match the
+  // expected pattern."). Sempre lemos como texto e tentamos parsear.
+  const parseBody = async (): Promise<any> => {
+    const text = await res.text().catch(() => "");
+    if (!text) return {};
+    try {
+      return JSON.parse(text);
+    } catch {
+      // Resposta não-JSON (ex.: página de erro HTML). Devolve como mensagem.
+      return { message: text };
+    }
+  };
+
   if (res.status === 401) {
     if (typeof document !== 'undefined') document.cookie = 'auth_token=; Max-Age=0; path=/';
     if (typeof localStorage !== 'undefined') localStorage.removeItem("auth_token");
@@ -47,19 +62,24 @@ async function request<T = any>(path: string, options?: RequestInit): Promise<T>
   }
 
   if (res.status === 422) {
-    const body = await res.json();
-    throw new Error(JSON.stringify(body.errors || body.message));
+    const body = await parseBody();
+    // Formata erros de validação do Laravel em texto legível.
+    if (body.errors && typeof body.errors === 'object') {
+      const msgs = Object.values(body.errors).flat().join('\n');
+      throw new Error(msgs || body.message || "Dados inválidos");
+    }
+    throw new Error(body.message || "Dados inválidos");
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+    const body = await parseBody();
     throw new Error(body.message ?? `Erro ${res.status}`);
   }
-  
-  // Para respostas vazias (ex: 204 No Content no DELETE)
+
+  // Respostas sem corpo (ex.: 204 No Content no DELETE)
   if (res.status === 204) return {} as T;
-  
-  return res.json();
+
+  return (await parseBody()) as T;
 }
 
 export const api = {

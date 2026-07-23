@@ -1,5 +1,6 @@
 "use client";
 import { VendedoresService } from "@/services/vendedores.service";
+import { toast } from "sonner";
 
 
 import React, { useState, useEffect } from "react";
@@ -51,8 +52,8 @@ export default function VendedoresPage() {
   const handleConfirmarDesativacao = (motivo: string) => {
     if (modalDesativar.id) {
       setVendedores(prev => prev.map(v => v.id === modalDesativar.id ? { ...v, status: "Inativo" } : v));
-      // alert mock para feedback
-      alert(`Vendedor desativado com sucesso!\nMotivo salvo no histórico: ${motivo}`);
+      toast.success(`Vendedor desativado com sucesso!\nMotivo salvo no histórico: ${motivo}`);
+      VendedoresService.listar().then(setVendedores);
     }
     setModalDesativar({ isOpen: false, id: null, nome: "" });
   };

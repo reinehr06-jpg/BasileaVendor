@@ -13,7 +13,7 @@ class FinanceiroController extends Controller
     {
         $user = $request->user();
         $vendedorId = $user->vendedor->id ?? null;
-        $isGestor = $user->role === 'gestor' || $user->role === 'admin' || $user->role === 'master';
+        $isGestor = in_array($user->perfil, ['gestor', 'admin', 'master']);
 
         $query = Comissao::with(['vendedor.user', 'cliente', 'venda']);
 
@@ -29,11 +29,28 @@ class FinanceiroController extends Controller
             });
         }
 
+        // Resumo (KPIs) sobre TODO o conjunto filtrado, não só a página.
+        $resumoQuery = (clone $query);
+        $totalComissao = (float) (clone $resumoQuery)->sum('valor_comissao');
+        $totalGestor   = (float) (clone $resumoQuery)->sum('valor_gerente');
+        $totalVendas   = (float) (clone $resumoQuery)->sum('valor_venda');
+        $numComissoes  = (clone $resumoQuery)->count();
+        $numVendedores = (clone $resumoQuery)->distinct('vendedor_id')->count('vendedor_id');
+        $ganhoTotal    = $totalComissao + $totalGestor;
+
         $comissoes = $query->orderBy('created_at', 'desc')->paginate(15);
 
         return response()->json([
             'success' => true,
             'data' => $comissoes->items(),
+            'resumo' => [
+                'num_comissoes'  => $numComissoes,
+                'num_vendedores' => $numVendedores,
+                'total_comissao' => round($ganhoTotal, 2),
+                'total_vendas'   => round($totalVendas, 2),
+                'comissao_media' => $totalVendas > 0 ? round(($ganhoTotal / $totalVendas) * 100, 1) : 0,
+                'comissao_media_valor' => $numComissoes > 0 ? round($ganhoTotal / $numComissoes, 2) : 0,
+            ],
             'meta' => [
                 'current_page' => $comissoes->currentPage(),
                 'last_page' => $comissoes->lastPage(),
@@ -46,7 +63,7 @@ class FinanceiroController extends Controller
     {
         $user = $request->user();
         $vendedorId = $user->vendedor->id ?? null;
-        $isGestor = $user->role === 'gestor' || $user->role === 'admin' || $user->role === 'master';
+        $isGestor = in_array($user->perfil, ['gestor', 'admin', 'master']);
 
         $query = Pagamento::with(['cliente', 'venda']);
 
@@ -64,11 +81,22 @@ class FinanceiroController extends Controller
             });
         }
 
+        // Resumo (KPIs) sobre todo o conjunto filtrado.
+        $pagos = ['RECEIVED', 'CONFIRMED', 'PAGO'];
+        $totalRecebido = (float) (clone $query)->whereIn('status', $pagos)->sum('valor');
+        $numRecebidos  = (clone $query)->whereIn('status', $pagos)->count();
+        $totalPendente = (float) (clone $query)->whereNotIn('status', array_merge($pagos, ['CANCELED', 'DELETED']))->sum('valor');
+
         $pagamentos = $query->orderBy('data_vencimento', 'desc')->paginate(15);
 
         return response()->json([
             'success' => true,
             'data' => $pagamentos->items(),
+            'resumo' => [
+                'total_recebido' => round($totalRecebido, 2),
+                'num_recebidos'  => $numRecebidos,
+                'total_pendente' => round($totalPendente, 2),
+            ],
             'meta' => [
                 'current_page' => $pagamentos->currentPage(),
                 'last_page' => $pagamentos->lastPage(),

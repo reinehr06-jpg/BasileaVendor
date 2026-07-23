@@ -56,12 +56,15 @@ export default function PagamentosPage() {
   const handlePageChange = (page: number) => setCurrentPage(page);
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
 
-  // Cálculos de KPI mockados
+  // KPIs calculados dos dados reais
+  const totalRecebido = pagamentos
+    .filter(p => ["Pago", "RECEIVED", "CONFIRMED", "PAGO"].includes(p.status))
+    .reduce((acc, p) => acc + Number(p.valor || 0), 0);
   const kpis = {
     total: pagamentos.length,
-    pagos: pagamentos.filter(p => p.status === "Pago").length,
-    pendentes: pagamentos.filter(p => p.status === "Pendente").length,
-    recebido: "R$ 65.066,05"
+    pagos: pagamentos.filter(p => ["Pago", "RECEIVED", "CONFIRMED", "PAGO"].includes(p.status)).length,
+    pendentes: pagamentos.filter(p => ["Pendente", "PENDING", "OVERDUE"].includes(p.status)).length,
+    recebido: "R$ " + totalRecebido.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
   };
 
   return (

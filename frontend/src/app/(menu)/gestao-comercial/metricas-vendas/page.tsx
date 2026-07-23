@@ -6,6 +6,9 @@ import Topbar from "@/components/Topbar";
 import CustomSelect from "@/components/CustomSelect";
 import { useTranslation } from "react-i18next";
 import { VendasService } from "@/services/vendas.service";
+import { MetricasService } from "@/services/metricas.service";
+import { VendedoresService } from "@/services/vendedores.service";
+import { EquipesService } from "@/services/equipes.service";
 import {
   PieChart,
   DollarSign,
@@ -40,16 +43,28 @@ export default function MetricasVendasPage() {
     topSellers: []
   });
 
+  const [vendedorOpts, setVendedorOpts] = useState<{ label: string; value: string }[]>([{ label: "Todos os Vendedores", value: "" }]);
+  const [equipeOpts, setEquipeOpts] = useState<{ label: string; value: string }[]>([{ label: "Todas as Equipes", value: "" }]);
+
   React.useEffect(() => {
-    VendasService.metricas().then((data) => {
-      const formatCurrency = (val: number) => 
+    VendedoresService.listar()
+      .then((vs: any[]) => setVendedorOpts([{ label: "Todos os Vendedores", value: "" }, ...(vs || []).map((v: any) => ({ label: v.nome ?? v.name ?? `#${v.id}`, value: String(v.id) }))]))
+      .catch(() => {});
+    EquipesService.listar()
+      .then((es: any[]) => setEquipeOpts([{ label: "Todas as Equipes", value: "" }, ...(es || []).map((e: any) => ({ label: e.nome ?? e.name ?? `#${e.id}`, value: String(e.id) }))]))
+      .catch(() => {});
+  }, []);
+
+  React.useEffect(() => {
+    MetricasService.obter({ vendedor_id: vendedorFiltro || undefined, equipe_id: equipeFiltro || undefined }).then((data) => {
+      const formatCurrency = (val: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
       setMetrics({
         total: formatCurrency(data.resumo?.receitaTotal || 0),
         confirmed: data.resumo?.totalVendas || 0,
         ticket: formatCurrency(data.resumo?.ticketMedio || 0),
-        churn: "0.0%", // TODO: Integrar churn futuramente
+        churn: `${data.resumo?.churn ?? 0}%`,
         chartData: data.receitaMensal?.map((m: any) => m.total) || [],
         topSellers: data.topVendedores?.map((s: any) => ({
           nome: s.name,
@@ -112,11 +127,7 @@ export default function MetricasVendasPage() {
 
                 <div className="w-full sm:w-auto">
                   <CustomSelect
-                    options={[
-                      { label: "Todas as Equipes", value: "" },
-                      { label: "Equipe Alpha", value: "Equipe Alpha" },
-                      { label: "Vendas Corporativas", value: "Vendas Corporativas" }
-                    ]}
+                    options={equipeOpts}
                     value={equipeFiltro}
                     onChange={setEquipeFiltro}
                     triggerClassName="h-[36px] bg-white min-w-[180px] text-[12px]"
@@ -126,12 +137,7 @@ export default function MetricasVendasPage() {
 
                 <div className="w-full sm:w-auto">
                   <CustomSelect
-                    options={[
-                      { label: "Todos os Vendedores", value: "" },
-                      { label: "Bruno Santana da Hora", value: "Bruno Santana da Hora" },
-                      { label: "Carolina de Souza", value: "Carolina de Souza" },
-                      { label: "Roger Guilherme", value: "Roger Guilherme" }
-                    ]}
+                    options={vendedorOpts}
                     value={vendedorFiltro}
                     onChange={setVendedorFiltro}
                     searchable={true}
@@ -213,10 +219,10 @@ export default function MetricasVendasPage() {
                 
               </div>
 
-              {/* Gráfico Simulado / Ranking */}
+              {/* Gráfico e ranking */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-[20px] flex-1">
                 
-                {/* Gráfico Fake */}
+                {/* Gráfico de receita */}
                 <div className="lg:col-span-2 bg-white rounded-[16px] border border-[#E5E7EB] shadow-[0_2px_12px_rgba(0,0,0,0.03)] p-[24px] flex flex-col">
                   <div className="flex items-center justify-between mb-6">
                     <h3 className="text-[16px] font-[700] text-[#111827]">{t("Receita ao Longo do Tempo")}</h3>

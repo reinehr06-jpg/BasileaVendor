@@ -11,6 +11,8 @@ use App\Mail\ClienteAcessoSuspenso;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use App\Services\CommissionEngineService;
+use App\Models\Pagamento;
 
 class ProcessAsaasEventsCommand extends Command
 {
@@ -65,6 +67,23 @@ class ProcessAsaasEventsCommand extends Command
                                 }
                             } catch (\Exception $e) {
                                 Log::error('[Church] Falha ao reativar/criar conta após pagamento asaas event', ['error' => $e->getMessage()]);
+                            }
+
+                            // ════════════════════════════════════════════════════════
+                            // Lógica de Comissões (Motor Automático)
+                            // ════════════════════════════════════════════════════════
+                            try {
+                                if (isset($payment['id'])) {
+                                    $pagamentoLocal = Pagamento::where('asaas_payment_id', $payment['id'])->first();
+                                    if ($pagamentoLocal && $pagamentoLocal->venda_id) {
+                                        $vendaLocal = \App\Models\Venda::find($pagamentoLocal->venda_id);
+                                        if ($vendaLocal && $vendaLocal->vendedor_id) {
+                                            CommissionEngineService::processarPagamento($pagamentoLocal, $vendaLocal);
+                                        }
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                Log::error('[Commission] Falha ao processar comissão no Webhook', ['error' => $e->getMessage(), 'payment_id' => $payment['id'] ?? null]);
                             }
                         }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "sonner";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
@@ -43,7 +44,7 @@ export default function EquipeProfilePage({ params }: { params: Promise<{ id: st
   const tabs = ["Todos", "Membros", "Vendas", "Metas", "Reuniões"];
 
   const handleDesativar = (motivo: string) => {
-    alert(`Equipe desativada com sucesso!\nMotivo registrado no histórico: ${motivo}`);
+    toast.success(`Equipe desativada com sucesso!\nMotivo registrado no histórico: ${motivo}`);
     setModalDesativarOpen(false);
   };
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use App\Models\Equipe;
 use App\Models\Venda;
 use Carbon\Carbon;
@@ -70,9 +71,16 @@ class EquipeController extends Controller
     {
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
-            'gestor_id' => 'nullable|exists:users,id|unique:equipes,gestor_id',
+            'gestor_id' => [
+                'nullable',
+                'exists:users,id',
+                // Unicidade só entre equipes ATIVAS (equipes inativas não travam).
+                Rule::unique('equipes', 'gestor_id')->where(fn ($q) => $q->where('status', 'ativa')),
+            ],
             'meta_mensal' => 'nullable|numeric',
             'cor' => 'nullable|string',
+        ], [
+            'gestor_id.unique' => 'Este gestor já é responsável por outra equipe ativa.',
         ]);
 
         $equipe = Equipe::create([
@@ -92,10 +100,19 @@ class EquipeController extends Controller
 
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
-            'gestor_id' => 'nullable|exists:users,id|unique:equipes,gestor_id,' . $equipe->id,
+            'gestor_id' => [
+                'nullable',
+                'exists:users,id',
+                // Unicidade entre equipes ATIVAS, ignorando a própria equipe.
+                Rule::unique('equipes', 'gestor_id')
+                    ->ignore($equipe->id)
+                    ->where(fn ($q) => $q->where('status', 'ativa')),
+            ],
             'meta_mensal' => 'nullable|numeric',
             'cor' => 'nullable|string',
-            'status' => 'string'
+            'status' => 'string',
+        ], [
+            'gestor_id.unique' => 'Este gestor já é responsável por outra equipe ativa.',
         ]);
 
         \Log::info('Tentando atualizar equipe', ['id' => $id, 'data' => $validated]);
