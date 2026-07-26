@@ -29,7 +29,7 @@ class DashboardController extends Controller
             });
         }
 
-        // Estatísticas Gerais (Semelhante ao que existia no Blade)
+        // Estatísticas Gerais
         $totalVendas = (clone $queryVendas)->count();
         $vendasAtivas = (clone $queryVendas)->whereNotIn('status', ['CANCELADO', 'EXPIRADO'])->count();
         
@@ -39,10 +39,31 @@ class DashboardController extends Controller
         // Total de Clientes Ativos
         $totalClientes = (clone $queryClientes)->count();
 
-        // Dados Mockados para os Gráficos (Para acelerar, depois podemos puxar do banco)
+        // ── Receita real dos últimos 6 meses (agrupado em PHP para ser DB-agnóstico) ──
+        $seisMesesAtras = \Carbon\Carbon::now()->subMonths(5)->startOfMonth();
+        $vendasPeriodo = (clone $queryVendas)
+            ->whereIn('status', ['PAGO', 'RECEIVED', 'CONFIRMED'])
+            ->where('created_at', '>=', $seisMesesAtras)
+            ->get(['created_at', 'valor']);
+
+        $porMes = [];
+        foreach ($vendasPeriodo as $v) {
+            $mesKey = \Carbon\Carbon::parse($v->created_at)->format('Y-m');
+            $porMes[$mesKey] = ($porMes[$mesKey] ?? 0) + (float) $v->valor;
+        }
+
+        $receitaMensalLabels = [];
+        $receitaMensalData = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $dataMes = \Carbon\Carbon::now()->subMonths($i);
+            $mesKey  = $dataMes->format('Y-m');
+            $receitaMensalLabels[] = ucfirst($dataMes->locale('pt_BR')->translatedFormat('M'));
+            $receitaMensalData[]   = round($porMes[$mesKey] ?? 0, 2);
+        }
+
         $chartReceitaData = [
-            'labels' => ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
-            'data' => [12000, 19000, 15000, 22000, 25000, $receitaBruta]
+            'labels' => $receitaMensalLabels,
+            'data'   => $receitaMensalData,
         ];
 
         return response()->json([

@@ -83,7 +83,71 @@ class GerarAnaliseVendedorJob implements ShouldQueue
             'leads_atendidos' => $leadsAtendidos,
             'conversoes' => $conversoes,
             'ticket_medio' => number_format($ticketMedio, 2, ',', '.'),
-            'tempo_medio_resposta' => '5 min', // TODO: calcular tempo real
+            'tempo_medio_resposta' => $this->calcularTempoMedioResposta($this->vendedorId, $dataInicio, $dataFim),
         ];
+    }
+
+    /**
+     * Calcula o tempo médio de resposta do vendedor no período com base nas
+     * mensagens de chat. Para cada conversa do vendedor no período, busca o
+     * delta entre a primeira mensagem inbound (do lead) e a primeira mensagem
+     * outbound subsequente (do vendedor). Retorna string legível ou null se
+     * não há dados suficientes.
+     */
+    private function calcularTempoMedioResposta(int $vendedorId, \Carbon\Carbon $inicio, \Carbon\Carbon $fim): ?string
+    {
+        // Conversas do vendedor com mensagens no período
+        $conversas = \App\Models\ChatConversa::where('vendedor_id', $vendedorId)
+            ->whereBetween('created_at', [$inicio, $fim])
+            ->pluck('id');
+
+        if ($conversas->isEmpty()) {
+            return null;
+        }
+
+        $tempos = [];
+
+        foreach ($conversas as $conversaId) {
+            // Primeira mensagem inbound (do lead/cliente)
+            $inbound = \App\Models\ChatMensagem::where('conversa_id', $conversaId)
+                ->where('direction', 'inbound')
+                ->orderBy('created_at')
+                ->first();
+
+            if (!$inbound) {
+                continue;
+            }
+
+            // Primeira mensagem outbound (do vendedor) após o inbound
+            $outbound = \App\Models\ChatMensagem::where('conversa_id', $conversaId)
+                ->where('direction', 'outbound')
+                ->where('created_at', '>', $inbound->created_at)
+                ->orderBy('created_at')
+                ->first();
+
+            if (!$outbound) {
+                continue;
+            }
+
+            $tempos[] = $outbound->created_at->diffInSeconds($inbound->created_at);
+        }
+
+        if (empty($tempos)) {
+            return null;
+        }
+
+        $mediaSeg = (int) round(array_sum($tempos) / count($tempos));
+
+        if ($mediaSeg < 60) {
+            return "{$mediaSeg} seg";
+        }
+
+        $minutos = (int) round($mediaSeg / 60);
+        if ($minutos < 60) {
+            return "{$minutos} min";
+        }
+
+        $horas = round($minutos / 60, 1);
+        return "{$horas} h";
     }
 }

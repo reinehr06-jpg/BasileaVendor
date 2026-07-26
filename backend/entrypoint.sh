@@ -30,8 +30,16 @@ echo "Verificando variáveis de ambiente..."
 echo "APP_ENV: $APP_ENV"
 echo "DB_HOST: $DB_HOST"
 
-# Garante APP_KEY (se estiver vazio, gera uma).
-php artisan key:generate --force 2>/dev/null || true
+# Garante APP_KEY: só gera se não estiver definida via variável de ambiente.
+# ATENÇÃO: se APP_KEY for regenerada, todos os tokens de criptografia (2FA,
+# recovery codes) ficam inválidos. Em produção sempre defina APP_KEY como
+# variável de ambiente fixa no painel de deploy.
+if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
+  echo "APP_KEY não definida — gerando uma nova. Configure APP_KEY como variável de ambiente fixa em produção."
+  php artisan key:generate --force 2>/dev/null || true
+else
+  echo "APP_KEY já definida via ambiente — pulando key:generate."
+fi
 
 # Aguarda o banco ficar pronto e roda as migrations (idempotente).
 echo "Aguardando banco e rodando migrations..."

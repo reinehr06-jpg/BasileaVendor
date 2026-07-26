@@ -23,6 +23,7 @@ import {
 import { useTranslation } from "react-i18next";
 
 import { VendasService } from "@/services/vendas.service";
+import { DashboardService } from "@/services/dashboard.service";
 
 export default function DashboardPage() {
   const { t } = useTranslation();
@@ -46,15 +47,19 @@ export default function DashboardPage() {
     else if (hour >= 12 && hour < 18) setGreeting("Boa tarde");
     else setGreeting("Boa noite");
 
-    VendasService.metricas().then(data => {
-      const formatCurrency = (val: number) => 
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+    const formatCurrency = (val: number) =>
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
+    // Busca métricas e clientes em paralelo
+    Promise.all([
+      VendasService.metricas().catch(() => null),
+      DashboardService.obterDados().catch(() => null),
+    ]).then(([metricas, dashboard]) => {
       setMetrics({
-        faturamento: formatCurrency(data.resumo?.receitaTotal || 0),
-        vendas: data.resumo?.totalVendas || 0,
-        clientes: 158, // TODO: Endpoint de clientes do vendedor
-        chartData: data.receitaMensal?.map((m: any) => ({ name: m.name, valor: m.total })) || [],
+        faturamento: formatCurrency(metricas?.resumo?.receitaTotal || 0),
+        vendas: metricas?.resumo?.totalVendas || 0,
+        clientes: dashboard?.kpis?.total_clientes ?? 0,
+        chartData: metricas?.receitaMensal?.map((m: any) => ({ name: m.name, valor: m.total })) || [],
       });
     });
   }, []);

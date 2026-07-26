@@ -74,6 +74,18 @@ class ChatWebhookController extends Controller
 
     public function metaLeads(Request $request)
     {
+        // Valida token de acesso quando CHAT_WEBHOOK_TOKEN estiver configurado
+        $expectedToken = config('services.chat.webhook_token', env('CHAT_WEBHOOK_TOKEN', ''));
+        if ($expectedToken) {
+            $receivedToken = $request->header('X-Hub-Signature-256')
+                ?? $request->header('X-Webhook-Token')
+                ?? $request->query('token');
+            if ($receivedToken !== $expectedToken) {
+                Log::warning('ChatWebhook: Meta token inválido', ['ip' => $request->ip()]);
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+        }
+
         $payload = $request->all();
         
         Log::info('ChatWebhook: Meta Lead received', $payload);
@@ -132,6 +144,20 @@ class ChatWebhookController extends Controller
 
     public function whatsapp(Request $request)
     {
+        // Valida token de acesso quando CHAT_WEBHOOK_TOKEN estiver configurado.
+        // O WhatsApp Cloud API envia o token de verificação como query param
+        // em GET (verificação) e como header em POST (mensagens).
+        $expectedToken = config('services.chat.webhook_token', env('CHAT_WEBHOOK_TOKEN', ''));
+        if ($expectedToken) {
+            $receivedToken = $request->header('X-Hub-Signature-256')
+                ?? $request->header('X-Webhook-Token')
+                ?? $request->query('hub_verify_token');
+            if ($receivedToken !== $expectedToken) {
+                Log::warning('ChatWebhook: WhatsApp token inválido', ['ip' => $request->ip()]);
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+        }
+
         $payload = $request->all();
         
         Log::info('ChatWebhook: WhatsApp message received', $payload);
