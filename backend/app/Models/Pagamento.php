@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Pagamento extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'venda_id', 'cliente_id', 'vendedor_id', 'asaas_payment_id',
         'valor', 'billing_type', 'forma_pagamento', 'forma_pagamento_real', 'status',

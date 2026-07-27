@@ -109,6 +109,16 @@ class MetricasVendasController extends Controller
             ->count();
         $churn = $totalClientes > 0 ? round(($inativos / $totalClientes) * 100, 1) : 0;
 
+        // ── Renovações (vendas com tipo_negociacao = 'anual' ou 'mensal' e status = 'Pago') ──
+        $renovacoesQuery = Venda::query();
+        if (! $isGestor && $vendedorId) {
+            $renovacoesQuery->where('vendedor_id', $vendedorId);
+        }
+        $renovacoes = (clone $renovacoesQuery)
+            ->whereIn('tipo_negociacao', ['anual', 'mensal'])
+            ->whereIn('status', ['Pago', 'PAGO', 'RECEIVED', 'CONFIRMED'])
+            ->count();
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -118,6 +128,7 @@ class MetricasVendasController extends Controller
                     'ticketMedio'  => round($ticketMedio, 2),
                     'churn'        => $churn,
                 ],
+                'renovacoes'      => $renovacoes, // NOVO CAMPO
                 'receitaMensal'   => $receitaMensal,
                 'vendasPorStatus' => $vendasPorStatus,
                 'topVendedores'   => $topVendedores,

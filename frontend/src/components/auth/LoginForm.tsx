@@ -30,11 +30,30 @@ export function LoginForm({ setIsRegistering }: { setIsRegistering: (val: boolea
     }
     
     try {
-      await login(result.data);
+      const res = await login(result.data);
+      
+      if (res?.requires_2fa_setup) {
+        localStorage.setItem('2fa_setup_user_id', res.user_id);
+        toast.info("Configuração Obrigatória", {
+          description: "Você precisa configurar a Autenticação em Duas Etapas."
+        });
+        router.push("/auth/2fa-setup");
+        return;
+      }
+      
+      if (res?.requires_2fa) {
+        localStorage.setItem('2fa_user_id', res.user_id);
+        toast.info("Verificação em Duas Etapas", {
+          description: "Insira o código gerado pelo seu aplicativo autenticador."
+        });
+        router.push("/auth/2fa");
+        return;
+      }
+
       toast.success("Login realizado com sucesso!", {
         description: "Redirecionando para o painel..."
       });
-      router.push("/auth/2fa");
+      router.push("/dashboard");
     } catch (err: any) {
       console.error("Erro no login", err);
       toast.error("Acesso negado", {

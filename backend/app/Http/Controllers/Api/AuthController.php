@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
+use App\Services\TwoFactorAuthService;
 
 class AuthController extends Controller
 {
@@ -27,9 +28,69 @@ class AuthController extends Controller
 
         // Deleta os tokens anteriores (opcional, para manter apenas 1 sessão)
         $user->tokens()->delete();
+        
+        $perfil = strtolower($user->perfil ?? 'vendedor');
+
+        // Verificar se é master/gestor e não tem 2FA
+        if (in_array($perfil, ['master', 'gestor']) && !$user->two_factor_secret) {
+            return response()->json([
+                'requires_2fa_setup' => true,
+                'user_id' => $user->id,
+                'message' => 'Você precisa configurar o 2FA para continuar.'
+            ]);
+        }
+
+        // NOVO: Verificar 2FA se estiver habilitado e com secret configurado
+        if ($user->two_factor_enabled && $user->two_factor_secret) {
+            return response()->json([
+                'requires_2fa' => true,
+                'user_id' => $user->id,
+            ]);
+        }
 
         // Gera novo token
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        $secure = env('SESSION_SECURE_COOKIE', app()->environment('production'));
+        
+        return response()->json([
+            'success' => true,
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'perfil' => strtolower($user->perfil ?? 'vendedor'),
+                'vendedor_id' => $user->vendedor?->id ?? null,
+                'termos_aceitos' => $user->termos_aceitos,
+            ]
+        ])->cookie('auth_token', $token, 1440, '/', null, $secure, true, false, 'Lax');
+    }
+
+    public function verify2fa(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'code' => 'required|string',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        if (!$user->two_factor_enabled || !$user->two_factor_secret) {
+            return response()->json(['error' => '2FA não ativado'], 400);
+        }
+
+        // The stored secret might have devices prefixed: "Dispositivo Principal|SECRET"
+        // Let's use the service to verify
+        $isValid = TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code);
+
+        if (!$isValid) {
+            return response()->json(['error' => 'Código inválido'], 401);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        $secure = env('SESSION_SECURE_COOKIE', app()->environment('production'));
 
         return response()->json([
             'success' => true,
@@ -38,11 +99,11 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->perfil ?? 'vendedor',
+                'perfil' => strtolower($user->perfil ?? 'vendedor'),
                 'vendedor_id' => $user->vendedor?->id ?? null,
                 'termos_aceitos' => $user->termos_aceitos,
             ]
-        ]);
+        ])->cookie('auth_token', $token, 1440, '/', null, $secure, true, false, 'Lax');
     }
 
     public function me(Request $request)
@@ -54,7 +115,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->perfil ?? 'vendedor',
+                'perfil' => strtolower($user->perfil ?? 'vendedor'),
                 'vendedor_id' => $user->vendedor?->id ?? null,
                 'termos_aceitos' => $user->termos_aceitos,
             ]
@@ -81,6 +142,6 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Logout realizado com sucesso.'
-        ]);
+        ])->withoutCookie('auth_token');
     }
 }

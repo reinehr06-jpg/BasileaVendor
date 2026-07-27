@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  login: (data: LoginPayload) => Promise<void>;
+  login: (data: LoginPayload) => Promise<any>;
   logout: () => Promise<void>;
   isLoading: boolean;
 }
@@ -30,32 +30,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  // Load token from local storage on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem("auth_token");
-    if (storedToken) {
-      setToken(storedToken);
-      // Opcional: Chamar AuthService.me() para validar o token e popular o User
-      AuthService.me()
-        .then(u => setUser(u))
-        .catch(() => {
-          localStorage.removeItem("auth_token");
-          document.cookie = "auth_token=; path=/; max-age=0";
-          setToken(null);
-        })
-        .finally(() => setIsLoading(false));
-    } else {
-      setIsLoading(false);
-    }
+    // Agora o cookie é HttpOnly e não pode ser lido pelo JS.
+    // Tentamos buscar o usuário (a API usará o cookie automaticamente).
+    AuthService.me()
+      .then(u => {
+        setUser(u);
+        setToken("http-only-token"); // Apenas marcando que temos token
+      })
+      .catch(() => {
+        setToken(null);
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const login = async (data: LoginPayload) => {
     const res = await AuthService.login(data);
-    setToken(res.token);
+    
+    if (res.requires_2fa || res.requires_2fa_setup) {
+      return res;
+    }
+    
+    setToken(res.token || "http-only-token");
     setUser(res.user);
-    // Guarda no localStorage também, ou usa cookies via backend HttpOnly
-    localStorage.setItem("auth_token", res.token);
-    document.cookie = `auth_token=${res.token}; path=/; max-age=86400`;
+    // document.cookie removido pois o backend agora envia como HttpOnly
+    return res;
   };
 
   const logout = async () => {
@@ -66,8 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null);
     setToken(null);
-    localStorage.removeItem("auth_token");
-    document.cookie = "auth_token=; path=/; max-age=0";
     router.push("/");
   };
 

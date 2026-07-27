@@ -34,11 +34,20 @@ echo "DB_HOST: $DB_HOST"
 # ATENÇÃO: se APP_KEY for regenerada, todos os tokens de criptografia (2FA,
 # recovery codes) ficam inválidos. Em produção sempre defina APP_KEY como
 # variável de ambiente fixa no painel de deploy.
-if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
-  echo "APP_KEY não definida — gerando uma nova. Configure APP_KEY como variável de ambiente fixa em produção."
-  php artisan key:generate --force 2>/dev/null || true
+if [ "$APP_ENV" = "production" ] || [ "$APP_ENV" = "prod" ]; then
+  if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
+    echo "ERRO FATAL: APP_KEY não configurada em produção. Configure a variável de ambiente APP_KEY."
+    echo "Gerar uma nova APP_KEY invalidaria todos os tokens de criptografia (2FA, recovery codes, sessões)."
+    exit 1
+  fi
+  echo "APP_KEY configurada para produção."
 else
-  echo "APP_KEY já definida via ambiente — pulando key:generate."
+  if [ -z "$APP_KEY" ] || [ "$APP_KEY" = "base64:" ]; then
+    echo "APP_KEY não definida — gerando uma nova (ambiente: ${APP_ENV:-local})."
+    php artisan key:generate --force 2>/dev/null || true
+  else
+    echo "APP_KEY já definida via ambiente — pulando key:generate."
+  fi
 fi
 
 # Aguarda o banco ficar pronto e roda as migrations (idempotente).

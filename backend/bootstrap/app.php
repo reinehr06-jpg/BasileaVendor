@@ -62,6 +62,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         
         // Register security middleware groups
+        $middleware->api(prepend: [
+            \App\Http\Middleware\TokenFromCookie::class,
+        ]);
+
         $middleware->group('admin.security', [
             \App\Http\Middleware\Security\AdminSecurity::class,
             \App\Http\Middleware\Security\RateLimitByRole::class,

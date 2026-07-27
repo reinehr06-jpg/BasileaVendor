@@ -34,16 +34,16 @@ class CheckoutWebhookController extends Controller
             return response()->json(['error' => 'Missing signature'], 401);
         }
 
-        $data = $request->all();
-        $expected = hash_hmac('sha256', json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $secret);
+        $data = $request->getContent();
+        $expected = hash_hmac('sha256', $data, $secret);
 
         if (!hash_equals($expected, $signature)) {
             Log::warning('Checkout webhook: assinatura inválida', ['ip' => $request->ip()]);
             return response()->json(['error' => 'Invalid signature'], 401);
         }
 
-        $event = $request->input('event');
-        $transaction = $request->input('transaction', []);
+        $event = data_get(json_decode($data, true), 'event');
+        $transaction = data_get(json_decode($data, true), 'transaction', []);
 
         Log::info('Checkout webhook recebido', [
             'event' => $event, 

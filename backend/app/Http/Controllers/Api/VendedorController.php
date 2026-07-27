@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreVendedorRequest;
 use Illuminate\Http\Request;
+use App\Http\Requests\UpdateVendedorRequest;
 use App\Models\Vendedor;
 
 class VendedorController extends Controller
@@ -62,35 +64,20 @@ class VendedorController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreVendedorRequest $request)
     {
-        $validated = $request->validate([
-            'nome' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'senha' => 'required|string|min:6',
-            'telefone' => 'nullable|string',
-            'equipe_id' => 'nullable|exists:equipes,id',
-            'gestor_id' => 'nullable|exists:users,id',
-            'is_gestor' => 'boolean',
-            'percentual_comissao' => 'nullable|numeric',
-            'comissao_inicial' => 'nullable|numeric',
-            'comissao_recorrencia' => 'nullable|numeric',
-            'comissao_gestor_primeira' => 'nullable|numeric',
-            'comissao_gestor_recorrencia' => 'nullable|numeric',
-        ]);
+        $validated = $request->validated();
 
         \DB::beginTransaction();
         try {
-            // Cria o usuário
             $user = \App\Models\User::create([
                 'name' => $validated['nome'],
                 'email' => $validated['email'],
                 'password' => \Hash::make($validated['senha']),
-                'perfil' => empty($validated['is_gestor']) ? 'Vendedor' : 'Gestor',
+                'perfil' => empty($validated['is_gestor']) ? 'vendedor' : 'gestor',
                 'status' => 'ativo'
             ]);
 
-            // Cria o vendedor associado
             $vendedor = Vendedor::create([
                 'usuario_id' => $user->id,
                 'telefone' => $validated['telefone'] ?? null,
@@ -113,26 +100,12 @@ class VendedorController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateVendedorRequest $request, $id)
     {
         $vendedor = Vendedor::findOrFail($id);
         $user = $vendedor->user;
 
-        $validated = $request->validate([
-            'nome' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email' . ($user ? ',' . $user->id : ''),
-            'senha' => 'nullable|string|min:6',
-            'telefone' => 'nullable|string',
-            'equipe_id' => 'nullable|exists:equipes,id',
-            'gestor_id' => 'nullable|exists:users,id',
-            'is_gestor' => 'boolean',
-            'percentual_comissao' => 'nullable|numeric',
-            'comissao_inicial' => 'nullable|numeric',
-            'comissao_recorrencia' => 'nullable|numeric',
-            'comissao_gestor_primeira' => 'nullable|numeric',
-            'comissao_gestor_recorrencia' => 'nullable|numeric',
-            'status' => 'string'
-        ]);
+        $validated = $request->validated();
 
         \DB::beginTransaction();
         try {
@@ -140,7 +113,7 @@ class VendedorController extends Controller
                 $user->update([
                     'name' => $validated['nome'],
                     'email' => $validated['email'],
-                    'perfil' => empty($validated['is_gestor']) ? 'Vendedor' : 'Gestor',
+                    'perfil' => empty($validated['is_gestor']) ? 'vendedor' : 'gestor',
                 ]);
 
                 if (!empty($validated['senha'])) {
@@ -151,11 +124,11 @@ class VendedorController extends Controller
                     $user->update(['status' => $validated['status']]);
                 }
             } else {
-                $user = User::create([
+                $user = \App\Models\User::create([
                     'name' => $validated['nome'],
                     'email' => $validated['email'],
                     'password' => \Hash::make($validated['senha'] ?? 'Basileia123'),
-                    'perfil' => empty($validated['is_gestor']) ? 'Vendedor' : 'Gestor',
+                    'perfil' => empty($validated['is_gestor']) ? 'vendedor' : 'gestor',
                     'status' => $validated['status'] ?? 'Ativo',
                 ]);
                 $vendedor->usuario_id = $user->id;

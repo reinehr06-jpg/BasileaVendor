@@ -4,7 +4,7 @@
 **Versão:** 2.0  
 **Data:** 27/03/2026  
 **Última Atualização:** Março 2026  
-**Tecnologia:** Laravel 11 + PHP 8.2 + SQLite  
+**Tecnologia:** Laravel 11 + PHP 8.4 + PostgreSQL 15  
 **Gateway de Pagamento:** Asaas API v3  
 **Design System:** Materio Vuetify-inspired (CSS customizado)  
 **Ícones:** Font Awesome 6.5  

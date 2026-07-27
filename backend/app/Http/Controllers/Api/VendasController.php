@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreVendaRequest;
 use Illuminate\Http\Request;
 use App\Models\Venda;
 
@@ -63,47 +64,40 @@ class VendasController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreVendaRequest $request)
     {
-        $request->validate([
-            'cliente_id' => 'required|exists:clientes,id',
-            'valor' => 'required|numeric|min:0',
-            'plano' => 'nullable|string',
-            'forma_pagamento' => 'nullable|string',
-            'modo_cobranca' => 'nullable|string',
-            'parcelas' => 'nullable|integer|min:1',
-            'observacao' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         $user = $request->user();
-        $vendedorId = $request->input('vendedor_id');
+        $vendedorId = $validated['vendedor_id'] ?? null;
         
-        // Se não for gestor, força a venda a ser do próprio vendedor logado
         $isGestor = in_array($user->perfil, ['gestor', 'admin', 'master']);
         if (!$isGestor) {
             $vendedorId = $user->vendedor->id ?? null;
         }
 
         $venda = Venda::create([
-            'cliente_id' => $request->cliente_id,
+            'cliente_id' => $validated['cliente_id'],
             'vendedor_id' => $vendedorId,
-            'valor' => $request->valor,
-            'valor_final' => $request->valor,
-            'plano' => $request->plano,
-            'status' => 'concluida', // Status padrão local
-            'forma_pagamento' => $request->forma_pagamento,
-            'modo_cobranca' => $request->modo_cobranca ?? 'mensal',
-            'parcelas' => $request->parcelas ?? 1,
-            'observacao' => $request->observacao,
+            'valor' => $validated['valor'],
+            'valor_final' => $validated['valor_final'] ?? $validated['valor'],
+            'plano' => $validated['plano'],
+            'status' => 'concluida',
+            'forma_pagamento' => $validated['forma_pagamento'],
+            'tipo_negociacao' => $validated['tipo_negociacao'] ?? 'mensal',
+            'modo_cobranca' => $validated['modo_cobranca'] ?? 'mensal',
+            'desconto' => $validated['desconto'] ?? 0,
+            'percentual_desconto' => $validated['percentual_desconto'] ?? 0,
+            'parcelas' => $validated['parcelas'] ?? 1,
+            'observacao' => $validated['observacao'] ?? null,
             'data_venda' => now(),
         ]);
 
-        // Carregar relacionamentos
         $venda->load(['cliente', 'vendedor.user']);
 
         return response()->json([
             'success' => true,
-            'message' => 'Venda criada com sucesso (registro local).',
+            'message' => 'Venda criada com sucesso.',
             'data' => $venda
         ], 201);
     }

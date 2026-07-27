@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreClienteRequest;
 use Illuminate\Http\Request;
 use App\Models\Cliente;
 use Illuminate\Support\Facades\Validator;
@@ -185,35 +186,18 @@ class ClienteController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreClienteRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'nome' => 'required|string|max:255',
-            'email' => 'nullable|email|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $cliente = Cliente::create($request->all());
+        $validated = $request->validated();
+        $cliente = Cliente::create($validated);
         return response()->json($cliente, 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(StoreClienteRequest $request, $id)
     {
         $cliente = Cliente::findOrFail($id);
-        
-        $validator = Validator::make($request->all(), [
-            'nome' => 'sometimes|required|string|max:255',
-            'email' => 'nullable|email|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $cliente->update($request->all());
+        $validated = $request->validated();
+        $cliente->update($validated);
         return response()->json($cliente);
     }
 

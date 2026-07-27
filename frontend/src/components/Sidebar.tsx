@@ -337,7 +337,7 @@ export default function Sidebar() {
                 {user?.name || "Usuário"}
               </span>
               <span className="font-[500] text-[11px] text-text-muted leading-tight capitalize">
-                {user?.role || "Administrador"}
+                {user?.perfil || "Administrador"}
               </span>
             </div>
             

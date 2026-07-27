@@ -11,10 +11,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
+  perfil: string;
   avatar?: string;
   createdAt: string;
   termos_aceitos?: boolean;
+  vendedor_id?: number | null;
 }
 
 export interface LoginPayload {

@@ -15,6 +15,9 @@ if (!file_exists($envPath) && file_exists($envExamplePath)) {
     copy($envExamplePath, $envPath);
 }
 
+// Register the Composer autoloader...
+require __DIR__.'/../vendor/autoload.php';
+
 // Gera APP_KEY automaticamente se não existir
 if (file_exists($envPath)) {
     $envContent = file_get_contents($envPath);
@@ -55,9 +58,6 @@ if (!isset($_ENV['APP_KEY']) || empty($_ENV['APP_KEY'])) {
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
     require $maintenance;
 }
-
-// Register the Composer autoloader...
-require __DIR__.'/../vendor/autoload.php';
 
 // Bootstrap Laravel and handle the request...
 /** @var Application $app */

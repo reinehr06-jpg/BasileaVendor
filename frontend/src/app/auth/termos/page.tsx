@@ -28,9 +28,9 @@ export default function TermosPage() {
       }
       toast.success(t("Acesso liberado!"));
       
-      if (user?.role === 'vendedor') {
+      if (user?.perfil === 'vendedor') {
         router.push("/vendedor/minhas-vendas");
-      } else if (user?.role === 'gestor') {
+      } else if (user?.perfil === 'gestor') {
         router.push("/gestor/metricas-vendas");
       } else {
         router.push("/dashboard");

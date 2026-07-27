@@ -21,7 +21,13 @@ use App\Http\Middleware\ApiKeyAuth;
 // ==========================================
 
 Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login'])
-    ->middleware('throttle:5,1');
+    ->middleware('throttle:login');
+Route::post('/auth/verify-2fa', [\App\Http\Controllers\Api\AuthController::class, 'verify2fa'])
+    ->middleware('throttle:login');
+Route::post('/auth/2fa/setup', [\App\Http\Controllers\Api\TwoFactorController::class, 'setup'])
+    ->middleware('throttle:login');
+Route::post('/auth/2fa/confirm', [\App\Http\Controllers\Api\TwoFactorController::class, 'confirm'])
+    ->middleware('throttle:login');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me']);
@@ -114,10 +120,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Vendedores API
     Route::get('/vendedores', [\App\Http\Controllers\Api\VendedorController::class, 'index']);
-    Route::post('/vendedores', [\App\Http\Controllers\Api\VendedorController::class, 'store']);
     Route::get('/vendedores/{id}', [\App\Http\Controllers\Api\VendedorController::class, 'show']);
-    Route::put('/vendedores/{id}', [\App\Http\Controllers\Api\VendedorController::class, 'update']);
-    Route::delete('/vendedores/{id}', [\App\Http\Controllers\Api\VendedorController::class, 'destroy']);
+    
+    Route::middleware('master')->group(function () {
+        Route::post('/vendedores', [\App\Http\Controllers\Api\VendedorController::class, 'store']);
+        Route::put('/vendedores/{id}', [\App\Http\Controllers\Api\VendedorController::class, 'update']);
+        Route::delete('/vendedores/{id}', [\App\Http\Controllers\Api\VendedorController::class, 'destroy']);
+    });
 
     // Equipes API
     Route::get('/equipes', [\App\Http\Controllers\Api\EquipeController::class, 'index']);
@@ -138,8 +147,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Asaas Webhook — Receber eventos de pagamento
 Route::post('/asaas/webhook', [AsaasWebhookController::class, 'handle']);
-Route::post('/webhook/asaas', [AsaasWebhookController::class, 'handle']); // Alias
-Route::post('/webhook/assas', [AsaasWebhookController::class, 'handle']); // Alias para erro de digitação comum
 
 // Rotas protegidas por API Key
 Route::middleware('api.key')->group(function () {

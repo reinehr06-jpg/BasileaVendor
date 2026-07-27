@@ -2,18 +2,26 @@
 
 namespace App\Services;
 
+use App\Models\Vendedor;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use App\Models\Vendedor;
+use App\Services\Asaas\CustomerService;
+use App\Services\Asaas\PaymentService;
+use App\Services\Asaas\SubscriptionService;
+use App\Services\Asaas\SplitService;
 
 class AsaasService
 {
     public string $baseUrl;
     protected string $apiKey;
 
+    protected CustomerService $customerService;
+    protected PaymentService $paymentService;
+    protected SubscriptionService $subscriptionService;
+    protected SplitService $splitService;
+
     public function __construct()
     {
-        // Puxa do banco primeiro, caso não tenha, faz fallback pro env
         $ambiente = \App\Models\Setting::get('asaas_environment', config('services.asaas.ambiente', env('ASAAS_ENVIRONMENT', 'sandbox')));
         
         $this->baseUrl = $ambiente === 'production'
@@ -25,13 +33,17 @@ class AsaasService
         if (empty($this->apiKey)) {
             Log::warning('AsaasService: API Key não configurada. As requisições irão falhar.');
         } else {
-            // Validação de segurança sugerida pelo checklist
             if ($ambiente === 'production' && !str_starts_with($this->apiKey, '$aact_prod_')) {
                 Log::error('AsaasService: Chave de API de PRODUÇÃO parece incorreta (não começa com $aact_prod_).');
             } elseif ($ambiente === 'sandbox' && !str_starts_with($this->apiKey, '$aact_hmlg_')) {
                 Log::error('AsaasService: Chave de API de SANDBOX parece incorreta (não começa com $aact_hmlg_).');
             }
         }
+
+        $this->customerService = new CustomerService($this->baseUrl, $this->apiKey);
+        $this->paymentService = new PaymentService($this->baseUrl, $this->apiKey);
+        $this->subscriptionService = new SubscriptionService($this->baseUrl, $this->apiKey);
+        $this->splitService = new SplitService($this->baseUrl, $this->apiKey);
     }
 
     public function getApiKey(): string
@@ -46,405 +58,6 @@ class AsaasService
             'Content-Type' => 'application/json',
             'User-Agent'   => env('ASAAS_USER_AGENT', 'BasileaVendor/1.0'),
         ];
-    }
-
-    // ============================================
-    // 9.2.1 — Criar cliente no Asaas
-    // ============================================
-    public function findCustomerByCpfCnpj(string $cpfCnpj): ?array
-    {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/customers", [
-                    'cpfCnpj' => preg_replace('/\D/', '', $cpfCnpj),
-                ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                if (!empty($data['data']) && count($data['data']) > 0) {
-                    return $data['data'][0]; // Retorna o primeiro cliente encontrado
-                }
-            }
-        } catch (\Exception $e) {
-            Log::warning('Asaas: erro ao buscar cliente por CPF/CNPJ', ['error' => $e->getMessage()]);
-        }
-
-        return null;
-    }
-
-    public function createCustomer(string $name, string $cpfCnpj, ?string $phone = null, ?string $email = null): array
-    {
-        // ... (existing code remains as is)
-        $existing = $this->findCustomerByCpfCnpj($cpfCnpj);
-        if ($existing) {
-            // Verifica se o nome bate. Se não, atualiza no Asaas
-            if (isset($existing['name']) && $existing['name'] !== $name) {
-                Log::info('Asaas: cliente existe com nome diferente, atualizando', [
-                    'old_name' => $existing['name'],
-                    'new_name' => $name,
-                ]);
-                try {
-                    $updatePayload = ['name' => $name];
-                    if ($email) $updatePayload['email'] = $email;
-                    if ($phone) $updatePayload['phone'] = preg_replace('/\D/', '', $phone);
-
-                    $response = Http::withHeaders($this->headers())
-                        ->put("{$this->baseUrl}/customers/{$existing['id']}", $updatePayload);
-
-                    if ($response->successful()) {
-                        return $response->json();
-                    }
-                } catch (\Exception $e) {
-                    Log::warning('Asaas: falha ao atualizar nome do cliente', ['error' => $e->getMessage()]);
-                }
-            }
-            return $existing;
-        }
-
-        $payload = [
-            'name'    => $name,
-            'cpfCnpj' => preg_replace('/\D/', '', $cpfCnpj),
-        ];
-
-        if ($phone) $payload['phone'] = preg_replace('/\D/', '', $phone);
-        if ($email) $payload['email'] = $email;
-
-        $response = Http::withHeaders($this->headers())
-            ->post("{$this->baseUrl}/customers", $payload);
-
-        if ($response->successful()) {
-            Log::info('Asaas: cliente criado', ['id' => $response->json()['id'] ?? null, 'name' => $name]);
-            return $response->json();
-        }
-
-        Log::error('Asaas: erro ao criar cliente', [
-            'request'  => $payload,
-            'response' => $response->body(),
-            'status'   => $response->status(),
-        ]);
-        throw new \Exception('Falha ao registrar cliente no Asaas: ' . $response->body());
-    }
-
-    /**
-     * MÉTODO DE COMPATIBILIDADE PARA O NOVO CHECKOUT
-     * Mapeia os dados do formato array para o createPayment
-     */
-    public function criarCobranca(string $customerAsaasId, array $dadosVenda, ?array $creditCard = null): array
-    {
-        $venda = \App\Models\Venda::find($dadosVenda['id']);
-        
-        $billingType = match($dadosVenda['tipo_pagamento'] ?? 'pix') {
-            'cartao' => 'CREDIT_CARD',
-            'pix'    => 'PIX',
-            'boleto' => 'BOLETO',
-            default  => 'PIX'
-        };
-
-        $description = "Pagamento - " . ($venda->plano ?? 'Venda #' . $venda->id);
-        
-        $isBoleto = $billingType === 'BOLETO';
-        $isAnual = $venda && in_array(strtolower($venda->tipo_negociacao ?? ''), ['anual', 'annual']);
-        
-        if ($isAnual) {
-            $dueDate = now()->addDays($isBoleto ? 5 : 15)->format('Y-m-d');
-        } else {
-            $dueDate = now()->addDays(5)->format('Y-m-d');
-        }
-        
-        // Se for cartão, usar data de hoje
-        if ($billingType === 'CREDIT_CARD') {
-            $dueDate = now()->format('Y-m-d');
-        }
-
-        // Se houver split configurado para o vendedor
-        $split = [];
-        if ($venda && $venda->vendedor) {
-            $split = $this->buildSplitArray($venda->vendedor, $venda->valor, $venda->tipo_negociacao ?? 'inicial');
-        }
-
-        $asaasResponse = $this->createPayment(
-            $customerAsaasId,
-            (float) $dadosVenda['valor_total'],
-            $dueDate,
-            $billingType,
-            $description,
-            (string) $dadosVenda['id'],
-            $split,
-            $creditCard
-        );
-
-        // Mapeia o retorno para o que o CheckoutController espera
-        return [
-            'asaas_payment_id'  => $asaasResponse['id'],
-            'bank_slip_url'     => $asaasResponse['bankSlipUrl'] ?? null,
-            'invoice_url'       => $asaasResponse['invoiceUrl'] ?? null,
-            'pix_copia_cola'    => $asaasResponse['pixCopiaCola'] ?? null,
-            'pix_qrcode'        => $asaasResponse['pixQrCode'] ?? null, // Base64 se houver
-            'cartao_token'      => $asaasResponse['creditCardToken'] ?? null,
-            'cartao_bandeira'   => $asaasResponse['creditCard']['creditCardBrand'] ?? null,
-            'cartao_final'      => $asaasResponse['creditCard']['creditCardNumber'] ?? null,
-        ];
-    }
-
-    // ============================================
-    // 9.2.2 — Criar cobrança
-    // ============================================
-    public function createPayment(
-        string $customerAsaasId,
-        float $value,
-        string $dueDate,
-        string $billingType,
-        string $description,
-        ?string $externalReference = null,
-        ?array $split = null,
-        ?array $creditCard = null,
-        ?array $creditCardHolderInfo = null
-    ): array {
-        $payload = [
-            'customer'    => $customerAsaasId,
-            'billingType' => $billingType, // BOLETO, CREDIT_CARD, PIX
-            'value'       => $value,
-            'dueDate'     => $dueDate,
-            'description' => $description,
-        ];
-
-        if ($externalReference) {
-            $payload['externalReference'] = $externalReference;
-        }
-        
-        // Adicionar split se fornecido
-        if ($split && !empty($split)) {
-            $payload['split'] = $split;
-        }
-
-        // Adicionar cartão de crédito se fornecido
-        if ($creditCard && !empty($creditCard)) {
-            $payload['creditCard'] = $creditCard;
-            if ($creditCardHolderInfo) {
-                $payload['creditCardHolderInfo'] = $creditCardHolderInfo;
-            }
-        }
-
-        $response = Http::withHeaders($this->headers())
-            ->post("{$this->baseUrl}/payments", $payload);
-
-        if ($response->successful()) {
-            $data = $response->json();
-            Log::info('Asaas: cobrança criada', [
-                'id'     => $data['id'] ?? null,
-                'status' => $data['status'] ?? null,
-                'value'  => $data['value'] ?? null,
-                'split'  => !empty($split) ? 'sim' : 'não',
-            ]);
-            return $data;
-        }
-
-        Log::error('Asaas: erro ao criar cobrança', [
-            'request'  => $payload,
-            'response' => $response->body(),
-            'status'   => $response->status(),
-        ]);
-        throw new \Exception('Falha ao gerar cobrança no Asaas: ' . $response->body());
-    }
-
-    // ============================================
-    // 9.2.3 — Consultar cobrança
-    // ============================================
-    public function getPayment(string $paymentId): ?array
-    {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/payments/{$paymentId}");
-
-            if ($response->successful()) {
-                return $response->json();
-            }
-
-            Log::warning('[ASAAS_API_GET_PAYMENT_NOT_FOUND] Pagamento não localizado ou erro na API.', [
-                'paymentId' => $paymentId,
-                'status'    => $response->status(),
-                'response'  => $response->body(),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('[ASAAS_API_CONNECTION_ERROR] Erro de conexão ao consultar pagamento.', [
-                'paymentId' => $paymentId,
-                'error'     => $e->getMessage()
-            ]);
-        }
-
-        return null;
-    }
-
-    // ============================================
-    // 9.2.4 — Consultar QR Code PIX
-    // ============================================
-    public function getPixQrCode(string $paymentId): ?array
-    {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/payments/{$paymentId}/pixQrCode");
-
-            if ($response->successful()) {
-                return $response->json();
-            }
-        } catch (\Exception $e) {
-            Log::warning('Asaas: erro ao buscar QR Code PIX', ['error' => $e->getMessage()]);
-        }
-
-        return null;
-    }
-
-    // ============================================
-    // 9.2.5 — Consultar linha digitável (boleto)
-    // ============================================
-    public function getIdentificationField(string $paymentId): ?string
-    {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/payments/{$paymentId}/identificationField");
-
-            if ($response->successful()) {
-                return $response->json()['identificationField'] ?? null;
-            }
-        } catch (\Exception $e) {
-            Log::warning('Asaas: erro ao buscar linha digitável', ['error' => $e->getMessage()]);
-        }
-
-        return null;
-    }
-
-    // ============================================
-    // 9.2.6 — Consultar nota fiscal
-    // ============================================
-    public function getInvoice(string $paymentId): ?array
-    {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/payments/{$paymentId}/fiscalInfo");
-
-            if ($response->successful()) {
-                return $response->json();
-            }
-        } catch (\Exception $e) {
-            Log::warning('Asaas: erro ao consultar nota fiscal', ['error' => $e->getMessage()]);
-        }
-
-        return null;
-    }
-
-    // ============================================
-    // Estornar cobrança paga (refund)
-    // ============================================
-    public function refundPayment(string $paymentId, ?float $value = null): array
-    {
-        $payload = [];
-        if ($value && $value > 0) {
-            $payload['value'] = $value;
-        }
-
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->post("{$this->baseUrl}/payments/{$paymentId}/refund", $payload);
-
-            if ($response->successful()) {
-                Log::info('Asaas: cobrança estornada com sucesso', [
-                    'payment_id' => $paymentId,
-                    'value' => $value,
-                    'response' => $response->json(),
-                ]);
-                return $response->json();
-            }
-
-            Log::error('Asaas: falha ao estornar cobrança', [
-                'payment_id' => $paymentId,
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-            throw new \Exception('Falha ao estornar no Asaas: ' . $response->body());
-        } catch (\Exception $e) {
-            if (str_contains($e->getMessage(), 'Falha ao estornar')) {
-                throw $e;
-            }
-            Log::error('Asaas: erro de conexão ao estornar', ['error' => $e->getMessage()]);
-            throw new \Exception('Erro de conexão com Asaas: ' . $e->getMessage());
-        }
-    }
-
-    // ============================================
-    // 9.2.7 — Cancelar/Excluir cobrança (soft delete)
-    // ============================================
-    public function cancelPayment(string $paymentId): bool
-    {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->delete("{$this->baseUrl}/payments/{$paymentId}");
-
-            if ($response->successful()) {
-                Log::info('Asaas: cobrança cancelada', ['paymentId' => $paymentId]);
-                return true;
-            }
-
-            Log::warning('Asaas: falha ao cancelar cobrança', [
-                'paymentId' => $paymentId,
-                'response'  => $response->body(),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Asaas: erro ao cancelar cobrança', ['error' => $e->getMessage()]);
-        }
-
-        return false;
-    }
-
-    // ============================================
-    // 9.2.8 — Excluir cobrança definitivamente (hard delete)
-    // ============================================
-    public function deletePayment(string $paymentId): bool
-    {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->delete("{$this->baseUrl}/payments/{$paymentId}");
-
-            if ($response->successful()) {
-                Log::info('Asaas: cobrança excluída definitivamente', ['paymentId' => $paymentId]);
-                return true;
-            }
-
-            Log::warning('Asaas: falha ao excluir cobrança', [
-                'paymentId' => $paymentId,
-                'status' => $response->status(),
-                'response' => $response->body(),
-            ]);
-            
-            // Se a cobrança já foi cancelada, considera sucesso
-            if ($response->status() === 400 && str_contains($response->body(), 'already')) {
-                Log::info('Asaas: cobrança já estava cancelada, continuando', ['paymentId' => $paymentId]);
-                return true;
-            }
-            
-            return false;
-        } catch (\Exception $e) {
-            Log::error('Asaas: erro ao excluir cobrança', [
-                'paymentId' => $paymentId,
-                'error' => $e->getMessage(),
-            ]);
-            return false;
-        }
-    }
-
-    // ============================================
-    // Helper: mapear status do Asaas para status local
-    // ============================================
-    public static function mapStatus(string $asaasStatus): string
-    {
-        return match (strtoupper($asaasStatus)) {
-            'PENDING', 'AWAITING_RISK_ANALYSIS' => 'Aguardando pagamento',
-            'CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH' => 'Pago',
-            'OVERDUE' => 'Vencido',
-            'REFUNDED', 'REFUND_REQUESTED', 'CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE' => 'Estornado',
-            'DUNNING_REQUESTED', 'DUNNING_RECEIVED' => 'Inadimplente',
-            'CANCELED', 'DELETED' => 'Cancelado',
-            default => 'Cancelado',
-        };
     }
 
     // ============================================
@@ -479,345 +92,186 @@ class AsaasService
         throw new \Exception("Falha na requisição para o Asaas ($endpoint): " . $response->body());
     }
 
-    // ============================================
-    // 9.2.9 — Criar Link de Pagamento
-    // ============================================
-    public function createPaymentLink(array $data): array
+    public static function mapStatus(string $asaasStatus): string
     {
-        $payload = [
-            'name'                => $data['name'],
-            'billingType'         => $data['billingType'] ?? 'UNDEFINED',
-            'chargeType'          => $data['chargeType'] ?? 'DETACHED',
-            'description'         => $data['description'] ?? null,
-            'value'               => $data['value'] ?? null,
-            'dueDateLimitDays'    => $data['dueDateLimitDays'] ?? null,
-            'notificationEnabled' => (bool) ($data['notificationEnabled'] ?? true),
-            'maxAllowedUsage'     => $data['maxAllowedUsage'] ?? null,
-            'endDate'             => $data['endDate'] ?? null,
-            'maxInstallmentCount' => $data['maxInstallmentCount'] ?? null,
-        ];
-
-        // Se houver configuração de endereço
-        if (isset($data['isAddressRequired'])) {
-            $payload['isAddressRequired'] = (bool) $data['isAddressRequired'];
-        }
-
-        // Adicionar URL de redirect para o checkout próprio
-        if (!empty($data['redirectUrl'])) {
-            $payload['redirectUrl'] = $data['redirectUrl'];
-        }
-
-        $response = Http::withHeaders($this->headers())
-            ->post("{$this->baseUrl}/paymentLinks", $payload);
-
-        if ($response->successful()) {
-            $result = $response->json();
-            Log::info('Asaas: link de pagamento criado', ['id' => $result['id'] ?? null, 'url' => $result['url'] ?? null]);
-            return $result;
-        }
-
-        Log::error('Asaas: erro ao criar link de pagamento', [
-            'request'  => $payload,
-            'response' => $response->body(),
-            'status'   => $response->status(),
-        ]);
-        throw new \Exception('Falha ao gerar link no Asaas: ' . $response->body());
+        return match (strtoupper($asaasStatus)) {
+            'PENDING', 'AWAITING_RISK_ANALYSIS' => 'Aguardando pagamento',
+            'CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH' => 'Pago',
+            'OVERDUE' => 'Vencido',
+            'REFUNDED', 'REFUND_REQUESTED', 'CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE' => 'Estornado',
+            'DUNNING_REQUESTED', 'DUNNING_RECEIVED' => 'Inadimplente',
+            'CANCELED', 'DELETED' => 'Cancelado',
+            default => 'Cancelado',
+        };
     }
 
-    /**
-     * Excluir (arquivar) link de pagamento no Asaas
-     */
-    public function deletePaymentLink(string $id): bool
+    // Delegations to CustomerService
+    public function findCustomerByCpfCnpj(string $cpfCnpj): ?array
     {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->delete("{$this->baseUrl}/paymentLinks/{$id}");
-
-            if ($response->successful() || $response->status() === 404) {
-                Log::info('Asaas: link de pagamento excluído/arquivado (ou já não existia)', ['id' => $id]);
-                return true;
-            }
-
-            Log::warning('Asaas: falha crítica ao excluir link de pagamento', [
-                'id' => $id,
-                'status' => $response->status(),
-                'response' => $response->body()
-            ]);
-            return false;
-        } catch (\Exception $e) {
-            Log::error('Asaas: exceção ao excluir link', ['error' => $e->getMessage()]);
-            return false;
-        }
+        return $this->customerService->findCustomerByCpfCnpj($cpfCnpj);
     }
 
-    // ============================================
-    // Validar Wallet ID
-    // ============================================
+    public function createCustomer(string $name, string $cpfCnpj, ?string $phone = null, ?string $email = null): array
+    {
+        return $this->customerService->createCustomer($name, $cpfCnpj, $phone, $email);
+    }
+
+    // Delegations to SplitService
     public function validateWallet(string $walletId): array
     {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/wallets/{$walletId}");
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return [
-                    'valid' => true,
-                    'wallet' => $data,
-                    'message' => 'Wallet validado com sucesso.'
-                ];
-            }
-
-            return [
-                'valid' => false,
-                'wallet' => null,
-                'message' => 'Wallet não encontrado ou inválido.'
-            ];
-        } catch (\Exception $e) {
-            Log::warning('Asaas: erro ao validar wallet', ['walletId' => $walletId, 'error' => $e->getMessage()]);
-            return [
-                'valid' => false,
-                'wallet' => null,
-                'message' => 'Erro ao validar wallet: ' . $e->getMessage()
-            ];
-        }
+        return $this->splitService->validateWallet($walletId);
     }
 
-    // ============================================
-    // Criar Split para cobrança
-    // ============================================
     public function buildSplitArray(Vendedor $vendedor, float $valorVenda, string $tipoVenda = 'inicial'): array
     {
-        if (!$vendedor->isAptoSplit()) {
-            return [];
-        }
-
-        $split = [];
-        
-        if ($vendedor->tipo_split === 'percentual') {
-            $percentual = $tipoVenda === 'inicial' 
-                ? $vendedor->valor_split_inicial 
-                : $vendedor->valor_split_recorrencia;
-            
-            if ($percentual > 0) {
-                $split[] = [
-                    'walletId' => $vendedor->asaas_wallet_id,
-                    'percentualValue' => $percentual,
-                ];
-            }
-        } else {
-            // Valor fixo
-            $valorFixo = $tipoVenda === 'inicial'
-                ? $vendedor->valor_split_inicial
-                : $vendedor->valor_split_recorrencia;
-            
-            if ($valorFixo > 0 && $valorFixo <= $valorVenda) {
-                $split[] = [
-                    'walletId' => $vendedor->asaas_wallet_id,
-                    'fixedValue' => $valorFixo,
-                ];
-            }
-        }
-
-        return $split;
+        return $this->splitService->buildSplitArray($vendedor, $valorVenda, $tipoVenda);
     }
 
-    // ============================================
-    // 9.3.1 — Criar Assinatura (Recurring)
-    // ============================================
+    // Delegations to SubscriptionService
     public function createSubscription(array $data): array
     {
-        $payload = [
-            'customer' => $data['customer'],
-            'billingType' => $data['billingType'] ?? 'PIX',
-            'value' => $data['value'],
-            'nextDueDate' => $data['nextDueDate'] ?? now()->addDays(1)->format('Y-m-d'),
-            'cycle' => $data['cycle'] ?? 'MONTHLY', // MONTHLY, QUARTERLY, SEMIANNUALLY, YEARLY
-            'description' => $data['description'] ?? '',
-        ];
-
-        if (isset($data['externalReference'])) {
-            $payload['externalReference'] = $data['externalReference'];
-        }
-
-        if (isset($data['split'])) {
-            $payload['split'] = $data['split'];
-        }
-
-        if (isset($data['creditCard'])) {
-            $payload['creditCard'] = $data['creditCard'];
-            if (isset($data['creditCardHolderInfo'])) {
-                $payload['creditCardHolderInfo'] = $data['creditCardHolderInfo'];
-            }
-        }
-
-        $response = Http::withHeaders($this->headers())
-            ->post("{$this->baseUrl}/subscriptions", $payload);
-
-        if ($response->successful()) {
-            return $response->json();
-        }
-
-        throw new \Exception('Falha ao criar assinatura no Asaas: ' . $response->body());
+        return $this->subscriptionService->createSubscription($data);
     }
 
-    // ============================================
-    // 9.3.2 — Atualizar Assinatura
-    // ============================================
     public function updateSubscription(string $subscriptionId, array $data): array
     {
-        $response = Http::withHeaders($this->headers())
-            ->post("{$this->baseUrl}/subscriptions/{$subscriptionId}", $data);
-
-        if ($response->successful()) {
-            return $response->json();
-        }
-
-        throw new \Exception('Falha ao atualizar assinatura no Asaas: ' . $response->body());
+        return $this->subscriptionService->updateSubscription($subscriptionId, $data);
     }
 
-    // ============================================
-    // 9.3.3 — Cancelar Assinatura
-    // ============================================
     public function cancelSubscription(string $subscriptionId): bool
     {
-        try {
-            $response = Http::withHeaders($this->headers())
-                ->delete("{$this->baseUrl}/subscriptions/{$subscriptionId}");
-
-            if ($response->successful()) {
-                return true;
-            }
-
-            Log::warning('Asaas: falha ao cancelar assinatura', [
-                'subscriptionId' => $subscriptionId,
-                'response' => $response->body(),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Asaas: erro ao cancelar assinatura', ['error' => $e->getMessage()]);
-        }
-
-        return false;
+        return $this->subscriptionService->cancelSubscription($subscriptionId);
     }
 
-    // ============================================
-    // 9.4.1 — Listar Cobranças por Cliente (com filtros de data)
-    // Endpoint: GET /v3/payments?customer={id}&dateCreated[ge]=YYYY-MM-DD&dateCreated[le]=YYYY-MM-DD
-    // ============================================
-    /**
-     * Busca todos os pagamentos de um cliente no Asaas, com filtros opcionais de data e status.
-     * Faz paginação automática para buscar todos os resultados.
-     *
-     * @param string $customerId  ID do cliente no Asaas (e.g. "cus_xxx")
-     * @param \Carbon\Carbon|null $startDate  Data início (filtro dueDate[ge])
-     * @param \Carbon\Carbon|null $endDate    Data fim (filtro dueDate[le])
-     * @param string|null $status     Filtrar por status específico (RECEIVED, CONFIRMED, PENDING, OVERDUE)
-     * @return array  Lista de pagamentos encontrados
-     */
+    public function getSubscriptionsByCustomer(string $customerId, bool $includeDeleted = false): array
+    {
+        return $this->subscriptionService->getSubscriptionsByCustomer($customerId, $includeDeleted);
+    }
+
+    // Delegations to PaymentService
+    public function createPayment(
+        string $customerAsaasId,
+        float $value,
+        string $dueDate,
+        string $billingType,
+        string $description,
+        ?string $externalReference = null,
+        ?array $split = null,
+        ?array $creditCard = null,
+        ?array $creditCardHolderInfo = null
+    ): array {
+        return $this->paymentService->createPayment(
+            $customerAsaasId, $value, $dueDate, $billingType, $description,
+            $externalReference, $split, $creditCard, $creditCardHolderInfo
+        );
+    }
+
+    public function getPayment(string $paymentId): ?array
+    {
+        return $this->paymentService->getPayment($paymentId);
+    }
+
+    public function getPixQrCode(string $paymentId): ?array
+    {
+        return $this->paymentService->getPixQrCode($paymentId);
+    }
+
+    public function getIdentificationField(string $paymentId): ?string
+    {
+        return $this->paymentService->getIdentificationField($paymentId);
+    }
+
+    public function getInvoice(string $paymentId): ?array
+    {
+        return $this->paymentService->getInvoice($paymentId);
+    }
+
+    public function refundPayment(string $paymentId, ?float $value = null): array
+    {
+        return $this->paymentService->refundPayment($paymentId, $value);
+    }
+
+    public function cancelPayment(string $paymentId): bool
+    {
+        return $this->paymentService->cancelPayment($paymentId);
+    }
+
+    public function deletePayment(string $paymentId): bool
+    {
+        return $this->paymentService->deletePayment($paymentId);
+    }
+
+    public function createPaymentLink(array $data): array
+    {
+        return $this->paymentService->createPaymentLink($data);
+    }
+
+    public function deletePaymentLink(string $id): bool
+    {
+        return $this->paymentService->deletePaymentLink($id);
+    }
+
     public function getPaymentsByCustomer(
         string $customerId,
         ?\Carbon\Carbon $startDate = null,
         ?\Carbon\Carbon $endDate = null,
         ?string $status = null
     ): array {
-        $allPayments = [];
-        $offset = 0;
-        $limit = 100;
-        $maxPages = 10; // Proteção contra loops infinitos
-
-        try {
-            for ($page = 0; $page < $maxPages; $page++) {
-                $params = [
-                    'customer' => $customerId,
-                    'offset'   => $offset,
-                    'limit'    => $limit,
-                ];
-
-                if ($startDate) {
-                    $params['dueDate[ge]'] = $startDate->format('Y-m-d');
-                }
-                if ($endDate) {
-                    $params['dueDate[le]'] = $endDate->format('Y-m-d');
-                }
-                if ($status) {
-                    $params['status'] = $status;
-                }
-
-                $response = Http::withHeaders($this->headers())
-                    ->get("{$this->baseUrl}/payments", $params);
-
-                if (!$response->successful()) {
-                    Log::warning('Asaas: falha ao listar cobranças do cliente', [
-                        'customer_id' => $customerId,
-                        'status'      => $response->status(),
-                        'response'    => $response->body(),
-                    ]);
-                    break;
-                }
-
-                $data = $response->json();
-                $payments = $data['data'] ?? [];
-                $allPayments = array_merge($allPayments, $payments);
-
-                // Verificar se há mais páginas
-                $hasMore = $data['hasMore'] ?? false;
-                if (!$hasMore || empty($payments)) {
-                    break;
-                }
-
-                $offset += $limit;
-            }
-        } catch (\Exception $e) {
-            Log::error('Asaas: erro ao listar cobranças do cliente', [
-                'customer_id' => $customerId,
-                'error'       => $e->getMessage(),
-            ]);
-        }
-
-        return $allPayments;
+        return $this->paymentService->getPaymentsByCustomer($customerId, $startDate, $endDate, $status);
     }
 
-    // ============================================
-    // 9.4.2 — Listar Assinaturas por Cliente
-    // Endpoint: GET /v3/subscriptions?customer={id}
-    // ============================================
-    /**
-     * Busca todas as assinaturas de um cliente no Asaas.
-     *
-     * @param string $customerId  ID do cliente no Asaas
-     * @param bool $includeDeleted  Incluir assinaturas deletadas
-     * @return array  Lista de assinaturas encontradas
-     */
-    public function getSubscriptionsByCustomer(string $customerId, bool $includeDeleted = false): array
+    // Custom Checkout compatibility
+    public function criarCobranca(string $customerAsaasId, array $dadosVenda, ?array $creditCard = null): array
     {
-        try {
-            $params = [
-                'customer' => $customerId,
-                'limit'    => 100,
-            ];
-            
-            if ($includeDeleted) {
-                $params['includeDeleted'] = 'true';
-            }
+        $venda = \App\Models\Venda::find($dadosVenda['id']);
+        
+        $billingType = match($dadosVenda['tipo_pagamento'] ?? 'pix') {
+            'cartao' => 'CREDIT_CARD',
+            'pix'    => 'PIX',
+            'boleto' => 'BOLETO',
+            default  => 'PIX'
+        };
 
-            $response = Http::withHeaders($this->headers())
-                ->get("{$this->baseUrl}/subscriptions", $params);
-
-            if ($response->successful()) {
-                return $response->json()['data'] ?? [];
-            }
-
-            Log::warning('Asaas: falha ao listar assinaturas do cliente', [
-                'customer_id' => $customerId,
-                'status'      => $response->status(),
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Asaas: erro ao listar assinaturas do cliente', [
-                'customer_id' => $customerId,
-                'error'       => $e->getMessage(),
-            ]);
+        $description = "Pagamento - " . ($venda->plano ?? 'Venda #' . $venda->id);
+        
+        $isBoleto = $billingType === 'BOLETO';
+        $isAnual = $venda && in_array(strtolower($venda->tipo_negociacao ?? ''), ['anual', 'annual']);
+        
+        if ($isAnual) {
+            $dueDate = now()->addDays($isBoleto ? 5 : 15)->format('Y-m-d');
+        } else {
+            $dueDate = now()->addDays(5)->format('Y-m-d');
+        }
+        
+        if ($billingType === 'CREDIT_CARD') {
+            $dueDate = now()->format('Y-m-d');
         }
 
-        return [];
+        $split = [];
+        if ($venda && $venda->vendedor) {
+            $split = $this->buildSplitArray($venda->vendedor, $venda->valor, $venda->tipo_negociacao ?? 'inicial');
+        }
+
+        $asaasResponse = $this->createPayment(
+            $customerAsaasId,
+            (float) $dadosVenda['valor_total'],
+            $dueDate,
+            $billingType,
+            $description,
+            (string) $dadosVenda['id'],
+            $split,
+            $creditCard
+        );
+
+        return [
+            'asaas_payment_id'  => $asaasResponse['id'],
+            'bank_slip_url'     => $asaasResponse['bankSlipUrl'] ?? null,
+            'invoice_url'       => $asaasResponse['invoiceUrl'] ?? null,
+            'pix_copia_cola'    => $asaasResponse['pixCopiaCola'] ?? null,
+            'pix_qrcode'        => $asaasResponse['pixQrCode'] ?? null,
+            'cartao_token'      => $asaasResponse['creditCardToken'] ?? null,
+            'cartao_bandeira'   => $asaasResponse['creditCard']['creditCardBrand'] ?? null,
+            'cartao_final'      => $asaasResponse['creditCard']['creditCardNumber'] ?? null,
+        ];
     }
 }

@@ -14,12 +14,20 @@ class AsaasWebhookController extends Controller
      */
     public function handle(Request $request)
     {
-        // Validar origem e ambiente
         $webhookToken = \App\Models\Setting::get('asaas_webhook_token', config('services.asaas.webhook_token', env('ASAAS_WEBHOOK_TOKEN', '')));
+
+        // NOVO: Bloquear se token não estiver configurado em produção
+        if (empty($webhookToken) && app()->environment('production')) {
+            Log::error('Asaas Webhook: Token não configurado em produção', [
+                'ip' => $request->ip(),
+            ]);
+            return response()->json(['error' => 'Configuração inválida'], 500);
+        }
+
         if ($webhookToken) {
             $headerToken = $request->header('asaas-access-token');
             if ($headerToken !== $webhookToken) {
-                Log::warning('Asaas Webhook: token inválido', ['received' => $headerToken]);
+                Log::warning('Asaas Webhook: token inválido', ['received' => $headerToken, 'ip' => $request->ip()]);
                 return response()->json(['error' => 'Token inválido'], 403);
             }
         }
@@ -47,10 +55,15 @@ class AsaasWebhookController extends Controller
                 'status'         => 'PENDING',
             ]);
         } catch (QueryException $e) {
-            // Duplicata detectada pelo constraint unique — ignora com segurança
-            Log::info('[Webhook] Evento duplicado bloqueado pelo banco', [
-                'asaas_event_id' => $eventId,
-            ]);
+            if ($e->getCode() === '23000' || str_contains($e->getMessage(), 'Duplicate entry')) {
+                // Duplicata detectada pelo constraint unique — ignora com segurança
+                Log::info('[Webhook] Evento duplicado bloqueado pelo banco', [
+                    'asaas_event_id' => $eventId,
+                ]);
+            } else {
+                Log::error('Asaas Webhook: Erro ao inserir evento', ['error' => $e->getMessage()]);
+                return response()->json(['error' => 'Erro interno ao processar'], 500);
+            }
         }
 
         // Retorna HTTP 200 imediatamente, conforme boa prática.

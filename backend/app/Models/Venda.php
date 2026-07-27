@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Venda extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'cliente_id', 'vendedor_id', 'valor', 'comissao_gerada', 'status',
         'plano', 'plano_id', 'forma_pagamento', 'tipo_negociacao', 'modo_cobranca', 'desconto', 'percentual_desconto',

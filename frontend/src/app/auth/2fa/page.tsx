@@ -7,11 +7,22 @@ import { toast } from "sonner";
 import { ShieldCheck, Loader2, ArrowLeft } from "lucide-react";
 import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 
 export default function TwoFactorPage() {
   const { t } = useTranslation();
   const router = useRouter();
   const { user } = useAuth();
+  const [userId, setUserId] = useState("");
+  
+  useEffect(() => {
+    const stored = localStorage.getItem("2fa_user_id");
+    if (stored) {
+      setUserId(stored);
+    } else {
+      router.push("/auth/login");
+    }
+  }, [router]);
   
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,23 +61,24 @@ export default function TwoFactorPage() {
     }
 
     setIsLoading(true);
-    // Simulando delay de verificação
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const res = await api.post("/auth/verify-2fa", { user_id: userId, code: fullCode });
+      
+      // Salvar token em cookie e redirecionar
+      document.cookie = `auth_token=${res.token}; path=/; max-age=86400; SameSite=Lax`;
+      localStorage.removeItem("2fa_user_id");
+      
       toast.success(t("Código verificado com sucesso!"));
       
-      if (user?.role === 'master' || user?.role === 'admin' || user?.termos_aceitos) {
-        if (user?.role === 'vendedor') {
-          router.push("/vendedor/minhas-vendas");
-        } else if (user?.role === 'gestor') {
-          router.push("/gestor/metricas-vendas");
-        } else {
-          router.push("/dashboard");
-        }
-      } else {
-        router.push("/auth/termos");
-      }
-    }, 1000);
+      // Force reload to update AuthContext state or push dashboard
+      window.location.href = "/dashboard";
+    } catch (error: any) {
+      toast.error(t("Erro na verificação"), {
+        description: error.message || t("Código inválido. Tente novamente.")
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

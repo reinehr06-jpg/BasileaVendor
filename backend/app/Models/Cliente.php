@@ -3,9 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Cliente extends Model
 {
+    use SoftDeletes;
     protected $fillable = [
         'nome', 'nome_igreja', 'nome_pastor', 'nome_responsavel', 'localidade',
         'moeda', 'quantidade_membros', 'documento', 'contato', 'whatsapp', 'telefone', 'email',

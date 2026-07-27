@@ -10,6 +10,9 @@ use App\Services\Integration\IntegrationTestService;
 use App\Services\VersionCheckService;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Http\Request;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -37,5 +40,18 @@ class AppServiceProvider extends ServiceProvider
 
         // Admin view composer for update alerts
         View::composer('admin.*', AdminComposer::class);
+
+        // Definir Rate Limiters
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
+
+        RateLimiter::for('login', function (Request $request) {
+            return Limit::perMinute(5)->by($request->ip());
+        });
+
+        RateLimiter::for('webhooks', function (Request $request) {
+            return Limit::perMinute(100)->by($request->ip());
+        });
     }
 }

@@ -8,6 +8,24 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
     volumes:
       - basileia_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - basileia_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -16,8 +34,10 @@ services:
     restart: unless-stopped
     expose:
       - "8000"
+      - "443"
     ports:
       - "8000:8000"
+      - "8443:443"
     environment:
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
@@ -30,12 +50,17 @@ services:
       - DB_USERNAME=${DB_USERNAME:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:?defina DB_PASSWORD no .env}
       - QUEUE_CONNECTION=database
-      - CACHE_STORE=file
+      - CACHE_STORE=redis
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=null
+      - REDIS_PORT=6379
     volumes:
       - basileia_storage:/var/www/html/storage
       - basileia_logs:/var/log
+      - ./backend/ssl:/etc/nginx/ssl
     depends_on:
       - postgres
+      - redis
 
   frontend:
     build:
@@ -56,3 +81,4 @@ volumes:
   basileia_pgdata:
   basileia_storage:
   basileia_logs:
+  basileia_redis:

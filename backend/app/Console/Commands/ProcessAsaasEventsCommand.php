@@ -11,7 +11,7 @@ use App\Mail\ClienteAcessoSuspenso;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
-use App\Services\CommissionEngineService;
+use App\Services\Commission\CommissionService;
 use App\Models\Pagamento;
 
 class ProcessAsaasEventsCommand extends Command
@@ -78,7 +78,7 @@ class ProcessAsaasEventsCommand extends Command
                                     if ($pagamentoLocal && $pagamentoLocal->venda_id) {
                                         $vendaLocal = \App\Models\Venda::find($pagamentoLocal->venda_id);
                                         if ($vendaLocal && $vendaLocal->vendedor_id) {
-                                            CommissionEngineService::processarPagamento($pagamentoLocal, $vendaLocal);
+                                            CommissionService::gerarParaPagamento($pagamentoLocal);
                                         }
                                     }
                                 }

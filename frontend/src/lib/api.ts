@@ -22,8 +22,6 @@ function getCookie(name: string) {
 }
 
 async function request<T = any>(path: string, options?: RequestInit): Promise<T> {
-  const token = getCookie("auth_token") || localStorage.getItem("auth_token");
-  
   if (process.env.NODE_ENV === "development") {
     console.group(`🌐 API ${options?.method ?? "GET"} ${path}`);
     if (options?.body) console.log("Body:", JSON.parse(options.body as string));
@@ -31,10 +29,10 @@ async function request<T = any>(path: string, options?: RequestInit): Promise<T>
   }
 
   const res = await fetch(`${BASE_URL}${path}`, {
+    credentials: "include", // Permite envio de cookies HttpOnly
     headers: {
       "Content-Type": "application/json",
       "Accept": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options?.headers || {}),
     },
     ...options,
@@ -55,9 +53,9 @@ async function request<T = any>(path: string, options?: RequestInit): Promise<T>
   };
 
   if (res.status === 401) {
-    if (typeof document !== 'undefined') document.cookie = 'auth_token=; Max-Age=0; path=/';
-    if (typeof localStorage !== 'undefined') localStorage.removeItem("auth_token");
-    if (typeof window !== 'undefined') window.location.href = "/";
+    if (typeof window !== 'undefined' && window.location.pathname !== '/' && !window.location.pathname.startsWith('/auth')) {
+        window.location.href = "/";
+    }
     throw new Error("Sessão expirada");
   }
 
