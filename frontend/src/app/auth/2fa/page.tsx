@@ -71,7 +71,13 @@ export default function TwoFactorPage() {
       toast.success(t("Código verificado com sucesso!"));
       
       // Force reload to update AuthContext state or push dashboard
-      window.location.href = "/dashboard";
+      if (res.user?.perfil === 'gestor') {
+        window.location.href = "/gestor";
+      } else if (res.user?.perfil === 'vendedor') {
+        window.location.href = "/vendedor";
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch (error: any) {
       toast.error(t("Erro na verificação"), {
         description: error.message || t("Código inválido. Tente novamente.")

@@ -1,0 +1,8 @@
+# ==============================================================================
+# Cronjob de Backup - Basiléia Vendor OS
+# ==============================================================================
+# Este arquivo serve de exemplo de configuração para o Crontab no servidor Linux.
+# Para instalar, rode `crontab -e` no seu servidor de produção e cole a linha abaixo.
+
+# Roda todos os dias às 03:00 da manhã (horário do servidor)
+0 3 * * * /caminho/absoluto/para/seu/projeto/scripts/backup-database.sh >> /caminho/absoluto/para/seu/projeto/backups/backup.log 2>&1

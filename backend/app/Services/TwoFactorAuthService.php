@@ -32,7 +32,7 @@ class TwoFactorAuthService
             $writer = new \BaconQrCode\Writer($renderer);
             $svgContent = $writer->writeString($uri);
             
-            return '<img src="data:image/svg+xml;base64,' . base64_encode($svgContent) . '" alt="QR Code 2FA" style="width:200px;height:200px;" />';
+            return $svgContent;
         } catch (\Exception $e) {
             try {
                 $rendererStyle = new \BaconQrCode\Renderer\RendererStyle\RendererStyle(200);

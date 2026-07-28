@@ -17,24 +17,23 @@ class TwoFactorController extends Controller
 
         $user = User::findOrFail($request->user_id);
         
-        // Gerar secret
-        $secret = TwoFactorAuthService::generateSecret();
+        $secret = $user->two_factor_secret;
         
-        // Salvar temporariamente (não confirmar ainda)
-        $user->two_factor_secret = $secret;
-        $user->two_factor_enabled = false;
-        $user->save();
+        if (!$secret || $user->two_factor_enabled) {
+            $secret = TwoFactorAuthService::generateSecret();
+            $user->two_factor_secret = $secret;
+            $user->two_factor_enabled = false;
+            $user->save();
+        } else {
+            if (preg_match('/([A-Z2-7]{16,32})/', strtoupper($secret), $matches)) {
+                $secret = $matches[1];
+            }
+        }
         
-        // Gerar QR Code HTML/Base64 string
-        $qrCodeImg = TwoFactorAuthService::generateQrCode($user->email, $secret, config('app.name'));
-        
-        // O frontend espera qr_code_url, mas TwoFactorAuthService retorna a tag <img>
-        // Vamos extrair a string Base64/SVG da tag img
-        preg_match('/src="([^"]+)"/', $qrCodeImg, $matches);
-        $qrCodeUrl = $matches[1] ?? '';
+        $qrCodeHtml = TwoFactorAuthService::generateQrCode($user->email, $secret, config('app.name'));
         
         return response()->json([
-            'qr_code_url' => $qrCodeUrl,
+            'qr_code_html' => $qrCodeHtml,
             'secret' => $secret, // Para usuário inserir manualmente se necessário
             'message' => 'Escaneie o QR Code com seu app autenticador'
         ]);
@@ -50,7 +49,7 @@ class TwoFactorController extends Controller
         $user = User::findOrFail($request->user_id);
         
         // Verificar código
-        $isValid = TwoFactorAuthService::verifyToken($user->two_factor_secret, $request->code);
+        $isValid = TwoFactorAuthService::verifyToken($user->two_factor_secret ?? '', $request->code);
         
         if (!$isValid) {
             return response()->json(['error' => 'Código inválido'], 400);

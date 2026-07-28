@@ -20,7 +20,7 @@ class DashboardController extends Controller
 
         $cacheKey = "dashboard_kpis_{$user->id}_{$user->perfil}";
 
-        return Cache::tags(["user_{$user->id}", "user_perfil_{$user->perfil}"])->remember($cacheKey, 300, function () use ($isGestor, $vendedorId) {
+        return Cache::remember($cacheKey, 300, function () use ($isGestor, $vendedorId) {
             $queryVendas = Venda::query();
             $queryClientes = Cliente::query();
 

@@ -33,11 +33,7 @@ export function LoginForm({ setIsRegistering }: { setIsRegistering: (val: boolea
       const res = await login(result.data);
       
       if (res?.requires_2fa_setup) {
-        localStorage.setItem('2fa_setup_user_id', res.user_id);
-        toast.info("Configuração Obrigatória", {
-          description: "Você precisa configurar a Autenticação em Duas Etapas."
-        });
-        router.push("/auth/2fa-setup");
+        router.push(`/auth/2fa-setup?user_id=${res.user_id}`);
         return;
       }
       
@@ -53,7 +49,13 @@ export function LoginForm({ setIsRegistering }: { setIsRegistering: (val: boolea
       toast.success("Login realizado com sucesso!", {
         description: "Redirecionando para o painel..."
       });
-      router.push("/dashboard");
+      if (res.user?.perfil === 'gestor') {
+        router.push("/gestor");
+      } else if (res.user?.perfil === 'vendedor') {
+        router.push("/vendedor");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       console.error("Erro no login", err);
       toast.error("Acesso negado", {

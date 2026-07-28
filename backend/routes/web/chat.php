@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CampanhaController;
+use App\Http\Controllers\CalendarioController;
 
 // ==========================================
         // Módulo Chat - Vendedor

@@ -159,9 +159,9 @@ class CommissionService
             ]);
 
             if (!empty($criadas)) {
-                Cache::tags(["user_{$vendedor->usuario_id}", "user_perfil_vendedor"])->flush();
+                Cache::forget("dashboard_kpis_{$vendedor->usuario_id}_vendedor");
                 if (!empty($vendedor->gestor_id)) {
-                    Cache::tags(["user_{$vendedor->gestor_id}", "user_perfil_gestor"])->flush();
+                    Cache::forget("dashboard_kpis_{$vendedor->gestor_id}_gestor");
                 }
             }
 

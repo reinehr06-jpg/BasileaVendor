@@ -207,4 +207,36 @@ class ClienteController extends Controller
         $cliente->delete();
         return response()->json(['message' => 'Cliente removido com sucesso']);
     }
+
+    /**
+     * LGPD - Direito ao Esquecimento
+     * Mascara os dados sensíveis do cliente, mas mantém os registros
+     * para não quebrar notas fiscais e relatórios gerenciais de vendas antigas.
+     */
+    public function anonimizar(Request $request, $id)
+    {
+        $user = $request->user();
+        $isGestor = in_array($user->perfil, ['gestor', 'admin', 'master']);
+        
+        if (!$isGestor) {
+            return response()->json(['message' => 'Apenas gestores podem anonimizar clientes'], 403);
+        }
+
+        $cliente = Cliente::findOrFail($id);
+
+        $cliente->update([
+            'nome' => 'Cliente Removido LGPD-' . $cliente->id,
+            'nome_igreja' => 'Instituição Removida LGPD-' . $cliente->id,
+            'nome_responsavel' => 'Responsável Removido',
+            'documento' => '00000000000',
+            'email' => 'deleted_' . $cliente->id . '@anon.com',
+            'telefone' => '00000000000',
+            'whatsapp' => '00000000000',
+            'endereco' => 'Removido LGPD',
+            'cep' => '00000000',
+            'status' => 'INACTIVE'
+        ]);
+
+        return response()->json(['message' => 'Dados do cliente foram anonimizados conforme LGPD com sucesso.']);
+    }
 }

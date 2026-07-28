@@ -72,25 +72,9 @@ class User extends Authenticatable
         ];
     }
 
-    protected function twoFactorSecret(): \Illuminate\Database\Eloquent\Casts\Attribute
-    {
-        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
-            get: function ($value) {
-                if ($value === null) {
-                    return null;
-                }
-                try {
-                    return decrypt($value, false);
-                } catch (\Exception $e) {
-                    return null;
-                }
-            },
-            set: function ($value) {
-                return $value ? encrypt($value, false) : null;
-            },
-        );
-    }
-
+    /**
+     * Accessor for recovery_codes: stored as JSON string in DB.
+     */
     protected function recoveryCodes(): \Illuminate\Database\Eloquent\Casts\Attribute
     {
         return \Illuminate\Database\Eloquent\Casts\Attribute::make(
@@ -98,17 +82,12 @@ class User extends Authenticatable
                 if ($value === null) {
                     return null;
                 }
-                try {
-                    $decrypted = decrypt($value, false);
-                    return json_decode($decrypted, true) ?? $decrypted;
-                } catch (\Exception $e) {
-                    return null;
-                }
+                $decoded = json_decode($value, true);
+                return $decoded ?? $value;
             },
             set: function ($value) {
                 if ($value === null) return null;
-                $val = is_array($value) ? json_encode($value) : $value;
-                return encrypt($val, false);
+                return is_array($value) ? json_encode($value) : $value;
             },
         );
     }

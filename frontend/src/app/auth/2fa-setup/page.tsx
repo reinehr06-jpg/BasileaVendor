@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { toast } from "sonner";
@@ -17,13 +17,15 @@ export default function TwoFactorSetupPage() {
     const router = useRouter();
     const { login } = useAuth();
     
+    const searchParams = useSearchParams();
+    
     useEffect(() => {
-        const stored = localStorage.getItem('2fa_setup_user_id');
+        const stored = searchParams.get('user_id');
         if (stored) {
             setUserId(stored);
             api.post('/auth/2fa/setup', { user_id: stored })
                 .then(res => {
-                    setQrCode(res.qr_code_url);
+                    setQrCode(res.qr_code_html);
                     setSecret(res.secret);
                 })
                 .catch(err => {
@@ -33,7 +35,7 @@ export default function TwoFactorSetupPage() {
         } else {
             router.push('/auth/login');
         }
-    }, [router]);
+    }, [router, searchParams]);
     
     const handleConfirm = async () => {
         setLoading(true);
@@ -70,7 +72,7 @@ export default function TwoFactorSetupPage() {
                 
                 {qrCode ? (
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
-                        <img src={qrCode} alt="QR Code" style={{ width: '200px', height: '200px' }} />
+                        <div dangerouslySetInnerHTML={{ __html: qrCode }} />
                     </div>
                 ) : (
                     <div style={{ textAlign: 'center', margin: '20px 0' }}>Carregando...</div>

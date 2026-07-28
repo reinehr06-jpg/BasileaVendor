@@ -37,7 +37,7 @@ const desempenhoComercialData = [
   { name: "30/06", valor: 700 },
 ];
 
-export default function MasterDashboard() {
+export default function DashboardPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   

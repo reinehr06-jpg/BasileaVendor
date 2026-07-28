@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'docker'
+    # Necessita do cAdvisor para monitoramento de containers, ou Node Exporter
+    # Aqui apenas um stub. Em produção real, você conectaria os exporters
+    static_configs:
+      - targets: ['host.docker.internal:9323'] # Exemplo de daemon metrics
