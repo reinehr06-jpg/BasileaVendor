@@ -16,5 +16,8 @@
         "laravel-vite-plugin": "^3.0.0",
         "tailwindcss": "^4.0.0",
         "vite": "^8.0.0"
+    },
+    "optionalDependencies": {
+        "@rolldown/binding-linux-x64-gnu": "*"
     }
 }
