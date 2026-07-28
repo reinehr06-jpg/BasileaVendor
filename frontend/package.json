@@ -8,6 +8,9 @@
     "start": "next start -H 0.0.0.0 -p 3000",
     "lint": "eslint"
   },
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "dependencies": {
     "@sentry/nextjs": "^10.68.0",
     "date-fns": "^4.4.0",
