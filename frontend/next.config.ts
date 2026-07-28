@@ -26,7 +26,4 @@ export default withSentryConfig(nextConfig, {
   project: "vendor-os",
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  hideSourceMaps: true,
-  disableLogger: true,
-  automaticVercelMonitors: true,
 });
