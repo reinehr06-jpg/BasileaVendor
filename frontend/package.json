@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": "20.x"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.68.0",
