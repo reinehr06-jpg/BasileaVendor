@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Joyride, STATUS } from "react-joyride";
-import type { CallBackProps, Step } from "react-joyride";
+import type { Step } from "react-joyride";
 
 export default function Tour() {
   const [run, setRun] = useState(false);
@@ -48,7 +48,7 @@ export default function Tour() {
     return () => window.removeEventListener("onboardingComplete", handleOnboardingComplete);
   }, []);
 
-  const handleJoyrideCallback = (data: CallBackProps) => {
+  const handleJoyrideCallback = (data: any) => {
     const { status } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
