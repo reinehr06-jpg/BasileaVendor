@@ -34,4 +34,6 @@ export interface RegisterPayload {
 export interface AuthResponse {
   token: string;
   user: User;
+  requires_2fa?: boolean;
+  requires_2fa_setup?: boolean;
 }
