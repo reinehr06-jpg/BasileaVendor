@@ -4,7 +4,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 // Origem do backend para o proxy /api.
 // - Rodando direto (npm run dev): padrão http://127.0.0.1:8000 (php artisan serve).
 // - Docker Compose: a variável BACKEND_ORIGIN=http://backend:8000 é injetada no compose.
-const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || "http://backend:8000";
+const BACKEND_ORIGIN = process.env.BACKEND_ORIGIN || "http://backend";
 
 const nextConfig: NextConfig = {
   async rewrites() {
