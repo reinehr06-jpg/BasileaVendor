@@ -18,6 +18,9 @@ return new class extends Migration
             $table->text('message');
             $table->json('payload')->nullable();
             $table->timestamps();
+
+            // Filtro por data é o mais usado no painel — índice para não varrer a tabela.
+            $table->index('created_at');
         });
     }
 

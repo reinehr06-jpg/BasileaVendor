@@ -94,22 +94,31 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Sysadmin Centralized Logs Ingestion
         $exceptions->reportable(function (\Throwable $e) {
+            $isDatabaseError = $e instanceof \PDOException
+                || $e instanceof \Illuminate\Database\QueryException;
+
+            // ANTI-RECURSÃO: se o erro é do próprio banco, NÃO tente gravar no banco
+            // (a gravação também falharia e poderia cascatear). Vai para o log de arquivo.
+            if ($isDatabaseError) {
+                \Illuminate\Support\Facades\Log::error('[sysadmin/database] ' . $e->getMessage());
+                return;
+            }
+
             try {
-                // Determine if it's a database error
-                $isDatabaseError = $e instanceof \PDOException || $e instanceof \Illuminate\Database\QueryException;
-                
                 \App\Models\SysadminLog::create([
-                    'source' => $isDatabaseError ? 'database' : 'backend',
+                    'source' => 'backend',
                     'level' => 'error',
-                    'message' => $e->getMessage(),
+                    'message' => mb_substr($e->getMessage(), 0, 2000),
                     'payload' => [
                         'file' => $e->getFile(),
                         'line' => $e->getLine(),
-                        'trace' => collect($e->getTrace())->take(3)->toArray()
-                    ]
+                        'trace' => collect($e->getTrace())->take(3)->toArray(),
+                    ],
                 ]);
             } catch (\Throwable $ignore) {
-                // Failsafe so the app doesn't crash if sysadmin_logs table is missing
+                // Failsafe: se a tabela não existir ou o banco cair, não derruba o app
+                // e ainda registra o erro original no log de arquivo.
+                \Illuminate\Support\Facades\Log::error('[sysadmin] ' . $e->getMessage());
             }
         });
     })->create();

@@ -21,6 +21,10 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {
+            \App\Services\SecurityAlertService::notify('login_falhou', [
+                'email' => $request->email,
+                'ip' => $request->ip(),
+            ]);
             return response()->json([
                 'message' => 'Credenciais inválidas.'
             ], 401);
@@ -50,6 +54,17 @@ class AuthController extends Controller
 
         // Gera novo token
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Alerta de login. Todos por padrão; para reduzir ruído, defina
+        // SECURITY_ALERT_ON_EVERY_LOGIN=false e só master/gestor serão avisados.
+        $alertaTodos = filter_var(env('SECURITY_ALERT_ON_EVERY_LOGIN', true), FILTER_VALIDATE_BOOLEAN);
+        if ($alertaTodos || in_array($perfil, ['master', 'gestor'])) {
+            \App\Services\SecurityAlertService::notify('login', [
+                'email' => $user->email,
+                'perfil' => $perfil,
+                'ip' => $request->ip(),
+            ]);
+        }
 
         $secure = env('SESSION_SECURE_COOKIE', app()->environment('production'));
         

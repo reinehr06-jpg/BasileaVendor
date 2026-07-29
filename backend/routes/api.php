@@ -151,9 +151,22 @@ Route::middleware('auth:sanctum')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('sysadmin')->group(function () {
-    Route::get('/metrics', [\App\Http\Controllers\Api\SysadminController::class, 'metrics']);
-    Route::get('/logs', [\App\Http\Controllers\Api\SysadminController::class, 'logs']);
-    Route::post('/logs/ingest', [\App\Http\Controllers\Api\SysadminController::class, 'ingest']);
+    // Acesso ao painel: precisa estar logado como MASTER. Em cima disso, o painel
+    // gera um token efêmero (60 min) que é exigido nas leituras.
+    Route::middleware(['auth:sanctum', 'master'])->group(function () {
+        // Emite o token de sessão do painel (validade 60 min).
+        Route::post('/token', [\App\Http\Controllers\Api\SysadminController::class, 'issueToken']);
+
+        // Métricas e leitura de logs: até 60 req/min (o painel faz polling).
+        Route::middleware('throttle:60,1')->group(function () {
+            Route::get('/metrics', [\App\Http\Controllers\Api\SysadminController::class, 'metrics']);
+            Route::get('/logs', [\App\Http\Controllers\Api\SysadminController::class, 'logs']);
+        });
+    });
+
+    // Ingestão de logs do frontend: pública mas write-only, com teto para evitar flood.
+    Route::post('/logs/ingest', [\App\Http\Controllers\Api\SysadminController::class, 'ingest'])
+        ->middleware('throttle:120,1');
 });
 
 // Asaas Webhook — Receber eventos de pagamento

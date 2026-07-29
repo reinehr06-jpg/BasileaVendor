@@ -38,3 +38,9 @@ Schedule::command('asaas:process-events')->everyMinute()->withoutOverlapping();
 // fim do mês é aplicada dentro do motor. O webhook continua gerando em tempo real.
 Schedule::command('comissoes:processar')->dailyAt('03:10')->withoutOverlapping();
 
+// Retenção dos logs do painel Sysadmin: apaga registros com mais de 30 dias
+// para a tabela sysadmin_logs não crescer sem limite no Postgres.
+Schedule::call(function () {
+    \App\Models\SysadminLog::where('created_at', '<', now()->subDays(30))->delete();
+})->dailyAt('04:00')->name('sysadmin-logs-prune')->withoutOverlapping();
+
