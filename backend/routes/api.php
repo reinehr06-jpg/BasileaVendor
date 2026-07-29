@@ -145,6 +145,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // ==========================================
 
+/*
+|--------------------------------------------------------------------------
+| Rotas do Painel Sysadmin (Protegidas por Chave)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('sysadmin')->group(function () {
+    Route::get('/metrics', [\App\Http\Controllers\Api\SysadminController::class, 'metrics']);
+    Route::get('/logs', [\App\Http\Controllers\Api\SysadminController::class, 'logs']);
+    Route::post('/logs/ingest', [\App\Http\Controllers\Api\SysadminController::class, 'ingest']);
+});
+
 // Asaas Webhook — Receber eventos de pagamento
 Route::post('/asaas/webhook', [AsaasWebhookController::class, 'handle']);
 

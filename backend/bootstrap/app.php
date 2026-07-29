@@ -91,4 +91,25 @@ return Application::configure(basePath: dirname(__DIR__))
             $exceptions->dontReport(\Illuminate\Auth\AuthenticationException::class);
             $exceptions->dontReport(\Illuminate\Validation\ValidationException::class);
         }
+
+        // Sysadmin Centralized Logs Ingestion
+        $exceptions->reportable(function (\Throwable $e) {
+            try {
+                // Determine if it's a database error
+                $isDatabaseError = $e instanceof \PDOException || $e instanceof \Illuminate\Database\QueryException;
+                
+                \App\Models\SysadminLog::create([
+                    'source' => $isDatabaseError ? 'database' : 'backend',
+                    'level' => 'error',
+                    'message' => $e->getMessage(),
+                    'payload' => [
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                        'trace' => collect($e->getTrace())->take(3)->toArray()
+                    ]
+                ]);
+            } catch (\Throwable $ignore) {
+                // Failsafe so the app doesn't crash if sysadmin_logs table is missing
+            }
+        });
     })->create();
