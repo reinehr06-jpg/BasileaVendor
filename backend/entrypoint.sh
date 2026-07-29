@@ -63,5 +63,16 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
+# Cache de produção: compila config e rotas em arquivo único. Sem isto o Laravel
+# reprocessa toda a config e as ~140 rotas a cada request (CPU/memória extras).
+# Em dev deixamos sem cache para o hot-reload funcionar.
+if [ "$APP_ENV" = "production" ] || [ "$APP_ENV" = "prod" ]; then
+  echo "Gerando caches de produção (config/route/view/event)..."
+  php artisan config:cache || true
+  php artisan route:cache || true
+  php artisan view:cache || true
+  php artisan event:cache || true
+fi
+
 echo "Iniciando Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisor.conf

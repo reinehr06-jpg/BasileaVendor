@@ -23,10 +23,14 @@ RUN apk add --no-cache \
     && apk add --no-cache --virtual .build-deps postgresql-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_pgsql gd \
+    && docker-php-ext-enable opcache \
     && apk del .build-deps
 
 # PHP-FPM config
 COPY php-fpm.conf /usr/local/etc/php-fpm.d/zz-docker.conf
+
+# OPcache: mantém bytecode compilado em memória (grande ganho de CPU/memória)
+COPY opcache.ini /usr/local/etc/php/conf.d/zz-opcache.ini
 
 # Copy vendor from build stage
 COPY --from=vendor /app/vendor /var/www/html/vendor
