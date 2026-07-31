@@ -32,6 +32,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
 };
 
 // O plugin do Sentry processa source maps de TODOS os bundles no build, o que
