@@ -55,6 +55,10 @@ export default function MonitorVendasPage() {
     setExpandedLog(expandedLog === id ? null : id);
   };
 
+  const successCount = logs.filter(l => l.status === 200).length;
+  const errorCount = logs.filter(l => l.status >= 400).length;
+  const totalEvents = logs.length;
+
   return (
     <div className="flex min-h-screen font-inter bg-[#F5F5F7]">
       <Sidebar />
@@ -119,17 +123,17 @@ export default function MonitorVendasPage() {
               <div className="bg-white p-[20px] rounded-[16px] border border-[#E5E7EB] shadow-sm flex flex-col gap-[4px] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-[80px] h-[80px] bg-gradient-to-br from-[#EEF2FF] to-transparent rounded-bl-full -mr-[20px] -mt-[20px] transition-transform group-hover:scale-110"></div>
                 <span className="text-[13px] font-[600] text-[#6B7280] uppercase tracking-wider relative z-10">Eventos Hoje</span>
-                <span className="text-[32px] font-[800] text-[#111827] leading-none relative z-10 mt-[4px]">1,284</span>
+                <span className="text-[32px] font-[800] text-[#111827] leading-none relative z-10 mt-[4px]">{totalEvents}</span>
               </div>
               <div className="bg-white p-[20px] rounded-[16px] border border-[#E5E7EB] shadow-sm flex flex-col gap-[4px] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-[80px] h-[80px] bg-gradient-to-br from-[#ECFDF5] to-transparent rounded-bl-full -mr-[20px] -mt-[20px] transition-transform group-hover:scale-110"></div>
                 <span className="text-[13px] font-[600] text-[#6B7280] uppercase tracking-wider relative z-10">Sucesso (200 OK)</span>
-                <span className="text-[32px] font-[800] text-[#10B981] leading-none relative z-10 mt-[4px]">1,280</span>
+                <span className="text-[32px] font-[800] text-[#10B981] leading-none relative z-10 mt-[4px]">{successCount}</span>
               </div>
               <div className="bg-white p-[20px] rounded-[16px] border border-[#E5E7EB] shadow-sm flex flex-col gap-[4px] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-[80px] h-[80px] bg-gradient-to-br from-[#FEF2F2] to-transparent rounded-bl-full -mr-[20px] -mt-[20px] transition-transform group-hover:scale-110"></div>
-                <span className="text-[13px] font-[600] text-[#6B7280] uppercase tracking-wider relative z-10">Falhas (500 ERR)</span>
-                <span className="text-[32px] font-[800] text-[#EF4444] leading-none relative z-10 mt-[4px]">4</span>
+                <span className="text-[13px] font-[600] text-[#6B7280] uppercase tracking-wider relative z-10">Falhas (500/400 ERR)</span>
+                <span className="text-[32px] font-[800] text-[#EF4444] leading-none relative z-10 mt-[4px]">{errorCount}</span>
               </div>
               <div className="bg-[#1E293B] p-[20px] rounded-[16px] border border-[#334155] shadow-lg flex flex-col gap-[4px] relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-[80px] h-[80px] bg-gradient-to-br from-[#334155] to-transparent rounded-bl-full -mr-[20px] -mt-[20px] transition-transform group-hover:scale-110"></div>
@@ -241,7 +245,7 @@ export default function MonitorVendasPage() {
               </div>
               
               <div className="p-[16px_24px] bg-[#F9FAFB] border-t border-[#E5E7EB] flex items-center justify-between">
-                <span className="text-[13px] font-[500] text-[#6B7280]">Mostrando os últimos 4 eventos de 1,284 hoje</span>
+                <span className="text-[13px] font-[500] text-[#6B7280]">Mostrando os últimos {filteredLogs.length} eventos de {totalEvents} hoje</span>
                 <div className="flex items-center gap-[8px]">
                   <button className="px-[12px] py-[6px] border border-[#E5E7EB] bg-white rounded-[6px] text-[13px] font-[600] text-[#374151] hover:bg-[#F3F4F6] transition-colors disabled:opacity-50" disabled>
                     Anterior

@@ -12,6 +12,7 @@ import {
   ChevronUp,
   Save,
   ShieldCheck
+} from "  ArrowLeft,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -130,7 +131,15 @@ export default function NovoDispositivoPage() {
             <div className="flex items-start gap-[12px] mb-[24px]">
               <ShieldCheck className="w-[24px] h-[24px] text-[#4B5563] mt-[2px]" strokeWidth={2} />
               <div className="flex flex-col">
-                <h1 className="text-[24px] font-[700] text-[#111827] leading-tight mb-[4px]">{t("Novo Dispositivo 2FA")}</h1>
+                
+              <Link 
+                href="/configuracoes/seguranca"
+                className="flex items-center gap-[8px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors w-fit mb-[16px]"
+              >
+                <ArrowLeft className="w-[16px] h-[16px]" />
+                Voltar
+              </Link>
+<h1 className="text-[24px] font-[700] text-[#111827] leading-tight mb-[4px]">{t("Novo Dispositivo 2FA")}</h1>
                 <p className="text-[14px] text-[#6B7280]">{t("Adicione um novo dispositivo para autenticação de dois fatores.")}</p>
               </div>
             </div>

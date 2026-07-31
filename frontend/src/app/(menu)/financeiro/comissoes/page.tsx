@@ -15,9 +15,11 @@ import {
   DollarSign,
   ShoppingBag,
   TrendingUp,
-  Eye
+  Eye,
+  FileSpreadsheet
 } from "lucide-react";
 import CustomDatePicker from "@/components/CustomDatePicker";
+import ImportExcelModal from "@/components/ImportExcelModal";
 
 
 
@@ -25,6 +27,7 @@ export default function ComissoesPage() {
   const { t } = useTranslation();
   const [busca, setBusca] = useState("");
   const [mesFiltro, setMesFiltro] = useState<string>("2026-07-01");
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
@@ -67,7 +70,7 @@ export default function ComissoesPage() {
         <Topbar />
 
         {/* CONTENT */}
-        <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
+        <main data-tour="tour-comissoes-tabela" className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
 
           {/* KPIs Resumo */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-[16px] mb-[20px]">
@@ -156,6 +159,14 @@ export default function ComissoesPage() {
                     className="w-full sm:w-[150px] h-[36px] text-[12px] bg-white"
                   />
                 </div>
+
+                <button 
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="flex items-center gap-[6px] h-[36px] px-[16px] bg-[#6D28D9] hover:bg-[#5B21B6] transition-colors rounded-[8px] text-white text-[12px] font-[600] shadow-sm ml-2"
+                >
+                  <FileSpreadsheet className="w-[14px] h-[14px]" />
+                  Importar Excel
+                </button>
               </div>
             </div>
 
@@ -247,6 +258,12 @@ export default function ComissoesPage() {
 
         </main>
       </div>
+      
+      <ImportExcelModal 
+        isOpen={isImportModalOpen} 
+        onClose={() => setIsImportModalOpen(false)} 
+        type="comissoes" 
+      />
     </div>
   );
 }

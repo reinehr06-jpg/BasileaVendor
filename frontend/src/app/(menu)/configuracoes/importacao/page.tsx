@@ -22,14 +22,16 @@ import React, { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import Link from "next/link";
-import { ArrowLeft, Save, UploadCloud, DownloadCloud, FileSpreadsheet } from "lucide-react";
+import { ArrowLeft, Save, UploadCloud, DownloadCloud, FileSpreadsheet, FilePlus } from "lucide-react";
 import CustomSelect from "@/components/CustomSelect";
+import ImportExcelModal from "@/components/ImportExcelModal";
 
 export default function ImportacaoPage() {
   // 🗄️ ESTADOS
   const [padraoOFX, setPadraoOFX] = useState("auto");
   const [padraoCSV, setPadraoCSV] = useState("banco_brasil");
   const [exportacaoContabil, setExportacaoContabil] = useState("dominio");
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // 🖱️ AÇÃO: Salvar
   const handleSalvar = () => {
@@ -51,7 +53,15 @@ export default function ImportacaoPage() {
                 <ArrowLeft className="w-[20px] h-[20px] text-[#4B5563]" strokeWidth={2.2} />
               </Link>
               <div className="flex flex-col">
-                <h1 className="text-[18px] font-[800] text-[#1A1A2E] leading-tight">Importação e Exportação</h1>
+                
+              <Link 
+                href="/configuracoes"
+                className="flex items-center gap-[8px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors w-fit mb-[16px]"
+              >
+                <ArrowLeft className="w-[16px] h-[16px]" />
+                Voltar para Configurações
+              </Link>
+<h1 className="text-[18px] font-[800] text-[#1A1A2E] leading-tight">Importação e Exportação</h1>
                 <p className="text-[12px] font-[500] text-[#6B7280]">Configure padrões de leitura de extratos (OFX/CSV) e exportação para contabilidade.</p>
               </div>
             </div>
@@ -109,11 +119,27 @@ export default function ImportacaoPage() {
                  </div>
                </div>
 
-               <div className="mt-[20px] flex items-center gap-[12px]">
-                 <input type="checkbox" id="auto-conciliar" className="w-[16px] h-[16px] rounded border-[#D1D5DB] text-[#6D28D9] focus:ring-[#6D28D9]" defaultChecked />
-                 <label htmlFor="auto-conciliar" className="text-[14px] text-[#374151] cursor-pointer">Auto-conciliar lançamentos idênticos via IA durante a importação</label>
-               </div>
-             </div>
+                <div className="mt-[20px] flex items-center gap-[12px]">
+                  <input type="checkbox" id="auto-conciliar" className="w-[16px] h-[16px] rounded border-[#D1D5DB] text-[#6D28D9] focus:ring-[#6D28D9]" defaultChecked />
+                  <label htmlFor="auto-conciliar" className="text-[14px] text-[#374151] cursor-pointer">Auto-conciliar lançamentos idênticos via IA durante a importação</label>
+                </div>
+
+                <div className="mt-[24px] pt-[24px] border-t border-[#F1F1F4]">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="text-[14px] font-[600] text-[#1A1A2E]">Importação Manual de Vendas e Clientes</h4>
+                      <p className="text-[13px] text-[#6B7280] mt-[4px]">Envie planilhas antigas para processar comissões e vendas retroativas.</p>
+                    </div>
+                    <button 
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="flex items-center gap-[8px] bg-white border border-[#D8B4FE] hover:bg-[#F4EEFF] transition-colors text-[#6D28D9] px-[16px] py-[10px] rounded-[8px] text-[13px] font-[600]"
+                    >
+                      <FilePlus className="w-[16px] h-[16px]" />
+                      Importar Planilha
+                    </button>
+                  </div>
+                </div>
+              </div>
 
              {/* 📤 EXPORTAÇÃO CONTÁBIL */}
              <div className="pt-[32px] border-t border-[#F1F1F4]">
@@ -159,6 +185,12 @@ export default function ImportacaoPage() {
 
         </main>
       </div>
+
+      <ImportExcelModal 
+        isOpen={isImportModalOpen} 
+        onClose={() => setIsImportModalOpen(false)} 
+        type="clientes" 
+      />
     </div>
   );
 }

@@ -57,7 +57,7 @@ export default function ComissoesPage() {
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
 
   return (
-    <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col h-full">
+    <main data-tour="tour-gestor-comissoes-view" className="p-[24px_28px_20px_28px] flex-1 flex flex-col h-full">
 
       {/* KPIs Resumo */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-[16px] mb-[20px]">

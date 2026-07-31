@@ -56,7 +56,7 @@ export default function PagamentosPage() {
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
 
   return (
-    <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
+    <main data-tour="tour-vendedor-pagamentos-view" className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
 
       {/* KPIs Resumo */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-[16px] mb-[20px]">

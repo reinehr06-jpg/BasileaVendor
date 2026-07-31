@@ -12,7 +12,8 @@ import {
   Edit,
   X,
   Trash2,
-  Search
+  Search,
+  ArrowLeft
 } from "lucide-react";
 
 import { TermosService } from "@/services/termos.service";
@@ -54,6 +55,15 @@ export default function TermosPage() {
 
         {/* CONTENT */}
         <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
+          <div className="w-full flex flex-col max-w-[1200px] mx-auto">
+            {/* VOLTAR */}
+            <Link 
+              href="/configuracoes"
+              className="flex items-center gap-[8px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors w-fit mb-[16px]"
+            >
+              <ArrowLeft className="w-[16px] h-[16px]" />
+              {t("Voltar para Configurações")}
+            </Link>
 
           {/* Cabeçalho da Página (Fora do Card Principal para dar destaque como no print) */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px] mb-[24px]">
@@ -67,6 +77,7 @@ export default function TermosPage() {
             </div>
             
             <Link 
+              data-tour="tour-novo-termo-btn"
               href="/termos/novo"
               className="flex items-center gap-[6px] px-[18px] py-[10px] bg-[#6D28D9] text-white text-[13px] font-[600] rounded-[8px] hover:bg-[#5B21B6] transition-colors shadow-sm uppercase tracking-wide shrink-0"
             >
@@ -180,6 +191,7 @@ export default function TermosPage() {
             </p>
           </div>
 
+          </div>
         </main>
       </div>
     </div>

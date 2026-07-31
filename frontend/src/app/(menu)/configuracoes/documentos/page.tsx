@@ -49,7 +49,15 @@ export default function DocumentosPage() {
                 <ArrowLeft className="w-[20px] h-[20px] text-[#4B5563]" strokeWidth={2.2} />
               </Link>
               <div className="flex flex-col">
-                <h1 className="text-[18px] font-[800] text-[#1A1A2E] leading-tight">Documentos e Recibos</h1>
+                
+              <Link 
+                href="/configuracoes"
+                className="flex items-center gap-[8px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors w-fit mb-[16px]"
+              >
+                <ArrowLeft className="w-[16px] h-[16px]" />
+                Voltar para Configurações
+              </Link>
+<h1 className="text-[18px] font-[800] text-[#1A1A2E] leading-tight">Documentos e Recibos</h1>
                 <p className="text-[12px] font-[500] text-[#6B7280]">Personalize os modelos de emissão, assinaturas e padrões de impressão.</p>
               </div>
             </div>

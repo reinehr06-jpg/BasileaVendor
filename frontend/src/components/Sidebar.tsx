@@ -19,9 +19,11 @@ import {
   ChevronLeft,
   HelpCircle,
   LogOut,
+  FileDown
 } from "lucide-react";
 import { navSections, sellerNavSections, gestorNavSections } from "@/data/navigation";
 import { useAuth } from "@/context/AuthContext";
+import LGPDTermsModal from "./LGPDTermsModal";
 
 // ============================================================
 // MAPA DO TESOURO — Gestão / Sidebar (Principal)
@@ -199,6 +201,7 @@ export default function Sidebar() {
                         }
                       }}
                       title={isCollapsed ? item.label : ""}
+                      data-tour={`tour-menu-${item.label.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/ /g, '-')}`}
                       className="group flex items-center w-full px-[10px] py-[8px] rounded-[8px] cursor-pointer transition-all duration-200"
                       style={{
                         background: isActive ? activeGradient : "transparent",
@@ -280,6 +283,7 @@ export default function Sidebar() {
                                   href={subItem.href as string}
                                   className={className}
                                   style={style}
+                                  data-tour={`tour-menu-${subItem.label.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/ /g, '-')}`}
                                 >
                                   {content}
                                 </Link>
@@ -385,6 +389,24 @@ export default function Sidebar() {
                 {t("Ajuda")}
               </a>
               <div className="h-px bg-divider mx-3" />
+              {/* Manual de Uso customizado por perfil */}
+              <button
+                type="button"
+                onClick={() => {
+                  setUserMenuOpen(false);
+                  const isVendedor = user?.perfil?.toLowerCase() === "vendedor";
+                  const isGestor = user?.perfil?.toLowerCase() === "gestor";
+                  const manualUrl = isVendedor 
+                    ? "https://storage.basileia.global/manuais/manual_vendedor.pdf" 
+                    : (isGestor ? "https://storage.basileia.global/manuais/manual_gestor.pdf" : "https://storage.basileia.global/manuais/manual_master.pdf");
+                  window.open(manualUrl, "_blank");
+                }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 hover:bg-white/10 transition-colors text-text-primary text-[13px] font-[500]"
+              >
+                <FileDown size={18} strokeWidth={1.8} className="text-text-muted shrink-0" />
+                {t("Manual de Uso")}
+              </button>
+              <div className="h-px bg-divider mx-3" />
               {/* INTEGRAÇÃO BACKEND: Sair — desabilitado no finance. */}
               <button
                 type="button"
@@ -421,6 +443,8 @@ export default function Sidebar() {
           background: var(--color-item-hover) !important;
         }
       `}} />
+
+      <LGPDTermsModal />
     </aside>
   );
 }

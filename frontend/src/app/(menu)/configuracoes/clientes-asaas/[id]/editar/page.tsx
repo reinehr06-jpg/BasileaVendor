@@ -15,6 +15,7 @@ import {
   ChevronDown,
   ChevronUp,
   Save
+} from "  ArrowLeft,
 } from "lucide-react";
 import { use } from "react";
 import { api } from "@/lib/api";
@@ -224,7 +225,15 @@ export default function EditarClienteAsaasPage({ params }: { params: Promise<{ i
             <div className="flex items-start gap-[12px] mb-[24px]">
               <Users className="w-[24px] h-[24px] text-[#4B5563] mt-[2px]" strokeWidth={2} />
               <div className="flex flex-col">
-                <h1 className="text-[24px] font-[700] text-[#111827] leading-tight mb-[4px]">{t("Editar Cliente")}</h1>
+                
+              <Link 
+                href="/configuracoes/clientes-asaas"
+                className="flex items-center gap-[8px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors w-fit mb-[16px]"
+              >
+                <ArrowLeft className="w-[16px] h-[16px]" />
+                Voltar
+              </Link>
+<h1 className="text-[24px] font-[700] text-[#111827] leading-tight mb-[4px]">{t("Editar Cliente")}</h1>
                 <p className="text-[14px] text-[#6B7280]">{t("Atualize as informações cadastrais e comerciais do cliente.")}</p>
               </div>
             </div>

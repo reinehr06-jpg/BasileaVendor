@@ -11,6 +11,7 @@ import {
   MapPin,
   MoreVertical,
   Users
+} from "  ArrowLeft,
 } from "lucide-react";
 
 import { FiliaisService } from "@/services/filiais.service";
@@ -50,7 +51,15 @@ export default function FiliaisPage() {
                 <Building2 className="w-[20px] h-[20px] text-[#6D28D9]" strokeWidth={2.2} />
               </div>
               <div className="flex flex-col">
-                <h1 className="text-[18px] font-[800] text-[#1A1A2E] leading-tight">Filiais e Centros de Custo</h1>
+                
+              <Link 
+                href="/configuracoes"
+                className="flex items-center gap-[8px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors w-fit mb-[16px]"
+              >
+                <ArrowLeft className="w-[16px] h-[16px]" />
+                Voltar para Configurações
+              </Link>
+<h1 className="text-[18px] font-[800] text-[#1A1A2E] leading-tight">Filiais e Centros de Custo</h1>
                 <p className="text-[12px] font-[500] text-[#6B7280]">Gerencie a estrutura de igrejas, filiais e seus respectivos responsáveis.</p>
               </div>
             </div>

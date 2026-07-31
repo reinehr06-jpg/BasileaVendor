@@ -10,6 +10,7 @@ import {
   ChevronDown, 
   MapPin,
   Wallet
+} from "  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -37,7 +38,15 @@ export default function NovaFilialPage() {
               <MapPin className="w-[20px] h-[20px] text-[#A855F7]" strokeWidth={2.2} />
             </div>
             <div className="flex flex-col justify-center">
-              <h1 className="text-[24px] font-[700] text-[#1A1A2E] leading-tight">Nova Filial</h1>
+              
+              <Link 
+                href="/configuracoes/filiais"
+                className="flex items-center gap-[8px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors w-fit mb-[16px]"
+              >
+                <ArrowLeft className="w-[16px] h-[16px]" />
+                Voltar
+              </Link>
+<h1 className="text-[24px] font-[700] text-[#1A1A2E] leading-tight">Nova Filial</h1>
               <p className="text-[13px] font-[500] text-[#6B7280] mt-0.5">Cadastre uma nova congregação, igreja ou unidade organizacional.</p>
             </div>
           </div>

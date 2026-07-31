@@ -41,4 +41,55 @@ class AprovacaoController extends Controller
 
         return response()->json(['data' => $formatted]);
     }
+
+    public function aprovar(Request $request, $id)
+    {
+        $aprovacao = AprovacaoVenda::findOrFail($id);
+        
+        if ($aprovacao->status !== 'PENDENTE' && $aprovacao->status !== 'Pendente') {
+            return response()->json(['success' => false, 'message' => 'Esta aprovação já foi processada.']);
+        }
+
+        $aprovacao->status = 'APROVADO';
+        $aprovacao->aprovado_por = auth()->id();
+        $aprovacao->save();
+
+        if ($aprovacao->venda) {
+            $aprovacao->venda->status_aprovacao = 'aprovado';
+            $aprovacao->venda->aprovado_por = auth()->id();
+            $aprovacao->venda->aprovado_em = now();
+            $aprovacao->venda->save();
+        }
+
+        return response()->json(['success' => true, 'message' => 'Venda aprovada com sucesso!']);
+    }
+
+    public function rejeitar(Request $request, $id)
+    {
+        $request->validate([
+            'motivo' => 'nullable|string'
+        ]);
+
+        $aprovacao = AprovacaoVenda::findOrFail($id);
+        
+        if ($aprovacao->status !== 'PENDENTE' && $aprovacao->status !== 'Pendente') {
+            return response()->json(['success' => false, 'message' => 'Esta aprovação já foi processada.']);
+        }
+
+        $aprovacao->status = 'REJEITADO';
+        $aprovacao->aprovado_por = auth()->id();
+        $aprovacao->motivo_rejeicao = $request->motivo;
+        $aprovacao->save();
+
+        if ($aprovacao->venda) {
+            $aprovacao->venda->status_aprovacao = 'rejeitado';
+            $aprovacao->venda->aprovado_por = auth()->id();
+            $aprovacao->venda->aprovado_em = now();
+            // A venda é cancelada se for rejeitada na aprovação
+            $aprovacao->venda->status = 'Cancelado'; 
+            $aprovacao->venda->save();
+        }
+
+        return response()->json(['success' => true, 'message' => 'Venda rejeitada!']);
+    }
 }

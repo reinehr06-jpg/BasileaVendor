@@ -130,10 +130,10 @@ export default function NovoVendedorPage() {
             </div>
 
             {/* ÁREA DE ACCORDIONS (DROPDOWNS) */}
-            <div className="flex flex-col gap-[16px]">
+            <div data-tour="tour-novo-vendedor-form" className="flex flex-col gap-[16px]">
 
               {/* SEÇÃO 1: DADOS PESSOAIS */}
-              <div className="bg-white rounded-[12px] border border-[#E5E7EB] overflow-hidden">
+              <div data-tour="tour-novo-vendedor-dados-pessoais" className="bg-white rounded-[12px] border border-[#E5E7EB] overflow-hidden">
                 <button 
                   onClick={() => toggleSection("dados-pessoais")}
                   className="w-full flex items-center justify-between p-[24px] bg-white hover:bg-[#F9FAFB] transition-colors"
@@ -215,7 +215,7 @@ export default function NovoVendedorPage() {
               </div>
 
               {/* SEÇÃO 2: FUNÇÃO E EQUIPE */}
-              <div className="bg-white rounded-[12px] border border-[#E5E7EB] overflow-hidden">
+              <div data-tour="tour-novo-vendedor-funcao-equipe" className="bg-white rounded-[12px] border border-[#E5E7EB] overflow-hidden">
                 <button 
                   onClick={() => toggleSection("funcao")}
                   className="w-full flex items-center justify-between p-[24px] bg-white hover:bg-[#F9FAFB] transition-colors"
@@ -297,7 +297,7 @@ export default function NovoVendedorPage() {
               </div>
 
               {/* SEÇÃO 3: COMISSÕES DO VENDEDOR */}
-              <div className="bg-white rounded-[12px] border border-[#E5E7EB] overflow-hidden mb-[30px]">
+              <div data-tour="tour-novo-vendedor-comissoes" className="bg-white rounded-[12px] border border-[#E5E7EB] overflow-hidden mb-[30px]">
                 <button 
                   onClick={() => toggleSection("comissoes")}
                   className="w-full flex items-center justify-between p-[24px] bg-white hover:bg-[#F9FAFB] transition-colors"

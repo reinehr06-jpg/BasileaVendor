@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
 import { useTranslation } from "react-i18next";
-import { FileSpreadsheet, Save, Eye } from "lucide-react";
+import { FileSpreadsheet, Save, Eye } from "  ArrowLeft,
+} from "lucide-react";
 
 export default function ModelosDocumentosPage() {
   const { t } = useTranslation();
@@ -34,7 +36,15 @@ export default function ModelosDocumentosPage() {
               <FileSpreadsheet className="w-[20px] h-[20px] text-[#7C3AED]" strokeWidth={2.2} />
             </div>
             <div className="flex flex-col justify-center">
-              <h1 className="text-[24px] font-[700] text-[#1A1A2E] leading-tight">Modelos de Documentos</h1>
+              
+              <Link 
+                href="/configuracoes"
+                className="flex items-center gap-[8px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors w-fit mb-[16px]"
+              >
+                <ArrowLeft className="w-[16px] h-[16px]" />
+                Voltar para Configurações
+              </Link>
+<h1 className="text-[24px] font-[700] text-[#1A1A2E] leading-tight">Modelos de Documentos</h1>
               <p className="text-[13px] font-[500] text-[#6B7280] mt-0.5">Configure os modelos padrão para impressão de recibos e prebendas.</p>
             </div>
           </div>

@@ -35,21 +35,23 @@ class AuthController extends Controller
         
         $perfil = strtolower($user->perfil ?? 'vendedor');
 
-        // Verificar se é master/gestor e não tem 2FA
-        if (in_array($perfil, ['master', 'gestor']) && !$user->two_factor_secret) {
-            return response()->json([
-                'requires_2fa_setup' => true,
-                'user_id' => $user->id,
-                'message' => 'Você precisa configurar o 2FA para continuar.'
-            ]);
-        }
+        // Verificar se é master/gestor e não tem 2FA (Bypass in local environment)
+        if (!app()->environment('local')) {
+            if (in_array($perfil, ['master', 'gestor']) && !$user->two_factor_secret) {
+                return response()->json([
+                    'requires_2fa_setup' => true,
+                    'user_id' => $user->id,
+                    'message' => 'Você precisa configurar o 2FA para continuar.'
+                ]);
+            }
 
-        // NOVO: Verificar 2FA se estiver habilitado e com secret configurado
-        if ($user->two_factor_enabled && $user->two_factor_secret) {
-            return response()->json([
-                'requires_2fa' => true,
-                'user_id' => $user->id,
-            ]);
+            // NOVO: Verificar 2FA se estiver habilitado e com secret configurado
+            if ($user->two_factor_enabled && $user->two_factor_secret) {
+                return response()->json([
+                    'requires_2fa' => true,
+                    'user_id' => $user->id,
+                ]);
+            }
         }
 
         // Gera novo token

@@ -61,7 +61,7 @@ export default function ConfiguracoesPage() {
   );
 
   return (
-    <main className="p-[30px_28px_20px_28px] flex-1 flex flex-col items-center overflow-y-auto">
+    <main data-tour="tour-gestor-config-view" className="p-[30px_28px_20px_28px] flex-1 flex flex-col items-center overflow-y-auto">
           
           <div className="w-full max-w-[1100px] flex flex-col items-center flex-1">
             

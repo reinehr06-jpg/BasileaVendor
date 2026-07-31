@@ -33,7 +33,7 @@ export default function ClientesPage() {
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
 
   return (
-    <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col min-h-0 relative">
+    <main data-tour="tour-vendedor-clientes-view" className="p-[24px_28px_20px_28px] flex-1 flex flex-col min-h-0 relative">
 
       {/* CARD PRINCIPAL */}
       <div className="bg-white rounded-[18px] flex-1 border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col">

@@ -64,7 +64,7 @@ export default function EquipesPage() {
         <Topbar />
 
         {/* CONTENT */}
-        <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
+        <main data-tour="tour-lista-equipes" className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
 
           {/* CARD PRINCIPAL */}
           <div className="bg-white rounded-[18px] flex-1 border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col">
@@ -83,7 +83,7 @@ export default function EquipesPage() {
             {/* Toolbar: Botão e Buscas */}
             <div className="p-[24px] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-[16px]">
               <div className="flex items-center gap-[12px]">
-                <Link href="/gestao-comercial/equipes/nova" className="flex items-center gap-[6px] px-[16px] py-[10px] bg-[#6D28D9] text-white text-[13px] font-[600] rounded-[8px] hover:bg-[#5B21B6] transition-colors shadow-sm uppercase tracking-wide shrink-0">
+                <Link data-tour="tour-nova-equipe-btn" href="/gestao-comercial/equipes/nova" className="flex items-center gap-[6px] px-[16px] py-[10px] bg-[#6D28D9] text-white text-[13px] font-[600] rounded-[8px] hover:bg-[#5B21B6] transition-colors shadow-sm uppercase tracking-wide shrink-0">
                   <Plus className="w-[16px] h-[16px]" strokeWidth={2.4} />
                   {t("NOVA EQUIPE")}
                 </Link>

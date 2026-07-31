@@ -11,11 +11,14 @@ import {
   ChevronDown,
   ChevronUp,
   X,
-  Rocket
+  Rocket,
+  Calendar
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useRouter } from "next/navigation";
+import CustomSelect from "@/components/CustomSelect";
+import CustomDatePicker from "@/components/CustomDatePicker";
 
 type SectionType = "produto" | "regras" | null;
 
@@ -227,11 +230,10 @@ export default function NovoLinkPage() {
                         <label className="text-[13px] font-[600] text-[#4B5563]">
                           EXPIRAÇÃO DO LINK
                         </label>
-                        <input
-                          type="date"
+                        <CustomDatePicker 
                           value={expiracao}
-                          onChange={(e) => setExpiracao(e.target.value)}
-                          className="w-full h-[40px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] text-[14px] text-[#1A1A2E] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB] text-[#6B7280]"
+                          onChange={setExpiracao}
+                          placeholder="DD/MM/AAAA"
                         />
                       </div>
                     </div>
@@ -242,15 +244,16 @@ export default function NovoLinkPage() {
                         <label className="text-[13px] font-[600] text-[#4B5563]">
                           MEIOS DE PAGAMENTO
                         </label>
-                        <select
+                        <CustomSelect
                           value={meiosPagamento}
-                          onChange={(e) => setMeiosPagamento(e.target.value)}
-                          className="w-full h-[40px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] text-[14px] text-[#1A1A2E] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB]"
-                        >
-                          <option value="todos">Todos (Pix, Cartão, Boleto)</option>
-                          <option value="pix">Apenas Pix</option>
-                          <option value="cartao">Apenas Cartão de Crédito</option>
-                        </select>
+                          onChange={setMeiosPagamento}
+                          options={[
+                            { value: "todos", label: "Todos (Pix, Cartão, Boleto)" },
+                            { value: "pix", label: "Apenas Pix" },
+                            { value: "cartao", label: "Apenas Cartão de Crédito" }
+                          ]}
+                          className="h-[40px]"
+                        />
                       </div>
 
                       {/* Tipo de Cobrança */}
@@ -258,14 +261,15 @@ export default function NovoLinkPage() {
                         <label className="text-[13px] font-[600] text-[#4B5563]">
                           TIPO DE COBRANÇA
                         </label>
-                        <select
+                        <CustomSelect
                           value={tipoCobranca}
-                          onChange={(e) => setTipoCobranca(e.target.value)}
-                          className="w-full h-[40px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] text-[14px] text-[#1A1A2E] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB]"
-                        >
-                          <option value="avulsa">Cobrança Avulsa</option>
-                          <option value="assinatura">Assinatura / Recorrente</option>
-                        </select>
+                          onChange={setTipoCobranca}
+                          options={[
+                            { value: "avulsa", label: "Cobrança Avulsa" },
+                            { value: "assinatura", label: "Assinatura / Recorrente" }
+                          ]}
+                          className="h-[40px]"
+                        />
                       </div>
                     </div>
 

@@ -13,6 +13,7 @@ import {
   X,
   Save,
   Key
+} from "  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -76,7 +77,15 @@ export default function EmailIntegracaoPage() {
               <div className="flex items-start gap-[12px]">
                 <Mail className="w-[24px] h-[24px] text-[#4B5563] mt-[2px]" strokeWidth={2} />
                 <div className="flex flex-col">
-                  <h1 className="text-[24px] font-[700] text-[#111827] leading-tight mb-[4px]">Integrações de Email</h1>
+                  
+              <Link 
+                href="/configuracoes/integracoes"
+                className="flex items-center gap-[8px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors w-fit mb-[16px]"
+              >
+                <ArrowLeft className="w-[16px] h-[16px]" />
+                Voltar
+              </Link>
+<h1 className="text-[24px] font-[700] text-[#111827] leading-tight mb-[4px]">Integrações de Email</h1>
                   <p className="text-[14px] text-[#6B7280]">Configure os canais de comunicação e API de envio.</p>
                 </div>
               </div>

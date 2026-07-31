@@ -65,7 +65,7 @@ export default function MetricasVendasPage() {
   const resumo = data?.resumo;
 
   return (
-    <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col h-full">
+    <main data-tour="tour-gestor-metricas-view" className="p-[24px_28px_20px_28px] flex-1 flex flex-col h-full">
       <div className="bg-white rounded-[18px] flex-1 border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col">
         {/* CABEÇALHO */}
         <div className="p-[16px_24px_0_24px] flex items-center gap-[12px]">

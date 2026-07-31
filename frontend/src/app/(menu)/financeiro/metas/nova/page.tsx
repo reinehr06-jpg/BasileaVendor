@@ -17,6 +17,8 @@ import {
   Save,
   X
 } from "lucide-react";
+import { VendedoresService, Vendedor } from "@/services/vendedores.service";
+import { EquipesService, Equipe } from "@/services/equipes.service";
 
 type SectionType = "dados-principais" | "observacoes" | null;
 
@@ -30,6 +32,19 @@ export default function NovaMetaPage() {
   const [valorMeta, setValorMeta] = useState("");
   const [comissaoMeta, setComissaoMeta] = useState("");
   const [observacoes, setObservacoes] = useState("");
+
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [equipes, setEquipes] = useState<Equipe[]>([]);
+
+  React.useEffect(() => {
+    async function loadData() {
+      const v = await VendedoresService.listar();
+      const e = await EquipesService.listar();
+      setVendedores(v || []);
+      setEquipes(e || []);
+    }
+    loadData();
+  }, []);
 
   const toggleSection = (section: SectionType) => {
     setOpenSection((prev) => (prev === section ? null : section));
@@ -129,10 +144,21 @@ export default function NovaMetaPage() {
                           className="w-full h-[40px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] text-[14px] text-[#1A1A2E] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB]"
                           required
                         >
-                          <option value="" disabled>{t("Selecione um vendedor")}</option>
-                          <option value="1">Anthony Cardoso</option>
-                          <option value="2">Vendedor Padrão</option>
-                          <option value="3">Equipe: Vendas Internas (Todos)</option>
+                          <option value="" disabled>{t("Selecione um vendedor ou equipe")}</option>
+                          <optgroup label="Vendedores">
+                            {vendedores.map(v => (
+                              <option key={`v-${v.id}`} value={`vendedor-${v.id}`}>
+                                {v.nome}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Equipes">
+                            {equipes.map(eq => (
+                              <option key={`e-${eq.id}`} value={`equipe-${eq.id}`}>
+                                Equipe: {eq.nome}
+                              </option>
+                            ))}
+                          </optgroup>
                         </select>
                       </div>
 

@@ -52,8 +52,7 @@ export default function ConfiguracoesPage() {
       description: "Importe vendas e identifique o primeiro mês.",
       icon: <Cloud className="w-[18px] h-[18px] text-[#EA580C]" />,
       iconBg: "bg-[#FFF7ED]",
-      highlight: true,
-      badge: "MARÇO"
+      highlight: false
     },
     {
       id: "monitor",
@@ -103,7 +102,7 @@ export default function ConfiguracoesPage() {
               </div>
             </div>
 
-            <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[16px]">
+            <div data-tour="tour-config-cards" className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-[16px]">
               {filteredModulos.map((modulo) => (
                 <Link
                   key={modulo.id}

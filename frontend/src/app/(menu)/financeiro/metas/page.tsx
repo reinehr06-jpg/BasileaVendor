@@ -126,7 +126,7 @@ export default function MetasPage() {
                   placeholder={t("Vendedor")}
                   triggerClassName="h-[32px] min-w-[150px] bg-white text-[11px]"
                 />
-                <Link href="/financeiro/metas/nova" className="flex items-center gap-[6px] px-[12px] py-[8px] bg-[#6D28D9] text-white text-[11px] font-[600] rounded-[6px] hover:bg-[#5B21B6] transition-colors shadow-sm uppercase tracking-wide whitespace-nowrap">
+                <Link data-tour="tour-nova-meta-btn" href="/financeiro/metas/nova" className="flex items-center gap-[6px] px-[12px] py-[8px] bg-[#6D28D9] text-white text-[11px] font-[600] rounded-[6px] hover:bg-[#5B21B6] transition-colors shadow-sm uppercase tracking-wide whitespace-nowrap">
                   <Plus className="w-[14px] h-[14px]" strokeWidth={2.4} />
                   {t("NOVA META")}
                 </Link>

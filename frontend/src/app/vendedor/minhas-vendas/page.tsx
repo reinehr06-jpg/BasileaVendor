@@ -41,7 +41,7 @@ export default function VendedorMinhasVendasPage() {
   }, [currentPage, busca]);
 
   return (
-    <main className="p-[24px_32px_32px_32px] flex-1 flex flex-col">
+    <main data-tour="tour-vendedor-minhas-vendas-view" className="p-[24px_32px_32px_32px] flex-1 flex flex-col">
       <div className="w-full flex flex-col gap-[24px]">
 
         {/* Page Header (Padrão Admin) */}

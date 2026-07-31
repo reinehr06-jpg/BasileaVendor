@@ -126,7 +126,7 @@ export default function NovaEquipePage() {
             <div className="flex flex-col gap-[16px]">
 
               {/* SEÇÃO 1: DADOS DA EQUIPE */}
-              <div className="bg-white rounded-[12px] border border-[#E5E7EB] overflow-hidden">
+              <div data-tour="tour-nova-equipe-form" className="bg-white rounded-[12px] border border-[#E5E7EB] overflow-hidden">
                 <button 
                   onClick={() => toggleSection("dados-equipe")}
                   className="w-full flex items-center justify-between p-[24px] bg-white hover:bg-[#F9FAFB] transition-colors"

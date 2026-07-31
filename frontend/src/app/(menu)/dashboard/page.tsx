@@ -122,7 +122,7 @@ export default function DashboardPage() {
           </div>
 
           {/* 3 KPIs SUPERIORES */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-[16px] shrink-0 mb-[24px]">
+          <div data-tour="tour-dashboard-kpi" className="grid grid-cols-1 md:grid-cols-3 gap-[16px] shrink-0 mb-[24px]">
             
             {/* KPI 1: Faturamento */}
             <div className="bg-white rounded-[12px] border border-[#E5E7EB] p-[16px] flex flex-col shadow-sm hover:shadow-md transition-shadow">

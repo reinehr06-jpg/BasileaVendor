@@ -17,6 +17,28 @@ export function LoginForm({ setIsRegistering }: { setIsRegistering: (val: boolea
   const { login } = useAuth();
   const router = useRouter();
 
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === "development") {
+      toast.info("Auto-login (Ambiente Local) em andamento...");
+      login({ 
+        email: 'basileia.vendas@basileia.com', 
+        password: 'B4s1131@V3nd4s!2026#Xk9$mP2@nQ7&wZ5!pL8%rT4^vN6*bH0', 
+        remember: true 
+      })
+      .then(res => {
+        toast.success("Login local realizado com sucesso!");
+        if (res.user?.perfil === 'gestor' || res.user?.perfil === 'master') {
+          router.push("/gestor");
+        } else {
+          router.push("/vendedor");
+        }
+      })
+      .catch(err => {
+        console.error("Auto-login falhou:", err);
+      });
+    }
+  }, [login, router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

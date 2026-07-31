@@ -14,6 +14,7 @@ import {
   Eye,
   Clock
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { AprovacoesService } from "@/services/aprovacoes.service";
 
@@ -37,8 +38,40 @@ export default function AprovacoesPage() {
       setAprovacoes(res.data.data || []);
     } catch (error) {
       console.error(error);
+      toast.error("Erro ao carregar aprovações");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAprovar = async (id: number) => {
+    try {
+      const res: any = await AprovacoesService.aprovar(id);
+      if (res.success) {
+        toast.success(res.message || "Aprovado com sucesso!");
+        carregarAprovacoes();
+      } else {
+        toast.error(res.message || "Falha ao aprovar.");
+      }
+    } catch (e) {
+      toast.error("Erro na comunicação com o servidor.");
+    }
+  };
+
+  const handleRejeitar = async (id: number) => {
+    const motivo = window.prompt("Qual o motivo da rejeição?");
+    if (motivo === null) return; // Cancelou
+    
+    try {
+      const res: any = await AprovacoesService.rejeitar(id, motivo);
+      if (res.success) {
+        toast.success(res.message || "Rejeitado com sucesso!");
+        carregarAprovacoes();
+      } else {
+        toast.error(res.message || "Falha ao rejeitar.");
+      }
+    } catch (e) {
+      toast.error("Erro na comunicação com o servidor.");
     }
   };
 
@@ -68,7 +101,7 @@ export default function AprovacoesPage() {
         <Topbar />
 
         {/* CONTENT */}
-        <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
+        <main data-tour="tour-aprovacoes-tabela" className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
 
           {/* KPIs Resumo (Pequenos e discretos antes do card principal) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-[16px] mb-[20px]">
@@ -198,10 +231,18 @@ export default function AprovacoesPage() {
                     </Link>
                     {a.status === "Pendente" && (
                       <>
-                        <button title="Aprovar" className="w-[30px] h-[30px] rounded-[8px] bg-[#ECFDF5] flex items-center justify-center hover:bg-[#D1FAE5] transition-colors">
+                        <button 
+                          onClick={() => handleAprovar(parseInt(a.id.replace('#', '')))}
+                          title="Aprovar" 
+                          className="w-[30px] h-[30px] rounded-[8px] bg-[#ECFDF5] flex items-center justify-center hover:bg-[#D1FAE5] transition-colors"
+                        >
                           <CheckCircle2 className="w-[14px] h-[14px] text-[#059669]" strokeWidth={2.2} />
                         </button>
-                        <button title="Rejeitar" className="w-[30px] h-[30px] rounded-[8px] bg-[#FEF2F2] flex items-center justify-center hover:bg-[#FEE2E2] transition-colors">
+                        <button 
+                          onClick={() => handleRejeitar(parseInt(a.id.replace('#', '')))}
+                          title="Rejeitar" 
+                          className="w-[30px] h-[30px] rounded-[8px] bg-[#FEF2F2] flex items-center justify-center hover:bg-[#FEE2E2] transition-colors"
+                        >
                           <XCircle className="w-[14px] h-[14px] text-[#DC2626]" strokeWidth={2.2} />
                         </button>
                       </>

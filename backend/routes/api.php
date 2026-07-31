@@ -37,6 +37,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Segurança & 2FA
     Route::get('/settings/security/users', [\App\Http\Controllers\Api\SecurityController::class, 'getUsers']);
     Route::get('/settings/security/devices', [\App\Http\Controllers\Api\SecurityController::class, 'getDevices']);
+
+    Route::apiResource('termos', \App\Http\Controllers\TermoController::class);
+
+    Route::get('/settings/integracoes', [\App\Http\Controllers\Api\IntegracoesController::class, 'getStatus']);
+    Route::get('/settings/monitor', [\App\Http\Controllers\Api\MonitorController::class, 'getLogs']);
+
     Route::post('/settings/security/devices/generate', [\App\Http\Controllers\Api\SecurityController::class, 'generateDevice']);
     Route::post('/settings/security/devices/confirm', [\App\Http\Controllers\Api\SecurityController::class, 'confirmDevice']);
     Route::delete('/settings/security/devices', [\App\Http\Controllers\Api\SecurityController::class, 'removeDevice']);
@@ -49,6 +55,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/clientes-asaas/{id}', [\App\Http\Controllers\Api\ClientesAsaasController::class, 'show']);
     Route::put('/clientes-asaas/{id}', [\App\Http\Controllers\Api\ClientesAsaasController::class, 'update']);
     Route::post('/clientes-asaas/sincronizar', [\App\Http\Controllers\Master\AsaasClienteSyncController::class, 'sincronizar']);
+    Route::post('/importacao/excel', [\App\Http\Controllers\Api\ImportacaoExcelController::class, 'importar']);
 
     // Vendas API
     Route::get('/vendas', [\App\Http\Controllers\Api\VendasController::class, 'index']);
@@ -124,6 +131,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Aprovações API
     Route::get('/aprovacoes', [\App\Http\Controllers\Api\AprovacaoController::class, 'index']);
+    Route::post('/aprovacoes/{id}/aprovar', [\App\Http\Controllers\Api\AprovacaoController::class, 'aprovar']);
+    Route::post('/aprovacoes/{id}/rejeitar', [\App\Http\Controllers\Api\AprovacaoController::class, 'rejeitar']);
 
     // Vendedores API
     Route::get('/vendedores', [\App\Http\Controllers\Api\VendedorController::class, 'index']);

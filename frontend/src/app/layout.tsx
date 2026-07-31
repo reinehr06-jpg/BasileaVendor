@@ -10,6 +10,8 @@ export const metadata: Metadata = {
 
 import { Toaster } from "sonner";
 
+import { TourProvider } from "@/contexts/TourContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -20,7 +22,9 @@ export default function RootLayout({
       <body className={`font-sans bg-[#F9FAFB] text-[#111827] antialiased`}>
         <LocaleProvider>
           <AuthProvider>
-            {children}
+            <TourProvider>
+              {children}
+            </TourProvider>
           </AuthProvider>
         </LocaleProvider>
 

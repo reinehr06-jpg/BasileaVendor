@@ -77,7 +77,7 @@ export default function PagamentosPage() {
         <Topbar />
 
         {/* CONTENT */}
-        <main className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
+        <main data-tour="tour-pagamentos-tabela" className="p-[24px_28px_20px_28px] flex-1 flex flex-col">
 
           {/* KPIs Resumo */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-[16px] mb-[20px]">

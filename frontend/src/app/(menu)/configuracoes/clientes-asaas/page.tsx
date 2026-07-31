@@ -8,12 +8,14 @@ import {
   ArrowLeft, Cloud, History, RefreshCw, Search, Filter, Users, 
   CheckCircle2, AlertTriangle, XCircle, UserX, DollarSign, 
   ChevronDown, Eye, Edit2, UserCheck, AlertCircle, UserMinus, 
-  ChevronLeft, ChevronRight, MoreHorizontal, ArrowUpRight, Check
+  ChevronLeft, ChevronRight, MoreHorizontal, ArrowUpRight, Check,
+  FileSpreadsheet
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import CustomSelect from "@/components/CustomSelect";
 import Pagination from "@/components/Pagination";
+import ImportExcelModal from "@/components/ImportExcelModal";
 
 type Tab = "todos" | "ativos" | "churn" | "cancelados" | "sem_vendedor";
 
@@ -21,6 +23,7 @@ export default function ClientesAsaasPage() {
   const [activeTab, setActiveTab] = useState<Tab>("todos");
   const [selectedClients, setSelectedClients] = useState<number[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Filtros
   const [busca, setBusca] = useState("");
@@ -170,9 +173,16 @@ export default function ClientesAsaasPage() {
               </div>
 
               <div className="flex items-center gap-[12px] mt-[20px] md:mt-0 relative z-10">
+                <button 
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="flex items-center gap-[8px] px-[16px] py-[10px] bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 transition-all rounded-[10px] text-white text-[13px] font-[600] shadow-sm"
+                >
+                  <FileSpreadsheet className="w-[16px] h-[16px]" />
+                  Importar Excel
+                </button>
                 <button className="flex items-center gap-[8px] px-[16px] py-[10px] bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 transition-all rounded-[10px] text-white text-[13px] font-[600] shadow-sm">
                   <History className="w-[16px] h-[16px]" />
-                  Auditoria Retroativa
+                  Auditoria
                 </button>
                 <button 
                   onClick={handleSyncAsaas}
@@ -308,22 +318,22 @@ export default function ClientesAsaasPage() {
 
               {/* BARRA DE AÇÕES EM MASSA (Elegante) */}
               {selectedClients.length > 0 && (
-                <div className="bg-[#EEF2FF] border-b border-[#C7D2FE] p-[12px_24px] flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="bg-[#F4EEFF] border-b border-[#D8B4FE] p-[12px_24px] flex items-center justify-between animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="flex items-center gap-[12px]">
-                    <div className="flex items-center justify-center w-[24px] h-[24px] bg-[#6366F1] text-white rounded-full text-[12px] font-[700]">
+                    <div className="flex items-center justify-center w-[24px] h-[24px] bg-[#6D28D9] text-white rounded-full text-[12px] font-[700]">
                       {selectedClients.length}
                     </div>
-                    <span className="text-[14px] font-[600] text-[#3730A3]">clientes selecionados</span>
+                    <span className="text-[14px] font-[600] text-[#4C1D95]">clientes selecionados</span>
                   </div>
                   
                   <div className="flex items-center gap-[12px]">
-                    <select className="px-[12px] py-[8px] bg-white border border-[#C7D2FE] rounded-[8px] text-[13px] text-[#3730A3] font-[500] outline-none focus:border-[#6366F1] w-[200px]">
+                    <select className="px-[12px] py-[8px] bg-white border border-[#D8B4FE] rounded-[8px] text-[13px] text-[#4C1D95] font-[500] outline-none focus:border-[#6D28D9] w-[200px]">
                       <option value="">— Selecionar Vendedor —</option>
                       {vendedores.map(v => (
                         <option key={v.id} value={v.id}>{v.nome}</option>
                       ))}
                     </select>
-                    <button className="flex items-center gap-[6px] px-[16px] py-[8px] bg-[#6366F1] hover:bg-[#4F46E5] text-white rounded-[8px] text-[13px] font-[600] transition-colors shadow-sm">
+                    <button className="flex items-center gap-[6px] px-[16px] py-[8px] bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-[8px] text-[13px] font-[600] transition-colors shadow-sm">
                       <UserCheck className="w-[14px] h-[14px]" />
                       Atribuir Vendedor
                     </button>
@@ -346,7 +356,7 @@ export default function ClientesAsaasPage() {
                           type="checkbox" 
                           checked={clients.length > 0 && selectedClients.length === clients.length}
                           onChange={toggleSelectAll}
-                          className="w-[16px] h-[16px] rounded-[4px] border-[#CBD5E1] text-[#6366F1] focus:ring-[#6366F1] cursor-pointer"
+                          className="w-[16px] h-[16px] rounded-[4px] border-[#CBD5E1] text-[#6D28D9] focus:ring-[#6D28D9] cursor-pointer"
                         />
                       </th>
                       <th className="p-[16px_24px] text-[12px] font-[700] text-[#64748B] uppercase tracking-wider">Cliente</th>
@@ -367,7 +377,7 @@ export default function ClientesAsaasPage() {
                             type="checkbox" 
                             checked={selectedClients.includes(client.id)}
                             onChange={() => toggleSelect(client.id)}
-                            className="w-[16px] h-[16px] rounded-[4px] border-[#CBD5E1] text-[#6366F1] focus:ring-[#6366F1] cursor-pointer"
+                            className="w-[16px] h-[16px] rounded-[4px] border-[#CBD5E1] text-[#6D28D9] focus:ring-[#6D28D9] cursor-pointer"
                           />
                         </td>
                         <td className="p-[16px_24px]">
@@ -454,6 +464,12 @@ export default function ClientesAsaasPage() {
           </div>
         </main>
       </div>
+
+      <ImportExcelModal 
+        isOpen={isImportModalOpen} 
+        onClose={() => setIsImportModalOpen(false)} 
+        type="clientes" 
+      />
     </div>
   );
 }

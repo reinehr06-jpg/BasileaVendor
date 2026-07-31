@@ -31,6 +31,25 @@ export default function LinksPagamentoPage() {
           
           <div className="w-full flex flex-col gap-[24px] max-w-[1200px] mx-auto">
             
+            {/* Cabeçalho */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-[16px]">
+              <div className="flex items-center gap-[12px]">
+                <div className="w-[36px] h-[36px] rounded-[10px] bg-white border border-[#E5E7EB] shadow-sm flex items-center justify-center shrink-0">
+                  <Link2 className="w-[18px] h-[18px] text-[#6B7280]" strokeWidth={2.2} />
+                </div>
+                <h1 className="text-[22px] font-[700] text-[#1A1A2E] leading-tight">
+                  Links de Pagamento
+                </h1>
+              </div>
+              <Link 
+                data-tour="tour-novo-link-btn"
+                href="/financeiro/links-pagamento/novo"
+                className="flex items-center gap-[6px] px-[16px] py-[10px] bg-[#6D28D9] text-white text-[13px] font-[600] rounded-[8px] hover:bg-[#5B21B6] transition-colors shadow-sm uppercase tracking-wide shrink-0"
+              >
+                + NOVO LINK
+              </Link>
+            </div>
+
             {/* KPI CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[20px]">
               

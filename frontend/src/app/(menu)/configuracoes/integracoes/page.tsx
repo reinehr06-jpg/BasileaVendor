@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import Topbar from "@/components/Topbar";
+import { api } from "@/lib/api";
 import { 
   Search,
   CreditCard,
@@ -19,11 +20,25 @@ import {
   CheckCircle2,
   AlertCircle,
   Filter,
-  BarChart2
+  BarChart2,
+  ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function IntegracoesPage() {
+  const [status, setStatus] = useState<any>({});
+  
+  useEffect(() => {
+    async function loadStatus() {
+      try {
+        const res = await api.get<any>('/settings/integracoes');
+        setStatus(res);
+      } catch(e) {
+        console.error(e);
+      }
+    }
+    loadStatus();
+  }, []);
 
   // Componente de Estatística no Topo
   const StatItem = ({ icon, count, label, colorClass }: any) => (
@@ -126,11 +141,20 @@ export default function IntegracoesPage() {
           <div className="w-full max-w-[1100px] mx-auto p-[40px_32px_80px_32px] flex flex-col gap-[32px]">
             
             {/* 🏷️ HEADER E STATUS BAR */}
-            <div className="flex items-start justify-between w-full">
-              <div className="flex flex-col">
-                <h1 className="text-[28px] font-[800] text-[#111827] leading-tight mb-[8px]">Integrações</h1>
-                <p className="text-[14px] text-[#6B7280]">Conecte serviços e automatize seus processos.</p>
-              </div>
+            <div className="flex flex-col gap-[16px] w-full">
+              <Link 
+                href="/configuracoes"
+                className="flex items-center gap-[8px] text-[14px] font-[600] text-[#6B7280] hover:text-[#111827] transition-colors w-fit"
+              >
+                <ArrowLeft className="w-[16px] h-[16px]" />
+                Voltar para Configurações
+              </Link>
+              
+              <div className="flex items-start justify-between w-full">
+                <div className="flex flex-col">
+                  <h1 className="text-[28px] font-[800] text-[#111827] leading-tight mb-[8px]">Integrações</h1>
+                  <p className="text-[14px] text-[#6B7280]">Conecte serviços e automatize seus processos.</p>
+                </div>
 
               {/* Status Bar (Right) */}
               <div className="bg-white rounded-[16px] border border-[#E5E7EB] p-[8px] flex items-center shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
@@ -157,7 +181,7 @@ export default function IntegracoesPage() {
                 <div className="w-[1px] h-[32px] bg-[#F3F4F6]"></div>
                 <StatItem 
                   icon={<BarChart2 className="w-[18px] h-[18px] text-[#8B5CF6]" strokeWidth={2.5} />} 
-                  count="10" 
+                  count="8" 
                   label="Total" 
                   colorClass="bg-[#F5F3FF]" 
                 />
@@ -198,10 +222,10 @@ export default function IntegracoesPage() {
                     icon={<CreditCard strokeWidth={2} />}
                     title="Asaas Gateway"
                     subtitle="API, Webhook e Ambiente"
-                    status="Conectado"
-                    statusColor="green"
-                    activityTitle="Sincronização ativa"
-                    activitySubtitle="Última atividade há 2 min"
+                    status={status?.asaas || "Disponível"}
+                    statusColor={status?.asaas === 'Conectado' ? "green" : "gray"}
+                    activityTitle={status?.asaas === 'Conectado' ? "Sincronização ativa" : "Não configurado"}
+                    activitySubtitle="Integração de pagamentos"
                     buttonText="Configurar"
                     href="/configuracoes/integracoes/asaas"
                   />
@@ -209,10 +233,10 @@ export default function IntegracoesPage() {
                     icon={<DollarSign strokeWidth={2} />}
                     title="Split & Repasse"
                     subtitle="Comissões automáticas"
-                    status="Ativo"
-                    statusColor="green"
-                    activityTitle="Tudo funcionando"
-                    activitySubtitle="Última atividade há 15 min"
+                    status={status?.split || "Desativado"}
+                    statusColor={status?.split === 'Ativo' ? "green" : "gray"}
+                    activityTitle={status?.split === 'Ativo' ? "Tudo funcionando" : "Não configurado"}
+                    activitySubtitle="Repasse para vendedores"
                     buttonText="Configurar"
                     href="/configuracoes/integracoes/split"
                   />
@@ -220,10 +244,10 @@ export default function IntegracoesPage() {
                     icon={<MonitorSmartphone strokeWidth={2} />}
                     title="Checkout Externo"
                     subtitle="URL de pagamento"
-                    status="Configurado"
-                    statusColor="green"
+                    status={status?.checkout || "Configurado"}
+                    statusColor={status?.checkout === 'Configurado' ? "green" : "gray"}
                     activityTitle="Recebendo pagamentos"
-                    activitySubtitle="Última atividade há 1 hora"
+                    activitySubtitle="Checkout transparente"
                     buttonText="Configurar"
                     href="/configuracoes/integracoes/checkout"
                   />
@@ -242,10 +266,10 @@ export default function IntegracoesPage() {
                     icon={<MessageCircle strokeWidth={2} />}
                     title="Google & Meta"
                     subtitle="Chat e captura de leads"
-                    status="Conectado"
-                    statusColor="green"
-                    activityTitle="Recebendo mensagens"
-                    activitySubtitle="Última atividade há 2 min"
+                    status={status?.meta || "Pendente"}
+                    statusColor={status?.meta === 'Conectado' ? "green" : "yellow"}
+                    activityTitle={status?.meta === 'Conectado' ? "Recebendo mensagens" : "Aguardando configuração"}
+                    activitySubtitle="WhatsApp, Meta e Ads"
                     buttonText="Configurar"
                     href="/configuracoes/integracoes/leads"
                   />
@@ -253,10 +277,10 @@ export default function IntegracoesPage() {
                     icon={<Mail strokeWidth={2} />}
                     title="Email Remetente"
                     subtitle="Envio de comunicados"
-                    status="Pendente"
-                    statusColor="gray"
-                    activityTitle="Aguardando configuração"
-                    activitySubtitle="Nenhum email enviado"
+                    status={status?.email || "Pendente"}
+                    statusColor={status?.email === 'Conectado' ? "green" : "yellow"}
+                    activityTitle={status?.email === 'Conectado' ? "Ativo" : "Aguardando configuração"}
+                    activitySubtitle="Notificações SMTP"
                     buttonText="Configurar"
                     href="/configuracoes/integracoes/email"
                   />
@@ -264,7 +288,7 @@ export default function IntegracoesPage() {
                     icon={<MessageCircle strokeWidth={2} />}
                     title="Chat E Leads"
                     subtitle="Webhooks e automações"
-                    status="Disponível"
+                    status={status?.chat || "Disponível"}
                     statusColor="gray"
                     activityTitle="Não configurado"
                     activitySubtitle="Nenhuma atividade"
@@ -285,10 +309,10 @@ export default function IntegracoesPage() {
                     icon={<Bot strokeWidth={2} />}
                     title="Inteligência Artificial"
                     subtitle="IA, Machine Learning e Automação"
-                    status="Ativo"
-                    statusColor="green"
-                    activityTitle="Processos ativos"
-                    activitySubtitle="Última atividade há 10 min"
+                    status={status?.ia || "Disponível"}
+                    statusColor={status?.ia === 'Ativo' ? "green" : "gray"}
+                    activityTitle={status?.ia === 'Ativo' ? "Processos ativos" : "Não configurado"}
+                    activitySubtitle="OpenAI ChatGPT"
                     buttonText="Configurar"
                     href="/configuracoes/integracoes/ia"
                   />
@@ -296,7 +320,7 @@ export default function IntegracoesPage() {
                     icon={<Code strokeWidth={2} />}
                     title="Webhooks"
                     subtitle="Endpoints e integrações"
-                    status="Disponível"
+                    status={status?.webhooks || "Disponível"}
                     statusColor="gray"
                     activityTitle="Não configurado"
                     activitySubtitle="Nenhuma atividade"
