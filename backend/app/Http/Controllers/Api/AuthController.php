@@ -35,9 +35,9 @@ class AuthController extends Controller
         
         $perfil = strtolower($user->perfil ?? 'vendedor');
 
-        // Verificar se é master/gestor e não tem 2FA (Bypass in local environment)
+        // Verificar se não tem 2FA configurado (Bypass in local environment)
         if (!app()->environment('local')) {
-            if (in_array($perfil, ['master', 'gestor']) && !$user->two_factor_secret) {
+            if (!$user->two_factor_secret) {
                 return response()->json([
                     'requires_2fa_setup' => true,
                     'user_id' => $user->id,
