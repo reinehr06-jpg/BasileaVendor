@@ -33,6 +33,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [\App\Http\Controllers\Api\AuthController::class, 'me']);
     Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout']);
     Route::put('/auth/termos', [\App\Http\Controllers\Api\AuthController::class, 'aceitarTermos']);
+
+    // Segurança & 2FA
+    Route::get('/settings/security/devices', [\App\Http\Controllers\Api\SecurityController::class, 'getDevices']);
+    Route::post('/settings/security/devices/generate', [\App\Http\Controllers\Api\SecurityController::class, 'generateDevice']);
+    Route::post('/settings/security/devices/confirm', [\App\Http\Controllers\Api\SecurityController::class, 'confirmDevice']);
+    Route::delete('/settings/security/devices', [\App\Http\Controllers\Api\SecurityController::class, 'removeDevice']);
     
     // Dashboard API
     Route::get('/dashboard', [\App\Http\Controllers\Api\DashboardController::class, 'index']);

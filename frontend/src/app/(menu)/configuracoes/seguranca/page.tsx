@@ -14,8 +14,32 @@ import {
   Check
 } from "lucide-react";
 import { toast } from "sonner";
+import { SecurityService } from "@/services/security.service";
 
 export default function SegurancaPage() {
+  const [devices, setDevices] = React.useState<any[]>([]);
+
+  React.useEffect(() => {
+    loadDevices();
+  }, []);
+
+  const loadDevices = async () => {
+    const res = await SecurityService.getDevices();
+    if (res.success) {
+      setDevices(res.data);
+    }
+  };
+
+  const handleRemoveDevice = async (deviceName: string) => {
+    const toastId = toast.loading("Removendo...");
+    const res = await SecurityService.removeDevice(deviceName);
+    if (res.success) {
+      toast.success(res.message, { id: toastId });
+      loadDevices();
+    } else {
+      toast.error(res.error, { id: toastId });
+    }
+  };
 
   const Toggle = ({ active }: { active: boolean }) => (
     <div className={`w-[40px] h-[22px] rounded-full flex items-center p-[2px] transition-colors cursor-not-allowed ${active ? 'bg-[#A78BFA]' : 'bg-[#E5E7EB]'}`}>
@@ -134,9 +158,9 @@ export default function SegurancaPage() {
                   <Smartphone className="w-[20px] h-[20px] text-[#4B5563]" strokeWidth={2.5} />
                   <h2 className="text-[18px] font-[700] text-[#4B5563]">Gerenciar Autenticação 2FA</h2>
                 </div>
-                <button className="bg-[#8B5CF6] hover:bg-[#7C3AED] transition-colors text-white px-[16px] py-[8px] rounded-[6px] text-[13px] font-[600] shadow-sm flex items-center gap-[6px]">
+                <Link href="/configuracoes/seguranca/novo" className="bg-[#8B5CF6] hover:bg-[#7C3AED] transition-colors text-white px-[16px] py-[8px] rounded-[6px] text-[13px] font-[600] shadow-sm flex items-center gap-[6px]">
                   <span className="text-[16px] leading-none mb-[2px]">+</span> Novo Dispositivo
-                </button>
+                </Link>
               </div>
 
               <div className="w-full overflow-x-auto">
@@ -152,39 +176,38 @@ export default function SegurancaPage() {
                   </thead>
                   <tbody className="divide-y divide-[#E5E7EB]">
                     
-                    {[
-                      { nome: "Administrador Master", email: "basileia.vendas@basileia.com", disp: "Dispositivo Principal", perfil: "MASTER", badgeBg: "bg-[#F3E8FF]", badgeText: "text-[#6D28D9]" },
-                      { nome: "Administrador Master", email: "basileia.vendas@basileia.com", disp: "Fernando Laudino", perfil: "MASTER", badgeBg: "bg-[#F3E8FF]", badgeText: "text-[#6D28D9]" },
-                      { nome: "Anthony Cardoso", email: "anthony.cardoso@basileia.global", disp: "Dispositivo Principal", perfil: "GESTOR", badgeBg: "bg-[#E0E7FF]", badgeText: "text-[#4338CA]" },
-                      { nome: "Gestor de testes", email: "teste@gestor.com", disp: "Dispositivo Principal", perfil: "GESTOR", badgeBg: "bg-[#E0E7FF]", badgeText: "text-[#4338CA]" },
-                      { nome: "Pamela Gimenez", email: "pame.ag.88@gmail.com", disp: "Pamela Gimenez", perfil: "VENDEDOR", badgeBg: "bg-[#DCFCE7]", badgeText: "text-[#15803D]" },
-                      { nome: "Vendedor de Testes", email: "vinicius@basileia.global", disp: "Dispositivo Principal", perfil: "VENDEDOR", badgeBg: "bg-[#DCFCE7]", badgeText: "text-[#15803D]" },
-                    ].map((row, i) => (
+                    {devices.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-[24px] py-[32px] text-center text-[14px] text-[#6B7280]">
+                          Nenhum dispositivo 2FA configurado.
+                        </td>
+                      </tr>
+                    ) : devices.map((row, i) => (
                       <tr key={i} className="hover:bg-[#F9FAFB] transition-colors">
                         <td className="px-[24px] py-[16px]">
                           <div className="flex items-center gap-[8px]">
                             <Smartphone className="w-[16px] h-[16px] text-[#8B5CF6]" strokeWidth={2.5} />
-                            <span className="text-[14px] font-[700] text-[#4B5563]">{row.disp}</span>
+                            <span className="text-[14px] font-[700] text-[#4B5563]">{row.dispositivo}</span>
                           </div>
                         </td>
                         <td className="px-[24px] py-[16px]">
                           <div className="flex flex-col">
-                            <span className="text-[14px] font-[700] text-[#4B5563]">{row.nome}</span>
+                            <span className="text-[14px] font-[700] text-[#4B5563]">{row.usuario}</span>
                             <span className="text-[12px] text-[#9CA3AF]">{row.email}</span>
                           </div>
                         </td>
                         <td className="px-[24px] py-[16px]">
-                          <span className={`px-[8px] py-[4px] rounded-[6px] text-[11px] font-[800] tracking-wide ${row.badgeBg} ${row.badgeText}`}>
+                          <span className={`px-[8px] py-[4px] rounded-[6px] text-[11px] font-[800] tracking-wide ${row.perfil === 'MASTER' ? 'bg-[#F3E8FF] text-[#6D28D9]' : row.perfil === 'GESTOR' ? 'bg-[#E0E7FF] text-[#4338CA]' : 'bg-[#DCFCE7] text-[#15803D]'}`}>
                             {row.perfil}
                           </span>
                         </td>
                         <td className="px-[24px] py-[16px]">
                           <span className="px-[8px] py-[4px] bg-[#DCFCE7] text-[#15803D] rounded-[6px] text-[11px] font-[800] flex items-center gap-[4px] w-fit tracking-wide">
-                            <Check className="w-[12px] h-[12px]" strokeWidth={3} /> ATIVO
+                            <Check className="w-[12px] h-[12px]" strokeWidth={3} /> {row.status}
                           </span>
                         </td>
                         <td className="px-[24px] py-[16px]">
-                          <button onClick={() => toast.success("Dispositivo removido!")} className="flex items-center gap-[6px] px-[12px] py-[6px] text-[#EF4444] border border-[#FECACA] rounded-[6px] text-[13px] font-[600] hover:bg-[#FEF2F2] transition-colors">
+                          <button onClick={() => handleRemoveDevice(row.dispositivo)} className="flex items-center gap-[6px] px-[12px] py-[6px] text-[#EF4444] border border-[#FECACA] rounded-[6px] text-[13px] font-[600] hover:bg-[#FEF2F2] transition-colors">
                             <Trash2 className="w-[14px] h-[14px]" /> Remover
                           </button>
                         </td>
