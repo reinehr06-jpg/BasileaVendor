@@ -187,6 +187,7 @@ export default function IntegracoesPage() {
                 />
               </div>
             </div>
+          </div>
 
             {/* 🔍 BARRA DE PESQUISA E FILTRO */}
             <div className="flex items-center justify-between w-full">
