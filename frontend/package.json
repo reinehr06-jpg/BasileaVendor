@@ -45,7 +45,7 @@
     ]
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
+    "approvedBuilds": [
       "@sentry/cli",
       "core-js",
       "msw",
