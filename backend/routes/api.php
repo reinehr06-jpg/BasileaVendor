@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/auth/termos', [\App\Http\Controllers\Api\AuthController::class, 'aceitarTermos']);
 
     // Segurança & 2FA
+    Route::get('/settings/security/users', [\App\Http\Controllers\Api\SecurityController::class, 'getUsers']);
     Route::get('/settings/security/devices', [\App\Http\Controllers\Api\SecurityController::class, 'getDevices']);
     Route::post('/settings/security/devices/generate', [\App\Http\Controllers\Api\SecurityController::class, 'generateDevice']);
     Route::post('/settings/security/devices/confirm', [\App\Http\Controllers\Api\SecurityController::class, 'confirmDevice']);

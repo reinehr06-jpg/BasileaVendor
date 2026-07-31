@@ -10,7 +10,7 @@ WORKDIR /app
 RUN corepack enable
 
 # Instala dependências com o lockfile do pnpm (determinístico)
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
 
 # Código-fonte

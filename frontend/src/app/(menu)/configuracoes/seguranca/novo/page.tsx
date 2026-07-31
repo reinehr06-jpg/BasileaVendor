@@ -52,9 +52,23 @@ export default function NovoDispositivoPage() {
   const [generating, setGenerating] = useState(false);
   
   const [deviceName, setDeviceName] = useState("");
+  const [userId, setUserId] = useState<number | "">("");
+  const [users, setUsers] = useState<any[]>([]);
+  
   const [qrCodeHtml, setQrCodeHtml] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [code, setCode] = useState("");
+
+  React.useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    const res = await SecurityService.getUsers();
+    if (res.success) {
+      setUsers(res.data);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!deviceName.trim()) {
@@ -63,7 +77,8 @@ export default function NovoDispositivoPage() {
     }
     
     setGenerating(true);
-    const res = await SecurityService.generateDevice(deviceName);
+    const targetUserId = userId !== "" ? Number(userId) : undefined;
+    const res = await SecurityService.generateDevice(deviceName, targetUserId);
     setGenerating(false);
 
     if (res.success) {
@@ -84,7 +99,8 @@ export default function NovoDispositivoPage() {
     setSaving(true);
     const toastId = toast.loading("Verificando código...");
     
-    const res = await SecurityService.confirmDevice(deviceName, secret, code);
+    const targetUserId = userId !== "" ? Number(userId) : undefined;
+    const res = await SecurityService.confirmDevice(deviceName, secret, code, targetUserId);
     
     if (res.success) {
       toast.success("Dispositivo vinculado com sucesso!", { id: toastId });
@@ -151,6 +167,25 @@ export default function NovoDispositivoPage() {
                     <div className="w-full h-[1px] bg-[#F3F4F6] mb-[4px]"></div>
                     
                     <div className="max-w-md flex flex-col gap-[16px]">
+                      {users.length > 1 && (
+                        <div className="flex flex-col gap-[6px]">
+                          <label className="text-[13px] font-[600] text-[#4B5563]">
+                            {t("Usuário Destino")}
+                          </label>
+                          <select 
+                            value={userId}
+                            onChange={(e) => setUserId(e.target.value as any)}
+                            disabled={!!qrCodeHtml}
+                            className="w-full h-[40px] bg-white border border-[#E5E7EB] rounded-[8px] px-[12px] text-[14px] text-[#1A1A2E] outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all hover:border-[#D1D5DB] disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            <option value="">Meu próprio usuário</option>
+                            {users.map(u => (
+                              <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
                       <InputField 
                         label={t("Nome do Dispositivo")} 
                         placeholder="Ex: iPhone do Sócio, Celular Pessoal"

@@ -11,23 +11,76 @@ use Illuminate\Support\Facades\Auth;
 class SecurityController extends Controller
 {
     /**
-     * Retorna a lista de dispositivos 2FA configurados pelo usuário.
+     * Auxiliar para checar se o usuário logado tem permissão para gerenciar a conta alvo
+     */
+    private function resolveTargetUser(User $currentUser, $targetUserId)
+    {
+        if (!$targetUserId || $currentUser->id == $targetUserId) {
+            return $currentUser;
+        }
+
+        // Permite master ou gestor alterar de outros
+        if (in_array(strtolower($currentUser->perfil), ['master', 'gestor'])) {
+            return User::findOrFail($targetUserId);
+        }
+
+        return $currentUser;
+    }
+
+    /**
+     * Retorna a lista de usuários ativos para o frontend exibir no Select
+     */
+    public function getUsers(Request $request)
+    {
+        $user = $request->user();
+        if (!in_array(strtolower($user->perfil), ['master', 'gestor'])) {
+            return response()->json([
+                'success' => true,
+                'users' => [
+                    ['id' => $user->id, 'name' => $user->name, 'email' => $user->email]
+                ]
+            ]);
+        }
+
+        $users = User::select('id', 'name', 'email', 'perfil')
+            ->whereIn('status', ['ativo', '1', 1])
+            ->orderBy('name')
+            ->get();
+            
+        return response()->json([
+            'success' => true,
+            'users' => $users
+        ]);
+    }
+
+    /**
+     * Retorna a lista de dispositivos 2FA configurados. 
+     * Se for Master/Gestor, retorna de todos os usuários (como no painel original).
+     * Se for Vendedor, retorna só os dele.
      */
     public function getDevices(Request $request)
     {
-        $user = $request->user();
-        $devices = $this->parseTwoFactorDevices($user->two_factor_secret);
-        
-        // Formatar para a view do frontend
+        $currentUser = $request->user();
         $formatted = [];
-        foreach ($devices as $device) {
-            $formatted[] = [
-                'dispositivo' => $device['name'],
-                'usuario' => $user->name,
-                'email' => $user->email,
-                'perfil' => strtoupper($user->perfil ?? 'VENDEDOR'),
-                'status' => 'Ativo'
-            ];
+
+        if (in_array(strtolower($currentUser->perfil), ['master', 'gestor'])) {
+            $users = User::whereNotNull('two_factor_secret')->get();
+        } else {
+            $users = collect([$currentUser]);
+        }
+
+        foreach ($users as $u) {
+            $devices = $this->parseTwoFactorDevices($u->two_factor_secret);
+            foreach ($devices as $device) {
+                $formatted[] = [
+                    'dispositivo' => $device['name'],
+                    'usuario' => $u->name,
+                    'email' => $u->email,
+                    'perfil' => strtoupper($u->perfil ?? 'VENDEDOR'),
+                    'status' => 'Ativo',
+                    'user_id' => $u->id
+                ];
+            }
         }
         
         return response()->json([
@@ -42,27 +95,31 @@ class SecurityController extends Controller
     public function generateDevice(Request $request)
     {
         $request->validate([
-            'device_name' => 'required|string|max:60'
+            'device_name' => 'required|string|max:60',
+            'user_id' => 'nullable|integer'
         ]);
 
-        $user = $request->user();
+        $currentUser = $request->user();
+        $targetUser = $this->resolveTargetUser($currentUser, $request->user_id);
+
         $safeName = trim($request->device_name);
         
         // Verifica limite de 5 dispositivos
-        $devices = $this->parseTwoFactorDevices($user->two_factor_secret);
+        $devices = $this->parseTwoFactorDevices($targetUser->two_factor_secret);
         if (count($devices) >= 5) {
-            return response()->json(['success' => false, 'message' => 'Máximo de 5 dispositivos permitidos.'], 400);
+            return response()->json(['success' => false, 'message' => 'Máximo de 5 dispositivos permitidos para este usuário.'], 400);
         }
 
         // Gera novo segredo
         $newSecret = TwoFactorAuthService::generateSecret();
-        $qrCodeHtml = TwoFactorAuthService::generateQrCode($user->email . ' (' . $safeName . ')', $newSecret, config('app.name'));
+        $qrCodeHtml = TwoFactorAuthService::generateQrCode($targetUser->email . ' (' . $safeName . ')', $newSecret, config('app.name'));
 
         return response()->json([
             'success' => true,
             'qr_code_html' => $qrCodeHtml,
             'secret' => $newSecret,
-            'device_name' => $safeName
+            'device_name' => $safeName,
+            'user_id' => $targetUser->id
         ]);
     }
 
@@ -74,10 +131,13 @@ class SecurityController extends Controller
         $request->validate([
             'device_name' => 'required|string|max:60',
             'secret' => 'required|string',
-            'code' => 'required|string|size:6'
+            'code' => 'required|string|size:6',
+            'user_id' => 'nullable|integer'
         ]);
 
-        $user = $request->user();
+        $currentUser = $request->user();
+        $targetUser = $this->resolveTargetUser($currentUser, $request->user_id);
+
         $secret = $request->secret;
         $code = $request->code;
         $deviceName = trim($request->device_name);
@@ -90,7 +150,7 @@ class SecurityController extends Controller
 
         // Salvar no BD
         $pairs = [];
-        $current = $user->two_factor_secret ?: '';
+        $current = $targetUser->two_factor_secret ?: '';
 
         if (!empty($current)) {
             foreach (explode(',', $current) as $entry) {
@@ -107,18 +167,18 @@ class SecurityController extends Controller
 
         $pairs[] = $deviceName . '|' . $secret;
         
-        $user->two_factor_secret = implode(',', $pairs);
-        $user->two_factor_enabled = true;
+        $targetUser->two_factor_secret = implode(',', $pairs);
+        $targetUser->two_factor_enabled = true;
         
-        if (empty($user->recovery_codes)) {
-            $user->recovery_codes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
+        if (empty($targetUser->recovery_codes)) {
+            $targetUser->recovery_codes = json_encode(TwoFactorAuthService::generateRecoveryCodes());
         }
         
-        $user->save();
+        $targetUser->save();
 
         return response()->json([
             'success' => true,
-            'message' => 'Dispositivo vinculado com sucesso!'
+            'message' => 'Dispositivo vinculado com sucesso para ' . $targetUser->name . '!'
         ]);
     }
 
@@ -128,14 +188,17 @@ class SecurityController extends Controller
     public function removeDevice(Request $request)
     {
         $request->validate([
-            'device_name' => 'required|string'
+            'device_name' => 'required|string',
+            'user_id' => 'nullable|integer'
         ]);
 
-        $user = $request->user();
+        $currentUser = $request->user();
+        $targetUser = $this->resolveTargetUser($currentUser, $request->user_id);
+
         $deviceToRemove = trim($request->device_name);
 
         $pairs = [];
-        $current = $user->two_factor_secret ?: '';
+        $current = $targetUser->two_factor_secret ?: '';
 
         if (!empty($current)) {
             foreach (explode(',', $current) as $entry) {
@@ -156,13 +219,13 @@ class SecurityController extends Controller
         }
 
         if (empty($pairs)) {
-            $user->two_factor_secret = null;
-            $user->two_factor_enabled = false;
+            $targetUser->two_factor_secret = null;
+            $targetUser->two_factor_enabled = false;
         } else {
-            $user->two_factor_secret = implode(',', $pairs);
+            $targetUser->two_factor_secret = implode(',', $pairs);
         }
         
-        $user->save();
+        $targetUser->save();
 
         return response()->json([
             'success' => true,
