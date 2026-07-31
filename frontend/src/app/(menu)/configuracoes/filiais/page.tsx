@@ -11,7 +11,6 @@ import {
   MapPin,
   MoreVertical,
   Users
-} from "  ArrowLeft,
 } from "lucide-react";
 
 import { FiliaisService } from "@/services/filiais.service";

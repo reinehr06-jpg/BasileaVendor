@@ -13,7 +13,6 @@ import {
   Save,
   Copy,
   AlertCircle
-} from "  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";

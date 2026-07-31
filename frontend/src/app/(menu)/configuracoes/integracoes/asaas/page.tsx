@@ -14,7 +14,6 @@ import {
   X,
   Save,
   Rocket
-} from "  ArrowLeft,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";

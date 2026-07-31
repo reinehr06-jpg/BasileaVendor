@@ -10,7 +10,6 @@ import {
   ChevronDown, 
   MapPin,
   Wallet
-} from "  ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
 
