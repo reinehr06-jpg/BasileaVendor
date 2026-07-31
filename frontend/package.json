@@ -11,6 +11,7 @@
   "engines": {
     "node": "20.x"
   },
+  "packageManager": "pnpm@9.15.0",
   "dependencies": {
     "@sentry/nextjs": "^10.68.0",
     "date-fns": "^4.4.0",
@@ -45,7 +46,7 @@
     ]
   },
   "pnpm": {
-    "approvedBuilds": [
+    "onlyBuiltDependencies": [
       "@sentry/cli",
       "core-js",
       "msw",
